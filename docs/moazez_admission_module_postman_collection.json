@@ -1,0 +1,1471 @@
+{
+  "info": {
+    "name": "Moazez Backend - Admissions Module",
+    "description": "Full Postman collection for dashboard admissions module: leads, applications, documents, placement tests, interviews, decisions, and accepted registration handoff. Base path is /api/v1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "admin@moazez.dev",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "Admin123!",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "leadId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "applicationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "academicYearId",
+      "value": "22222222-2222-2222-2222-222222222222",
+      "type": "string"
+    },
+    {
+      "key": "gradeId",
+      "value": "33333333-3333-3333-3333-333333333333",
+      "type": "string"
+    },
+    {
+      "key": "sectionId",
+      "value": "55555555-5555-5555-5555-555555555555",
+      "type": "string"
+    },
+    {
+      "key": "classroomId",
+      "value": "66666666-6666-6666-6666-666666666666",
+      "type": "string"
+    },
+    {
+      "key": "termId",
+      "value": "77777777-7777-7777-7777-777777777777",
+      "type": "string"
+    },
+    {
+      "key": "subjectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fileId",
+      "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "type": "string"
+    },
+    {
+      "key": "documentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "placementTestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "interviewId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "interviewerUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "decisionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response is not 500', function () {",
+          "  pm.expect(pm.response.code).to.not.eql(500);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Exchange credentials for JWT tokens.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login success', function () { pm.response.to.have.status(200); });",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+                  "if (jsonData.refreshToken) pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "if (jsonData.tokens && jsonData.tokens.accessToken) pm.collectionVariables.set('accessToken', jsonData.tokens.accessToken);",
+                  "if (jsonData.tokens && jsonData.tokens.refreshToken) pm.collectionVariables.set('refreshToken', jsonData.tokens.refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Validate access token and active school scope."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leads",
+      "description": "",
+      "item": [
+        {
+          "name": "List Leads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "leads"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "New",
+                  "disabled": true
+                },
+                {
+                  "key": "channel",
+                  "value": "Referral",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires admissions.leads.view."
+          }
+        },
+        {
+          "name": "Create Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "leads"
+              ]
+            },
+            "description": "Requires admissions.leads.manage. Status defaults to New.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Omar Ahmed\",\n  \"primaryContactName\": \"Ahmed Mostafa\",\n  \"phone\": \"+201001112233\",\n  \"email\": \"parent@example.com\",\n  \"channel\": \"Referral\",\n  \"notes\": \"Interested in Grade 4\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created lead', function () { pm.response.to.have.status(201); });",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.id) pm.collectionVariables.set('leadId', jsonData.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Lead",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/leads/{{leadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "leads",
+                "{{leadId}}"
+              ]
+            },
+            "description": "Requires admissions.leads.view."
+          }
+        },
+        {
+          "name": "Update Lead",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/leads/{{leadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "leads",
+                "{{leadId}}"
+              ]
+            },
+            "description": "Requires admissions.leads.manage.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Contacted\",\n  \"notes\": \"Called parent and explained admission process\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "description": "",
+      "item": [
+        {
+          "name": "List Applications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "documents_pending",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires admissions.applications.view."
+          }
+        },
+        {
+          "name": "Create Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications"
+              ]
+            },
+            "description": "Requires admissions.applications.manage. New app status is documents_pending.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leadId\": \"{{leadId}}\",\n  \"studentName\": \"Omar Ahmed\",\n  \"requestedAcademicYearId\": \"{{academicYearId}}\",\n  \"requestedGradeId\": \"{{gradeId}}\",\n  \"source\": \"referral\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created application', function () { pm.response.to.have.status(201); });",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.id) pm.collectionVariables.set('applicationId', jsonData.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Application",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "description": "Requires admissions.applications.view."
+          }
+        },
+        {
+          "name": "Update Application",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "description": "Requires admissions.applications.manage.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Omar Ahmed Mostafa\",\n  \"source\": \"referral\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Submit Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "submit"
+              ]
+            },
+            "description": "Requires admissions.applications.manage. Only valid from documents_pending with submittedAt null.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Enrollment Handoff Preview",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/enroll",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "enroll"
+              ]
+            },
+            "description": "Requires accepted app + completed tests/interviews + accept decision.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registration Handoff Wizard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/registration-handoff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "registration-handoff"
+              ]
+            },
+            "description": "Requires accepted app + completed tests/interviews + accept decision."
+          }
+        },
+        {
+          "name": "Register Accepted Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "register"
+              ]
+            },
+            "description": "Requires admissions.applications.manage + students.records.manage + students.guardians.manage + students.enrollments.manage.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student\": {\n    \"name\": \"Omar Ahmed Mostafa\",\n    \"full_name_en\": \"Omar Ahmed Mostafa\",\n    \"dateOfBirth\": \"2017-05-10\",\n    \"gender\": \"male\",\n    \"nationality\": \"Egyptian\",\n    \"status\": \"active\",\n    \"contact\": {\n      \"address_line\": \"Street 1\",\n      \"city\": \"Cairo\",\n      \"district\": \"Nasr City\",\n      \"student_phone\": null,\n      \"student_email\": null\n    }\n  },\n  \"guardians\": [\n    {\n      \"profile\": {\n        \"full_name\": \"Ahmed Mostafa\",\n        \"relation\": \"father\",\n        \"phone_primary\": \"+201001112233\",\n        \"email\": \"parent@example.com\",\n        \"can_pickup\": true,\n        \"can_receive_notifications\": true\n      },\n      \"relationship\": {\n        \"is_primary\": true\n      },\n      \"account\": {\n        \"mode\": \"none\"\n      }\n    }\n  ],\n  \"enrollment\": {\n    \"academicYearId\": \"{{academicYearId}}\",\n    \"gradeId\": \"{{gradeId}}\",\n    \"sectionId\": \"{{sectionId}}\",\n    \"classroomId\": \"{{classroomId}}\",\n    \"termId\": \"{{termId}}\",\n    \"enrollmentDate\": \"2026-09-01\",\n    \"status\": \"active\"\n  },\n  \"studentAccount\": {\n    \"mode\": \"none\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Application Documents",
+      "description": "",
+      "item": [
+        {
+          "name": "List Application Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "documents"
+              ]
+            },
+            "description": "Requires admissions.documents.view."
+          }
+        },
+        {
+          "name": "Create/Link Application Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "documents"
+              ]
+            },
+            "description": "Requires admissions.documents.manage. If same documentType exists, it updates existing record.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileId\": \"{{fileId}}\",\n  \"documentType\": \"Birth Certificate\",\n  \"status\": \"pending_review\",\n  \"notes\": \"Uploaded by applicant portal or admissions staff\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created or updated document', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.id) pm.collectionVariables.set('documentId', jsonData.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/documents/{{documentId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "documents",
+                "{{documentId}}",
+                "accept"
+              ]
+            },
+            "description": "Requires linked applicant document in uploaded state and application doc pending_review.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Verified\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Reject Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/documents/{{documentId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "documents",
+                "{{documentId}}",
+                "reject"
+              ]
+            },
+            "description": "Requires note. Sets application document to missing and applicant document to REJECTED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Image is unreadable\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Request Replacement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/documents/{{documentId}}/request-replacement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "documents",
+                "{{documentId}}",
+                "request-replacement"
+              ]
+            },
+            "description": "Requires note. Sets application document to missing and applicant document to NEEDS_REPLACEMENT.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Please upload a clearer copy\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Application Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "documents",
+                "{{documentId}}"
+              ]
+            },
+            "description": "Requires admissions.documents.manage."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Placement Tests",
+      "description": "",
+      "item": [
+        {
+          "name": "List Placement Tests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/tests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "tests"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Omar",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "Placement",
+                  "disabled": true
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "2026-07-01",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2026-07-31",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Requires admissions.tests.view."
+          }
+        },
+        {
+          "name": "Create Placement Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/tests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "tests"
+              ]
+            },
+            "description": "Requires admissions.tests.manage. New status is scheduled.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"type\": \"Placement\",\n  \"scheduledAt\": \"2026-07-05T10:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created placement test', function () { pm.response.to.have.status(201); });",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.id) pm.collectionVariables.set('placementTestId', jsonData.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Placement Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/tests/{{placementTestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "tests",
+                "{{placementTestId}}"
+              ]
+            },
+            "description": "Requires admissions.tests.view."
+          }
+        },
+        {
+          "name": "Complete Placement Test",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/tests/{{placementTestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "tests",
+                "{{placementTestId}}"
+              ]
+            },
+            "description": "Requires admissions.tests.manage.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 87.5,\n  \"result\": \"Passed\",\n  \"status\": \"completed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Interviews",
+      "description": "",
+      "item": [
+        {
+          "name": "List Interviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/interviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "interviews"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Omar",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "disabled": true
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "2026-07-01",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2026-07-31",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Requires admissions.interviews.view."
+          }
+        },
+        {
+          "name": "Create Interview",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/interviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "interviews"
+              ]
+            },
+            "description": "Requires admissions.interviews.manage. Add interviewerUserId if needed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"scheduledAt\": \"2026-07-06T11:00:00.000Z\",\n  \"notes\": \"Bring previous school reports\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created interview', function () { pm.response.to.have.status(201); });",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.id) pm.collectionVariables.set('interviewId', jsonData.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Interview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/interviews/{{interviewId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "interviews",
+                "{{interviewId}}"
+              ]
+            },
+            "description": "Requires admissions.interviews.view."
+          }
+        },
+        {
+          "name": "Complete Interview",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/interviews/{{interviewId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "interviews",
+                "{{interviewId}}"
+              ]
+            },
+            "description": "Requires admissions.interviews.manage.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"notes\": \"Interview completed successfully\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admission Decisions",
+      "description": "",
+      "item": [
+        {
+          "name": "List Decisions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/decisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "decisions"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Omar",
+                  "disabled": true
+                },
+                {
+                  "key": "decision",
+                  "value": "accept",
+                  "disabled": true
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "2026-06-01",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2026-06-30",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Requires admissions.decisions.view."
+          }
+        },
+        {
+          "name": "Create Decision - Accept",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/decisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "decisions"
+              ]
+            },
+            "description": "Requires admissions.decisions.manage. Tests and interviews must all be completed first.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"decision\": \"accept\",\n  \"reason\": \"Passed placement test and interview\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created decision', function () { pm.response.to.have.status(201); });",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.id) pm.collectionVariables.set('decisionId', jsonData.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Decision",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/decisions/{{decisionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "decisions",
+                "{{decisionId}}"
+              ]
+            },
+            "description": "Requires admissions.decisions.view."
+          }
+        },
+        {
+          "name": "Create Decision - Waitlist Example",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/decisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "decisions"
+              ]
+            },
+            "description": "Use on a different not-yet-decided application.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"decision\": \"waitlist\",\n  \"reason\": \"Capacity is full\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create Decision - Reject Example",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/decisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "decisions"
+              ]
+            },
+            "description": "Use on a different not-yet-decided application.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"decision\": \"reject\",\n  \"reason\": \"Did not meet requirements\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative / Error Cases",
+      "description": "",
+      "item": [
+        {
+          "name": "Validation Error - Invalid Lead Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "leads"
+              ]
+            },
+            "description": "Expected 400 validation.failed because channel must be one of In-app, Referral, Walk-in, Other.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Omar\",\n  \"primaryContactName\": \"Ahmed\",\n  \"phone\": \"+201001112233\",\n  \"channel\": \"Facebook\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Conflict - Submit Already Submitted Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "submit"
+              ]
+            },
+            "description": "Expected 409 conflict if application is not documents_pending or submittedAt is already set.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Validation Error - Bad Date Range Tests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/tests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "tests"
+              ],
+              "query": [
+                {
+                  "key": "dateFrom",
+                  "value": "2026-08-01",
+                  "disabled": false
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2026-07-01",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Expected 400 validation.failed: dateFrom must be before or equal to dateTo."
+          }
+        },
+        {
+          "name": "Workflow Error - Decision Before Completed Steps",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/decisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "decisions"
+              ]
+            },
+            "description": "Expected 422 admissions.decision.requires_all_steps if no completed test/interview.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"decision\": \"accept\",\n  \"reason\": \"Trying too early\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Conflict - Handoff Non Accepted",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/{{applicationId}}/enroll",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "{{applicationId}}",
+                "enroll"
+              ]
+            },
+            "description": "Expected 409 admissions.application.not_accepted if application is not accepted or decision is not accept.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Not Found - Missing Application",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admissions/applications/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admissions",
+                "applications",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            },
+            "description": "Expected 404 not_found."
+          }
+        }
+      ]
+    }
+  ]
+}

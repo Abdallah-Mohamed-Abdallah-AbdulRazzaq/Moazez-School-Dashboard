@@ -1,0 +1,56 @@
+@baseUrl = http://localhost:3000/api/v1
+@schoolToken = REPLACE_WITH_SCHOOL_DASHBOARD_TOKEN
+@subjectId = REPLACE_WITH_SUBJECT_ID
+@termId = REPLACE_WITH_TERM_ID
+@gradeId = REPLACE_WITH_GRADE_ID
+
+### List subject catalog
+GET {{baseUrl}}/academics/subjects
+Authorization: Bearer {{schoolToken}}
+
+### Create catalog subject - valid
+POST {{baseUrl}}/academics/subjects
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "nameAr": "الرياضيات",
+  "nameEn": "Mathematics",
+  "code": "MATH-V1",
+  "color": "#3366ff",
+  "isActive": true
+}
+
+### Update catalog subject - valid catalog-only fields
+PATCH {{baseUrl}}/academics/subjects/{{subjectId}}
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "nameEn": "Advanced Mathematics",
+  "color": "#8844ff"
+}
+
+### Bulk save subject allocation
+PUT {{baseUrl}}/academics/subject-allocations/bulk
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "items": [
+    {
+      "gradeId": "{{gradeId}}",
+      "subjectId": "{{subjectId}}",
+      "weeklyHours": 5
+    }
+  ]
+}
+
+### Read subject allocations by term and grade
+GET {{baseUrl}}/academics/subject-allocations?termId={{termId}}&gradeId={{gradeId}}
+Authorization: Bearer {{schoolToken}}
+
+### Delete subject catalog record
+DELETE {{baseUrl}}/academics/subjects/{{subjectId}}
+Authorization: Bearer {{schoolToken}}

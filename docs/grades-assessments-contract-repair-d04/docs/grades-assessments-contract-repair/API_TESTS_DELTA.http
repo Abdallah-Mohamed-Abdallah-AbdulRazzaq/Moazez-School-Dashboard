@@ -1,0 +1,122 @@
+@baseUrl = http://localhost:3000/api/v1
+@token = REPLACE_WITH_SCHOOL_USER_TOKEN
+@termId = REPLACE_WITH_TERM_ID
+@subjectId = REPLACE_WITH_SUBJECT_ID
+@scoreOnlyAssessmentId = REPLACE_WITH_SCORE_ONLY_ASSESSMENT_ID
+@questionAssessmentId = REPLACE_WITH_QUESTION_BASED_ASSESSMENT_ID
+@studentId = REPLACE_WITH_STUDENT_ID
+
+### List assessments - default should include both delivery modes where records exist
+GET {{baseUrl}}/grades/assessments?termId={{termId}}&subjectId={{subjectId}}
+Authorization: Bearer {{token}}
+
+### List assessments - score only filter
+GET {{baseUrl}}/grades/assessments?termId={{termId}}&subjectId={{subjectId}}&deliveryMode=score_only
+Authorization: Bearer {{token}}
+
+### List assessments - question based filter
+GET {{baseUrl}}/grades/assessments?termId={{termId}}&subjectId={{subjectId}}&deliveryMode=question_based
+Authorization: Bearer {{token}}
+
+### Detail - score only still works
+GET {{baseUrl}}/grades/assessments/{{scoreOnlyAssessmentId}}
+Authorization: Bearer {{token}}
+
+### Detail - question based now works and must not expose questions/answer keys
+GET {{baseUrl}}/grades/assessments/{{questionAssessmentId}}
+Authorization: Bearer {{token}}
+
+### General create - score-only default still works
+POST {{baseUrl}}/grades/assessments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "subjectId": "{{subjectId}}",
+  "scopeType": "classroom",
+  "classroomId": "REPLACE_WITH_CLASSROOM_ID",
+  "title": "Score-only quiz",
+  "type": "QUIZ",
+  "date": "2026-06-23",
+  "weight": 10,
+  "maxScore": 20
+}
+
+### General create - question-based should be rejected with expectedEndpoint
+POST {{baseUrl}}/grades/assessments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "subjectId": "{{subjectId}}",
+  "scopeType": "classroom",
+  "classroomId": "REPLACE_WITH_CLASSROOM_ID",
+  "title": "Wrong route question-based quiz",
+  "type": "QUIZ",
+  "deliveryMode": "QUESTION_BASED",
+  "date": "2026-06-23",
+  "weight": 10,
+  "maxScore": 20
+}
+
+### Question-based create - still the proper route
+POST {{baseUrl}}/grades/assessments/question-based
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "subjectId": "{{subjectId}}",
+  "scopeType": "classroom",
+  "classroomId": "REPLACE_WITH_CLASSROOM_ID",
+  "title": "Question-based quiz",
+  "type": "QUIZ",
+  "date": "2026-06-23",
+  "weight": 10,
+  "maxScore": 20,
+  "expectedTimeMinutes": 30
+}
+
+### Patch draft question-based assessment metadata - should work if draft/unlocked/writable
+PATCH {{baseUrl}}/grades/assessments/{{questionAssessmentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Updated question-based quiz title"
+}
+
+### Direct single grade item entry against question-based assessment - should reject
+PUT {{baseUrl}}/grades/assessments/{{questionAssessmentId}}/items/{{studentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "score": 18,
+  "note": "Should be rejected for question-based assessment"
+}
+
+### Direct bulk grade item entry against question-based assessment - should reject
+PUT {{baseUrl}}/grades/assessments/{{questionAssessmentId}}/items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "studentId": "{{studentId}}",
+      "score": 18,
+      "note": "Should be rejected for question-based assessment"
+    }
+  ]
+}
+
+### Lock approved question-based assessment - should work only when approved/unlocked/writable
+POST {{baseUrl}}/grades/assessments/{{questionAssessmentId}}/lock
+Authorization: Bearer {{token}}
+
+### Delete draft question-based assessment - should work only when no submissions/grade items exist
+DELETE {{baseUrl}}/grades/assessments/{{questionAssessmentId}}
+Authorization: Bearer {{token}}

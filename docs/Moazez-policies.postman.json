@@ -1,0 +1,749 @@
+{
+    "info": {
+        "name": "Moazez",
+        "description": "",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Policies",
+            "description": "",
+            "item": [
+                {
+                    "name": "List Policies",
+                    "description": "Requires attendance.policies.view",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "GET",
+                        "body": {},
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/attendance/policies",
+                            "path": [
+                                "attendance",
+                                "policies"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "academicYearId",
+                                    "value": "{{academicYearId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "termId",
+                                    "value": "{{termId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "scopeType",
+                                    "value": "CLASSROOM",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "classroomId",
+                                    "value": "{{classroomId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "isActive",
+                                    "value": "true",
+                                    "description": "",
+                                    "type": "string"
+                                }
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": false
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": true
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/attendance/policies",
+                                    "path": [
+                                        "attendance",
+                                        "policies"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "academicYearId",
+                                            "value": "{{academicYearId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "termId",
+                                            "value": "{{termId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "scopeType",
+                                            "value": "CLASSROOM",
+                                            "description": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "classroomId",
+                                            "value": "{{classroomId}}",
+                                            "description": "",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "isActive",
+                                            "value": "true",
+                                            "description": "",
+                                            "disabled": true
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "body": {}
+                            },
+                            "cookie": []
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Get Effective Policy",
+                    "description": "Requires attendance.policies.view",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "GET",
+                        "body": {},
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/attendance/policies/effective",
+                            "path": [
+                                "attendance",
+                                "policies",
+                                "effective"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "academicYearId",
+                                    "value": "{{academicYearId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "termId",
+                                    "value": "{{termId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "scopeType",
+                                    "value": "CLASSROOM",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "classroomId",
+                                    "value": "{{classroomId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "date",
+                                    "value": "{{date}}",
+                                    "description": "",
+                                    "type": "string"
+                                }
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": false
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": true
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/attendance/policies/effective",
+                                    "path": [
+                                        "attendance",
+                                        "policies",
+                                        "effective"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "academicYearId",
+                                            "value": "{{academicYearId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "termId",
+                                            "value": "{{termId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "scopeType",
+                                            "value": "CLASSROOM",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "classroomId",
+                                            "value": "{{classroomId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "date",
+                                            "value": "{{date}}",
+                                            "description": "",
+                                            "disabled": true
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "body": {}
+                            },
+                            "cookie": []
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Validate Policy Name",
+                    "description": "Requires attendance.policies.view",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "GET",
+                        "body": {},
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/attendance/policies/validate-name",
+                            "path": [
+                                "attendance",
+                                "policies",
+                                "validate-name"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "academicYearId",
+                                    "value": "{{academicYearId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "termId",
+                                    "value": "{{termId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "scopeType",
+                                    "value": "CLASSROOM",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "classroomId",
+                                    "value": "{{classroomId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "nameAr",
+                                    "value": "سياسة الحضور الافتراضية",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "nameEn",
+                                    "value": "Default Attendance Policy",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "excludeId",
+                                    "value": "{{policyId}}",
+                                    "description": "",
+                                    "type": "string"
+                                }
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": false
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": true
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/attendance/policies/validate-name",
+                                    "path": [
+                                        "attendance",
+                                        "policies",
+                                        "validate-name"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "academicYearId",
+                                            "value": "{{academicYearId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "termId",
+                                            "value": "{{termId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "scopeType",
+                                            "value": "CLASSROOM",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "classroomId",
+                                            "value": "{{classroomId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "nameAr",
+                                            "value": "سياسة الحضور الافتراضية",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "nameEn",
+                                            "value": "Default Attendance Policy",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "excludeId",
+                                            "value": "{{policyId}}",
+                                            "description": "",
+                                            "disabled": true
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "body": {}
+                            },
+                            "cookie": []
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Create Policy",
+                    "description": "Requires attendance.policies.manage",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"termId\": \"{{termId}}\",\n  \"nameAr\": \"سياسة الحضور الافتراضية\",\n  \"nameEn\": \"Default Attendance Policy\",\n  \"descriptionAr\": \"السياسة الافتراضية للحضور\",\n  \"descriptionEn\": \"Default attendance policy\",\n  \"notes\": null,\n  \"notesAr\": null,\n  \"notesEn\": null,\n  \"scopeType\": \"CLASSROOM\",\n  \"scopeIds\": {\n    \"classroomId\": \"{{classroomId}}\"\n  },\n  \"classroomId\": \"{{classroomId}}\",\n  \"mode\": \"PERIOD\",\n  \"dailyComputationStrategy\": \"DERIVED_FROM_PERIODS\",\n  \"selectedPeriodIds\": [\n    \"{{periodId}}\"\n  ],\n  \"lateThresholdMinutes\": 15,\n  \"earlyLeaveThresholdMinutes\": 15,\n  \"autoAbsentAfterMinutes\": null,\n  \"absentIfMissedPeriodsCount\": 2,\n  \"requireExcuseAttachment\": true,\n  \"requireAttachmentForExcuse\": true,\n  \"requireExcuseReason\": true,\n  \"allowParentExcuseRequests\": true,\n  \"allowExcuses\": true,\n  \"notifyGuardiansOnAbsence\": true,\n  \"notifyTeachers\": true,\n  \"notifyStudents\": false,\n  \"notifyGuardians\": true,\n  \"notifyOnAbsent\": true,\n  \"notifyOnLate\": true,\n  \"notifyOnEarlyLeave\": false,\n  \"effectiveFrom\": \"{{dateFrom}}\",\n  \"effectiveStartDate\": \"{{dateFrom}}\",\n  \"effectiveTo\": \"{{dateTo}}\",\n  \"effectiveEndDate\": \"{{dateTo}}\",\n  \"isActive\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/attendance/policies",
+                            "path": [
+                                "attendance",
+                                "policies"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": false
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": false
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/attendance/policies",
+                                    "path": [
+                                        "attendance",
+                                        "policies"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"termId\": \"{{termId}}\",\n  \"nameAr\": \"سياسة الحضور الافتراضية\",\n  \"nameEn\": \"Default Attendance Policy\",\n  \"descriptionAr\": \"السياسة الافتراضية للحضور\",\n  \"descriptionEn\": \"Default attendance policy\",\n  \"notes\": null,\n  \"notesAr\": null,\n  \"notesEn\": null,\n  \"scopeType\": \"CLASSROOM\",\n  \"scopeIds\": {\n    \"classroomId\": \"{{classroomId}}\"\n  },\n  \"classroomId\": \"{{classroomId}}\",\n  \"mode\": \"PERIOD\",\n  \"dailyComputationStrategy\": \"DERIVED_FROM_PERIODS\",\n  \"selectedPeriodIds\": [\n    \"{{periodId}}\"\n  ],\n  \"lateThresholdMinutes\": 15,\n  \"earlyLeaveThresholdMinutes\": 15,\n  \"autoAbsentAfterMinutes\": null,\n  \"absentIfMissedPeriodsCount\": 2,\n  \"requireExcuseAttachment\": true,\n  \"requireAttachmentForExcuse\": true,\n  \"requireExcuseReason\": true,\n  \"allowParentExcuseRequests\": true,\n  \"allowExcuses\": true,\n  \"notifyGuardiansOnAbsence\": true,\n  \"notifyTeachers\": true,\n  \"notifyStudents\": false,\n  \"notifyGuardians\": true,\n  \"notifyOnAbsent\": true,\n  \"notifyOnLate\": true,\n  \"notifyOnEarlyLeave\": false,\n  \"effectiveFrom\": \"{{dateFrom}}\",\n  \"effectiveStartDate\": \"{{dateFrom}}\",\n  \"effectiveTo\": \"{{dateTo}}\",\n  \"effectiveEndDate\": \"{{dateTo}}\",\n  \"isActive\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "cookie": []
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Update Policy",
+                    "description": "Requires attendance.policies.manage",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "PATCH",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"nameAr\": \"سياسة حضور محدثة\",\n  \"nameEn\": \"Updated Attendance Policy\",\n  \"lateThresholdMinutes\": 10,\n  \"earlyLeaveThresholdMinutes\": 10,\n  \"isActive\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/attendance/policies/{{policyId}}",
+                            "path": [
+                                "attendance",
+                                "policies",
+                                "{{policyId}}"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": false
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": false
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/attendance/policies/{{policyId}}",
+                                    "path": [
+                                        "attendance",
+                                        "policies",
+                                        "{{policyId}}"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"nameAr\": \"سياسة حضور محدثة\",\n  \"nameEn\": \"Updated Attendance Policy\",\n  \"lateThresholdMinutes\": 10,\n  \"earlyLeaveThresholdMinutes\": 10,\n  \"isActive\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "cookie": []
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Delete Policy",
+                    "description": "Requires attendance.policies.manage",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "DELETE",
+                        "body": {},
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/attendance/policies/{{policyId}}",
+                            "path": [
+                                "attendance",
+                                "policies",
+                                "{{policyId}}"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": false
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "description": "",
+                                        "disabled": true
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/attendance/policies/{{policyId}}",
+                                    "path": [
+                                        "attendance",
+                                        "policies",
+                                        "{{policyId}}"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "body": {}
+                            },
+                            "cookie": []
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                }
+            ],
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                }
+            ],
+            "auth": {}
+        }
+    ],
+    "variable": [],
+    "event": [],
+    "auth": {}
+}

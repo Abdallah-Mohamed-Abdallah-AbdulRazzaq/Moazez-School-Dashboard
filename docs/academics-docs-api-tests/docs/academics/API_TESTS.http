@@ -1,0 +1,405 @@
+### Academics V1 Manual API Tests
+### Replace placeholders before running.
+
+@baseUrl = http://localhost:3000/api/v1
+@accessToken = REPLACE_WITH_DASHBOARD_ACCESS_TOKEN
+@teacherToken = REPLACE_WITH_TEACHER_ACCESS_TOKEN
+@studentToken = REPLACE_WITH_STUDENT_ACCESS_TOKEN
+@parentToken = REPLACE_WITH_PARENT_ACCESS_TOKEN
+
+@academicYearId = 00000000-0000-0000-0000-000000000001
+@termId = 00000000-0000-0000-0000-000000000002
+@stageId = 00000000-0000-0000-0000-000000000003
+@gradeId = 00000000-0000-0000-0000-000000000004
+@sectionId = 00000000-0000-0000-0000-000000000005
+@classroomId = 00000000-0000-0000-0000-000000000006
+@subjectId = 00000000-0000-0000-0000-000000000007
+@roomId = 00000000-0000-0000-0000-000000000008
+@teacherUserId = 00000000-0000-0000-0000-000000000009
+@teacherAllocationId = 00000000-0000-0000-0000-000000000010
+@timetableConfigId = 00000000-0000-0000-0000-000000000011
+@periodId = 00000000-0000-0000-0000-000000000012
+@entryId = 00000000-0000-0000-0000-000000000013
+@calendarEventId = 00000000-0000-0000-0000-000000000014
+@curriculumId = 00000000-0000-0000-0000-000000000015
+@unitId = 00000000-0000-0000-0000-000000000016
+@lessonId = 00000000-0000-0000-0000-000000000017
+@contentItemId = 00000000-0000-0000-0000-000000000018
+@lessonPlanId = 00000000-0000-0000-0000-000000000019
+@lessonPlanItemId = 00000000-0000-0000-0000-000000000020
+@studentId = 00000000-0000-0000-0000-000000000021
+
+### Auth example
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@moazez.dev",
+  "password": "Admin123!"
+}
+
+### Dashboard: overview
+GET {{baseUrl}}/academics/overview
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: structure years
+GET {{baseUrl}}/academics/structure/years
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create academic year
+POST {{baseUrl}}/academics/structure/years
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "2026/2027",
+  "startDate": "2026-09-01",
+  "endDate": "2027-06-30",
+  "isActive": true
+}
+
+### Dashboard: structure terms
+GET {{baseUrl}}/academics/structure/terms?academicYearId={{academicYearId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: structure tree
+GET {{baseUrl}}/academics/structure/tree?academicYearId={{academicYearId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: rooms
+GET {{baseUrl}}/academics/rooms
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create room
+POST {{baseUrl}}/academics/rooms
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Room 101",
+  "code": "R101",
+  "capacity": 30
+}
+
+### Dashboard: subjects
+GET {{baseUrl}}/academics/subjects
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create subject
+POST {{baseUrl}}/academics/subjects
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nameAr": "الرياضيات",
+  "nameEn": "Mathematics",
+  "code": "MATH",
+  "color": "#3366FF",
+  "isActive": true
+}
+
+### Dashboard: subject allocations
+GET {{baseUrl}}/academics/subject-allocations?termId={{termId}}&gradeId={{gradeId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: bulk save subject allocations
+PUT {{baseUrl}}/academics/subject-allocations/bulk
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "items": [
+    {
+      "gradeId": "{{gradeId}}",
+      "subjectId": "{{subjectId}}",
+      "weeklyHours": 5
+    }
+  ]
+}
+
+### Dashboard: teacher allocations
+GET {{baseUrl}}/academics/allocations?termId={{termId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create teacher allocation
+POST {{baseUrl}}/academics/allocations
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "classroomId": "{{classroomId}}",
+  "subjectId": "{{subjectId}}",
+  "teacherUserId": "{{teacherUserId}}"
+}
+
+### Dashboard: teacher allocation validation
+GET {{baseUrl}}/academics/allocations/validation?termId={{termId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: teacher loads
+GET {{baseUrl}}/academics/allocations/teacher-loads?termId={{termId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: timetable all
+GET {{baseUrl}}/academics/timetable/all?termId={{termId}}&gradeId={{gradeId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: timetable config
+GET {{baseUrl}}/academics/timetable/config?termId={{termId}}&gradeId={{gradeId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: upsert timetable config
+PUT {{baseUrl}}/academics/timetable/config
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "academicYearId": "{{academicYearId}}",
+  "termId": "{{termId}}",
+  "gradeId": "{{gradeId}}",
+  "weekStartDay": 0
+}
+
+### Dashboard: timetable periods
+GET {{baseUrl}}/academics/timetable/periods?configId={{timetableConfigId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: timetable entries
+GET {{baseUrl}}/academics/timetable/entries?configId={{timetableConfigId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: timetable validate
+GET {{baseUrl}}/academics/timetable/validate?termId={{termId}}&gradeId={{gradeId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: timetable conflict check
+POST {{baseUrl}}/academics/timetable/conflicts/check
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "configId": "{{timetableConfigId}}",
+  "entries": []
+}
+
+### Dashboard: calendar events
+GET {{baseUrl}}/academics/calendar/events?from=2026-10-01T00:00:00.000Z&to=2026-10-31T23:59:59.000Z
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create calendar event
+POST {{baseUrl}}/academics/calendar/events
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "First Term Starts",
+  "type": "academic",
+  "startsAt": "2026-10-01T08:00:00.000Z",
+  "endsAt": "2026-10-01T14:00:00.000Z"
+}
+
+### Dashboard: curriculum list
+GET {{baseUrl}}/academics/curriculum?termId={{termId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create curriculum
+POST {{baseUrl}}/academics/curriculum
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "academicYearId": "{{academicYearId}}",
+  "termId": "{{termId}}",
+  "gradeId": "{{gradeId}}",
+  "subjectId": "{{subjectId}}",
+  "title": "Mathematics Term 1"
+}
+
+### Dashboard: curriculum detail
+GET {{baseUrl}}/academics/curriculum/{{curriculumId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create curriculum unit
+POST {{baseUrl}}/academics/curriculum/{{curriculumId}}/units
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Numbers",
+  "sortOrder": 1
+}
+
+### Dashboard: create curriculum lesson
+POST {{baseUrl}}/academics/curriculum/{{curriculumId}}/units/{{unitId}}/lessons
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Counting",
+  "sortOrder": 1,
+  "objectives": ["Count from 1 to 100"]
+}
+
+### Dashboard: lesson content list
+GET {{baseUrl}}/academics/curriculum/{{curriculumId}}/units/{{unitId}}/lessons/{{lessonId}}/content
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create lesson content item
+POST {{baseUrl}}/academics/curriculum/{{curriculumId}}/units/{{unitId}}/lessons/{{lessonId}}/content
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "type": "text",
+  "title": "Introduction",
+  "bodyText": "Lesson introduction text",
+  "sortOrder": 1,
+  "isRequired": true,
+  "estimatedMinutes": 10
+}
+
+### Dashboard: lesson plans
+GET {{baseUrl}}/academics/lesson-plans?termId={{termId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: lesson plan weeks
+GET {{baseUrl}}/academics/lesson-plans/weeks?termId={{termId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: lesson plan summary
+GET {{baseUrl}}/academics/lesson-plans/summary?termId={{termId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: lesson plan validation
+GET {{baseUrl}}/academics/lesson-plans/validation?termId={{termId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: create lesson plan
+POST {{baseUrl}}/academics/lesson-plans
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "academicYearId": "{{academicYearId}}",
+  "termId": "{{termId}}",
+  "classroomId": "{{classroomId}}",
+  "subjectId": "{{subjectId}}",
+  "curriculumId": "{{curriculumId}}",
+  "teacherSubjectAllocationId": "{{teacherAllocationId}}",
+  "title": "Mathematics Plan"
+}
+
+### Dashboard: lesson plan detail
+GET {{baseUrl}}/academics/lesson-plans/{{lessonPlanId}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard: start lesson plan item
+POST {{baseUrl}}/academics/lesson-plans/{{lessonPlanId}}/items/{{lessonPlanItemId}}/start
+Authorization: Bearer {{accessToken}}
+
+### Teacher App: schedule today
+GET {{baseUrl}}/teacher/schedule?date=2026-10-02
+Authorization: Bearer {{teacherToken}}
+
+### Teacher App: schedule week
+GET {{baseUrl}}/teacher/schedule/week?date=2026-10-02
+Authorization: Bearer {{teacherToken}}
+
+### Teacher App: calendar events
+GET {{baseUrl}}/teacher/calendar/events?from=2026-10-01T00:00:00.000Z&to=2026-10-31T23:59:59.000Z
+Authorization: Bearer {{teacherToken}}
+
+### Teacher App: lesson preparation today
+GET {{baseUrl}}/teacher/lesson-preparation/today?date=2026-10-02
+Authorization: Bearer {{teacherToken}}
+
+### Teacher App: lesson preparation week
+GET {{baseUrl}}/teacher/lesson-preparation/week?date=2026-10-02
+Authorization: Bearer {{teacherToken}}
+
+### Teacher App: lesson preparation detail
+GET {{baseUrl}}/teacher/lesson-preparation/{{lessonPlanItemId}}
+Authorization: Bearer {{teacherToken}}
+
+### Teacher App: update lesson preparation status
+PATCH {{baseUrl}}/teacher/lesson-preparation/{{lessonPlanItemId}}/status
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "status": "in_progress",
+  "notes": "Started preparation."
+}
+
+### Student App: schedule today
+GET {{baseUrl}}/student/schedule?date=2026-10-02
+Authorization: Bearer {{studentToken}}
+
+### Student App: schedule week
+GET {{baseUrl}}/student/schedule/week?date=2026-10-02
+Authorization: Bearer {{studentToken}}
+
+### Student App: subjects
+GET {{baseUrl}}/student/subjects
+Authorization: Bearer {{studentToken}}
+
+### Student App: calendar events
+GET {{baseUrl}}/student/calendar/events?from=2026-10-01T00:00:00.000Z&to=2026-10-31T23:59:59.000Z
+Authorization: Bearer {{studentToken}}
+
+### Student App: lessons today
+GET {{baseUrl}}/student/lessons/today?date=2026-10-02
+Authorization: Bearer {{studentToken}}
+
+### Student App: lessons week
+GET {{baseUrl}}/student/lessons/week?date=2026-10-02
+Authorization: Bearer {{studentToken}}
+
+### Student App: lesson detail
+GET {{baseUrl}}/student/lessons/{{lessonPlanItemId}}
+Authorization: Bearer {{studentToken}}
+
+### Parent App: child schedule today
+GET {{baseUrl}}/parent/children/{{studentId}}/schedule/today
+Authorization: Bearer {{parentToken}}
+
+### Parent App: child schedule weekly
+GET {{baseUrl}}/parent/children/{{studentId}}/schedule/weekly
+Authorization: Bearer {{parentToken}}
+
+### Parent App: child calendar events
+GET {{baseUrl}}/parent/children/{{studentId}}/calendar/events?from=2026-10-01T00:00:00.000Z&to=2026-10-31T23:59:59.000Z
+Authorization: Bearer {{parentToken}}
+
+### Parent App: child lessons today
+GET {{baseUrl}}/parent/children/{{studentId}}/lessons/today?date=2026-10-02
+Authorization: Bearer {{parentToken}}
+
+### Parent App: child lessons week
+GET {{baseUrl}}/parent/children/{{studentId}}/lessons/week?date=2026-10-02
+Authorization: Bearer {{parentToken}}
+
+### Parent App: child lesson detail
+GET {{baseUrl}}/parent/children/{{studentId}}/lessons/{{lessonPlanItemId}}
+Authorization: Bearer {{parentToken}}
+
+### Negative check: Student lesson status mutation should not exist
+PATCH {{baseUrl}}/student/lessons/{{lessonPlanItemId}}/status
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "status": "done"
+}
+
+### Negative check: Parent lesson status mutation should not exist
+PATCH {{baseUrl}}/parent/children/{{studentId}}/lessons/{{lessonPlanItemId}}/status
+Authorization: Bearer {{parentToken}}
+Content-Type: application/json
+
+{
+  "status": "done"
+}

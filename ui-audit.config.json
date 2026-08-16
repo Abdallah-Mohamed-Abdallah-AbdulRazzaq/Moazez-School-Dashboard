@@ -1,0 +1,43 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "locale": "ar",
+  "pages": [
+    "/ar/login",
+    "/ar/dashboard",
+    "/ar/admissions",
+    "/ar/admissions/leads",
+    "/ar/admissions/applications",
+    "/ar/admissions/tests",
+    "/ar/admissions/interviews",
+    "/ar/admissions/decisions",
+    "/ar/admissions/enrollment",
+    "/ar/students-guardians",
+    "/ar/students-guardians/students",
+    "/ar/students-guardians/guardians",
+    "/ar/students-guardians/transfers-withdrawals",
+    "/ar/students-guardians/transfers-withdrawals/transfers",
+    "/ar/students-guardians/transfers-withdrawals/transfers/applications",
+    "/ar/students-guardians/transfers-withdrawals/withdrawals",
+    "/ar/students-guardians/transfers-withdrawals/withdrawals/applications"
+  ],
+  "auth": {
+    "enabled": true,
+    "loginUrl": "/ar/login",
+    "storageStatePath": "playwright/.auth/user.json",
+    "credentials": {
+      "emailEnv": "E2E_EMAIL",
+      "passwordEnv": "E2E_PASSWORD"
+    },
+    "selectors": {
+      "email": "#login-email, input[name='email'], input[type='email']",
+      "password": "#login-password, input[name='password'], input[type='password']",
+      "submit": "button[type='submit']"
+    },
+    "successUrlPattern": "/ar/dashboard"
+  },
+  "viewports": [
+    { "name": "mobile", "width": 390, "height": 844 },
+    { "name": "tablet", "width": 768, "height": 1024 },
+    { "name": "desktop", "width": 1440, "height": 900 }
+  ]
+}

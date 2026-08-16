@@ -1,0 +1,152 @@
+{
+    "info": {
+        "name": "Moazez",
+        "description": "",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "07 - Overview",
+            "description": "",
+            "item": [
+                {
+                    "name": "Get reinforcement overview",
+                    "description": "",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('overview 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.expect(pm.response.json()).to.be.an('object');"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "GET",
+                        "body": {},
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/reinforcement/overview",
+                            "path": [
+                                "reinforcement",
+                                "overview"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "academicYearId",
+                                    "value": "{{academicYearId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "termId",
+                                    "value": "{{termId}}",
+                                    "description": "",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "classroomId",
+                                    "value": "{{classroomId}}",
+                                    "description": "",
+                                    "type": "string"
+                                }
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{accessToken}}",
+                                        "description": "",
+                                        "disabled": false
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/reinforcement/overview",
+                                    "path": [
+                                        "reinforcement",
+                                        "overview"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "academicYearId",
+                                            "value": "{{academicYearId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "termId",
+                                            "value": "{{termId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "classroomId",
+                                            "value": "{{classroomId}}",
+                                            "description": "",
+                                            "disabled": false
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "body": {}
+                            },
+                            "cookie": []
+                        }
+                    ],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                }
+            ],
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                }
+            ],
+            "auth": {}
+        }
+    ],
+    "variable": [],
+    "event": [],
+    "auth": {}
+}

@@ -1,0 +1,428 @@
+@baseUrl = http://localhost:3000/api/v1
+@accessToken = REPLACE_WITH_SCHOOL_ADMIN_ACCESS_TOKEN
+@roleId = REPLACE_WITH_ROLE_UUID
+@userId = REPLACE_WITH_USER_UUID
+@batchId = REPLACE_WITH_EMAIL_DELIVERY_BATCH_UUID
+@templateKey = ACCOUNT_CREDENTIALS
+
+### Settings 01 - Overview
+GET {{baseUrl}}/settings/overview
+Authorization: Bearer {{accessToken}}
+
+### Settings 02 - Get branding
+GET {{baseUrl}}/settings/branding
+Authorization: Bearer {{accessToken}}
+
+### Settings 03 - Update branding
+PATCH {{baseUrl}}/settings/branding
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "schoolName": "Moazez Demo School",
+  "shortName": "Demo",
+  "timezone": "Africa/Cairo",
+  "addressLine": "123 School Street",
+  "formattedAddress": "123 School Street, Cairo, Egypt",
+  "city": "Cairo",
+  "country": "Egypt",
+  "footerSignature": "Moazez Demo School",
+  "logoUrl": "https://cdn.example.test/logo.png",
+  "latitude": 30.0444,
+  "longitude": 31.2357,
+  "mapPlaceLabel": "Main Campus"
+}
+
+### Settings 04 - Get security settings
+GET {{baseUrl}}/settings/security
+Authorization: Bearer {{accessToken}}
+
+### Settings 05 - Update security settings
+PATCH {{baseUrl}}/settings/security
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "enforceTwoFactor": false,
+  "ipAllowlistEnabled": false,
+  "ipAllowlist": "",
+  "sessionTimeoutMinutes": 60,
+  "suspiciousLoginAlerts": true,
+  "passwordMinLength": 10,
+  "passwordRotationDays": 90
+}
+
+### Settings 06 - List roles
+GET {{baseUrl}}/settings/roles
+Authorization: Bearer {{accessToken}}
+
+### Settings 07 - Create custom role
+POST {{baseUrl}}/settings/roles
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Homework Reviewer",
+  "description": "Can review homework submissions"
+}
+
+### Settings 08 - Clone role
+POST {{baseUrl}}/settings/roles/{{roleId}}/clone
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Teacher Copy"
+}
+
+### Settings 09 - Update role
+PATCH {{baseUrl}}/settings/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Role Name",
+  "description": "Updated role description"
+}
+
+### Settings 10 - Replace role permissions
+PUT {{baseUrl}}/settings/roles/{{roleId}}/permissions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "permissions": [
+    "settings.users.view",
+    "settings.roles.view"
+  ]
+}
+
+### Settings 11 - Delete role
+DELETE {{baseUrl}}/settings/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+
+### Settings 12 - List permission catalog
+GET {{baseUrl}}/settings/permissions
+Authorization: Bearer {{accessToken}}
+
+### Settings 13 - List users
+GET {{baseUrl}}/settings/users?search=nour&page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+### Settings 14 - Get login identity settings
+GET {{baseUrl}}/settings/login-identity
+Authorization: Bearer {{accessToken}}
+
+### Settings 15 - Update login identity settings
+PUT {{baseUrl}}/settings/login-identity
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "loginDomain": "demo-school.moazez.local",
+  "usernameMinLength": 3,
+  "usernameMaxLength": 32,
+  "allowedCharacters": "lowercase letters, numbers, dots, underscores, and hyphens",
+  "reservedUsernames": ["admin", "support", "principal"],
+  "status": "active"
+}
+
+### Settings 16 - Preview login email
+GET {{baseUrl}}/settings/login-identity/preview?username=nour.ali
+Authorization: Bearer {{accessToken}}
+
+### Settings 17 - Check username availability
+GET {{baseUrl}}/settings/users/usernames/available?username=nour.ali
+Authorization: Bearer {{accessToken}}
+
+### Settings 18 - Create active school user using username + contact email
+POST {{baseUrl}}/settings/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Nour Ali",
+  "username": "nour.ali",
+  "contactEmail": "nour.parent@example.com",
+  "roleId": "{{roleId}}"
+}
+
+### Settings 19 - Invite school user using legacy email path
+POST {{baseUrl}}/settings/users/invite
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Mona Hassan",
+  "email": "mona.hassan@example.com",
+  "contactEmail": "mona.contact@example.com",
+  "roleId": "{{roleId}}"
+}
+
+### Settings 20 - Update user profile/status/role fields
+PATCH {{baseUrl}}/settings/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Nour Updated",
+  "contactEmail": "nour.updated@example.com",
+  "roleId": "{{roleId}}"
+}
+
+### Settings 21 - Disable user and revoke sessions
+PATCH {{baseUrl}}/settings/users/{{userId}}/status
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "inactive"
+}
+
+### Settings 22 - Reactivate user
+PATCH {{baseUrl}}/settings/users/{{userId}}/status
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "active"
+}
+
+### Settings 23 - Resend invite
+POST {{baseUrl}}/settings/users/{{userId}}/resend-invite
+Authorization: Bearer {{accessToken}}
+
+### Settings 24 - Reset password action
+POST {{baseUrl}}/settings/users/{{userId}}/reset-password
+Authorization: Bearer {{accessToken}}
+
+### Settings 25 - Credential status
+GET {{baseUrl}}/settings/users/credentials/status?credentialStatus=missing&page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+### Settings 26 - Bulk credential preview
+POST {{baseUrl}}/settings/users/credentials/bulk-preview
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "scope": "missing_password",
+  "includeUsersWithPassword": false,
+  "includeDisabledUsers": false
+}
+
+### Settings 27 - Bulk generate credentials
+POST {{baseUrl}}/settings/users/credentials/bulk-generate
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "scope": "selected",
+  "userIds": ["{{userId}}"],
+  "includeUsersWithPassword": false,
+  "includeDisabledUsers": false
+}
+
+### Settings 28 - Generate temporary password for one user
+POST {{baseUrl}}/settings/users/{{userId}}/credentials/generate
+Authorization: Bearer {{accessToken}}
+
+### Settings 29 - Set password for one user
+POST {{baseUrl}}/settings/users/{{userId}}/credentials/set
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "password": "S3curePass!2026",
+  "forceResetOnLogin": true
+}
+
+### Settings 30 - Regenerate temporary password for one user
+POST {{baseUrl}}/settings/users/{{userId}}/credentials/regenerate
+Authorization: Bearer {{accessToken}}
+
+### Settings 31 - Get email connection
+GET {{baseUrl}}/settings/email/connection
+Authorization: Bearer {{accessToken}}
+
+### Settings 32 - Update SMTP email connection
+PUT {{baseUrl}}/settings/email/connection
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "providerType": "SMTP",
+  "fromName": "Moazez Demo School",
+  "fromEmail": "no-reply@demo-school.moazez.local",
+  "replyToEmail": "support@demo-school.moazez.local",
+  "host": "smtp.example.com",
+  "port": 587,
+  "secure": false,
+  "username": "smtp-user",
+  "password": "smtp-password"
+}
+
+### Settings 33 - Test email connection
+POST {{baseUrl}}/settings/email/connection/test
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "toEmail": "it-admin@example.com"
+}
+
+### Settings 34 - Activate email connection
+POST {{baseUrl}}/settings/email/connection/activate
+Authorization: Bearer {{accessToken}}
+
+### Settings 35 - Disable email connection
+POST {{baseUrl}}/settings/email/connection/disable
+Authorization: Bearer {{accessToken}}
+
+### Settings 36 - List email templates
+GET {{baseUrl}}/settings/email/templates
+Authorization: Bearer {{accessToken}}
+
+### Settings 37 - Get one email template
+GET {{baseUrl}}/settings/email/templates/{{templateKey}}
+Authorization: Bearer {{accessToken}}
+
+### Settings 38 - Update email template
+PUT {{baseUrl}}/settings/email/templates/{{templateKey}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "subject": "Your Moazez account is ready",
+  "preheader": "Use your school login email to sign in.",
+  "title": "Welcome to Moazez",
+  "subtitle": "Your school account has been prepared.",
+  "bodyHtml": "<p>Hello {{user.fullName}}, your login email is {{user.loginEmail}}.</p>",
+  "bodyText": "Hello {{user.fullName}}, your login email is {{user.loginEmail}}.",
+  "footerHtml": "<p>Contact {{support.email}} for help.</p>",
+  "supportEmail": "support@demo-school.moazez.local",
+  "supportPhone": "+201000000000",
+  "isActive": true
+}
+
+### Settings 39 - Preview email template
+POST {{baseUrl}}/settings/email/templates/{{templateKey}}/preview
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "bodyHtml": "<p>Hello {{user.fullName}}</p>",
+  "previewData": {
+    "user": { "fullName": "Nour Ali", "loginEmail": "nour.ali@demo-school.moazez.local" },
+    "school": { "name": "Demo School" }
+  }
+}
+
+### Settings 40 - Reset email template default
+POST {{baseUrl}}/settings/email/templates/{{templateKey}}/reset-default
+Authorization: Bearer {{accessToken}}
+
+### Settings 41 - Preview credential delivery recipients
+POST {{baseUrl}}/settings/email/credential-deliveries/preview-recipients
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "scope": "missing_password",
+  "includeUsersWithPassword": false,
+  "includeDisabledUsers": false,
+  "requireContactEmail": true,
+  "allowLoginEmailFallback": false,
+  "limit": 100
+}
+
+### Settings 42 - Create credential delivery batch
+POST {{baseUrl}}/settings/email/credential-deliveries
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "scope": "missing_password",
+  "templateKey": "ACCOUNT_CREDENTIALS",
+  "credentialMode": "GENERATE_TEMPORARY_PASSWORD",
+  "includeUsersWithPassword": false,
+  "includeDisabledUsers": false,
+  "requireContactEmail": true,
+  "allowLoginEmailFallback": false,
+  "maxRecipients": 250
+}
+
+### Settings 43 - Preview campaign recipients
+POST {{baseUrl}}/settings/email/campaigns/preview-recipients
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "recipientScope": {
+    "scope": "user_type",
+    "userTypes": ["parent"]
+  },
+  "customEmails": ["external.guardian@example.com"],
+  "includeDisabledUsers": false,
+  "requireContactEmail": true,
+  "allowLoginEmailFallback": false,
+  "limit": 100
+}
+
+### Settings 44 - Preview campaign
+POST {{baseUrl}}/settings/email/campaigns/preview
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "templateKey": "GENERAL_MESSAGE",
+  "subject": "School trip reminder",
+  "title": "School trip reminder",
+  "bodyHtml": "<p>Please remember to submit trip permission forms by Thursday.</p>",
+  "previewData": {
+    "school": { "name": "Demo School" },
+    "support": { "email": "support@demo-school.moazez.local" }
+  }
+}
+
+### Settings 45 - Create campaign
+POST {{baseUrl}}/settings/email/campaigns
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "templateKey": "GENERAL_MESSAGE",
+  "subject": "School trip reminder",
+  "title": "School trip reminder",
+  "bodyHtml": "<p>Please remember to submit trip permission forms by Thursday.</p>",
+  "recipientScope": {
+    "scope": "user_type",
+    "userTypes": ["parent"]
+  },
+  "customEmails": ["external.guardian@example.com"],
+  "maxRecipients": 500
+}
+
+### Settings 46 - List campaigns
+GET {{baseUrl}}/settings/email/campaigns?page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+### Settings 47 - Get one campaign
+GET {{baseUrl}}/settings/email/campaigns/{{batchId}}
+Authorization: Bearer {{accessToken}}
+
+### Settings 48 - List all delivery batches
+GET {{baseUrl}}/settings/email/deliveries?kind=CREDENTIAL_DELIVERY&page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+### Settings 49 - Get one delivery batch
+GET {{baseUrl}}/settings/email/deliveries/{{batchId}}
+Authorization: Bearer {{accessToken}}
+
+### Settings 50 - List delivery recipients
+GET {{baseUrl}}/settings/email/deliveries/{{batchId}}/recipients?page=1&limit=50
+Authorization: Bearer {{accessToken}}
+
+### Settings 51 - Cancel queued delivery
+POST {{baseUrl}}/settings/email/deliveries/{{batchId}}/cancel
+Authorization: Bearer {{accessToken}}

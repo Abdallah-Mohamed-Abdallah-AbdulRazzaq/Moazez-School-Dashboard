@@ -1,0 +1,366 @@
+@baseUrl = http://localhost:3000/api/v1
+@schoolAdminToken = REPLACE_WITH_SCHOOL_ADMIN_ACCESS_TOKEN
+@teacherToken = REPLACE_WITH_TEACHER_ACCESS_TOKEN
+@studentToken = REPLACE_WITH_STUDENT_ACCESS_TOKEN
+@parentToken = REPLACE_WITH_PARENT_ACCESS_TOKEN
+
+@classId = REPLACE_WITH_TEACHER_SUBJECT_ALLOCATION_ID
+@classroomId = REPLACE_WITH_CLASSROOM_ID
+@studentId = REPLACE_WITH_STUDENT_ID
+@linkedChildId = REPLACE_WITH_PARENT_LINKED_STUDENT_ID
+@sessionId = REPLACE_WITH_ATTENDANCE_SESSION_ID
+@entryStudentId = REPLACE_WITH_STUDENT_ID_IN_SESSION
+@absenceIncidentId = REPLACE_WITH_ATTENDANCE_ENTRY_INCIDENT_ID
+@excuseRequestId = REPLACE_WITH_ATTENDANCE_EXCUSE_REQUEST_ID
+@attachmentId = REPLACE_WITH_ATTACHMENT_ID
+@behaviorCategoryId = REPLACE_WITH_BEHAVIOR_CATEGORY_ID
+@behaviorRecordId = REPLACE_WITH_BEHAVIOR_RECORD_ID
+@date = 2026-02-10
+
+### Attendance: roster preview
+GET {{baseUrl}}/attendance/roll-call/roster?date={{date}}&scopeType=CLASSROOM&scopeKey={{classroomId}}
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: resolve session
+POST {{baseUrl}}/attendance/roll-call/session/resolve
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "date": "{{date}}",
+  "scopeType": "CLASSROOM",
+  "scopeKey": "{{classroomId}}",
+  "mode": "DAILY"
+}
+
+### Attendance: list sessions
+GET {{baseUrl}}/attendance/roll-call/sessions?date={{date}}
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: get session detail
+GET {{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: bulk save entries
+PUT {{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/entries
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "entries": [
+    {
+      "studentId": "{{entryStudentId}}",
+      "status": "PRESENT",
+      "note": null
+    }
+  ]
+}
+
+### Attendance: save one entry
+PUT {{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/entries/{{entryStudentId}}
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "status": "LATE",
+  "lateMinutes": 10,
+  "note": "Arrived after roll call"
+}
+
+### Attendance: submit session
+POST {{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/submit
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: unsubmit session
+POST {{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/unsubmit
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: correct submitted entry
+POST {{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/entries/{{entryStudentId}}/correct
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "status": "EXCUSED",
+  "correctionReason": "Approved office correction",
+  "note": "Corrected after review"
+}
+
+### Attendance: list absences/incidents
+GET {{baseUrl}}/attendance/absences?fromDate=2026-02-01&toDate=2026-02-28&page=1&limit=20
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: absences summary
+GET {{baseUrl}}/attendance/absences/summary?fromDate=2026-02-01&toDate=2026-02-28
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: mark incident excused
+PATCH {{baseUrl}}/attendance/absences/{{absenceIncidentId}}/excuse
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "correctionReason": "Parent submitted valid excuse",
+  "excuseReason": "Medical appointment",
+  "note": "Corrected by admin"
+}
+
+### Attendance: correct incident to early leave
+PATCH {{baseUrl}}/attendance/absences/{{absenceIncidentId}}/early-leave
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "earlyLeaveMinutes": 20,
+  "correctionReason": "Left early with permission",
+  "note": "Office correction"
+}
+
+### Attendance: list excuse requests
+GET {{baseUrl}}/attendance/excuse-requests
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: get excuse request
+GET {{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: create excuse request
+POST {{baseUrl}}/attendance/excuse-requests
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "date": "{{date}}",
+  "reason": "Medical appointment"
+}
+
+### Attendance: update excuse request
+PATCH {{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Updated reason"
+}
+
+### Attendance: list excuse attachments
+GET {{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/attachments
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: link excuse attachments
+POST {{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/attachments
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "fileIds": ["{{attachmentId}}"]
+}
+
+### Attendance: approve excuse request
+POST {{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/approve
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "reviewNote": "Approved"
+}
+
+### Attendance: reject excuse request
+POST {{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/reject
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "reviewNote": "Rejected"
+}
+
+### Attendance: reports summary
+GET {{baseUrl}}/attendance/reports/summary?fromDate=2026-02-01&toDate=2026-02-28
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: daily trend
+GET {{baseUrl}}/attendance/reports/daily-trend?fromDate=2026-02-01&toDate=2026-02-28
+Authorization: Bearer {{schoolAdminToken}}
+
+### Attendance: scope breakdown
+GET {{baseUrl}}/attendance/reports/scope-breakdown?fromDate=2026-02-01&toDate=2026-02-28
+Authorization: Bearer {{schoolAdminToken}}
+
+### Behavior: list categories
+GET {{baseUrl}}/behavior/categories
+Authorization: Bearer {{schoolAdminToken}}
+
+### Behavior: create category
+POST {{baseUrl}}/behavior/categories
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "code": "TEAMWORK",
+  "nameEn": "Teamwork",
+  "nameAr": "العمل الجماعي",
+  "type": "POSITIVE",
+  "defaultPoints": 5
+}
+
+### Behavior: update category
+PATCH {{baseUrl}}/behavior/categories/{{behaviorCategoryId}}
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "nameEn": "Teamwork Updated"
+}
+
+### Behavior: list records
+GET {{baseUrl}}/behavior/records?studentId={{studentId}}
+Authorization: Bearer {{schoolAdminToken}}
+
+### Behavior: create record
+POST {{baseUrl}}/behavior/records
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "categoryId": "{{behaviorCategoryId}}",
+  "type": "POSITIVE",
+  "titleEn": "Excellent teamwork",
+  "points": 5,
+  "occurredAt": "2026-02-10T09:15:00.000Z"
+}
+
+### Behavior: submit record
+POST {{baseUrl}}/behavior/records/{{behaviorRecordId}}/submit
+Authorization: Bearer {{schoolAdminToken}}
+
+### Behavior: approve record
+POST {{baseUrl}}/behavior/records/{{behaviorRecordId}}/approve
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "reviewNote": "Approved"
+}
+
+### Behavior: reject record
+POST {{baseUrl}}/behavior/records/{{behaviorRecordId}}/reject
+Authorization: Bearer {{schoolAdminToken}}
+Content-Type: application/json
+
+{
+  "reviewNote": "Rejected"
+}
+
+### Behavior: overview
+GET {{baseUrl}}/behavior/overview
+Authorization: Bearer {{schoolAdminToken}}
+
+### Behavior: student summary
+GET {{baseUrl}}/behavior/students/{{studentId}}/summary
+Authorization: Bearer {{schoolAdminToken}}
+
+### Teacher App: attendance today
+GET {{baseUrl}}/teacher/classroom/{{classId}}/attendance/today?date={{date}}
+Authorization: Bearer {{teacherToken}}
+
+### Teacher App: attendance roster
+GET {{baseUrl}}/teacher/classroom/{{classId}}/attendance/roster?date={{date}}
+Authorization: Bearer {{teacherToken}}
+
+### Teacher App: resolve session
+POST {{baseUrl}}/teacher/classroom/{{classId}}/attendance/session/resolve
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "date": "{{date}}"
+}
+
+### Teacher App: update supported statuses only
+PUT {{baseUrl}}/teacher/classroom/{{classId}}/attendance/sessions/{{sessionId}}/entries
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "entries": [
+    {
+      "studentId": "{{entryStudentId}}",
+      "status": "present",
+      "note": null
+    },
+    {
+      "studentId": "{{studentId}}",
+      "status": "late",
+      "note": "Arrived after roll call"
+    }
+  ]
+}
+
+### Teacher App negative: early_leave write is not accepted
+PUT {{baseUrl}}/teacher/classroom/{{classId}}/attendance/sessions/{{sessionId}}/entries
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "entries": [
+    {
+      "studentId": "{{entryStudentId}}",
+      "status": "early_leave",
+      "note": "Should fail in V1 Teacher App writes"
+    }
+  ]
+}
+
+### Teacher App: submit session
+POST {{baseUrl}}/teacher/classroom/{{classId}}/attendance/sessions/{{sessionId}}/submit
+Authorization: Bearer {{teacherToken}}
+
+### Student App: behavior list
+GET {{baseUrl}}/student/behavior
+Authorization: Bearer {{studentToken}}
+
+### Student App: behavior summary
+GET {{baseUrl}}/student/behavior/summary
+Authorization: Bearer {{studentToken}}
+
+### Student App: discipline timeline
+GET {{baseUrl}}/student/discipline?page=1&limit=20
+Authorization: Bearer {{studentToken}}
+
+### Student App: discipline attendance-only timeline
+GET {{baseUrl}}/student/discipline?sourceType=attendance&page=1&limit=20
+Authorization: Bearer {{studentToken}}
+
+### Student App: discipline behavior-only timeline
+GET {{baseUrl}}/student/discipline?sourceType=behavior&page=1&limit=20
+Authorization: Bearer {{studentToken}}
+
+### Student App: discipline summary
+GET {{baseUrl}}/student/discipline/summary
+Authorization: Bearer {{studentToken}}
+
+### Parent App: child behavior
+GET {{baseUrl}}/parent/children/{{linkedChildId}}/behavior
+Authorization: Bearer {{parentToken}}
+
+### Parent App: child behavior summary
+GET {{baseUrl}}/parent/children/{{linkedChildId}}/behavior/summary
+Authorization: Bearer {{parentToken}}
+
+### Parent App: child discipline timeline
+GET {{baseUrl}}/parent/children/{{linkedChildId}}/discipline?page=1&limit=20
+Authorization: Bearer {{parentToken}}
+
+### Parent App: child discipline summary
+GET {{baseUrl}}/parent/children/{{linkedChildId}}/discipline/summary
+Authorization: Bearer {{parentToken}}
+
+### Parent App: reports list
+GET {{baseUrl}}/parent/children/{{linkedChildId}}/reports
+Authorization: Bearer {{parentToken}}
+
+### Parent App: reports summary with additive discipline object
+GET {{baseUrl}}/parent/children/{{linkedChildId}}/reports/summary
+Authorization: Bearer {{parentToken}}

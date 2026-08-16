@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/features/grades/submissions/services/__tests__/gradesSubmissionsService.test.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

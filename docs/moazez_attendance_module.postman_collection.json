@@ -1,0 +1,2235 @@
+{
+  "info": {
+    "name": "Moazez Backend - Attendance Module",
+    "_postman_id": "b3f7e891-2e3c-4cf0-8f8b-0b8f5f2bdf10",
+    "description": "Full Postman collection for Moazez Backend Attendance Module: roll-call, absences, excuses, policies, reports, and teacher classroom attendance.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });",
+          "if (!pm.request.headers.has('Content-Type') && pm.request.body) {",
+          "  pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response has valid status code', function () {",
+          "  pm.expect(pm.response.code).to.be.oneOf([200, 201, 204, 400, 401, 403, 404, 409, 422, 429, 500]);",
+          "});",
+          "if (pm.response.code >= 400) {",
+          "  pm.test('Error response uses envelope', function () {",
+          "    const json = pm.response.json();",
+          "    pm.expect(json).to.have.property('error');",
+          "    pm.expect(json.error).to.have.property('code');",
+          "    pm.expect(json.error).to.have.property('message');",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "academicYearId",
+      "value": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "yearId",
+      "value": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "termId",
+      "value": "00000000-0000-0000-0000-000000000002"
+    },
+    {
+      "key": "stageId",
+      "value": "00000000-0000-0000-0000-000000000003"
+    },
+    {
+      "key": "gradeId",
+      "value": "00000000-0000-0000-0000-000000000004"
+    },
+    {
+      "key": "sectionId",
+      "value": "00000000-0000-0000-0000-000000000005"
+    },
+    {
+      "key": "classroomId",
+      "value": "00000000-0000-0000-0000-000000000006"
+    },
+    {
+      "key": "classId",
+      "value": "00000000-0000-0000-0000-000000000006"
+    },
+    {
+      "key": "sessionId",
+      "value": "00000000-0000-0000-0000-000000000007"
+    },
+    {
+      "key": "studentId",
+      "value": "00000000-0000-0000-0000-000000000008"
+    },
+    {
+      "key": "enrollmentId",
+      "value": "00000000-0000-0000-0000-000000000009"
+    },
+    {
+      "key": "entryId",
+      "value": "00000000-0000-0000-0000-000000000010"
+    },
+    {
+      "key": "policyId",
+      "value": "00000000-0000-0000-0000-000000000011"
+    },
+    {
+      "key": "excuseRequestId",
+      "value": "00000000-0000-0000-0000-000000000012"
+    },
+    {
+      "key": "attachmentId",
+      "value": "00000000-0000-0000-0000-000000000013"
+    },
+    {
+      "key": "fileId",
+      "value": "00000000-0000-0000-0000-000000000014"
+    },
+    {
+      "key": "periodId",
+      "value": "00000000-0000-0000-0000-000000000015"
+    },
+    {
+      "key": "periodKey",
+      "value": "period-1"
+    },
+    {
+      "key": "date",
+      "value": "2026-09-15"
+    },
+    {
+      "key": "dateFrom",
+      "value": "2026-09-01"
+    },
+    {
+      "key": "dateTo",
+      "value": "2027-06-30"
+    },
+    {
+      "key": "actorId",
+      "value": "00000000-0000-0000-0000-000000000016"
+    }
+  ],
+  "item": [
+    {
+      "name": "Roll Call",
+      "item": [
+        {
+          "name": "Get Roster",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/roster?academicYearId={{academicYearId}}&termId={{termId}}&date={{date}}&scopeType=CLASSROOM&classroomId={{classroomId}}&mode=DAILY",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "roster"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": false
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": false
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "mode",
+                  "value": "DAILY",
+                  "disabled": false
+                },
+                {
+                  "key": "yearId",
+                  "value": "{{yearId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "stageId",
+                  "value": "{{stageId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "gradeId",
+                  "value": "{{gradeId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "sectionId",
+                  "value": "{{sectionId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "periodKey",
+                  "value": "{{periodKey}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.sessions.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Resolve Daily Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/session/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "session",
+                "resolve"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.sessions.manage. Idempotently resolves or creates a daily session.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"termId\": \"{{termId}}\",\n  \"date\": \"{{date}}\",\n  \"scopeType\": \"CLASSROOM\",\n  \"classroomId\": \"{{classroomId}}\",\n  \"mode\": \"DAILY\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resolve Period Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/session/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "session",
+                "resolve"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.sessions.manage. Period mode requires periodKey and validates periodId against timetable context.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"termId\": \"{{termId}}\",\n  \"date\": \"{{date}}\",\n  \"scopeType\": \"CLASSROOM\",\n  \"classroomId\": \"{{classroomId}}\",\n  \"mode\": \"PERIOD\",\n  \"periodKey\": \"{{periodKey}}\",\n  \"periodId\": \"{{periodId}}\",\n  \"periodLabelAr\": \"الحصة الأولى\",\n  \"periodLabelEn\": \"Period 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/sessions?academicYearId={{academicYearId}}&termId={{termId}}&scopeType=CLASSROOM&classroomId={{classroomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "sessions"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "{{dateFrom}}",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{dateTo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": true
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": false
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "status",
+                  "value": "DRAFT",
+                  "disabled": true
+                },
+                {
+                  "key": "mode",
+                  "value": "DAILY",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.sessions.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "sessions",
+                "{{sessionId}}"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.sessions.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "sessions",
+                "{{sessionId}}",
+                "submit"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.sessions.submit"
+          },
+          "response": []
+        },
+        {
+          "name": "Unsubmit Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/unsubmit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "sessions",
+                "{{sessionId}}",
+                "unsubmit"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.sessions.submit"
+          },
+          "response": []
+        },
+        {
+          "name": "Save All Entries",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/entries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "sessions",
+                "{{sessionId}}",
+                "entries"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.entries.manage. Session must be DRAFT.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entries\": [\n    {\n      \"studentId\": \"{{studentId}}\",\n      \"enrollmentId\": \"{{enrollmentId}}\",\n      \"status\": \"PRESENT\",\n      \"lateMinutes\": null,\n      \"earlyLeaveMinutes\": null,\n      \"excuseReason\": null,\n      \"note\": \"Marked from Postman\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upsert One Entry",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/entries/{{studentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "sessions",
+                "{{sessionId}}",
+                "entries",
+                "{{studentId}}"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.entries.manage. Session must be DRAFT.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"status\": \"LATE\",\n  \"lateMinutes\": 15,\n  \"earlyLeaveMinutes\": null,\n  \"excuseReason\": null,\n  \"note\": \"Arrived late\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Correct Submitted Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}/entries/{{studentId}}/correct",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "sessions",
+                "{{sessionId}}",
+                "entries",
+                "{{studentId}}",
+                "correct"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.entries.manage. Session must be SUBMITTED and correctionReason is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"EXCUSED\",\n  \"lateMinutes\": null,\n  \"earlyLeaveMinutes\": null,\n  \"excuseReason\": \"Medical note approved\",\n  \"note\": \"Corrected from Postman\",\n  \"correctionReason\": \"Valid parent excuse was submitted\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Absences",
+      "item": [
+        {
+          "name": "List Absence Incidents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/absences?academicYearId={{academicYearId}}&termId={{termId}}&date={{date}}&scopeType=CLASSROOM&classroomId={{classroomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "absences"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "{{dateFrom}}",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{dateTo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": false
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": false
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ABSENT",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.absences.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Absence Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/absences/summary?academicYearId={{academicYearId}}&termId={{termId}}&date={{date}}&scopeType=CLASSROOM&classroomId={{classroomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "absences",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "{{dateFrom}}",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{dateTo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": false
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": false
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ABSENT",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.absences.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Incident Excused",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/absences/{{entryId}}/excuse",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "absences",
+                "{{entryId}}",
+                "excuse"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.entries.manage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"excuseReason\": \"Approved medical excuse\",\n  \"note\": \"Reviewed by attendance admin\",\n  \"correctionReason\": \"Valid parent excuse was submitted\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Correct Incident To Early Leave",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/absences/{{entryId}}/early-leave",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "absences",
+                "{{entryId}}",
+                "early-leave"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.entries.manage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"earlyLeaveMinutes\": 30,\n  \"note\": \"Student left early with approval\",\n  \"correctionReason\": \"Originally marked absent, corrected to early leave\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Excuse Requests",
+      "item": [
+        {
+          "name": "List Excuse Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests?academicYearId={{academicYearId}}&termId={{termId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "ABSENCE",
+                  "disabled": true
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "{{dateFrom}}",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{dateTo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "Ahmed",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.excuses.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Excuse Request",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests",
+                "{{excuseRequestId}}"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.view"
+          },
+          "response": []
+        },
+        {
+          "name": "List Excuse Attachments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/attachments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests",
+                "{{excuseRequestId}}",
+                "attachments"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Excuse Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.manage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"termId\": \"{{termId}}\",\n  \"studentId\": \"{{studentId}}\",\n  \"type\": \"ABSENCE\",\n  \"dateFrom\": \"{{date}}\",\n  \"dateTo\": \"{{date}}\",\n  \"selectedPeriodKeys\": [],\n  \"selectedPeriodIds\": [],\n  \"lateMinutes\": null,\n  \"earlyLeaveMinutes\": null,\n  \"reasonAr\": \"موعد طبي\",\n  \"reasonEn\": \"Medical appointment\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Excuse Request",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests",
+                "{{excuseRequestId}}"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.manage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"LATE\",\n  \"dateFrom\": \"{{date}}\",\n  \"dateTo\": \"{{date}}\",\n  \"selectedPeriodKeys\": [\n    \"{{periodKey}}\"\n  ],\n  \"selectedPeriodIds\": [\n    \"{{periodId}}\"\n  ],\n  \"lateMinutes\": 12,\n  \"earlyLeaveMinutes\": null,\n  \"reasonAr\": \"تأخر بسبب المواصلات\",\n  \"reasonEn\": \"Late due to traffic\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Link Excuse Attachments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/attachments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests",
+                "{{excuseRequestId}}",
+                "attachments"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.manage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileIds\": [\n    \"{{fileId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Excuse Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests",
+                "{{excuseRequestId}}",
+                "approve"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.review",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionNote\": \"Reviewed from Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Excuse Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests",
+                "{{excuseRequestId}}",
+                "reject"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.review",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decisionNote\": \"Reviewed from Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Excuse Attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}/attachments/{{attachmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests",
+                "{{excuseRequestId}}",
+                "attachments",
+                "{{attachmentId}}"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.manage"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Excuse Request",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/excuse-requests/{{excuseRequestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "excuse-requests",
+                "{{excuseRequestId}}"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.excuses.manage"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Policies",
+      "item": [
+        {
+          "name": "List Policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/policies?academicYearId={{academicYearId}}&termId={{termId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "policies"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": true
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.policies.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Effective Policy",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/policies/effective?academicYearId={{academicYearId}}&termId={{termId}}&scopeType=CLASSROOM&classroomId={{classroomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "policies",
+                "effective"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": false
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.policies.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Policy Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/policies/validate-name?academicYearId={{academicYearId}}&termId={{termId}}&scopeType=CLASSROOM&classroomId={{classroomId}}&nameAr=سياسة الحضور الافتراضية&nameEn=Default Attendance Policy",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "policies",
+                "validate-name"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": false
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "nameAr",
+                  "value": "سياسة الحضور الافتراضية",
+                  "disabled": false
+                },
+                {
+                  "key": "nameEn",
+                  "value": "Default Attendance Policy",
+                  "disabled": false
+                },
+                {
+                  "key": "excludeId",
+                  "value": "{{policyId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.policies.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/policies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "policies"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.policies.manage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"termId\": \"{{termId}}\",\n  \"nameAr\": \"سياسة الحضور الافتراضية\",\n  \"nameEn\": \"Default Attendance Policy\",\n  \"descriptionAr\": \"السياسة الافتراضية للحضور\",\n  \"descriptionEn\": \"Default attendance policy\",\n  \"notes\": null,\n  \"notesAr\": null,\n  \"notesEn\": null,\n  \"scopeType\": \"CLASSROOM\",\n  \"scopeIds\": {\n    \"classroomId\": \"{{classroomId}}\"\n  },\n  \"classroomId\": \"{{classroomId}}\",\n  \"mode\": \"PERIOD\",\n  \"dailyComputationStrategy\": \"DERIVED_FROM_PERIODS\",\n  \"selectedPeriodIds\": [\n    \"{{periodId}}\"\n  ],\n  \"lateThresholdMinutes\": 15,\n  \"earlyLeaveThresholdMinutes\": 15,\n  \"autoAbsentAfterMinutes\": null,\n  \"absentIfMissedPeriodsCount\": 2,\n  \"requireExcuseAttachment\": true,\n  \"requireAttachmentForExcuse\": true,\n  \"requireExcuseReason\": true,\n  \"allowParentExcuseRequests\": true,\n  \"allowExcuses\": true,\n  \"notifyGuardiansOnAbsence\": true,\n  \"notifyTeachers\": true,\n  \"notifyStudents\": false,\n  \"notifyGuardians\": true,\n  \"notifyOnAbsent\": true,\n  \"notifyOnLate\": true,\n  \"notifyOnEarlyLeave\": false,\n  \"effectiveFrom\": \"{{dateFrom}}\",\n  \"effectiveStartDate\": \"{{dateFrom}}\",\n  \"effectiveTo\": \"{{dateTo}}\",\n  \"effectiveEndDate\": \"{{dateTo}}\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Policy",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/policies/{{policyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "policies",
+                "{{policyId}}"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.policies.manage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"سياسة حضور محدثة\",\n  \"nameEn\": \"Updated Attendance Policy\",\n  \"lateThresholdMinutes\": 10,\n  \"earlyLeaveThresholdMinutes\": 10,\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Policy",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/policies/{{policyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "policies",
+                "{{policyId}}"
+              ],
+              "query": []
+            },
+            "description": "Requires attendance.policies.manage"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Summary Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/reports/summary?academicYearId={{academicYearId}}&termId={{termId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "reports",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "{{dateFrom}}",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{dateTo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": true
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": true
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "mode",
+                  "value": "DAILY",
+                  "disabled": true
+                },
+                {
+                  "key": "periodKey",
+                  "value": "{{periodKey}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.reports.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Daily Trend Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/reports/daily-trend?academicYearId={{academicYearId}}&termId={{termId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "reports",
+                "daily-trend"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "{{dateFrom}}",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{dateTo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": true
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": true
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "mode",
+                  "value": "DAILY",
+                  "disabled": true
+                },
+                {
+                  "key": "periodKey",
+                  "value": "{{periodKey}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.reports.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Breakdown Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/reports/scope-breakdown?academicYearId={{academicYearId}}&termId={{termId}}&groupBy=classroom",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "reports",
+                "scope-breakdown"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "{{dateFrom}}",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{dateTo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": true
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": true
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "mode",
+                  "value": "DAILY",
+                  "disabled": true
+                },
+                {
+                  "key": "periodKey",
+                  "value": "{{periodKey}}",
+                  "disabled": true
+                },
+                {
+                  "key": "groupBy",
+                  "value": "classroom",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Requires attendance.reports.view"
+          },
+          "response": []
+        },
+        {
+          "name": "Derived Daily Absences Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/reports/derived-daily-absences?academicYearId={{academicYearId}}&termId={{termId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "reports",
+                "derived-daily-absences"
+              ],
+              "query": [
+                {
+                  "key": "academicYearId",
+                  "value": "{{academicYearId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "termId",
+                  "value": "{{termId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "{{dateFrom}}",
+                  "disabled": true
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{dateTo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": true
+                },
+                {
+                  "key": "scopeType",
+                  "value": "CLASSROOM",
+                  "disabled": true
+                },
+                {
+                  "key": "classroomId",
+                  "value": "{{classroomId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "mode",
+                  "value": "DAILY",
+                  "disabled": true
+                },
+                {
+                  "key": "periodKey",
+                  "value": "{{periodKey}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Requires attendance.reports.view"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Teacher App Classroom Attendance",
+      "item": [
+        {
+          "name": "Teacher Get Roster",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teacher/classroom/{{classId}}/attendance/roster?date={{date}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "classroom",
+                "{{classId}}",
+                "attendance",
+                "roster"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "Ahmed",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Auth + teacher owns allocation"
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher Get Today",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teacher/classroom/{{classId}}/attendance/today?date={{date}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "classroom",
+                "{{classId}}",
+                "attendance",
+                "today"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "Ahmed",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Auth + teacher owns allocation"
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher Resolve Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teacher/classroom/{{classId}}/attendance/session/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "classroom",
+                "{{classId}}",
+                "attendance",
+                "session",
+                "resolve"
+              ],
+              "query": []
+            },
+            "description": "Auth + teacher owns allocation",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"{{date}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher Get Session",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teacher/classroom/{{classId}}/attendance/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "classroom",
+                "{{classId}}",
+                "attendance",
+                "sessions",
+                "{{sessionId}}"
+              ],
+              "query": []
+            },
+            "description": "Auth + teacher owns allocation"
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher Update Entries",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teacher/classroom/{{classId}}/attendance/sessions/{{sessionId}}/entries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "classroom",
+                "{{classId}}",
+                "attendance",
+                "sessions",
+                "{{sessionId}}",
+                "entries"
+              ],
+              "query": []
+            },
+            "description": "Auth + teacher owns allocation. Status values are lowercase.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entries\": [\n    {\n      \"studentId\": \"{{studentId}}\",\n      \"status\": \"present\",\n      \"arrivalTime\": null,\n      \"dismissalTime\": null,\n      \"note\": \"Marked from teacher app\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher Submit Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teacher/classroom/{{classId}}/attendance/sessions/{{sessionId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "classroom",
+                "{{classId}}",
+                "attendance",
+                "sessions",
+                "{{sessionId}}",
+                "submit"
+              ],
+              "query": []
+            },
+            "description": "Auth + teacher owns allocation"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Examples",
+      "item": [
+        {
+          "name": "Example Error Envelope",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/roll-call/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "roll-call",
+                "sessions",
+                "{{sessionId}}"
+              ],
+              "query": []
+            },
+            "description": "Example endpoint. Error response envelope shape used globally."
+          },
+          "response": [
+            {
+              "name": "Validation Error",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/attendance/roll-call/sessions/not-a-uuid"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"validation.failed\",\n    \"message\": \"Request validation failed\",\n    \"details\": {\n      \"fields\": [\n        \"id must be a UUID\"\n      ]\n    },\n    \"traceId\": \"00000000-0000-0000-0000-000000000000\"\n  }\n}"
+            },
+            {
+              "name": "Policy Conflict",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/attendance/policies"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"attendance.policy.conflict\",\n    \"message\": \"An active policy already exists for this scope\",\n    \"details\": {\n      \"academicYearId\": \"{{academicYearId}}\",\n      \"termId\": \"{{termId}}\",\n      \"scopeType\": \"CLASSROOM\",\n      \"scopeKey\": \"classroom:{{classroomId}}\"\n    },\n    \"traceId\": \"00000000-0000-0000-0000-000000000000\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

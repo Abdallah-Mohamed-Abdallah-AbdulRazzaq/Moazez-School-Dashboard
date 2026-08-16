@@ -1,0 +1,74 @@
+@baseUrl = http://localhost:3000/api/v1
+@platformToken = replace_with_platform_admin_access_token
+@conversationId = replace_with_support_conversation_id
+@schoolId = optional_school_id
+@organizationId = optional_organization_id
+
+### Platform: list support inbox
+GET {{baseUrl}}/platform-admin/support/conversations?page=1&limit=20
+Authorization: Bearer {{platformToken}}
+
+### Platform: list support inbox filtered by unread
+GET {{baseUrl}}/platform-admin/support/conversations?hasUnread=true&page=1&limit=20
+Authorization: Bearer {{platformToken}}
+
+### Platform: list support inbox filtered by school
+GET {{baseUrl}}/platform-admin/support/conversations?schoolId={{schoolId}}
+Authorization: Bearer {{platformToken}}
+
+### Platform: list support inbox filtered by organization
+GET {{baseUrl}}/platform-admin/support/conversations?organizationId={{organizationId}}
+Authorization: Bearer {{platformToken}}
+
+### Platform: get conversation detail
+GET {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}
+Authorization: Bearer {{platformToken}}
+
+### Platform: list conversation messages
+GET {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/messages?page=1&limit=50
+Authorization: Bearer {{platformToken}}
+
+### Platform: reply to support conversation
+POST {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/messages
+Authorization: Bearer {{platformToken}}
+Content-Type: application/json
+
+{
+  "body": "Thanks for contacting Moazez Support. We are checking this for you.",
+  "clientMessageId": "platform-reply-001"
+}
+
+### Platform: retry same reply idempotently
+POST {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/messages
+Authorization: Bearer {{platformToken}}
+Content-Type: application/json
+
+{
+  "body": "Thanks for contacting Moazez Support. We are checking this for you.",
+  "clientMessageId": "platform-reply-001"
+}
+
+### Platform: mark read
+POST {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/read
+Authorization: Bearer {{platformToken}}
+Content-Type: application/json
+
+{}
+
+### Platform: close conversation
+POST {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/close
+Authorization: Bearer {{platformToken}}
+Content-Type: application/json
+
+{
+  "reason": "Issue resolved."
+}
+
+### Platform: reopen conversation
+POST {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/reopen
+Authorization: Bearer {{platformToken}}
+Content-Type: application/json
+
+{
+  "reason": "School requested follow-up."
+}

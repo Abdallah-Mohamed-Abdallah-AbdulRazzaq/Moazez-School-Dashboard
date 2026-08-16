@@ -1,0 +1,112 @@
+### Dashboard API Tests
+### Replace placeholders before running.
+
+@baseUrl = http://localhost:3000/api/v1
+@accessToken = REPLACE_WITH_SCHOOL_SCOPED_ADMIN_ACCESS_TOKEN
+@source = attendance
+@severity = warning
+@eventType = attendance.session.submit
+@actorType = admin
+@dateFrom = 2026-01-01T00:00:00.000Z
+@dateTo = 2026-12-31T23:59:59.999Z
+@cursor = REPLACE_WITH_NEXT_CURSOR
+
+### Dashboard Summary
+GET {{baseUrl}}/dashboard/summary
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Alerts - Default
+GET {{baseUrl}}/dashboard/alerts
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Alerts - Include zero-count alerts
+GET {{baseUrl}}/dashboard/alerts?includeZeroCount=true
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Alerts - By source
+GET {{baseUrl}}/dashboard/alerts?source={{source}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Alerts - By severity
+GET {{baseUrl}}/dashboard/alerts?severity={{severity}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Alerts - Limit
+GET {{baseUrl}}/dashboard/alerts?limit=5
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Alerts - Source, severity, and zero count
+GET {{baseUrl}}/dashboard/alerts?source={{source}}&severity={{severity}}&includeZeroCount=true&limit=10
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Activity Feed - Default
+GET {{baseUrl}}/dashboard/activity-feed
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Activity Feed - By source
+GET {{baseUrl}}/dashboard/activity-feed?source={{source}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Activity Feed - By event type
+GET {{baseUrl}}/dashboard/activity-feed?eventType={{eventType}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Activity Feed - By actor type
+GET {{baseUrl}}/dashboard/activity-feed?actorType={{actorType}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Activity Feed - Date range
+GET {{baseUrl}}/dashboard/activity-feed?dateFrom={{dateFrom}}&dateTo={{dateTo}}
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Activity Feed - Limited page
+GET {{baseUrl}}/dashboard/activity-feed?limit=5
+Authorization: Bearer {{accessToken}}
+
+### Dashboard Activity Feed - Cursor page
+GET {{baseUrl}}/dashboard/activity-feed?cursor={{cursor}}
+Authorization: Bearer {{accessToken}}
+
+### Negative - Summary without token should fail
+GET {{baseUrl}}/dashboard/summary
+
+### Negative - Alerts invalid source should fail validation
+GET {{baseUrl}}/dashboard/alerts?source=invalid_source
+Authorization: Bearer {{accessToken}}
+
+### Negative - Alerts invalid severity should fail validation
+GET {{baseUrl}}/dashboard/alerts?severity=urgent
+Authorization: Bearer {{accessToken}}
+
+### Negative - Activity feed invalid event type should fail validation
+GET {{baseUrl}}/dashboard/activity-feed?eventType=invalid
+Authorization: Bearer {{accessToken}}
+
+### Negative - Activity feed invalid date range should fail validation
+GET {{baseUrl}}/dashboard/activity-feed?dateFrom=2026-12-31T00:00:00.000Z&dateTo=2026-01-01T00:00:00.000Z
+Authorization: Bearer {{accessToken}}
+
+### Negative - Activity feed invalid cursor should fail validation
+GET {{baseUrl}}/dashboard/activity-feed?cursor=not-a-valid-cursor
+Authorization: Bearer {{accessToken}}
+
+### Non-goal - Alert read route should not exist
+POST {{baseUrl}}/dashboard/alerts/example-alert/read
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{}
+
+### Non-goal - Alert dismiss route should not exist
+POST {{baseUrl}}/dashboard/alerts/example-alert/dismiss
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{}
+
+### Non-goal - Activity feed pin route should not exist
+POST {{baseUrl}}/dashboard/activity-feed/audit-example/pin
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{}

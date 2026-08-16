@@ -1,0 +1,243 @@
+### Moazez Dashboard API Tests
+### Compatible with VS Code REST Client / JetBrains HTTP Client.
+### Fill in accessToken with a School Admin or Organization Admin token in an active school scope.
+
+@baseUrl = http://localhost:3000/api/v1
+@accessToken = REPLACE_WITH_ACCESS_TOKEN
+@todoId = REPLACE_AFTER_CREATE
+@academicYearId = REPLACE_OPTIONALLY
+@termId = REPLACE_OPTIONALLY
+@gradeId = REPLACE_OPTIONALLY
+@sectionId = REPLACE_OPTIONALLY
+@classroomId = REPLACE_OPTIONALLY
+
+### 1. Summary
+GET {{baseUrl}}/dashboard/summary
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 2. Alerts - default non-zero
+GET {{baseUrl}}/dashboard/alerts
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 3. Alerts - all Attendance signals, including zeros
+GET {{baseUrl}}/dashboard/alerts?source=attendance&includeZeroCount=true&limit=100
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 4. Activity feed
+GET {{baseUrl}}/dashboard/activity-feed?limit=20
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 5. Activity feed filtered
+GET {{baseUrl}}/dashboard/activity-feed?source=attendance&actorType=admin&eventType=attendance.session.submit&limit=10
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 6. Command Center
+GET {{baseUrl}}/dashboard/command-center
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 7. Light Mode Dropdown - Cairo selected day
+GET {{baseUrl}}/dashboard/light-mode-dropdown?locale=en&timezone=Africa%2FCairo&units=metric&date=2026-07-15
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 8. Widgets - all
+GET {{baseUrl}}/dashboard/widgets?limit=50
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 9. Widgets - analytics mini charts only
+GET {{baseUrl}}/dashboard/widgets?type=mini-chart-card&limit=50
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 10. Widget detail
+GET {{baseUrl}}/dashboard/widgets/attendance.daily_trend
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 11. Calendar widget detail
+GET {{baseUrl}}/dashboard/widgets/calendar.today
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 12. Modules list
+GET {{baseUrl}}/dashboard/modules?status=available&limit=50
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 13. Attendance module page
+GET {{baseUrl}}/dashboard/modules/attendance
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 14. Analytics catalog
+GET {{baseUrl}}/dashboard/analytics/catalog
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 15. Analytics chart definitions
+GET {{baseUrl}}/dashboard/analytics/charts?status=available&limit=100
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 16. Chart definition
+GET {{baseUrl}}/dashboard/analytics/charts/attendance.absence_rate
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 17. Attendance daily trend - fixed 30 days
+GET {{baseUrl}}/dashboard/analytics/charts/attendance.daily_trend/data?range=30d&granularity=day
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 18. Attendance absence rate - custom window
+GET {{baseUrl}}/dashboard/analytics/charts/attendance.absence_rate/data?range=custom&granularity=day&dateFrom=2026-07-01&dateTo=2026-07-15
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 19. Student enrollment growth
+GET {{baseUrl}}/dashboard/analytics/charts/students.enrollment_growth/data?range=90d&granularity=week
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 20. Admissions application status
+GET {{baseUrl}}/dashboard/analytics/charts/admissions.applications_by_status/data?range=30d&granularity=day
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 21. Teacher allocation coverage with optional hierarchy
+GET {{baseUrl}}/dashboard/analytics/charts/academics.teacher_allocation_coverage/data?range=30d&granularity=day
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 22. Gradebook completion - requires valid academic context in many datasets
+GET {{baseUrl}}/dashboard/analytics/charts/grades.gradebook_completion/data?range=30d&granularity=day&academicYearId={{academicYearId}}&termId={{termId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 23. Homework submission/review trend
+GET {{baseUrl}}/dashboard/analytics/charts/homework.submission_review_trend/data?range=30d&granularity=day
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 24. Behavior positive/negative trend
+GET {{baseUrl}}/dashboard/analytics/charts/behavior.positive_negative_trend/data?range=30d&granularity=day
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 25. Reinforcement reward redemption funnel
+GET {{baseUrl}}/dashboard/analytics/charts/reinforcement.reward_redemption_status/data?range=30d&granularity=day
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 26. Communication message volume
+GET {{baseUrl}}/dashboard/analytics/charts/communication.message_volume/data?range=30d&granularity=day
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 27. Definition-only chart - must return safe not-implemented data state
+GET {{baseUrl}}/dashboard/analytics/charts/admissions.funnel/data?range=30d&granularity=day
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 28. List Todos
+GET {{baseUrl}}/dashboard/light-mode-dropdown/todos?date=2026-07-15&status=all&limit=100&timezone=Africa%2FCairo
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### 29. Create Todo
+POST {{baseUrl}}/dashboard/light-mode-dropdown/todos
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "date": "2026-07-15",
+  "title": "Review pending Dashboard actions",
+  "notes": "Created from dashboard-api-tests.http",
+  "priority": "high",
+  "sortOrder": 10
+}
+
+### 30. Update Todo - set completed
+PATCH {{baseUrl}}/dashboard/light-mode-dropdown/todos/{{todoId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "status": "completed",
+  "priority": "normal"
+}
+
+### 31. Update Todo - set pending and clear notes
+PATCH {{baseUrl}}/dashboard/light-mode-dropdown/todos/{{todoId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "status": "pending",
+  "notes": null
+}
+
+### 32. Delete Todo
+DELETE {{baseUrl}}/dashboard/light-mode-dropdown/todos/{{todoId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Negative 1. Unknown widget -> 404
+GET {{baseUrl}}/dashboard/widgets/not.a.real.widget
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Negative 2. Unknown module -> 404
+GET {{baseUrl}}/dashboard/modules/not-a-real-module
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Negative 3. Unknown chart -> 404
+GET {{baseUrl}}/dashboard/analytics/charts/not.a.real.chart/data
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Negative 4. Invalid activity cursor -> validation error
+GET {{baseUrl}}/dashboard/activity-feed?cursor=not-a-valid-cursor
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Negative 5. Invalid date range -> validation error
+GET {{baseUrl}}/dashboard/activity-feed?dateFrom=2026-07-15T00:00:00.000Z&dateTo=2026-07-01T00:00:00.000Z
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Negative 6. dateFrom/dateTo with non-custom Analytics range -> validation error
+GET {{baseUrl}}/dashboard/analytics/charts/attendance.daily_trend/data?range=30d&dateFrom=2026-07-01&dateTo=2026-07-15
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Negative 7. Empty Todo PATCH -> 400
+PATCH {{baseUrl}}/dashboard/light-mode-dropdown/todos/{{todoId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{}
+
+### Negative 8. Invalid Todo title -> validation error
+POST {{baseUrl}}/dashboard/light-mode-dropdown/todos
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "date": "2026-07-15",
+  "title": "",
+  "priority": "urgent"
+}

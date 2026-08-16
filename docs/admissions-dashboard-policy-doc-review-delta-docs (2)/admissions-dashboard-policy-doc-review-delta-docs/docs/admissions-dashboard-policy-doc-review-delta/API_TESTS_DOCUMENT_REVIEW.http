@@ -1,0 +1,70 @@
+@baseUrl = http://localhost:3000/api/v1
+@token = {{authToken}}
+@applicationId = 00000000-0000-0000-0000-000000000000
+@documentId = 00000000-0000-0000-0000-000000000000
+@fileId = 00000000-0000-0000-0000-000000000000
+
+### List application documents with review eligibility fields
+GET {{baseUrl}}/admissions/applications/{{applicationId}}/documents
+Authorization: Bearer {{token}}
+
+### Staff create document with omitted status - defaults to complete
+POST {{baseUrl}}/admissions/applications/{{applicationId}}/documents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fileId": "{{fileId}}",
+  "documentType": "birth_certificate",
+  "notes": "School office copy"
+}
+
+### Staff create missing document
+POST {{baseUrl}}/admissions/applications/{{applicationId}}/documents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fileId": "{{fileId}}",
+  "documentType": "national_id",
+  "status": "missing",
+  "notes": "Waiting for replacement"
+}
+
+### Staff create pending_review document - expected validation failure
+POST {{baseUrl}}/admissions/applications/{{applicationId}}/documents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fileId": "{{fileId}}",
+  "documentType": "birth_certificate",
+  "status": "pending_review"
+}
+
+### Accept applicant-portal bridged document
+POST {{baseUrl}}/admissions/applications/{{applicationId}}/documents/{{documentId}}/accept
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "note": "Verified"
+}
+
+### Reject applicant-portal bridged document
+POST {{baseUrl}}/admissions/applications/{{applicationId}}/documents/{{documentId}}/reject
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "note": "Incorrect document"
+}
+
+### Request replacement for applicant-portal bridged document
+POST {{baseUrl}}/admissions/applications/{{applicationId}}/documents/{{documentId}}/request-replacement
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "note": "Blurry scan"
+}

@@ -1,0 +1,46 @@
+@baseUrl = http://localhost:3000/api/v1
+@adminEmail = admin@moazez.dev
+@adminPassword = Admin123!
+@accessToken = REPLACE_WITH_ACCESS_TOKEN
+@refreshToken = REPLACE_WITH_REFRESH_TOKEN
+@currentPassword = REPLACE_WITH_CURRENT_PASSWORD
+@newPassword = REPLACE_WITH_NEW_PASSWORD
+
+### IAM 01 - Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### IAM 02 - Me
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+### IAM 03 - Refresh
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### IAM 04 - Change current user password (use only on disposable test user)
+POST {{baseUrl}}/auth/change-password
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{currentPassword}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### IAM 05 - Logout current session
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+### IAM 06 - Verify old access token after logout should fail
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{accessToken}}

@@ -1,0 +1,452 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  --primary-color: #036b80;
+  --hover-color: #025a6b;
+  --gray-color: grey;
+  --white-color: #fefefe;
+  --black-color: black;
+  --blue-color: rgb(40, 107, 250);
+  --border-color: #cccccccc;
+
+  --header-height: 88px;
+
+  --main-box-shadow-value: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+
+  /* Extended palette for matrix/table components */
+  --primary-dark: #003043;
+  --accent-color: #f7a201;
+  --surface-color: #fefefe;
+  --neutral-color: #afadb2;
+}
+
+/* tokens */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-somar);
+
+  /* base colors */
+  --color-primary: var(--primary-color);
+  --color-hover: var(--hover-color);
+  --color-white: var(--white-color);
+  --color-black: var(--black-color);
+  --color-border: var(--border-color);
+  --color-warning: #ffcc00;
+  --color-error: #ff0000;
+  --color-success: #00ff00;
+  --color-info: var(--blue-color);
+  --shadow-main: var(--main-box-shadow-value);
+  /* PRIMARY SCALE */
+  --color-primary-50: color-mix(in oklab, var(--primary-color) 6%, white);
+  --color-primary-100: color-mix(in oklab, var(--primary-color) 12%, white);
+  --color-primary-200: color-mix(in oklab, var(--primary-color) 22%, white);
+  --color-primary-300: color-mix(in oklab, var(--primary-color) 35%, white);
+  --color-primary-400: color-mix(in oklab, var(--primary-color) 55%, white);
+  --color-primary-500: var(--primary-color);
+  --color-primary-600: color-mix(in oklab, var(--primary-color) 85%, black);
+  --color-primary-700: color-mix(in oklab, var(--primary-color) 72%, black);
+  --color-primary-800: color-mix(in oklab, var(--primary-color) 58%, black);
+  --color-primary-900: color-mix(in oklab, var(--primary-color) 45%, black);
+  --color-primary-950: color-mix(in oklab, var(--primary-color) 30%, black);
+
+  /* HOVER SCALE (اختياري لو عايز نفس فكرة الدرجات) */
+  --color-hover-50: color-mix(in oklab, var(--hover-color) 6%, white);
+  --color-hover-100: color-mix(in oklab, var(--hover-color) 12%, white);
+  --color-hover-200: color-mix(in oklab, var(--hover-color) 22%, white);
+  --color-hover-300: color-mix(in oklab, var(--hover-color) 35%, white);
+  --color-hover-400: color-mix(in oklab, var(--hover-color) 55%, white);
+  --color-hover-500: var(--hover-color);
+  --color-hover-600: color-mix(in oklab, var(--hover-color) 85%, black);
+  --color-hover-700: color-mix(in oklab, var(--hover-color) 72%, black);
+  --color-hover-800: color-mix(in oklab, var(--hover-color) 58%, black);
+  --color-hover-900: color-mix(in oklab, var(--hover-color) 45%, black);
+  --color-hover-950: color-mix(in oklab, var(--hover-color) 30%, black);
+
+  /* ACCENT SCALE */
+  --color-accent-50: color-mix(in oklab, var(--accent-color) 6%, white);
+  --color-accent-100: color-mix(in oklab, var(--accent-color) 12%, white);
+  --color-accent-200: color-mix(in oklab, var(--accent-color) 22%, white);
+  --color-accent-300: color-mix(in oklab, var(--accent-color) 35%, white);
+  --color-accent-400: color-mix(in oklab, var(--accent-color) 55%, white);
+  --color-accent-500: var(--accent-color);
+  --color-accent-600: color-mix(in oklab, var(--accent-color) 85%, black);
+  --color-accent-700: color-mix(in oklab, var(--accent-color) 72%, black);
+  --color-accent-800: color-mix(in oklab, var(--accent-color) 58%, black);
+  --color-accent-900: color-mix(in oklab, var(--accent-color) 45%, black);
+
+  /* SURFACE SCALE */
+  --color-surface-50: color-mix(in oklab, var(--surface-color) 6%, white);
+  --color-surface-100: color-mix(in oklab, var(--surface-color) 12%, white);
+  --color-surface-200: color-mix(in oklab, var(--surface-color) 22%, white);
+  --color-surface-300: color-mix(in oklab, var(--surface-color) 35%, white);
+  --color-surface-400: color-mix(in oklab, var(--surface-color) 55%, white);
+  --color-surface-500: var(--surface-color);
+
+  /* NEUTRAL SCALE */
+  --color-neutral-50: color-mix(in oklab, var(--neutral-color) 6%, white);
+  --color-neutral-100: color-mix(in oklab, var(--neutral-color) 12%, white);
+  --color-neutral-200: color-mix(in oklab, var(--neutral-color) 22%, white);
+  --color-neutral-300: color-mix(in oklab, var(--neutral-color) 35%, white);
+  --color-neutral-400: color-mix(in oklab, var(--neutral-color) 55%, white);
+  --color-neutral-500: var(--neutral-color);
+
+  --color-gray-50: color-mix(in oklab, white 6%, white);
+  --color-gray-100: color-mix(in oklab, var(--gray-color) 12%, white);
+  --color-gray-200: color-mix(in oklab, var(--gray-color) 22%, white);
+  --color-gray-300: color-mix(in oklab, var(--gray-color) 35%, white);
+  --color-gray-400: color-mix(in oklab, var(--gray-color) 55%, white);
+  --color-gray-500: var(--gray-color);
+  --color-gray-600: color-mix(in oklab, var(--gray-color) 85%, black);
+  --color-gray-700: color-mix(in oklab, var(--gray-color) 72%, black);
+  --color-gray-800: color-mix(in oklab, var(--gray-color) 58%, black);
+  --color-gray-900: color-mix(in oklab, var(--gray-color) 45%, black);
+  --color-gray-950: color-mix(in oklab, var(--gray-color) 30%, black);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* --background: #0a0a0a; */
+    /* --foreground: #ededed; */
+  }
+}
+
+html,
+body {
+  overflow-x: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-somar), system-ui, sans-serif;
+}
+
+/* Shared printed-document primitives. Use logical properties so Arabic and
+   English documents mirror naturally when `dir` changes. */
+.print-frame {
+  position: fixed;
+  inline-size: 0;
+  block-size: 0;
+  border: 0;
+  visibility: hidden;
+}
+
+.print-source {
+  position: fixed;
+  inset-inline-start: -100000px;
+  inset-block-start: 0;
+  inline-size: 210mm;
+  pointer-events: none;
+}
+
+.print-document {
+  box-sizing: border-box;
+  color: #172033;
+  font-family: var(--font-somar), "Cairo", Arial, sans-serif;
+  line-height: 1.5;
+}
+
+.print-document *, .print-document *::before, .print-document *::after { box-sizing: border-box; }
+.print-document__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-block-end: 2px solid var(--primary-color); padding-block-end: 1rem; margin-block-end: 1rem; }
+.print-document__eyebrow { margin: 0 0 .25rem; color: var(--primary-color); font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.print-document h1 { margin: 0; font-size: 1.5rem; line-height: 1.25; }
+.print-document__subtitle, .print-document__generated { margin: .35rem 0 0; color: #526075; font-size: .875rem; }
+.print-document__generated { white-space: nowrap; text-align: end; }
+.print-document__metadata { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem 1rem; margin: 0 0 1.25rem; }
+.print-document__metadata > div { min-inline-size: 0; border-inline-start: 3px solid var(--primary-color); padding-inline-start: .6rem; }
+.print-document__metadata > div:last-child { grid-column: 1 / -1; }
+.print-document__metadata dt { color: #526075; font-size: .75rem; }
+.print-document__metadata dd { margin: .15rem 0 0; font-weight: 600; }
+.print-document__date-range { white-space: nowrap; }
+.print-document__content { min-inline-size: 0; }
+.print-document__content table { inline-size: 100%; table-layout: fixed; border-collapse: collapse; }
+.print-document__content th, .print-document__content td { border: 1px solid #cbd5e1; overflow-wrap: anywhere; padding: .5rem; text-align: start; vertical-align: top; }
+.print-document__content th { background: #edf6f7; font-weight: 700; }
+.print-document__footer { border-block-start: 1px solid #cbd5e1; color: #526075; font-size: .75rem; margin-block-start: 1.5rem; padding-block-start: .75rem; text-align: center; }
+
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background: #fff !important; overflow: visible !important; }
+  .print-document { inline-size: 100%; }
+  .print-document__content thead { display: table-header-group; }
+  .print-document__content tr, .print-document__metadata > div { break-inside: avoid; }
+}
+
+@keyframes onboarding-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-download-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes app-download-icon-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.85) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+}
+
+@keyframes onboarding-step-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-download-background {
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--primary-color) 16%, transparent), transparent 30%),
+    radial-gradient(circle at 88% 82%, color-mix(in oklab, var(--accent-color) 18%, transparent), transparent 28%),
+    linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--primary-color) 6%, white),
+      var(--surface-color) 52%,
+      color-mix(in oklab, var(--accent-color) 6%, white)
+    );
+}
+
+.app-download-card {
+  border: 1px solid color-mix(in oklab, var(--primary-color) 14%, white);
+  background: color-mix(in oklab, var(--surface-color) 92%, transparent);
+  box-shadow: 0 24px 60px color-mix(in oklab, var(--primary-dark) 18%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.app-download-icon {
+  background: linear-gradient(135deg, var(--primary-color), var(--hover-color));
+  box-shadow: 0 14px 30px color-mix(in oklab, var(--primary-color) 34%, transparent);
+}
+
+.app-download-store-link:hover {
+  box-shadow: 0 8px 20px color-mix(in oklab, var(--primary-dark) 16%, transparent);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-download-card {
+    animation: app-download-enter 420ms ease-out both;
+  }
+
+  .app-download-icon {
+    animation: app-download-icon-enter 520ms 100ms ease-out both;
+  }
+  .onboarding-enter {
+    animation: onboarding-enter 400ms ease-out both;
+  }
+
+  .onboarding-enter-delay-1 {
+    animation-delay: 100ms;
+  }
+
+  .onboarding-enter-delay-2 {
+    animation-delay: 180ms;
+  }
+
+  .onboarding-enter-delay-3 {
+    animation-delay: 260ms;
+  }
+
+  .onboarding-step-content {
+    animation: onboarding-step-content-enter 240ms ease-out both;
+  }
+
+  ::view-transition-old(root) {
+    animation: localeFadeOut 500ms ease-in-out;
+  }
+
+  ::view-transition-new(root) {
+    animation: localeFadeIn 400ms ease-out;
+  }
+}
+
+@keyframes localeFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes localeFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* placeholder */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 1;
+}
+
+.sidebar-search-input::-webkit-search-cancel-button,
+.sidebar-search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+  border: 2px solid #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--hover-color);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) #f1f1f1;
+}
+
+/* Sidebar scrolls without showing a scrollbar */
+.sidebar-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Charts */
+.line-spark path {
+  stroke: var(--primary-color);
+  filter: drop-shadow(0 0 5px var(--primary-color));
+}
+
+/* Tags */
+.positive-tag {
+  color: #04cc97;
+  background-color: #e6faf5;
+}
+
+.negative-tag {
+  color: #e31919;
+  background-color: #fce8e8;
+}
+
+.MuiChartsLegend-label {
+  font-size: 14px !important;
+  font-family: var(--font-somar), system-ui, sans-serif;
+}
+
+/* Select dropdown animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.15s ease-out both;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Calendar drag-and-drop styles */
+.calendar-dragging {
+  cursor: grabbing !important;
+}
+
+.calendar-event-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.calendar-drop-target {
+  background-color: rgba(3, 107, 128, 0.1);
+  border: 2px dashed var(--color-primary, #036b80);
+  box-shadow: inset 0 0 0 2px rgba(3, 107, 128, 0.2);
+}
+
+.calendar-event-draggable {
+  cursor: grab;
+}
+
+.calendar-event-draggable:active {
+  cursor: grabbing;
+}
+
+/* WhatsApp-style message highlight when scrolling to a replied message */
+@keyframes message-highlight {
+  0% {
+    background-color: rgba(3, 107, 128, 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.highlight-message {
+  animation: message-highlight 1.5s ease-out;
+  border-radius: 1rem;
+}

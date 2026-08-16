@@ -1,0 +1,372 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mE:/sis-dashboard[39m
+
+ [32m✓[39m src/features/academics/homework/services/__tests__/homeworkApiAdapter.test.ts [2m([22m[2m16 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/features/settings/__tests__/sprint11EndpointContracts.test.ts [2m([22m[2m14 tests[22m[2m)[22m[90m 46[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/AttachmentCard.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 780[2mms[22m[39m
+ [32m✓[39m src/components/layout/__tests__/TopNavNotificationDropdown.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1295[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationMessages.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 1395[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationDetail.test.tsx [2m([22m[2m48 tests[22m[2m)[22m[33m 1367[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationPage.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 1787[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationRealtime.test.ts [2m([22m[2m21 tests[22m[2m)[22m[90m 151[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/services/__tests__/curriculumApiAdapter.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/MessagesPanel.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 413[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationDetail.property.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 5592[2mms[22m[39m
+   [33m[2m✓[22m[39m ConversationDetail - Property 3: Tab Switch Does Not Re-Fetch Loaded Data[2m > [22mOnce a tab's hook is enabled, it never reverts to enabled: false on subsequent tab switches (with seed=1187714346) [33m4958[2mms[22m[39m
+   [33m[2m✓[22m[39m ConversationDetail - Property 17: ReadOnly Composer for Restricted Users[2m > [22mReadOnlyComposer is rendered for any restricted state (with seed=-621378308) [33m632[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/pages/__tests__/CurriculumPageContent.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2376[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumPageContent[2m > [22mshows term curricula overview from subject allocations [33m554[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumPageContent[2m > [22mloads detail route by curriculum id and returns to all curricula route [33m1128[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/reinforcementFrontendHardening.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 532[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/communicationService.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversations.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 181[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/hooks/__tests__/useRollCallSessionWorkspace.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 966[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/hooks/__tests__/useTimetableData.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 693[2mms[22m[39m
+ [32m✓[39m src/features/behavior/shared/utils/__tests__/behaviorUiRules.test.ts [2m([22m[2m20 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/ReinforcementReviewQueuePage.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 7188[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mrefetches queue with parameters when filter changes [33m672[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mclears all filters when Clear Filters is clicked [33m466[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mdisplays validation error and blocks queue list API call when dates are invalid [33m649[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mopens details drawer on row click and allows approval with note and XP grant [33m1051[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mopens the details drawer when clicking a row or the View Details button [33m1078[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mrenders task details and review history in the drawer [33m549[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mtriggers approval action modal and subsequent XP grant modal when clicking Approve [33m825[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mclears stale state when drawer is closed and when a new details fetch starts [33m867[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mcloses details drawer when pressing the Escape key [33m560[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/__tests__/heroJourneyService.test.ts [2m([22m[2m13 tests[22m[2m)[22m[90m 38[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/BubbleContextMenu.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 650[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useNotifications.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 1610[2mms[22m[39m
+   [33m[2m✓[22m[39m useNotifications[2m > [22msends pagination parameters only after pagination changes [33m500[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/services/__tests__/dismissalApiService.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/services/__tests__/attendanceExcusesService.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/services/__tests__/teacherAllocationService.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/pages/__tests__/NedaaOperationsPage.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 22311[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mloads active dismissal requests and updates request status [33m976[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mdelivers and escalates active requests from row actions [33m1732[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mshows an error when an escalation is already recorded [33m445[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mrecovers from a stale delivery confirmation with actionable guidance [33m920[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mrenders fetched history details in the history modal [33m511[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mshows an empty timeline state when history has no events [33m427[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mpresents escalation details without treating them as a status transition [33m442[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mloads waiting students and confirms arrival [33m563[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mloads request history in a read-only history tab [33m304[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mkeeps filters independent for each operations tab [33m1539[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22msends documented active filters and only one academic id [33m2574[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22muses table page and page size for active requests [33m343[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22msends waiting filters with one academic id and waiting sort [33m2664[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22muses table page and page size for waiting students [33m643[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22msends the complete history filter contract [33m5593[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22muses table page and page size for history [33m659[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mgroups filters by operational purpose for each tab [33m1287[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/SchoolDashboardContainer.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 5170[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mrenders backend dashboard data when all endpoints succeed [33m1556[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mmoves secondary module cards behind tabs [33m1086[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mrenders dashboard alerts as a single action required panel [33m627[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mlinks dashboard activity overflow to the recent activities page [33m423[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mlinks dashboard alert overflow to the alerts page [33m330[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mfetches dashboard modules on mount and displays them as tabs, switching tab fetches module details [33m471[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/LearningContentPanel.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 8151[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mshows the list first and opens the form when creating content [33m587[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mshows backend field errors inline and preserves content values [33m2504[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mshows the dropped file before saving a file content item [33m734[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mexplains unsupported media containers at the upload field [33m1815[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mwaits for modal confirmation before deleting lesson content [33m1185[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mpublishes a draft item through the lifecycle endpoint [33m419[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mopens FilePreviewModal when previewing file content [33m324[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/components/__tests__/HeroJourneyMissionFormModal.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 5328[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mdisables published-protected fields while keeping copy editable [33m664[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mrenders and submits the complete objective editor [33m507[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mallows clearing an objective assessment explicitly [33m641[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mallows clearing an objective lesson explicitly [33m469[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mclears a stale mission lesson when Subject changes [33m391[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mconfirms dirty close and allows staying or discarding [33m341[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableApiAdapter.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/services/__tests__/heroJourneyMissionContract.test.ts [2m([22m[2m44 tests[22m[2m)[22m[90m 29[2mms[22m[39m
+ [32m✓[39m src/features/attendance/policies/services/__tests__/attendancePolicyService.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 29[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/LessonPlansBoard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1229[2mms[22m[39m
+   [33m[2m✓[22m[39m LessonPlansBoard timetable metadata[2m > [22mblocks drag creation and reports metadata load errors accurately [33m589[2mms[22m[39m
+   [33m[2m✓[22m[39m LessonPlansBoard timetable metadata[2m > [22mrejects overlapping reorder operations for the same plan [33m320[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/MessageBubble.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1033[2mms[22m[39m
+   [33m[2m✓[22m[39m MessageBubble Delete Confirmation[2m > [22mshows confirmation dialog when delete is triggered and calls onDeleteMessage when confirmed [33m548[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/tabs/__tests__/DocumentsTab.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 10504[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mopens a protected document through an authenticated blob [33m483[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mshows review actions only for pending review documents [33m467[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mrequires notes for reject and replacement actions [33m1214[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22maccepts a pending document without a note and refreshes documents [33m658[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22msubmits Reject with a required note and refreshes documents [33m1691[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22msubmits Request replacement with a required note and refreshes documents [33m2313[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mkeeps the submit button disabled while a review action is saving [33m423[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mshows a friendly review error for HTTP 403 [33m429[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mshows a friendly review error for HTTP 404 [33m687[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mshows a friendly review error for HTTP 409 [33m804[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mshows a friendly review error for HTTP 422 [33m536[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/RewardRedemptionsPage.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 14248[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mforwards academic year and term URL context to the redemption list [33m355[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mshows create and cancel only with request permission [33m647[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mshows approve and reject only with review permission [33m400[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mshows fulfill only with fulfill permission [33m433[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mopens the details drawer from the view button [33m823[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mopens the details drawer from a row click [33m456[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mdoes not open the details drawer when a workflow action is clicked [33m479[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mcreates a dashboard redemption request and refreshes the list [33m5468[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mkeeps the page and create modal usable when lookups fail [33m550[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mkeeps create selections and notes when submit fails [33m4634[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/reinforcementServices.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useTypingIndicator.test.ts [2m([22m[2m18 tests[22m[2m)[22m[90m 146[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/hooks/__tests__/useLessonPlansData.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 530[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/CreateConversationDialog.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 2474[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateConversationDialog component validation[2m > [22mshows validation error when title exceeds 255 characters [33m519[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateConversationDialog component validation[2m > [22mshows validation error when classroom type is selected but classroomId is missing [33m313[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateConversationDialog component validation[2m > [22mshows validation error when stage type is selected but stageId is missing [33m301[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/LightModeDropdown.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1574[2mms[22m[39m
+   [33m[2m✓[22m[39m LightModeDropdown Integration[2m > [22mdisables todo creation when manage access is absent [33m479[2mms[22m[39m
+   [33m[2m✓[22m[39m LightModeDropdown Integration[2m > [22muses the server-selected school date and persisted Todo ID when creating a Todo [33m442[2mms[22m[39m
+   [33m[2m✓[22m[39m LightModeDropdown Integration[2m > [22mkeeps the edit form open when saving a Todo fails [33m475[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/DashboardAnalyticsPage.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1799[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardAnalyticsPage[2m > [22mallows classroom analytics without selecting a grade or section [33m459[2mms[22m[39m
+ [32m✓[39m src/features/academics/subjects/container/__tests__/SubjectsAllocationContainer.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[90m 226[2mms[22m[39m
+ [32m✓[39m src/features/communication/api/communication.service.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/attendance/policies/components/__tests__/PolicyWizardDialog.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 9440[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mvalidates on blur and validates again before advancing [33m2554[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mblocks progression on validation failure and supports retry [33m1796[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mreturns to Scope with preserved values when the backend reports a policy conflict [33m1600[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mpreserves nullable thresholds and effective dates when editing [33m918[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mloads term periods for a school-scope period policy [33m465[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mkeeps periods from the latest scope when an earlier request resolves last [33m519[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mdoes not re-save period IDs outside the selected scope timetable [33m1368[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/services/__tests__/homeworkMappers.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/attendance/reports/services/__tests__/attendanceReportsService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 54[2mms[22m[39m
+ [32m✓[39m src/features/academics/components/layout/__tests__/AcademicsContextLayout.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 540[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/TimetableSlotSelect.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 757[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/hooks/__tests__/useLessonPlanMutations.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[90m 93[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/GradesTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 947[2mms[22m[39m
+   [33m[2m✓[22m[39m GradesTab[2m > [22mrenders rule card, status badge, completed weight progress, enhanced subject table, and assessments table [33m310[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/pages/__tests__/ApplicationDetailsPage.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 625[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ParticipantsPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 677[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/useSetupStatus.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[90m 232[2mms[22m[39m
+ [32m✓[39m src/components/layout/__tests__/TopNav.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1135[2mms[22m[39m
+   [33m[2m✓[22m[39m TopNav Notification Integration[2m > [22mopens the dropdown when the Bell button is clicked [33m449[2mms[22m[39m
+   [33m[2m✓[22m[39m TopNav Notification Integration[2m > [22mupdates correctly when socket events alter notification list size or unread badge status [33m325[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/components/__tests__/CampaignAudienceStep.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2118[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignAudienceStep[2m > [22madds custom emails as removable badges while storing backend text internally [33m674[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignAudienceStep[2m > [22mrejects invalid custom emails before updating the audience payload [33m359[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/utils/homeworkReview.test.ts [2m([22m[2m21 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/services/__tests__/attendanceRollCallService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/RewardsOverviewPage.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 11150[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mhydrates the academic cascade from an existing studentId URL filter [33m378[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22msearches students by identifiers in the cascade [33m2869[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mrefetches overview with selected student after ordered academic cascade selection [33m2550[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mpasses status, reward type, and archived flag to both dashboard endpoints [33m1783[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mclears local filters but preserves academic context when Clear Filters is clicked [33m2336[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mblocks fetching and displays validation error when dateFrom is after dateTo [33m936[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/RewardCatalogPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 7342[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22mloads catalog rows from the catalog endpoint and summary cards from catalog-summary [33m845[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22mdoes not render academic year or term filters [33m936[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22muses backend pagination for catalog rows [33m702[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22msends an archive reason through the catalog archive endpoint [33m2568[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22mdoes not send an empty titleEn when creating an Arabic-only reward [33m2289[2mms[22m[39m
+ [32m✓[39m src/lib/__tests__/api-refresh-queue.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 120[2mms[22m[39m
+ [32m✓[39m src/features/communication/api/communication.mappers.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/components/__tests__/HomeworkSubmissionReviewPanel.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 2794[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkSubmissionReviewPanel backend workflow[2m > [22mlocks every review control after the submission is reviewed [33m453[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkSubmissionReviewPanel backend workflow[2m > [22muses the answer rollup and finalizes question-based work with an empty request [33m425[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkSubmissionReviewPanel backend workflow[2m > [22mshows required-answer progress and opens the mobile queue as a dialog [33m404[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkSubmissionReviewPanel backend workflow[2m > [22mshows answer validation and does not send a score above question points [33m321[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/services/__tests__/filesService.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversations.property.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 855[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 18: Pinned conversations always appear before unpinned conversations in sorted output (with seed=1680282488) [33m351[2mms[22m[39m
+ [32m✓[39m src/features/settings/branding/__tests__/useSchoolBrandingEditor.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[90m 186[2mms[22m[39m
+ [32m✓[39m src/features/settings/components/__tests__/UserEditorModal.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 7279[2mms[22m[39m
+   [33m[2m✓[22m[39m UserEditorModal Sprint 11 behavior[2m > [22msubmits username and contactEmail without using personal email as login email [33m1836[2mms[22m[39m
+   [33m[2m✓[22m[39m UserEditorModal Sprint 11 behavior[2m > [22mfalls back to login email when generated identity is inactive [33m1401[2mms[22m[39m
+   [33m[2m✓[22m[39m UserEditorModal Sprint 11 behavior[2m > [22mrequires administrators to choose a role explicitly [33m1224[2mms[22m[39m
+   [33m[2m✓[22m[39m UserEditorModal Sprint 11 behavior[2m > [22mshows invalid email feedback before submitting [33m2145[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationPage.property.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 5328[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 19b: 'pinned' filter shows only conversations where isPinned === true (with seed=-76588712) [33m5326[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/pages/__tests__/HomeworkAssignmentBuilderPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 567[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkAssignmentBuilderPage assignment contract[2m > [22mblocks invalid edits and preserves nullable marks in a normalized update [33m302[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/ReinforcementContextSelectors.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2076[2mms[22m[39m
+   [33m[2m✓[22m[39m Reinforcement context selector components[2m > [22mprevents duplicate task targets in the selector [33m1768[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/nedaaTranslations.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 29[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/applicationsTranslations.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/GlobalMessageNotifications.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 438[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/container/__tests__/TeacherAllocationContainer.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 321[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/services/__tests__/registrationApiService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/components/__tests__/CampaignComposer.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 2677[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignComposer Sprint 11 behavior[2m > [22mblocks credential-only variables in general campaigns [33m553[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignComposer Sprint 11 behavior[2m > [22minvalidates recipient preview for audience changes but not content edits [33m1155[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignComposer Sprint 11 behavior[2m > [22mpreserves the draft after queueing until create another is selected [33m803[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/HeroJourneyTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 913[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyTab[2m > [22mshows a completion callout and resolves activity to the mission title [33m380[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/AcademicStructureSetupStep.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 4234[2mms[22m[39m
+   [33m[2m✓[22m[39m AcademicStructureSetupStep[2m > [22mcreates the next missing stage, grade, section, then classroom using refreshed IDs [33m3426[2mms[22m[39m
+   [33m[2m✓[22m[39m AcademicStructureSetupStep[2m > [22mpreserves field values after a failed request [33m805[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/NotificationListItem.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 694[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/RecentActivitiesPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 8932[2mms[22m[39m
+   [33m[2m✓[22m[39m RecentActivitiesPage[2m > [22mrenders recent activity details and appends the next cursor page [33m850[2mms[22m[39m
+   [33m[2m✓[22m[39m RecentActivitiesPage[2m > [22mapplies documented filters and resets pagination [33m4154[2mms[22m[39m
+   [33m[2m✓[22m[39m RecentActivitiesPage[2m > [22mshows skeleton rows while filter changes are loading [33m551[2mms[22m[39m
+   [33m[2m✓[22m[39m RecentActivitiesPage[2m > [22mresets active filters to the default activity query [33m3246[2mms[22m[39m
+ [32m✓[39m src/features/attendance/late-early/services/__tests__/attendanceLateEarlyService.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationRealtime.property.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 2110[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22mjoinConversation is called with the exact conversation ID on mount (with seed=313095390) [33m421[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22monReconnect is called when resyncVersion increments (with seed=-1465288224) [33m301[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22mleaveConversation is called with the exact conversation ID on unmount (with seed=-2041029353) [33m346[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22mall socket listeners are cleaned up after unmount (with seed=-773114291) [33m454[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22mfull lifecycle: join → resync → leave + cleanup for any conversation ID (with seed=-566403973) [33m583[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/components/__tests__/CredentialDeliveryAudienceStep.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 682[2mms[22m[39m
+ [32m✓[39m src/components/layout/__tests__/Sidebar.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 5040[2mms[22m[39m
+   [33m[2m✓[22m[39m Sidebar toggle control[2m > [22mfilters visible tabs and restores them after clearing [33m1901[2mms[22m[39m
+   [33m[2m✓[22m[39m Sidebar toggle control[2m > [22mshows a localized empty state for an unmatched search [33m1064[2mms[22m[39m
+   [33m[2m✓[22m[39m Sidebar toggle control[2m > [22msearches Arabic navigation labels in RTL mode [33m868[2mms[22m[39m
+ [32m✓[39m src/features/settings/users/pages/__tests__/SettingsUsersPage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 2225[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsUsersPage search[2m > [22mkeeps the current users visible until the search debounce expires [33m552[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsUsersPage search[2m > [22mshows an inline retry when the user directory fails to load [33m366[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsUsersPage search[2m > [22mrequests only page one when a paginated search settles [33m394[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsUsersPage search[2m > [22mconfirms account deactivation before changing status [33m492[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableConfigService.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/tabs/__tests__/DetailsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 475[2mms[22m[39m
+   [33m[2m✓[22m[39m ApplicationReadinessPanel[2m > [22msurfaces backend decision, registration, workflow, document, and blocker state [33m401[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/pages/__tests__/RegistrationWizardPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 996[2mms[22m[39m
+   [33m[2m✓[22m[39m RegistrationWizardPage step navigation[2m > [22mkeeps the user on the current step when validation fails [33m516[2mms[22m[39m
+   [33m[2m✓[22m[39m RegistrationWizardPage step navigation[2m > [22mkeeps native input values in wizard state across step navigation [33m478[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/MessageComposer.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 1270[2mms[22m[39m
+   [33m[2m✓[22m[39m MessageComposer[2m > [22mshows a visible error when voice recording is unavailable [33m490[2mms[22m[39m
+   [33m[2m✓[22m[39m MessageComposer[2m > [22mshows an inline error and does not add attachment when file size is exceeded [33m552[2mms[22m[39m
+ [32m✓[39m src/features/behavior/categories/pages/__tests__/BehaviorCategoriesPage.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 1504[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorCategoriesPage - Category Deletion[2m > [22mopens confirmation modal when delete is clicked and calls delete api on confirm [33m313[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/profile-correction-requests/pages/__tests__/ProfileCorrectionRequestDetailPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 854[2mms[22m[39m
+   [33m[2m✓[22m[39m ProfileCorrectionRequestDetailPage[2m > [22mrenders detail page elements with UI primitives [33m357[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/lessonPlansApiAdapter.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/AutoPlanDialog.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 4505[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22moffers a scoped resolution for academics.lesson_plan.auto_plan_no_slots [33m1119[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22moffers a scoped resolution for academics.lesson_plan.auto_plan_no_curriculum [33m566[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22mallows Preview but keeps Apply blocked for a closed term [33m1091[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22mpreviews and applies independently when both actions are ready [33m675[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22mdiscards a preview response when the form changes before it resolves [33m529[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22mdiscards a preview response from a previous dialog session [33m521[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/dashboardApiService.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableSaveMapper.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/SetupGuide.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 971[2mms[22m[39m
+   [33m[2m✓[22m[39m SetupGuide[2m > [22mrenders progress, selectable steps, status text, and selected panel content [33m361[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/components/__tests__/HomeworkGradeSyncPanel.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 515[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationMessages.property.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 2162[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 10: Message Update Preserves Order[2m > [22mpatchFromRealtime updates body in place without changing message order (with seed=1511653855) [33m2157[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/MessagesPanel.property.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 903[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 2: Render Isolation on Real-Time Events[2m > [22mfor any generated messages simulating real-time arrivals, only MessagesPanel re-renders; memoized sibling does not (with seed=-2121400693) [33m901[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/CurriculumEditor.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2430[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumEditor[2m > [22mmaps unit validation errors and clears the edited field error [33m1014[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumEditor[2m > [22mmaps indexed lesson objective validation to the objectives field [33m826[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumEditor[2m > [22mwaits for modal confirmation before deleting a unit [33m384[2mms[22m[39m
+ [32m✓[39m src/features/academics/rooms/components/__tests__/RoomsView.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 3498[2mms[22m[39m
+   [33m[2m✓[22m[39m RoomsView[2m > [22mfilters rooms by search, status, building, and floor [33m2164[2mms[22m[39m
+   [33m[2m✓[22m[39m RoomsView[2m > [22mdeletes rooms through the supported rooms endpoint action [33m461[2mms[22m[39m
+ [32m✓[39m src/components/ui/authenticated-file-image/__tests__/AuthenticatedFileImage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 549[2mms[22m[39m
+ [32m✓[39m src/components/ui/input/__tests__/Select.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 2361[2mms[22m[39m
+   [33m[2m✓[22m[39m Select[2m > [22mrenders the open menu outside the component container [33m333[2mms[22m[39m
+   [33m[2m✓[22m[39m Select[2m > [22msearches options by visible label and supplemental search text [33m1119[2mms[22m[39m
+   [33m[2m✓[22m[39m Select[2m > [22mreports server search without filtering supplied options [33m604[2mms[22m[39m
+ [32m✓[39m src/features/behavior/records/pages/__tests__/BehaviorRecordsPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1433[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorRecordsPage[2m > [22mrenders records table with correct data [33m482[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorRecordsPage[2m > [22mhides record creation when the user lacks the backend create permission [33m392[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorRecordsPage[2m > [22mfilters bar date selection triggers loading with occurredFrom and occurredTo [33m455[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/taskPayloadMapper.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/academics/calendar/pages/__tests__/AcademicCalendarPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 269[2mms[22m[39m
+ [32m✓[39m src/features/settings/credentials/pages/__tests__/CredentialsPage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 2621[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mkeeps the page visible while credentials load in the table [33m490[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mdoes not expose the unsupported user status filter [33m314[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mkeeps credentials usable and retries a failed role load on open [33m372[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mdoes not duplicate an in-flight role request when opened [33m388[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mshows an empty role state without failing credentials [33m348[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mshows every settings role and filters known roles with the backend role key [33m706[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/connection/pages/__tests__/EmailConnectionPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 3743[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailConnectionPage backend lifecycle[2m > [22menables activation only after a successful test returns VERIFIED [33m1558[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailConnectionPage backend lifecycle[2m > [22momits a blank test recipient so the backend can use the actor email [33m304[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailConnectionPage backend lifecycle[2m > [22mpreserves the test error while refreshing authoritative FAILED state [33m1439[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailConnectionPage backend lifecycle[2m > [22mrequires confirmation before disabling the connection [33m439[2mms[22m[39m
+ [32m✓[39m src/features/settings/roles/pages/__tests__/SettingsRolesPage.permissions.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1241[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsRolesPage permission catalog access[2m > [22mcollapses modules and omits unsupported action placeholders [33m538[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/ModuleTabDashboardView.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 433[2mms[22m[39m
+ [32m✓[39m src/features/teachers/components/__tests__/TeacherFormDialogs.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 7079[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher form dialogs[2m > [22mshows the generated login email and checks a new username [33m1622[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher form dialogs[2m > [22mserializes login-email identity without a conflicting username [33m1808[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher form dialogs[2m > [22mshows a clear, localized username-policy error without a duplicate form alert [33m1578[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher form dialogs[2m > [22mkeeps an identity-conflict message visible for the selected identity mode [33m1674[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/AddLessonDialog.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1737[2mms[22m[39m
+   [33m[2m✓[22m[39m AddLessonDialog planned day selection[2m > [22mblocks confirmation and reports a timetable metadata load failure [33m342[2mms[22m[39m
+   [33m[2m✓[22m[39m AddLessonDialog planned day selection[2m > [22mallows another instructional day in the same week [33m428[2mms[22m[39m
+   [33m[2m✓[22m[39m AddLessonDialog planned day selection[2m > [22mincludes the selected timetable slot in confirmation [33m440[2mms[22m[39m
+ [32m✓[39m src/features/teachers/utils/__tests__/teacherErrors.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/OrganizationSetupStep.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2392[2mms[22m[39m
+   [33m[2m✓[22m[39m OrganizationSetupStep[2m > [22mshows saved branding data before editing [33m305[2mms[22m[39m
+   [33m[2m✓[22m[39m OrganizationSetupStep[2m > [22mopens the complete editor and returns to the saved summary on cancel [33m552[2mms[22m[39m
+   [33m[2m✓[22m[39m OrganizationSetupStep[2m > [22msaves all branding fields, refreshes setup status, and shows the updated summary [33m1480[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/SchoolOnboardingPage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1435[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolOnboardingPage[2m > [22malways renders the permanent full setup page even when complete [33m530[2mms[22m[39m
+ [32m✓[39m src/features/academics/subjects/components/__tests__/AllocationMatrix.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 914[2mms[22m[39m
+   [33m[2m✓[22m[39m AllocationMatrix[2m > [22mallows weekly hour values up to the backend maximum of 80 [33m304[2mms[22m[39m
+   [33m[2m✓[22m[39m AllocationMatrix[2m > [22mshows localized stage names instead of stage IDs in the filter [33m301[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/dashboardViewMapper.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/pages/__tests__/EmailCampaignsPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 954[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailCampaignsPage preview integrity[2m > [22mpasses the complete paginated role catalog to the audience selector [33m321[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailCampaignsPage preview integrity[2m > [22mkeeps campaigns available when roles fail and retries roles independently [33m331[2mms[22m[39m
+ [32m✓[39m src/features/teachers/hooks/__tests__/teacherHooks.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[90m 260[2mms[22m[39m
+ [32m✓[39m src/components/ui/data-table/__tests__/DataTable.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1171[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/pages/__tests__/CreateHomeworkPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1348[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateHomeworkPage assignment contract[2m > [22mblocks invalid input and submits a normalized valid boundary request [33m1187[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/services/__tests__/curriculumMappers.test.ts [2m([22m[2m18 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/xpPolicyMapper.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/lessonPlansMappers.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/DashboardAlertsPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 2512[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardAlertsPage[2m > [22mrenders dashboard alerts with summary counts and action links [33m303[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardAlertsPage[2m > [22mapplies documented alert filters [33m1770[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardAlertsPage[2m > [22mshows skeleton rows while filter changes are loading [33m375[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/setupStatus.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/grades/overview/utils/__tests__/studentGradesSnapshotMapper.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/features/grades/gradebook/utils/__tests__/gradesApiErrors.test.ts [2m([22m[2m55 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/BehaviorTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1052[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorTab[2m > [22mblocks an occurrence date outside the selected term [33m740[2mms[22m[39m
+ [32m✓[39m src/features/attendance/absences/services/__tests__/attendanceAbsencesService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/components/ui/academic/__tests__/AcademicStudentCascade.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 952[2mms[22m[39m
+   [33m[2m✓[22m[39m AcademicStudentCascade[2m > [22mclears all descendants when the stage changes [33m456[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useMessageAttachments.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 176[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/OnboardingRedirectGuard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[90m 151[2mms[22m[39m
+ [32m✓[39m src/features/grades/submissions/services/__tests__/gradesSubmissionsService.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/pages/__tests__/ApplicationsList.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 111[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/ReinforcementReviewDetailsDrawer.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 591[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/pages/__tests__/CredentialDeliveriesPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 909[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialDeliveriesPage preview integrity[2m > [22mignores a late preview response after values change [33m462[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/MoveLessonDialog.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1202[2mms[22m[39m
+   [33m[2m✓[22m[39m MoveLessonDialog[2m > [22mmoves without a timetable slot using the selected instructional day [33m484[2mms[22m[39m
+   [33m[2m✓[22m[39m MoveLessonDialog[2m > [22mmoves with only the selected timetable entry id [33m464[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/components/__tests__/AllocationMatrixView.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1010[2mms[22m[39m
+   [33m[2m✓[22m[39m AllocationMatrixView[2m > [22mdisables teacher selection and save in read-only mode [33m313[2mms[22m[39m
+   [33m[2m✓[22m[39m AllocationMatrixView[2m > [22mshows mapped missing subject allocation errors after failed save [33m397[2mms[22m[39m
+ [32m✓[39m src/features/auth/context/__tests__/AuthProvider.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 303[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/EditLessonPlanItemDialog.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2120[2mms[22m[39m
+   [33m[2m✓[22m[39m EditLessonPlanItemDialog[2m > [22mblocks saving and reports a timetable metadata load failure [33m352[2mms[22m[39m
+   [33m[2m✓[22m[39m EditLessonPlanItemDialog[2m > [22msaves title notes and another instructional day without a slot [33m1311[2mms[22m[39m
+   [33m[2m✓[22m[39m EditLessonPlanItemDialog[2m > [22msaves the selected timetable slot metadata [33m349[2mms[22m[39m
+ [32m✓[39m src/features/settings/credentials/services/__tests__/credentialsService.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/components/__tests__/RegistrationResultPanel.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 463[2mms[22m[39m
+   [33m[2m✓[22m[39m RegistrationResultPanel[2m > [22mmasks temporary credentials and requires acknowledgement before returning [33m369[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/pages/__tests__/NedaaStaffAssignmentsPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 3664[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaStaffAssignmentsPage[2m > [22mloads staff dropdown users from the Dismissal Staff role only [33m979[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaStaffAssignmentsPage[2m > [22moffers academics-tree stages when assignment results are empty [33m884[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaStaffAssignmentsPage[2m > [22muses searchable dropdowns for employee account and gate in the create form [33m1799[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/services/__tests__/teacherAllocationApiAdapter.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/utils/homeworkValidation.test.ts [2m([22m[2m24 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useTypingIndicator.property.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 767[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 12: Typing Indicator Round-Trip[2m > [22mtypingStarted adds user to typingUsers, typingStopped removes them (with seed=-894900570) [33m548[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/components/__tests__/NedaaGateFormModal.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 5902[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaGateFormModal location[2m > [22msubmits coordinates selected in the location picker [33m1441[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaGateFormModal location[2m > [22mblocks submission while coordinates are invalid [33m1072[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaGateFormModal location[2m > [22mallows adding and removing waiting zones locally in create mode [33m2233[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaGateFormModal location[2m > [22mgenerates the gate ID from an Arabic name successfully [33m1153[2mms[22m[39m
+ [32m✓[39m src/features/admissions/decisions/pages/__tests__/DecisionsList.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 556[2mms[22m[39m
+   [33m[2m✓[22m[39m DecisionsList[2m > [22mkeeps table columns and drawer close handler stable when opening the drawer [33m553[2mms[22m[39m
+ [32m✓[39m src/features/behavior/services/__tests__/behaviorApiService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/RewardCatalogFormModal.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2649[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogFormModal[2m > [22mrequires stock remaining for limited rewards [33m993[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogFormModal[2m > [22msubmits the active context and uploaded image for create [33m1155[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogFormModal[2m > [22msubmits null scope and image when they are cleared [33m492[2mms[22m[39m

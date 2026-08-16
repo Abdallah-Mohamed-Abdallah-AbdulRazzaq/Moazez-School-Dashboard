@@ -1,0 +1,69 @@
+@baseUrl = http://localhost:3000/api/v1
+@schoolToken = REPLACE_WITH_SCHOOL_DASHBOARD_TOKEN
+@appToken = REPLACE_WITH_TEACHER_STUDENT_OR_PARENT_TOKEN
+@subjectId = REPLACE_WITH_SUBJECT_ID
+@termId = REPLACE_WITH_TERM_ID
+@gradeId = REPLACE_WITH_GRADE_ID
+@stageId = REPLACE_WITH_STAGE_ID
+
+### Invalid: subject create must reject termId
+POST {{baseUrl}}/academics/subjects
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "nameEn": "Physics",
+  "termId": "{{termId}}"
+}
+
+### Invalid: subject create must reject stage
+POST {{baseUrl}}/academics/subjects
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "nameEn": "Chemistry",
+  "stage": "Primary"
+}
+
+### Invalid: subject update must reject termId
+PATCH {{baseUrl}}/academics/subjects/{{subjectId}}
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}"
+}
+
+### Invalid: subject update must reject stage
+PATCH {{baseUrl}}/academics/subjects/{{subjectId}}
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "stage": "Primary"
+}
+
+### Catalog list remains catalog-only even with termId query
+GET {{baseUrl}}/academics/subjects?termId={{termId}}
+Authorization: Bearer {{schoolToken}}
+
+### Invalid: allocation bulk does not accept stageId as allocation key
+PUT {{baseUrl}}/academics/subject-allocations/bulk
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "items": [
+    {
+      "stageId": "{{stageId}}",
+      "subjectId": "{{subjectId}}",
+      "weeklyHours": 5
+    }
+  ]
+}
+
+### Invalid/default-denied: app role should not read dashboard allocation matrix by default
+GET {{baseUrl}}/academics/subject-allocations?termId={{termId}}&gradeId={{gradeId}}
+Authorization: Bearer {{appToken}}

@@ -1,0 +1,57 @@
+@baseUrl = http://localhost:3000/api/v1
+@token = {{authToken}}
+@applicationId = 00000000-0000-0000-0000-000000000000
+
+### Login as school/admin user first in your environment and set {{authToken}}
+# POST {{baseUrl}}/auth/login
+# Content-Type: application/json
+#
+# {
+#   "email": "admin@moazez.dev",
+#   "password": "Admin123!"
+# }
+
+### Get Admissions applications list with documentsSummary/dashboardState
+GET {{baseUrl}}/admissions/applications
+Authorization: Bearer {{token}}
+
+### Get Admissions application detail with documentsSummary/dashboardState
+GET {{baseUrl}}/admissions/applications/{{applicationId}}
+Authorization: Bearer {{token}}
+
+### Get effective workflow policy
+GET {{baseUrl}}/admissions/workflow-policy
+Authorization: Bearer {{token}}
+
+### Patch workflow policy - optional tests/interviews, allow direct acceptance
+PATCH {{baseUrl}}/admissions/workflow-policy
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requiresPlacementTest": false,
+  "requiresInterview": false,
+  "allowDirectAcceptance": true
+}
+
+### Patch workflow policy - strict default-like override
+PATCH {{baseUrl}}/admissions/workflow-policy
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requiresPlacementTest": true,
+  "requiresInterview": true,
+  "allowDirectAcceptance": false
+}
+
+### Patch workflow policy - expected validation failure: empty body
+PATCH {{baseUrl}}/admissions/workflow-policy
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+### Re-read application detail after policy update
+GET {{baseUrl}}/admissions/applications/{{applicationId}}
+Authorization: Bearer {{token}}

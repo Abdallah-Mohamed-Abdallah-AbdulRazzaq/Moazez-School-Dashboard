@@ -1,0 +1,40 @@
+@baseUrl = http://localhost:3000/api/v1
+@token = {{authToken}}
+@guardianId = 00000000-0000-0000-0000-000000000000
+
+### Canonical guardian search/list route
+GET {{baseUrl}}/students-guardians/guardians?search=fda
+Authorization: Bearer {{token}}
+
+### Legacy guardian search/list route - should not hit students/:studentId UUID parser
+GET {{baseUrl}}/students-guardians/students/guardians?search=fda
+Authorization: Bearer {{token}}
+
+### Canonical get guardian
+GET {{baseUrl}}/students-guardians/guardians/{{guardianId}}
+Authorization: Bearer {{token}}
+
+### Legacy get guardian
+GET {{baseUrl}}/students-guardians/students/guardians/{{guardianId}}
+Authorization: Bearer {{token}}
+
+### Canonical guardian students
+GET {{baseUrl}}/students-guardians/guardians/{{guardianId}}/students
+Authorization: Bearer {{token}}
+
+### Canonical create/link guardian account
+POST {{baseUrl}}/students-guardians/guardians/{{guardianId}}/account
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "mode": "create",
+  "username": "guardian.demo",
+  "fullName": "Guardian Demo",
+  "generatePassword": true,
+  "temporaryPasswordMode": true
+}
+
+### Student dynamic route should still reject non-UUID normally
+GET {{baseUrl}}/students-guardians/students/not-a-uuid
+Authorization: Bearer {{token}}

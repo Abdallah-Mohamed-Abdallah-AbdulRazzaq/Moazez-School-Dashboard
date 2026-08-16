@@ -1,0 +1,208 @@
+الحكم النهائي
+Homework Core: منفذ بدرجة كبيرة ✅
+Student Homework submission flow: منفذ ✅
+Teacher Homework authoring/review/grade-sync: منفذ ✅
+Parent Homework: read-only فقط ✅
+Exact old/deferred routes التي أرسلتها: غير مسجلة فعلًا ✅
+Proof/upload-specific/XP/reward homework routes: غير منفذة فعلًا ❌
+Student submission history route: غير منفذة ❌
+Parent submission mutation routes: غير منفذة بقرار سابق ❌
+الدليل الأقوى: route inventory نفسه
+
+يوجد E2E رسمي باسم Sprint 13F Homework final closeout route inventory. هذا الاختبار يسجل routes المكتملة، ثم يتحقق صراحة أن routes المؤجلة غير مسجلة. routes المكتملة تشمل Homework assignments/questions/attachments، teacher homework dashboard/classes/questions/attachments/submissions/review، student homeworks/submission/answers/attachments/submit، وparent child-scoped read routes.
+
+ونفس الاختبار يثبت أن القائمة التي أرسلتها تقريبًا موجودة كـ absent routes، ومنها:
+
+GET/POST /api/v1/homework/submissions
+GET/POST /api/v1/homework/questions
+GET/POST /api/v1/homework/attachments
+student submission/history/questions/attachments routes
+parent submit/submission/questions/attachments routes
+GET /api/v1/parent/homeworks
+teacher .../sync-grade-item
+
+كما يمنع أي homework/student/teacher route تحتوي proof, upload, xp, أو reward، ويمنع parent homework routes التي تحتوي submit/submission/question/answer/attachment/proof/upload.
+
+ما هو منفذ فعليًا؟
+1. Homework Core questions موجود، لكن ليس كـ flat route
+
+غير موجود:
+
+GET /api/v1/homework/questions
+POST /api/v1/homework/questions
+
+الموجود فعليًا:
+
+GET /api/v1/homework/assignments/:homeworkId/questions
+POST /api/v1/homework/assignments/:homeworkId/questions
+GET /api/v1/homework/assignments/:homeworkId/questions/:questionId
+PATCH /api/v1/homework/assignments/:homeworkId/questions/:questionId
+DELETE /api/v1/homework/assignments/:homeworkId/questions/:questionId
+
+وهذا واضح من HomeworkQuestionsController لأنه مربوط بـ:
+
+@Controller('homework/assignments/:homeworkId/questions')
+2. Homework Core attachments موجود، لكن ليس كـ flat route
+
+غير موجود:
+
+GET /api/v1/homework/attachments
+POST /api/v1/homework/attachments
+
+الموجود فعليًا:
+
+GET /api/v1/homework/assignments/:homeworkId/attachments
+POST /api/v1/homework/assignments/:homeworkId/attachments
+PATCH /api/v1/homework/assignments/:homeworkId/attachments/:attachmentId
+DELETE /api/v1/homework/assignments/:homeworkId/attachments/:attachmentId
+
+والـ controller مربوط بـ:
+
+@Controller('homework/assignments/:homeworkId/attachments')
+3. Core submission list/review غير موجود كـ route عام
+
+غير موجود:
+
+GET /api/v1/homework/submissions
+POST /api/v1/homework/submissions
+GET /api/v1/homework/assignments/:homeworkId/submissions
+POST /api/v1/homework/assignments/:homeworkId/submissions/:submissionId/review
+
+لكن يوجد content-level review/read تحت submission محدد:
+
+GET /api/v1/homework/assignments/:homeworkId/submissions/:submissionId/answers
+GET /api/v1/homework/assignments/:homeworkId/submissions/:submissionId/answers/:answerId
+PATCH /api/v1/homework/assignments/:homeworkId/submissions/:submissionId/answers/:answerId/review
+PUT /api/v1/homework/assignments/:homeworkId/submissions/:submissionId/answers/review
+GET /api/v1/homework/assignments/:homeworkId/submissions/:submissionId/attachments
+
+وهذا موجود في HomeworkSubmissionContentController.
+
+Student Homework status
+
+الموجود فعليًا للطالب:
+
+GET /api/v1/student/homeworks
+GET /api/v1/student/homeworks/:homeworkId
+GET /api/v1/student/homeworks/:homeworkId/submission
+PUT /api/v1/student/homeworks/:homeworkId/submission
+POST /api/v1/student/homeworks/:homeworkId/submission/draft
+GET /api/v1/student/homeworks/:homeworkId/submission/answers
+PUT /api/v1/student/homeworks/:homeworkId/submission/answers
+PATCH /api/v1/student/homeworks/:homeworkId/submission/answers/:questionId
+GET /api/v1/student/homeworks/:homeworkId/submission/attachments
+POST /api/v1/student/homeworks/:homeworkId/submission/attachments
+PATCH /api/v1/student/homeworks/:homeworkId/submission/attachments/:attachmentId
+DELETE /api/v1/student/homeworks/:homeworkId/submission/attachments/:attachmentId
+POST /api/v1/student/homeworks/:homeworkId/submit
+POST /api/v1/student/homeworks/:homeworkId/submission/submit
+
+كل هذا ظاهر في StudentHomeworksController.
+
+غير الموجود فعلًا:
+
+GET /api/v1/student/homeworks/:homeworkId/submission/history
+GET /api/v1/student/homeworks/:homeworkId/questions
+GET /api/v1/student/homeworks/:homeworkId/attachments
+
+لكن مهم جدًا: الطالب لا يحتاج بالضرورة routes منفصلة للأسئلة والمرفقات؛ لأن detail DTO نفسه يحتوي:
+
+questions
+attachments
+submission
+
+داخل StudentHomeworkDetailDto.
+
+إذن مشكلة الطالب الحقيقية ليست questions/attachments كبيانات، بل:
+
+Student submission history غير منفذ كـ route مستقل.
+Parent Homework status
+
+الموجود فعليًا للـ Parent:
+
+GET /api/v1/parent/children/:studentId/homeworks
+GET /api/v1/parent/children/:studentId/homeworks/:homeworkId
+
+وهذا فقط ما يقدمه ParentHomeworksController. لا يوجد Post, ولا submit mutation.
+
+غير الموجود فعلًا:
+
+GET /api/v1/parent/homeworks
+POST /api/v1/parent/children/:studentId/homeworks/:homeworkId/submit
+POST /api/v1/parent/children/:studentId/homeworks/:homeworkId/submission/submit
+GET /api/v1/parent/children/:studentId/homeworks/:homeworkId/questions
+GET /api/v1/parent/children/:studentId/homeworks/:homeworkId/attachments
+
+لكن مثل الطالب، Parent detail DTO يحتوي:
+
+questions
+attachments
+submission
+
+داخل ParentHomeworkDetailDto.
+
+إذن questions/attachments للـ Parent ليست route منفصلة، لكنها موجودة ضمن detail response. أما parent submit فهو فعلًا غير منفذ، وهذا متسق مع قرار أن Parent Homework read-only.
+
+Teacher Homework status
+
+Teacher Homework منفذ بدرجة كبيرة جدًا:
+
+dashboard ✅
+list/create/update/publish/close/cancel assignments ✅
+targets/resolve ✅
+questions/options CRUD ✅
+attachments CRUD ✅
+submissions list/detail ✅
+answers review ✅
+submission review ✅
+assignment grade-sync ✅
+single submission grade-sync ✅
+
+الـ controller يحتوي grade-sync الصحيح:
+
+GET /api/v1/teacher/homeworks/classes/:classId/assignments/:homeworkId/grade-sync
+POST /api/v1/teacher/homeworks/classes/:classId/assignments/:homeworkId/grade-sync
+POST /api/v1/teacher/homeworks/classes/:classId/assignments/:homeworkId/submissions/:submissionId/grade-sync
+
+غير الموجود هو الاسم القديم:
+
+POST /api/v1/teacher/homeworks/classes/:classId/assignments/:homeworkId/submissions/:submissionId/sync-grade-item
+
+وهذا ليس نقص logic غالبًا، بل route naming mismatch. المسار الصحيح هو:
+
+POST /api/v1/teacher/homeworks/classes/:classId/assignments/:homeworkId/submissions/:submissionId/grade-sync
+Proof / Upload / XP / Reward
+
+هذه غير منفذة كـ homework-specific routes.
+
+الـ route inventory يمنع وجود routes تحت homework أو student/teacher homeworks تحتوي:
+
+proof
+upload
+xp
+reward
+
+هذا يعني:
+
+Homework proof routes: غير منفذة ❌
+Upload-specific homework proof routes: غير منفذة ❌
+Homework XP routes: غير منفذة ❌
+Homework reward routes: غير منفذة ❌
+
+قد توجد modules عامة للـ XP/rewards في المشروع، لكن ليست homework-specific contract.
+
+التصنيف الصحيح للمشاكل
+البند	التقييم الفعلي
+homework/questions وhomework/attachments flat routes	غير موجودة، لكن البديل موجود تحت assignment
+Core homework submissions list/review	غير موجودة كـ core العامة
+Student submission flow	موجود
+Student submission history	غير موجود
+Student questions/attachments routes	غير موجودة كـ routes منفصلة، لكن موجودة داخل detail DTO
+Parent homework read	موجود child-scoped فقط
+Parent submit/mutations	غير موجودة بقرار read-only
+Parent questions/attachments routes	غير موجودة كـ routes منفصلة، لكن detail يحتويها
+parent/homeworks	غير موجود؛ الصحيح child-scoped
+Teacher submission review	موجود
+Teacher sync-grade-item	غير موجود؛ الصحيح grade-sync
+Proof/upload-specific homework	غير موجود
+Homework XP/reward	غير موجود

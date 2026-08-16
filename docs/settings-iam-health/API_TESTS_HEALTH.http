@@ -1,0 +1,7 @@
+@baseUrl = http://localhost:3000/api/v1
+
+### Health 01 - Public health readiness
+GET {{baseUrl}}/health
+
+### Root 01 - Public root hello endpoint
+GET {{baseUrl}}/

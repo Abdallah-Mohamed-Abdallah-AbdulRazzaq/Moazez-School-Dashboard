@@ -1,0 +1,379 @@
+### Homework / Grades / Assessments V1 API Smoke Tests
+### Replace all placeholders before running.
+
+@baseUrl = http://localhost:3000/api/v1
+@adminToken = REPLACE_WITH_SCHOOL_ADMIN_TOKEN
+@teacherToken = REPLACE_WITH_TEACHER_TOKEN
+@studentToken = REPLACE_WITH_STUDENT_TOKEN
+@parentToken = REPLACE_WITH_PARENT_TOKEN
+
+@assessmentId = 00000000-0000-0000-0000-000000000001
+@questionId = 00000000-0000-0000-0000-000000000002
+@studentId = 00000000-0000-0000-0000-000000000003
+@submissionId = 00000000-0000-0000-0000-000000000004
+@answerId = 00000000-0000-0000-0000-000000000005
+@homeworkId = 00000000-0000-0000-0000-000000000006
+@classId = 00000000-0000-0000-0000-000000000007
+@assignmentId = 00000000-0000-0000-0000-000000000008
+@attachmentId = 00000000-0000-0000-0000-000000000009
+
+### -------------------------------------------------------------------------
+### Dashboard Grades Bootstrap / Overview
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/grades/bootstrap
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{baseUrl}}/grades/overview
+Authorization: Bearer {{adminToken}}
+
+### -------------------------------------------------------------------------
+### Dashboard Grades Assessments
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/grades/assessments
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{baseUrl}}/grades/assessments/{{assessmentId}}
+Authorization: Bearer {{adminToken}}
+
+### Create score-only assessment - adjust body to current DTO fields
+POST {{baseUrl}}/grades/assessments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "Midterm Assessment",
+  "maxScore": 100,
+  "weight": 1
+}
+
+### Create question-based assessment - adjust body to current DTO fields
+POST {{baseUrl}}/grades/assessments/question-based
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "Question Based Quiz",
+  "maxScore": 20,
+  "weight": 1
+}
+
+###
+POST {{baseUrl}}/grades/assessments/{{assessmentId}}/publish
+Authorization: Bearer {{adminToken}}
+
+###
+POST {{baseUrl}}/grades/assessments/{{assessmentId}}/approve
+Authorization: Bearer {{adminToken}}
+
+###
+POST {{baseUrl}}/grades/assessments/{{assessmentId}}/lock
+Authorization: Bearer {{adminToken}}
+
+### Grade items list
+GET {{baseUrl}}/grades/assessments/{{assessmentId}}/items
+Authorization: Bearer {{adminToken}}
+
+### Single GradeItem upsert - dashboard-only
+PUT {{baseUrl}}/grades/assessments/{{assessmentId}}/items/{{studentId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "score": 95,
+  "notes": "Manual dashboard entry"
+}
+
+### Bulk GradeItem upsert - dashboard-only
+PUT {{baseUrl}}/grades/assessments/{{assessmentId}}/items
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "items": [
+    { "studentId": "{{studentId}}", "score": 95 }
+  ]
+}
+
+### -------------------------------------------------------------------------
+### Dashboard Grades Questions / Submissions / Review
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/grades/assessments/{{assessmentId}}/questions
+Authorization: Bearer {{adminToken}}
+
+### Create question - adjust body to DTO
+POST {{baseUrl}}/grades/assessments/{{assessmentId}}/questions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "type": "short_answer",
+  "prompt": "Explain the concept.",
+  "points": 5
+}
+
+### Reorder questions - adjust body to DTO
+POST {{baseUrl}}/grades/assessments/{{assessmentId}}/questions/reorder
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "items": [
+    { "questionId": "{{questionId}}", "sortOrder": 1 }
+  ]
+}
+
+### Submissions list
+GET {{baseUrl}}/grades/assessments/{{assessmentId}}/submissions
+Authorization: Bearer {{adminToken}}
+
+### Resolve submission - adjust body to DTO
+POST {{baseUrl}}/grades/assessments/{{assessmentId}}/submissions/resolve
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}"
+}
+
+### Review answer - adjust body to DTO
+PATCH {{baseUrl}}/grades/submissions/{{submissionId}}/answers/{{answerId}}/review
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "score": 5,
+  "feedback": "Good answer"
+}
+
+### Finalize review
+POST {{baseUrl}}/grades/submissions/{{submissionId}}/review/finalize
+Authorization: Bearer {{adminToken}}
+
+### Sync reviewed submission to GradeItem
+POST {{baseUrl}}/grades/submissions/{{submissionId}}/sync-grade-item
+Authorization: Bearer {{adminToken}}
+
+### -------------------------------------------------------------------------
+### Dashboard Gradebook / Analytics / Rules
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/grades/gradebook
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{baseUrl}}/grades/students/{{studentId}}/snapshot
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{baseUrl}}/grades/analytics/summary
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{baseUrl}}/grades/analytics/distribution
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{baseUrl}}/grades/rules
+Authorization: Bearer {{adminToken}}
+
+###
+GET {{baseUrl}}/grades/rules/effective
+Authorization: Bearer {{adminToken}}
+
+### -------------------------------------------------------------------------
+### Dashboard Homework Core
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/homework/assignments
+Authorization: Bearer {{adminToken}}
+
+### Create homework - adjust body to DTO
+POST {{baseUrl}}/homework/assignments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "Homework Assignment",
+  "description": "Practice tasks",
+  "mode": "questions"
+}
+
+###
+GET {{baseUrl}}/homework/assignments/{{homeworkId}}
+Authorization: Bearer {{adminToken}}
+
+###
+POST {{baseUrl}}/homework/assignments/{{homeworkId}}/publish
+Authorization: Bearer {{adminToken}}
+
+###
+POST {{baseUrl}}/homework/assignments/{{homeworkId}}/close
+Authorization: Bearer {{adminToken}}
+
+###
+POST {{baseUrl}}/homework/assignments/{{homeworkId}}/cancel
+Authorization: Bearer {{adminToken}}
+
+### Targets
+GET {{baseUrl}}/homework/assignments/{{homeworkId}}/targets
+Authorization: Bearer {{adminToken}}
+
+### Resolve targets
+POST {{baseUrl}}/homework/assignments/{{homeworkId}}/targets/resolve
+Authorization: Bearer {{adminToken}}
+
+### Questions
+GET {{baseUrl}}/homework/assignments/{{homeworkId}}/questions
+Authorization: Bearer {{adminToken}}
+
+### Attachments
+GET {{baseUrl}}/homework/assignments/{{homeworkId}}/attachments
+Authorization: Bearer {{adminToken}}
+
+### Submission answers
+GET {{baseUrl}}/homework/assignments/{{homeworkId}}/submissions/{{submissionId}}/answers
+Authorization: Bearer {{adminToken}}
+
+### Homework grade sync status
+GET {{baseUrl}}/homework/assignments/{{homeworkId}}/grade-sync
+Authorization: Bearer {{adminToken}}
+
+### Link homework to grade assessment - adjust body to DTO
+POST {{baseUrl}}/homework/assignments/{{homeworkId}}/grade-sync/link
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "assessmentId": "{{assessmentId}}"
+}
+
+### Sync all reviewed submissions
+POST {{baseUrl}}/homework/assignments/{{homeworkId}}/grade-sync
+Authorization: Bearer {{adminToken}}
+
+### Sync one reviewed submission
+POST {{baseUrl}}/homework/assignments/{{homeworkId}}/submissions/{{submissionId}}/grade-sync
+Authorization: Bearer {{adminToken}}
+
+### -------------------------------------------------------------------------
+### Teacher App Homework
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/teacher/homeworks/dashboard
+Authorization: Bearer {{teacherToken}}
+
+###
+GET {{baseUrl}}/teacher/homeworks/classes/{{classId}}/assignments
+Authorization: Bearer {{teacherToken}}
+
+###
+GET {{baseUrl}}/teacher/homeworks/classes/{{classId}}/assignments/{{homeworkId}}
+Authorization: Bearer {{teacherToken}}
+
+###
+GET {{baseUrl}}/teacher/homeworks/classes/{{classId}}/assignments/{{homeworkId}}/submissions
+Authorization: Bearer {{teacherToken}}
+
+###
+POST {{baseUrl}}/teacher/homeworks/classes/{{classId}}/assignments/{{homeworkId}}/grade-sync
+Authorization: Bearer {{teacherToken}}
+
+### -------------------------------------------------------------------------
+### Teacher Classroom Grades
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/teacher/classroom/{{classId}}/grades/assessments
+Authorization: Bearer {{teacherToken}}
+
+###
+GET {{baseUrl}}/teacher/classroom/{{classId}}/grades/assessments/{{assessmentId}}
+Authorization: Bearer {{teacherToken}}
+
+###
+GET {{baseUrl}}/teacher/classroom/{{classId}}/grades/gradebook
+Authorization: Bearer {{teacherToken}}
+
+### These should remain absent / not supported in V1
+PUT {{baseUrl}}/teacher/classroom/{{classId}}/grades/assessments/{{assessmentId}}/items/{{studentId}}
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "score": 90
+}
+
+### -------------------------------------------------------------------------
+### Student App Homework / Grades
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/student/homeworks
+Authorization: Bearer {{studentToken}}
+
+###
+GET {{baseUrl}}/student/homeworks/{{homeworkId}}
+Authorization: Bearer {{studentToken}}
+
+### Save submission draft - adjust body to DTO
+PUT {{baseUrl}}/student/homeworks/{{homeworkId}}/submission
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "notes": "Draft answer"
+}
+
+### Submit homework - adjust body to DTO
+POST {{baseUrl}}/student/homeworks/{{homeworkId}}/submit
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "notes": "Final submission"
+}
+
+### Grades
+GET {{baseUrl}}/student/grades
+Authorization: Bearer {{studentToken}}
+
+###
+GET {{baseUrl}}/student/grades/summary
+Authorization: Bearer {{studentToken}}
+
+###
+GET {{baseUrl}}/student/grades/assessments/{{assessmentId}}
+Authorization: Bearer {{studentToken}}
+
+### -------------------------------------------------------------------------
+### Parent App Homework / Grades
+### -------------------------------------------------------------------------
+
+GET {{baseUrl}}/parent/children/{{studentId}}/homeworks
+Authorization: Bearer {{parentToken}}
+
+###
+GET {{baseUrl}}/parent/children/{{studentId}}/homeworks/{{homeworkId}}
+Authorization: Bearer {{parentToken}}
+
+### Parent homework mutation should remain absent / unsupported in V1
+POST {{baseUrl}}/parent/children/{{studentId}}/homeworks/{{homeworkId}}/submit
+Authorization: Bearer {{parentToken}}
+Content-Type: application/json
+
+{}
+
+### Parent grades
+GET {{baseUrl}}/parent/children/{{studentId}}/grades
+Authorization: Bearer {{parentToken}}
+
+###
+GET {{baseUrl}}/parent/children/{{studentId}}/grades/summary
+Authorization: Bearer {{parentToken}}
+
+###
+GET {{baseUrl}}/parent/children/{{studentId}}/grades/assessments/{{assessmentId}}
+Authorization: Bearer {{parentToken}}

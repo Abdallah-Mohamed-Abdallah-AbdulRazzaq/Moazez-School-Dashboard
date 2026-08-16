@@ -1,0 +1,64 @@
+@baseUrl = http://localhost:3000/api/v1
+@schoolToken = replace_with_school_admin_access_token
+@platformToken = replace_with_platform_admin_access_token
+@teacherToken = replace_with_teacher_token
+@parentToken = replace_with_parent_token
+@dismissalStaffToken = replace_with_dismissal_staff_token
+@conversationId = replace_with_support_conversation_id
+
+### Negative: teacher should not access school support by default
+GET {{baseUrl}}/school-support/conversation
+Authorization: Bearer {{teacherToken}}
+
+### Negative: parent should not access school support
+GET {{baseUrl}}/school-support/conversation
+Authorization: Bearer {{parentToken}}
+
+### Negative: dismissal staff should not access school support by default
+GET {{baseUrl}}/school-support/conversation
+Authorization: Bearer {{dismissalStaffToken}}
+
+### Negative: school actor should not access platform support inbox
+GET {{baseUrl}}/platform-admin/support/conversations
+Authorization: Bearer {{schoolToken}}
+
+### Negative: platform route bad status filter should fail validation
+GET {{baseUrl}}/platform-admin/support/conversations?status=invalid
+Authorization: Bearer {{platformToken}}
+
+### Negative: platform empty reply should fail
+POST {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/messages
+Authorization: Bearer {{platformToken}}
+Content-Type: application/json
+
+{
+  "body": "   "
+}
+
+### Edge: close then school send should fail with 409
+POST {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/close
+Authorization: Bearer {{platformToken}}
+Content-Type: application/json
+
+{
+  "reason": "Testing closed state."
+}
+
+### Edge: school send to closed conversation should fail
+POST {{baseUrl}}/school-support/messages
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "body": "This should fail while conversation is closed.",
+  "clientMessageId": "closed-school-send-001"
+}
+
+### Edge: reopen after closed test
+POST {{baseUrl}}/platform-admin/support/conversations/{{conversationId}}/reopen
+Authorization: Bearer {{platformToken}}
+Content-Type: application/json
+
+{
+  "reason": "Reopen after edge-case test."
+}

@@ -1,0 +1,781 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mE:/sis-dashboard[39m
+
+ [32m✓[39m src/features/academics/homework/services/__tests__/homeworkApiAdapter.test.ts [2m([22m[2m16 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/features/settings/__tests__/sprint11EndpointContracts.test.ts [2m([22m[2m14 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/AttachmentCard.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 662[2mms[22m[39m
+ [32m✓[39m src/components/layout/__tests__/TopNavNotificationDropdown.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1234[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationMessages.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 1273[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationDetail.test.tsx [2m([22m[2m48 tests[22m[2m)[22m[33m 1377[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationPage.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 1726[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationRealtime.test.ts [2m([22m[2m21 tests[22m[2m)[22m[90m 125[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationDetail.property.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 5145[2mms[22m[39m
+   [33m[2m✓[22m[39m ConversationDetail - Property 3: Tab Switch Does Not Re-Fetch Loaded Data[2m > [22mOnce a tab's hook is enabled, it never reverts to enabled: false on subsequent tab switches (with seed=-732533323) [33m4562[2mms[22m[39m
+   [33m[2m✓[22m[39m ConversationDetail - Property 17: ReadOnly Composer for Restricted Users[2m > [22mReadOnlyComposer is rendered for any restricted state (with seed=1627141435) [33m581[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/MessagesPanel.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 499[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/services/__tests__/curriculumApiAdapter.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/pages/__tests__/CurriculumPageContent.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2658[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumPageContent[2m > [22mshows term curricula overview from subject allocations [33m729[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumPageContent[2m > [22mloads detail route by curriculum id and returns to all curricula route [33m1132[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/reinforcementFrontendHardening.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 591[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/communicationService.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/hooks/__tests__/useTimetableData.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 640[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversations.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 157[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/hooks/__tests__/useRollCallSessionWorkspace.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 910[2mms[22m[39m
+ [32m✓[39m src/features/behavior/shared/utils/__tests__/behaviorUiRules.test.ts [2m([22m[2m20 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/ReinforcementReviewQueuePage.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 5872[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mcalls listReinforcementReviewQueue and getReinforcementFilterOptions on load [33m327[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mrefetches queue with parameters when filter changes [33m595[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mclears all filters when Clear Filters is clicked [33m497[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mdisplays validation error and blocks queue list API call when dates are invalid [33m407[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mopens details drawer on row click and allows approval with note and XP grant [33m1086[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mopens the details drawer when clicking a row or the View Details button [33m788[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mrenders task details and review history in the drawer [33m383[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mtriggers approval action modal and subsequent XP grant modal when clicking Approve [33m615[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mclears stale state when drawer is closed and when a new details fetch starts [33m649[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementReviewQueuePage[2m > [22mcloses details drawer when pressing the Escape key [33m376[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/__tests__/heroJourneyService.test.ts [2m([22m[2m13 tests[22m[2m)[22m[90m 36[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/BubbleContextMenu.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 384[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useNotifications.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 1128[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/services/__tests__/dismissalApiService.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/SchoolDashboardContainer.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3909[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mrenders backend dashboard data when all endpoints succeed [33m1058[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mmoves secondary module cards behind tabs [33m743[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mrenders dashboard alerts as a single action required panel [33m498[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mrenders empty operational states when alerts and activity are empty [33m314[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mlinks dashboard activity overflow to the recent activities page [33m380[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mlinks dashboard alert overflow to the alerts page [33m344[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolDashboardContainer[2m > [22mfetches dashboard modules on mount and displays them as tabs, switching tab fetches module details [33m335[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/services/__tests__/attendanceExcusesService.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/LearningContentPanel.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 4647[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mshows the list first and opens the form when creating content [33m378[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mshows backend field errors inline and preserves content values [33m1352[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mshows the dropped file before saving a file content item [33m427[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mexplains unsupported media containers at the upload field [33m1024[2mms[22m[39m
+   [33m[2m✓[22m[39m LearningContentPanel[2m > [22mwaits for modal confirmation before deleting lesson content [33m582[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/services/__tests__/teacherAllocationService.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/pages/__tests__/NedaaOperationsPage.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 21264[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mloads active dismissal requests and updates request status [33m919[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mdelivers and escalates active requests from row actions [33m1681[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mshows an error when an escalation is already recorded [33m424[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mrecovers from a stale delivery confirmation with actionable guidance [33m982[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mrenders fetched history details in the history modal [33m650[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mshows an empty timeline state when history has no events [33m509[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mpresents escalation details without treating them as a status transition [33m514[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mloads waiting students and confirms arrival [33m588[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mloads request history in a read-only history tab [33m375[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mkeeps filters independent for each operations tab [33m1590[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22msends documented active filters and only one academic id [33m2512[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22muses table page and page size for active requests [33m334[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22msends waiting filters with one academic id and waiting sort [33m2442[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22muses table page and page size for waiting students [33m472[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22msends the complete history filter contract [33m4860[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22muses table page and page size for history [33m661[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaOperationsPage[2m > [22mgroups filters by operational purpose for each tab [33m929[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/components/__tests__/HeroJourneyMissionFormModal.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 4414[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mdisables published-protected fields while keeping copy editable [33m619[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mrenders and submits the complete objective editor [33m428[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mallows clearing an objective assessment explicitly [33m344[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mallows clearing an objective lesson explicitly [33m309[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyMissionFormModal[2m > [22mclears a stale mission lesson when Subject changes [33m303[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableApiAdapter.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/features/attendance/policies/services/__tests__/attendancePolicyService.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 27[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/tabs/__tests__/DocumentsTab.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 6587[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mopens a protected document through an authenticated blob [33m388[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mshows review actions only for pending review documents [33m369[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mrequires notes for reject and replacement actions [33m633[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22maccepts a pending document without a note and refreshes documents [33m438[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22msubmits Reject with a required note and refreshes documents [33m1088[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22msubmits Request replacement with a required note and refreshes documents [33m1315[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mkeeps the submit button disabled while a review action is saving [33m481[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab review actions[2m > [22mshows a friendly review error for HTTP 403 [33m398[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/LessonPlansBoard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 790[2mms[22m[39m
+   [33m[2m✓[22m[39m LessonPlansBoard timetable metadata[2m > [22mblocks drag creation and reports metadata load errors accurately [33m424[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/MessageBubble.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 915[2mms[22m[39m
+   [33m[2m✓[22m[39m MessageBubble Delete Confirmation[2m > [22mshows confirmation dialog when delete is triggered and calls onDeleteMessage when confirmed [33m539[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/DashboardAnalyticsPage.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1484[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardAnalyticsPage[2m > [22mallows classroom analytics without selecting a grade or section [33m412[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/services/__tests__/heroJourneyMissionContract.test.ts [2m([22m[2m44 tests[22m[2m)[22m[90m 27[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/reinforcementServices.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useTypingIndicator.test.ts [2m([22m[2m18 tests[22m[2m)[22m[90m 165[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/RewardRedemptionsPage.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 11390[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mforwards academic year and term URL context to the redemption list [33m326[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mshows create and cancel only with request permission [33m590[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mshows approve and reject only with review permission [33m353[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mopens the details drawer from the view button [33m585[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mopens the details drawer from a row click [33m441[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mdoes not open the details drawer when a workflow action is clicked [33m388[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mcreates a dashboard redemption request and refreshes the list [33m4125[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mkeeps the page and create modal usable when lookups fail [33m314[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardRedemptionsPage[2m > [22mkeeps create selections and notes when submit fails [33m4025[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/hooks/__tests__/useLessonPlansData.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 476[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/CreateConversationDialog.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 2302[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateConversationDialog component validation[2m > [22mshows validation error when title exceeds 255 characters [33m525[2mms[22m[39m
+ [32m✓[39m src/features/academics/subjects/container/__tests__/SubjectsAllocationContainer.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[90m 212[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/LightModeDropdown.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1475[2mms[22m[39m
+   [33m[2m✓[22m[39m LightModeDropdown Integration[2m > [22mdisables todo creation when manage access is absent [33m441[2mms[22m[39m
+   [33m[2m✓[22m[39m LightModeDropdown Integration[2m > [22muses the server-selected school date and persisted Todo ID when creating a Todo [33m477[2mms[22m[39m
+   [33m[2m✓[22m[39m LightModeDropdown Integration[2m > [22mkeeps the edit form open when saving a Todo fails [33m426[2mms[22m[39m
+ [32m✓[39m src/features/attendance/policies/components/__tests__/PolicyWizardDialog.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 6259[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mvalidates on blur and validates again before advancing [33m1532[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mblocks progression on validation failure and supports retry [33m1202[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mreturns to Scope with preserved values when the backend reports a policy conflict [33m1455[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mpreserves nullable thresholds and effective dates when editing [33m639[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mkeeps periods from the latest scope when an earlier request resolves last [33m313[2mms[22m[39m
+   [33m[2m✓[22m[39m PolicyWizardDialog policy errors[2m > [22mdoes not re-save period IDs outside the selected scope timetable [33m702[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/services/__tests__/homeworkMappers.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/communication/api/communication.service.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/features/attendance/reports/services/__tests__/attendanceReportsService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 56[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/pages/__tests__/ApplicationDetailsPage.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 571[2mms[22m[39m
+ [32m✓[39m src/features/academics/components/layout/__tests__/AcademicsContextLayout.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 555[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/hooks/__tests__/useLessonPlanMutations.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[90m 89[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/TimetableSlotSelect.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 785[2mms[22m[39m
+   [33m[2m✓[22m[39m TimetableSlotSelect[2m > [22mloads the classroom dashboard without repeating config lookup [33m336[2mms[22m[39m
+ [32m✓[39m src/components/layout/__tests__/TopNav.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 764[2mms[22m[39m
+   [33m[2m✓[22m[39m TopNav Notification Integration[2m > [22mopens the dropdown when the Bell button is clicked [33m311[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ParticipantsPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 479[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/utils/homeworkReview.test.ts [2m([22m[2m21 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/useSetupStatus.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[90m 233[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/GradesTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 721[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/components/__tests__/CampaignAudienceStep.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1250[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignAudienceStep[2m > [22madds custom emails as removable badges while storing backend text internally [33m379[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/pages/__tests__/HomeworkAssignmentBuilderPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 783[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkAssignmentBuilderPage assignment contract[2m > [22mblocks invalid edits and preserves nullable marks in a normalized update [33m391[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/RewardsOverviewPage.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 7623[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mcalls getRewardsOverview and getRewardCatalogSummary with query parameters on load [33m301[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22msearches students by identifiers in the cascade [33m1849[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mrefetches overview with selected student after ordered academic cascade selection [33m1458[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mpasses status, reward type, and archived flag to both dashboard endpoints [33m1288[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mclears local filters but preserves academic context when Clear Filters is clicked [33m1773[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardsOverviewPage[2m > [22mblocks fetching and displays validation error when dateFrom is after dateTo [33m671[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/services/__tests__/attendanceRollCallService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/components/__tests__/HomeworkSubmissionReviewPanel.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 2421[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkSubmissionReviewPanel backend workflow[2m > [22mlocks every review control after the submission is reviewed [33m432[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkSubmissionReviewPanel backend workflow[2m > [22mshows required-answer progress and opens the mobile queue as a dialog [33m368[2mms[22m[39m
+   [33m[2m✓[22m[39m HomeworkSubmissionReviewPanel backend workflow[2m > [22mshows answer validation and does not send a score above question points [33m333[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/RewardCatalogPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 6297[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22mloads catalog rows from the catalog endpoint and summary cards from catalog-summary [33m850[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22mdoes not render academic year or term filters [33m685[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22muses backend pagination for catalog rows [33m609[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22msends an archive reason through the catalog archive endpoint [33m2335[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogPage[2m > [22mdoes not send an empty titleEn when creating an Arabic-only reward [33m1815[2mms[22m[39m
+ [32m✓[39m src/features/communication/api/communication.mappers.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/lib/__tests__/api-refresh-queue.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 118[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationPage.property.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 4971[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 19b: 'pinned' filter shows only conversations where isPinned === true (with seed=1301998370) [33m4969[2mms[22m[39m
+ [32m✓[39m src/features/settings/components/__tests__/UserEditorModal.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 4557[2mms[22m[39m
+   [33m[2m✓[22m[39m UserEditorModal Sprint 11 behavior[2m > [22msubmits username and contactEmail without using personal email as login email [33m1443[2mms[22m[39m
+   [33m[2m✓[22m[39m UserEditorModal Sprint 11 behavior[2m > [22mfalls back to login email when generated identity is inactive [33m1170[2mms[22m[39m
+   [33m[2m✓[22m[39m UserEditorModal Sprint 11 behavior[2m > [22mrequires administrators to choose a role explicitly [33m778[2mms[22m[39m
+   [33m[2m✓[22m[39m UserEditorModal Sprint 11 behavior[2m > [22mshows invalid email feedback before submitting [33m780[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/services/__tests__/filesService.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/features/settings/branding/__tests__/useSchoolBrandingEditor.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[90m 141[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversations.property.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 735[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 18: Pinned conversations always appear before unpinned conversations in sorted output (with seed=-514312218) [33m354[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/ReinforcementContextSelectors.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1572[2mms[22m[39m
+   [33m[2m✓[22m[39m Reinforcement context selector components[2m > [22mprevents duplicate task targets in the selector [33m1326[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/nedaaTranslations.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/applicationsTranslations.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/HeroJourneyTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 825[2mms[22m[39m
+   [33m[2m✓[22m[39m HeroJourneyTab[2m > [22mshows a completion callout and resolves activity to the mission title [33m323[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/GlobalMessageNotifications.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 368[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/components/__tests__/CampaignComposer.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1569[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignComposer Sprint 11 behavior[2m > [22mblocks credential-only variables in general campaigns [33m506[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignComposer Sprint 11 behavior[2m > [22minvalidates recipient preview for audience changes but not content edits [33m555[2mms[22m[39m
+   [33m[2m✓[22m[39m CampaignComposer Sprint 11 behavior[2m > [22mpreserves the draft after queueing until create another is selected [33m351[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/container/__tests__/TeacherAllocationContainer.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[90m 258[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/services/__tests__/registrationApiService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/AcademicStructureSetupStep.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 2468[2mms[22m[39m
+   [33m[2m✓[22m[39m AcademicStructureSetupStep[2m > [22mcreates the next missing stage, grade, section, then classroom using refreshed IDs [33m1956[2mms[22m[39m
+   [33m[2m✓[22m[39m AcademicStructureSetupStep[2m > [22mpreserves field values after a failed request [33m509[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/NotificationListItem.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 654[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationRealtime.property.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1755[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22mjoinConversation is called with the exact conversation ID on mount (with seed=910323975) [33m347[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22monReconnect is called when resyncVersion increments (with seed=-953687380) [33m407[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22mall socket listeners are cleaned up after unmount (with seed=-1478892806) [33m378[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 26: Socket Lifecycle Management[2m > [22mfull lifecycle: join → resync → leave + cleanup for any conversation ID (with seed=163365122) [33m331[2mms[22m[39m
+ [32m✓[39m src/features/attendance/late-early/services/__tests__/attendanceLateEarlyService.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/components/layout/__tests__/Sidebar.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 3907[2mms[22m[39m
+   [33m[2m✓[22m[39m Sidebar toggle control[2m > [22mfilters visible tabs and restores them after clearing [33m1309[2mms[22m[39m
+   [33m[2m✓[22m[39m Sidebar toggle control[2m > [22mshows a localized empty state for an unmatched search [33m731[2mms[22m[39m
+   [33m[2m✓[22m[39m Sidebar toggle control[2m > [22msearches Arabic navigation labels in RTL mode [33m662[2mms[22m[39m
+ [32m✓[39m src/features/settings/users/pages/__tests__/SettingsUsersPage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1859[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsUsersPage search[2m > [22mkeeps the current users visible until the search debounce expires [33m532[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsUsersPage search[2m > [22mrequests only page one when a paginated search settles [33m365[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsUsersPage search[2m > [22mconfirms account deactivation before changing status [33m324[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/components/__tests__/CredentialDeliveryAudienceStep.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 744[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/profile-correction-requests/pages/__tests__/ProfileCorrectionRequestDetailPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 888[2mms[22m[39m
+   [33m[2m✓[22m[39m ProfileCorrectionRequestDetailPage[2m > [22mrenders detail page elements with UI primitives [33m368[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableConfigService.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/RecentActivitiesPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 8524[2mms[22m[39m
+   [33m[2m✓[22m[39m RecentActivitiesPage[2m > [22mrenders recent activity details and appends the next cursor page [33m930[2mms[22m[39m
+   [33m[2m✓[22m[39m RecentActivitiesPage[2m > [22mapplies documented filters and resets pagination [33m3599[2mms[22m[39m
+   [33m[2m✓[22m[39m RecentActivitiesPage[2m > [22mshows skeleton rows while filter changes are loading [33m550[2mms[22m[39m
+   [33m[2m✓[22m[39m RecentActivitiesPage[2m > [22mresets active filters to the default activity query [33m3279[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/AutoPlanDialog.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 3587[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22moffers a scoped resolution for academics.lesson_plan.auto_plan_no_slots [33m991[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22moffers a scoped resolution for academics.lesson_plan.auto_plan_no_curriculum [33m452[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22mallows Preview but keeps Apply blocked for a closed term [33m465[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22mpreviews and applies independently when both actions are ready [33m665[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22mdiscards a preview response when the form changes before it resolves [33m470[2mms[22m[39m
+   [33m[2m✓[22m[39m AutoPlanDialog missing-data actions[2m > [22mdiscards a preview response from a previous dialog session [33m541[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/MessageComposer.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 979[2mms[22m[39m
+   [33m[2m✓[22m[39m MessageComposer[2m > [22mshows an inline error and does not add attachment when file size is exceeded [33m534[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/tabs/__tests__/DetailsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 416[2mms[22m[39m
+ [32m✓[39m src/features/behavior/categories/pages/__tests__/BehaviorCategoriesPage.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 1645[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorCategoriesPage - Category Deletion[2m > [22mdoes not render category actions without the backend manage permission [33m333[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorCategoriesPage - Category Deletion[2m > [22mhandles conflict error (category in use) and displays categoryInUse toast [33m302[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/lessonPlansApiAdapter.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/pages/__tests__/RegistrationWizardPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 809[2mms[22m[39m
+   [33m[2m✓[22m[39m RegistrationWizardPage step navigation[2m > [22mkeeps the user on the current step when validation fails [33m325[2mms[22m[39m
+   [33m[2m✓[22m[39m RegistrationWizardPage step navigation[2m > [22mkeeps native input values in wizard state across step navigation [33m482[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/dashboardApiService.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableSaveMapper.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/SetupGuide.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 702[2mms[22m[39m
+   [33m[2m✓[22m[39m SetupGuide[2m > [22mrenders progress, selectable steps, status text, and selected panel content [33m309[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/components/__tests__/HomeworkGradeSyncPanel.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 439[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/MessagesPanel.property.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 789[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 2: Render Isolation on Real-Time Events[2m > [22mfor any generated messages simulating real-time arrivals, only MessagesPanel re-renders; memoized sibling does not (with seed=239577105) [33m786[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationMessages.property.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 1632[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 10: Message Update Preserves Order[2m > [22mpatchFromRealtime updates body in place without changing message order (with seed=-968761072) [33m1630[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/CurriculumEditor.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2224[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumEditor[2m > [22mmaps unit validation errors and clears the edited field error [33m787[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumEditor[2m > [22mmaps indexed lesson objective validation to the objectives field [33m612[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumEditor[2m > [22mwaits for modal confirmation before deleting a unit [33m525[2mms[22m[39m
+ [32m✓[39m src/features/academics/rooms/components/__tests__/RoomsView.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 3808[2mms[22m[39m
+   [33m[2m✓[22m[39m RoomsView[2m > [22mfilters rooms by search, status, building, and floor [33m2207[2mms[22m[39m
+   [33m[2m✓[22m[39m RoomsView[2m > [22mshows load errors and allows retry [33m353[2mms[22m[39m
+   [33m[2m✓[22m[39m RoomsView[2m > [22mdeletes rooms through the supported rooms endpoint action [33m455[2mms[22m[39m
+ [32m✓[39m src/components/ui/authenticated-file-image/__tests__/AuthenticatedFileImage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 401[2mms[22m[39m
+ [32m✓[39m src/components/ui/input/__tests__/Select.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1594[2mms[22m[39m
+   [33m[2m✓[22m[39m Select[2m > [22mrenders the open menu outside the component container [33m388[2mms[22m[39m
+   [33m[2m✓[22m[39m Select[2m > [22msearches options by visible label and supplemental search text [33m655[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/taskPayloadMapper.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/academics/calendar/pages/__tests__/AcademicCalendarPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 275[2mms[22m[39m
+ [32m✓[39m src/features/behavior/records/pages/__tests__/BehaviorRecordsPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1253[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorRecordsPage[2m > [22mrenders records table with correct data [33m438[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorRecordsPage[2m > [22mhides record creation when the user lacks the backend create permission [33m318[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorRecordsPage[2m > [22mfilters bar date selection triggers loading with occurredFrom and occurredTo [33m389[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/connection/pages/__tests__/EmailConnectionPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2722[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailConnectionPage backend lifecycle[2m > [22menables activation only after a successful test returns VERIFIED [33m1208[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailConnectionPage backend lifecycle[2m > [22mpreserves the test error while refreshing authoritative FAILED state [33m904[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailConnectionPage backend lifecycle[2m > [22mrequires confirmation before disabling the connection [33m407[2mms[22m[39m
+ [32m✓[39m src/features/settings/roles/pages/__tests__/SettingsRolesPage.permissions.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1520[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsRolesPage permission catalog access[2m > [22mloads the permission matrix when catalog access is granted [33m346[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsRolesPage permission catalog access[2m > [22mcollapses modules and omits unsupported action placeholders [33m598[2mms[22m[39m
+ [32m✓[39m src/features/settings/credentials/pages/__tests__/CredentialsPage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 2692[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mkeeps the page visible while credentials load in the table [33m494[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mdoes not expose the unsupported user status filter [33m523[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mkeeps credentials usable and retries a failed role load on open [33m414[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mdoes not duplicate an in-flight role request when opened [33m389[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mshows an empty role state without failing credentials [33m375[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialsPage filters[2m > [22mshows every settings role and filters known roles with the backend role key [33m489[2mms[22m[39m
+ [32m✓[39m src/features/teachers/components/__tests__/TeacherFormDialogs.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 6893[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher form dialogs[2m > [22mshows the generated login email and checks a new username [33m1581[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher form dialogs[2m > [22mserializes login-email identity without a conflicting username [33m1332[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher form dialogs[2m > [22mshows a clear, localized username-policy error without a duplicate form alert [33m1868[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher form dialogs[2m > [22mkeeps an identity-conflict message visible for the selected identity mode [33m1641[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/pages/__tests__/EmailCampaignsPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1127[2mms[22m[39m
+   [33m[2m✓[22m[39m EmailCampaignsPage preview integrity[2m > [22mblocks create for an audience different from the preview [33m396[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/ModuleTabDashboardView.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 409[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/AddLessonDialog.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1930[2mms[22m[39m
+   [33m[2m✓[22m[39m AddLessonDialog planned day selection[2m > [22mblocks confirmation and reports a timetable metadata load failure [33m471[2mms[22m[39m
+   [33m[2m✓[22m[39m AddLessonDialog planned day selection[2m > [22mallows another instructional day in the same week [33m564[2mms[22m[39m
+   [33m[2m✓[22m[39m AddLessonDialog planned day selection[2m > [22mincludes the selected timetable slot in confirmation [33m371[2mms[22m[39m
+ [32m✓[39m src/features/teachers/utils/__tests__/teacherErrors.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/SchoolOnboardingPage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1178[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolOnboardingPage[2m > [22malways renders the permanent full setup page even when complete [33m351[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/dashboardViewMapper.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/OrganizationSetupStep.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2102[2mms[22m[39m
+   [33m[2m✓[22m[39m OrganizationSetupStep[2m > [22mshows saved branding data before editing [33m301[2mms[22m[39m
+   [33m[2m✓[22m[39m OrganizationSetupStep[2m > [22mopens the complete editor and returns to the saved summary on cancel [33m438[2mms[22m[39m
+   [33m[2m✓[22m[39m OrganizationSetupStep[2m > [22msaves all branding fields, refreshes setup status, and shows the updated summary [33m1296[2mms[22m[39m
+ [32m✓[39m src/components/ui/data-table/__tests__/DataTable.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 940[2mms[22m[39m
+ [32m✓[39m src/features/teachers/hooks/__tests__/teacherHooks.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[90m 176[2mms[22m[39m
+ [32m✓[39m src/features/academics/subjects/components/__tests__/AllocationMatrix.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1017[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/services/__tests__/curriculumMappers.test.ts [2m([22m[2m18 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/xpPolicyMapper.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/pages/__tests__/CreateHomeworkPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1347[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateHomeworkPage assignment contract[2m > [22mblocks invalid input and submits a normalized valid boundary request [33m1119[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/DashboardAlertsPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 2097[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardAlertsPage[2m > [22mrenders dashboard alerts with summary counts and action links [33m383[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardAlertsPage[2m > [22mapplies documented alert filters [33m1255[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardAlertsPage[2m > [22mshows skeleton rows while filter changes are loading [33m403[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/lessonPlansMappers.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/grades/overview/utils/__tests__/studentGradesSnapshotMapper.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 38[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/setupStatus.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/grades/gradebook/utils/__tests__/gradesApiErrors.test.ts [2m([22m[2m55 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/features/attendance/absences/services/__tests__/attendanceAbsencesService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/BehaviorTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1260[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorTab[2m > [22mblocks an occurrence date outside the selected term [33m868[2mms[22m[39m
+ [32m✓[39m src/components/ui/academic/__tests__/AcademicStudentCascade.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1301[2mms[22m[39m
+   [33m[2m✓[22m[39m AcademicStudentCascade[2m > [22mclears all descendants when the stage changes [33m569[2mms[22m[39m
+   [33m[2m✓[22m[39m AcademicStudentCascade[2m > [22mincludes record search text when searching student identifiers [33m458[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useMessageAttachments.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 137[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/pages/__tests__/ApplicationsList.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 126[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/OnboardingRedirectGuard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[90m 117[2mms[22m[39m
+ [32m✓[39m src/features/grades/submissions/services/__tests__/gradesSubmissionsService.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/pages/__tests__/CredentialDeliveriesPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 886[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialDeliveriesPage preview integrity[2m > [22mignores a late preview response after values change [33m411[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/MoveLessonDialog.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1205[2mms[22m[39m
+   [33m[2m✓[22m[39m MoveLessonDialog[2m > [22mmoves without a timetable slot using the selected instructional day [33m444[2mms[22m[39m
+   [33m[2m✓[22m[39m MoveLessonDialog[2m > [22mmoves with only the selected timetable entry id [33m460[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/EditLessonPlanItemDialog.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2541[2mms[22m[39m
+   [33m[2m✓[22m[39m EditLessonPlanItemDialog[2m > [22msaves title notes and another instructional day without a slot [33m1589[2mms[22m[39m
+   [33m[2m✓[22m[39m EditLessonPlanItemDialog[2m > [22msaves the selected timetable slot metadata [33m600[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/ReinforcementReviewDetailsDrawer.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 746[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/components/__tests__/AllocationMatrixView.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1189[2mms[22m[39m
+   [33m[2m✓[22m[39m AllocationMatrixView[2m > [22mdisables teacher selection and save in read-only mode [33m487[2mms[22m[39m
+   [33m[2m✓[22m[39m AllocationMatrixView[2m > [22mshows only allocated subjects in the subject filter [33m323[2mms[22m[39m
+   [33m[2m✓[22m[39m AllocationMatrixView[2m > [22mshows mapped missing subject allocation errors after failed save [33m376[2mms[22m[39m
+ [32m✓[39m src/features/auth/context/__tests__/AuthProvider.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 254[2mms[22m[39m
+ [32m✓[39m src/features/settings/credentials/services/__tests__/credentialsService.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/components/__tests__/RegistrationResultPanel.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 438[2mms[22m[39m
+   [33m[2m✓[22m[39m RegistrationResultPanel[2m > [22mmasks temporary credentials and requires acknowledgement before returning [33m343[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/utils/homeworkValidation.test.ts [2m([22m[2m24 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/services/__tests__/teacherAllocationApiAdapter.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useTypingIndicator.property.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 577[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 12: Typing Indicator Round-Trip[2m > [22mtypingStarted adds user to typingUsers, typingStopped removes them (with seed=204159937) [33m356[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/pages/__tests__/NedaaStaffAssignmentsPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2689[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaStaffAssignmentsPage[2m > [22mloads staff dropdown users from the Dismissal Staff role only [33m845[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaStaffAssignmentsPage[2m > [22moffers academics-tree stages when assignment results are empty [33m660[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaStaffAssignmentsPage[2m > [22muses searchable dropdowns for employee account and gate in the create form [33m1182[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/components/__tests__/NedaaGateFormModal.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 4252[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaGateFormModal location[2m > [22msubmits coordinates selected in the location picker [33m959[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaGateFormModal location[2m > [22mblocks submission while coordinates are invalid [33m539[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaGateFormModal location[2m > [22mallows adding and removing waiting zones locally in create mode [33m1933[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaGateFormModal location[2m > [22mgenerates the gate ID from an Arabic name successfully [33m819[2mms[22m[39m
+ [32m✓[39m src/features/admissions/decisions/pages/__tests__/DecisionsList.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 577[2mms[22m[39m
+   [33m[2m✓[22m[39m DecisionsList[2m > [22mkeeps table columns and drawer close handler stable when opening the drawer [33m575[2mms[22m[39m
+ [32m✓[39m src/features/behavior/services/__tests__/behaviorApiService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/services/__tests__/teacherAllocationMappers.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/components/__tests__/TeacherLoadView.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 310[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherLoadView[2m > [22mloads teacher loads from the backend endpoint service [33m308[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/lessonPlanTimetable.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/RewardCatalogFormModal.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1989[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogFormModal[2m > [22mrequires stock remaining for limited rewards [33m887[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogFormModal[2m > [22msubmits the active context and uploaded image for create [33m733[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogFormModal[2m > [22msubmits null scope and image when they are cleared [33m368[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/services/__tests__/curriculumServiceExports.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/settings/shared/utils/__tests__/settingsWorkflowErrors.test.ts [2m([22m[2m35 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/features/auth/components/__tests__/LoginForm.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 5373[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginForm Sprint 11 behavior[2m > [22mredirects mustChangePassword users to the change-password route [33m1428[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginForm Sprint 11 behavior[2m > [22mreturns users to a safe next path after login [33m962[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginForm Sprint 11 behavior[2m > [22msupports the legacy redirect parameter after login [33m911[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginForm Sprint 11 behavior[2m > [22mfalls back to dashboard when next points outside the active locale [33m1201[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginForm Sprint 11 behavior[2m > [22mopens the first permitted tab when the dashboard overview is unavailable [33m867[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/services/__tests__/homeworkGradeSyncCandidates.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/components/ui/google-location-picker/__tests__/GoogleLocationPicker.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1091[2mms[22m[39m
+   [33m[2m✓[22m[39m GoogleLocationPicker[2m > [22mkeeps manual coordinates editable when the API key is missing [33m766[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableSlotEditing.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/ReinforcementProgressTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 488[2mms[22m[39m
+ [32m✓[39m src/features/teachers/pages/__tests__/TeacherDetailPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 830[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherDetailPage[2m > [22moffers only legal transitions and never exposes archive or rehire [33m411[2mms[22m[39m
+ [32m✓[39m src/features/settings/login-identity/pages/__tests__/LoginIdentityPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 3862[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginIdentityPage UX[2m > [22mlets view-only administrators test usernames without edit controls [33m768[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginIdentityPage UX[2m > [22mrequires confirmation for a domain change and keeps the summary persisted [33m1683[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginIdentityPage UX[2m > [22mdiscards policy edits and saves policy-only changes without confirmation [33m1399[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/AssignmentSettingsPanel.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 191[2mms[22m[39m
+ [32m✓[39m src/features/settings/credentials/components/__tests__/BulkGenerateCredentialsModal.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 538[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/utils/__tests__/generator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/settings/__tests__/emailPermissionsContract.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/pages/NotificationsPage.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 2734[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationsPage - Mark All Read Button Visibility[2m > [22mshould hide 'Mark All Read' button when notifications list is empty [33m795[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationsPage - Mark All Read Button Visibility[2m > [22mshould show 'Mark All Read' button when ALL notifications are owned by the signed-in user (recipientUserId) [33m376[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationsPage - Mark All Read Button Visibility[2m > [22mshould show 'Mark All Read' button when ALL notifications are owned by the signed-in user (userId) [33m417[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationsPage - Mark All Read Button Visibility[2m > [22mshould hide 'Mark All Read' button if any notification is not owned by the signed-in user (mixed-owner) [33m381[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationsPage - Mark All Read Button Visibility[2m > [22mshould hide 'Mark All Read' button if all notifications are not owned by the signed-in user [33m356[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationsPage - Mark All Read Button Visibility[2m > [22mshould hide 'Mark All Read' button if notifications have missing recipient/user identifiers [33m406[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableValidationSummary.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useNotificationDeliveries.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 807[2mms[22m[39m
+   [33m[2m✓[22m[39m useNotificationDeliveries[2m > [22mupdates server pagination params and stores backend metadata [33m335[2mms[22m[39m
+   [33m[2m✓[22m[39m useNotificationDeliveries[2m > [22mapplies exact filters as ISO query params and resets pagination [33m327[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/utils/mock-socket.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/realtime/CommunicationRealtimeProvider.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 272[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/pages/__tests__/ReinforcementTemplatesPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2504[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementTemplatesPage[2m > [22masks for confirmation before closing a dirty create modal [33m1853[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementTemplatesPage[2m > [22mrequires approval for a new template stage by default [33m304[2mms[22m[39m
+   [33m[2m✓[22m[39m ReinforcementTemplatesPage[2m > [22mpasses backend-supported template filters when they change [33m345[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/gradesTranslations.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/grades/overview/services/__tests__/gradesOverviewService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/OnboardingWelcomePage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 415[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/services/__tests__/teacherAllocationTeachersApiService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/utils/test-data-generators.test.ts [2m([22m[2m13 tests[22m[2m)[22m[90m 214[2mms[22m[39m
+ [32m✓[39m src/features/settings/users/components/__tests__/SettingsUserActions.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 690[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsUserActions[2m > [22mkeeps Teacher lifecycle actions in the Teachers module [33m343[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/AcademicContextSetupStep.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 533[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableMappers.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/features/grades/assessments/services/__tests__/gradesAssessmentsService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/lib/files/authenticatedFileUrlCache.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/services/__tests__/homeworkErrors.test.ts [2m([22m[2m18 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/components/__tests__/HeroJourneyMissionActions.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 398[2mms[22m[39m
+ [32m✓[39m src/features/academics/subjects/services/__tests__/subjectsApiAdapter.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/teachers/utils/__tests__/teacherDirectoryUtils.test.ts [2m([22m[2m11 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/settings/users/hooks/__tests__/usePaginatedUsers.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 307[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/model/__tests__/mappers.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/QuickActionPanel.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1642[2mms[22m[39m
+   [33m[2m✓[22m[39m QuickActionPanel[2m > [22mcreates a school-wide announcement draft directly from the dashboard [33m1530[2mms[22m[39m
+ [32m✓[39m src/components/navigation/__tests__/GuardedLink.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[90m 138[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/shared/permissions/__tests__/studentsGuardiansCapabilities.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/settings/users/components/__tests__/PaginatedUserSelect.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 465[2mms[22m[39m
+   [33m[2m✓[22m[39m PaginatedUserSelect[2m > [22mloads on open, searches on the server, and appends the next page [33m463[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/labels.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetablePeriodsService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/academics/rooms/services/__tests__/roomsApiAdapter.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/admissions/shared/services/__tests__/admissionsApiUtils.test.ts [2m([22m[2m19 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/learningContentFile.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/BubbleContextMenu.property.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 342[2mms[22m[39m
+   [33m[2m✓[22m[39m Property 1: Error-Free Rendering[2m > [22mrenders without console errors or exceptions for any valid props combination (with seed=459886136) [33m339[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/components/__tests__/CredentialDeliveryWizard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1004[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialDeliveryWizard[2m > [22minvalidates preview when credential mode changes [33m564[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/profile-correction-requests/pages/__tests__/ProfileCorrectionRequestsQueuePage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 716[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/__tests__/ApplicationTabContent.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 117[2mms[22m[39m
+ [32m✓[39m src/features/settings/services/__tests__/brandingService.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/components/__tests__/SessionPickerPanel.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 565[2mms[22m[39m
+   [33m[2m✓[22m[39m SessionPickerPanel[2m > [22mdisables every session-defining control while the workspace is busy [33m333[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/utils/communication-errors.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/LessonPlanItemCard.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 580[2mms[22m[39m
+   [33m[2m✓[22m[39m lesson plan item card[2m > [22mhides backend-invalid transitions for a completed item [33m301[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/profile-correction-requests/utils/__tests__/profileCorrectionRequestMappers.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/DocumentsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 3542[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab[2m > [22mimports selected documents from the student's admissions application [33m2085[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentsTab[2m > [22mconfirms before deleting a student document [33m1455[2mms[22m[39m
+ [32m✓[39m src/features/teachers/components/__tests__/TeacherCredentialCard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 3627[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherCredentialCard[2m > [22mgenerates with teacher.userId, reveals once, and refreshes detail [33m694[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherCredentialCard[2m > [22mkeeps password-policy errors on the custom-password form [33m1560[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherCredentialCard[2m > [22msubmits a custom password that meets the credential policy [33m1339[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/model/__tests__/registrationForm.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/heroJourneyTabPresentation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/SubjectsSetupStep.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 655[2mms[22m[39m
+   [33m[2m✓[22m[39m SubjectsSetupStep[2m > [22mopens SubjectDialog when no subject exists [33m322[2mms[22m[39m
+   [33m[2m✓[22m[39m SubjectsSetupStep[2m > [22msaves a grade subject weekly-hours allocation [33m330[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableErrorHandling.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/communication/utils/conversation-permissions.test.ts [2m([22m[2m10 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/settings/branding/__tests__/SettingsBrandingPage.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 373[2mms[22m[39m
+   [33m[2m✓[22m[39m SettingsBrandingPage[2m > [22mloads and renders the complete saved branding profile [33m371[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/utils/__tests__/registrationMappers.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/NotificationSearchSelect.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 853[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationSearchSelect[2m > [22mloads more on scroll and locally filters human-readable notification labels [33m851[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/utils/__tests__/applicationActionReadiness.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/views/__tests__/NedaaSettingsView.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 589[2mms[22m[39m
+   [33m[2m✓[22m[39m NedaaSettingsView school location[2m > [22mmaps a selected location to the dismissal settings patch [33m448[2mms[22m[39m
+ [32m✓[39m src/features/academics/calendar/services/__tests__/calendarMappers.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/utils/__tests__/policyTimetableConfig.test.ts [2m([22m[2m10 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/connection/components/__tests__/EmailConnectionForm.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 113[2mms[22m[39m
+ [32m✓[39m src/features/settings/branding/__tests__/SchoolBrandingEditor.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1225[2mms[22m[39m
+   [33m[2m✓[22m[39m SchoolBrandingEditor[2m > [22mallows editing fields and clearing the selected location [33m958[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/deliveries/services/__tests__/emailDeliveriesService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/grades/rules/services/__tests__/gradesRulesService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/communication/hooks/useCommunicationPolicy.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 48[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/AssignmentAttachmentPreviewModal.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 104[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/documents/services/__tests__/studentDocumentsApiService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/components/__tests__/ValidationPanel.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 341[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/components/__tests__/CredentialDeliveryPreviewStep.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 281[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/connection/services/__tests__/emailConnectionService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/__tests__/StudentTabLoader.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 59[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/utils/__tests__/nedaaAcademicOptions.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/services/__tests__/applicationIntakeService.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/teachers/pages/__tests__/TeachersPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 434[2mms[22m[39m
+ [32m✓[39m src/app/[lang]/(dashboard)/students-guardians/guardians/[guardianId]/__tests__/layout.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 549[2mms[22m[39m
+   [33m[2m✓[22m[39m GuardianProfileLayout[2m > [22medits the guardian from the routed details header [33m450[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/RewardCatalogScopeFields.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 387[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/services/__tests__/curriculumErrors.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/admissions/interviews/services/__tests__/interviewsApiService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/hooks/__tests__/useNedaaAcademicStructure.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 257[2mms[22m[39m
+ [32m✓[39m src/features/behavior/shared/components/__tests__/BehaviorActionModals.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 750[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorActionModals[2m > [22mkeeps identity fields editable and offers critical severity [33m354[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorActionModals[2m > [22mallows a category-less draft to be edited [33m394[2mms[22m[39m
+ [32m✓[39m src/__tests__/proxy.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 140[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/pages/__tests__/lessonPlansPageState.test.ts [2m([22m[2m21 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/admissions/enrollment/api/__tests__/enrollmentApi.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/SetupGuideCard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 431[2mms[22m[39m
+   [33m[2m✓[22m[39m SetupGuideCard[2m > [22mrenders for incomplete setup and can be dismissed for the current session [33m422[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/GuardiansTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 2334[2mms[22m[39m
+   [33m[2m✓[22m[39m GuardiansTab[2m > [22medits whether an existing guardian link is primary [33m1120[2mms[22m[39m
+   [33m[2m✓[22m[39m GuardiansTab[2m > [22mshows unlink failures in an error toast [33m1209[2mms[22m[39m
+ [32m✓[39m src/features/teachers/types/__tests__/contractFixtures.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/utils/__tests__/registrationValidation.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/services/__tests__/teacherAllocationErrors.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/hooks/__tests__/useApplicationRegistration.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 143[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/RewardCatalogImageField.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 713[2mms[22m[39m
+   [33m[2m✓[22m[39m RewardCatalogImageField[2m > [22muploads an accepted image and reports the returned file ID [33m343[2mms[22m[39m
+ [32m✓[39m src/features/auth/components/__tests__/ChangePasswordForm.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 3323[2mms[22m[39m
+   [33m[2m✓[22m[39m ChangePasswordForm Sprint 11 behavior[2m > [22mvalidates matching passwords before calling the change-password service [33m1514[2mms[22m[39m
+   [33m[2m✓[22m[39m ChangePasswordForm Sprint 11 behavior[2m > [22mcalls /auth/change-password through auth state and returns to dashboard [33m1807[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/NotificationFilters.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 965[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationFilters[2m > [22mrenders with early leave option and allows selecting it [33m963[2mms[22m[39m
+ [32m✓[39m src/features/admissions/enrollment/components/__tests__/EnrollmentPlacementDialog.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 465[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/excuseTimetableScope.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/guardians/pages/__tests__/GuardianProfilePage.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 713[2mms[22m[39m
+   [33m[2m✓[22m[39m GuardianProfilePage[2m > [22mopens edit modal and saves guardian updates [33m711[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/medical/services/__tests__/medicalProfileApiService.test.ts [2m([22m[2m10 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/templates/components/__tests__/TemplateEditor.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 922[2mms[22m[39m
+   [33m[2m✓[22m[39m TemplateEditor[2m > [22mswitches between HTML and plain text without rendering both editors [33m711[2mms[22m[39m
+ [32m✓[39m src/__tests__/next-config-security.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/XpPolicyForm.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 714[2mms[22m[39m
+   [33m[2m✓[22m[39m XpPolicyForm[2m > [22mprefills edit data and submits the full policy payload [33m712[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/components/__tests__/EditSlotDialog.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 373[2mms[22m[39m
+ [32m✓[39m src/features/academics/academic-structure-tree/services/__tests__/structureService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/academics/calendar/components/__tests__/EventDialog.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1048[2mms[22m[39m
+   [33m[2m✓[22m[39m EventDialog[2m > [22mRead-only disables create/update/delete [33m474[2mms[22m[39m
+ [32m✓[39m src/features/communication/components/__tests__/CommunicationAccessGuard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[90m 101[2mms[22m[39m
+ [32m✓[39m src/features/grades/rules/pages/__tests__/GradesRulesListPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1102[2mms[22m[39m
+   [33m[2m✓[22m[39m GradesRulesListPage[2m > [22mshows backend rules in the shared table and opens the selected editor with year and term context [33m413[2mms[22m[39m
+   [33m[2m✓[22m[39m GradesRulesListPage[2m > [22mreloads the table with the selected backend scope filters [33m687[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/templates/services/__tests__/emailTemplatesService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/dashboardAnnouncementDraft.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/autoPlanReadiness.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/academics/calendar/services/__tests__/calendarService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/admissions/tests/services/__tests__/testsApiService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/utils/__tests__/credentialDeliveryPayloads.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+ [32m✓[39m src/features/settings/roles/__tests__/rolePermissionsContract.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/CreateLessonPlanDialog.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2079[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateLessonPlanDialog[2m > [22mrenders backend weeks and disables a week with a non-archived plan [33m410[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateLessonPlanDialog[2m > [22msubmits the selected backend week with trimmed fields [33m1590[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/modals/__tests__/AddGuardianModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 771[2mms[22m[39m
+   [33m[2m✓[22m[39m AddGuardianModal[2m > [22msubmits selected student links with guardian data [33m768[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/services/__tests__/emailCampaignsService.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/academics/hooks/__tests__/useGuardedAcademicContextChange.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 49[2mms[22m[39m
+ [32m✓[39m src/config/__tests__/navigation.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/admissions/leads/components/__tests__/LeadDetails.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 449[2mms[22m[39m
+   [33m[2m✓[22m[39m LeadDetails[2m > [22mkeeps lead actions accessible and hides internal lead IDs [33m329[2mms[22m[39m
+ [32m✓[39m src/features/teachers/services/__tests__/teacherApi.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/api/__tests__/applicationDocumentsApi.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/LessonPlansMissingDataCta.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 572[2mms[22m[39m
+ [32m✓[39m src/features/settings/users/components/__tests__/UserProvisioningModal.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 660[2mms[22m[39m
+   [33m[2m✓[22m[39m UserProvisioningModal[2m > [22mgenerates and reveals a temporary password after the user is saved [33m533[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/utils/__tests__/campaignPayloads.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/guardians/components/__tests__/GuardianAccountLinkModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1272[2mms[22m[39m
+   [33m[2m✓[22m[39m GuardianAccountLinkModal[2m > [22msubmits backend link mode with the selected existing user id [33m1270[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/__tests__/StudentAccountLinkModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1402[2mms[22m[39m
+   [33m[2m✓[22m[39m StudentAccountLinkModal[2m > [22msubmits backend link mode with the selected existing user id [33m1398[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationMessageTextBehavior.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 380[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/RoomsSetupStep.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 472[2mms[22m[39m
+   [33m[2m✓[22m[39m RoomsSetupStep[2m > [22mpasses the RoomDialog payload to createRoom and refreshes rooms [33m453[2mms[22m[39m
+ [32m✓[39m src/features/admissions/workflow-policy/pages/__tests__/AdmissionsWorkflowPolicyPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 804[2mms[22m[39m
+   [33m[2m✓[22m[39m AdmissionsWorkflowPolicyPage[2m > [22mloads and saves the workflow policy [33m619[2mms[22m[39m
+ [32m✓[39m src/app/api/files/[fileId]/download/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 49[2mms[22m[39m
+ [32m✓[39m src/features/admissions/decisions/components/__tests__/DecisionDetailsDrawer.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 514[2mms[22m[39m
+ [32m✓[39m src/features/behavior/services/__tests__/behaviorErrors.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/NotificationDeliveryDetailsDrawer.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 742[2mms[22m[39m
+   [33m[2m✓[22m[39m NotificationDeliveryDetailsDrawer[2m > [22mshows only the 14 delivery response fields [33m740[2mms[22m[39m
+ [32m✓[39m src/features/grades/gradebook/utils/__tests__/gradebookMappers.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/grades/submissions/utils/__tests__/submissionContract.test.ts [2m([22m[2m14 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/guardians/pages/__tests__/GuardiansList.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 403[2mms[22m[39m
+   [33m[2m✓[22m[39m GuardiansList[2m > [22mshows the table loading state on the first frame while guardians are pending [33m401[2mms[22m[39m
+ [32m✓[39m src/features/settings/services/__tests__/settingsRolesService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/pages/__tests__/CredentialDeliveriesRoles.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1445[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialDeliveriesPage role recovery[2m > [22mkeeps other audiences usable and retries a failed role request [33m1443[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/enrollmentTranslations.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/admissions/decisions/services/__tests__/decisionsApiService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/LessonPlanValidationPanel.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 373[2mms[22m[39m
+   [33m[2m✓[22m[39m lesson plan validation panel[2m > [22mlocalizes exact backend issue codes and preserves unknown messages [33m371[2mms[22m[39m
+ [32m✓[39m src/features/app-download/components/__tests__/AppDownloadScreen.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 406[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useMessageReactions.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 122[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/CurriculumActionsMenu.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 2429[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumActionsMenu[2m > [22mshows all curriculum actions and invokes the selected action [33m1817[2mms[22m[39m
+   [33m[2m✓[22m[39m CurriculumActionsMenu[2m > [22mpreserves disabled action states [33m607[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/useConversationParticipants.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 1213[2mms[22m[39m
+   [33m[2m✓[22m[39m useConversationParticipants[2m > [22msorts participants by user.displayName [33m1181[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/__tests__/DashboardPermissionGuard.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 269[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/ReinforcementAcademicContextFilter.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/components/__tests__/HeroJourneyBadgeThumb.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 339[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/connection/components/__tests__/EmailConnectionStatusCard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 524[2mms[22m[39m
+ [32m✓[39m src/features/academics/calendar/services/__tests__/calendarApiAdapter.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 112[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/Avatar.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 254[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/services/__tests__/studentsApiAdapter.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 95[2mms[22m[39m
+ [32m✓[39m src/features/academics/subjects/services/__tests__/subjectAllocationErrors.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/components/__tests__/CreateCurriculumDialog.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1687[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateCurriculumDialog[2m > [22mshows backend field errors inline and unmatched errors at form level [33m1684[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/pages/__tests__/curriculumFilterState.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 29[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/lessonPlanDates.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/lessonPlansMissingData.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 52[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/api/__tests__/applicationRegistrationApi.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 76[2mms[22m[39m
+ [32m✓[39m src/app/[lang]/(dashboard)/students-guardians/__tests__/layout.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 486[2mms[22m[39m
+   [33m[2m✓[22m[39m StudentsGuardiansLayout[2m > [22mhides term selection on the year-scoped route /en/students-guardians [33m369[2mms[22m[39m
+ [32m✓[39m src/features/communication/components/selectors/__tests__/UserMultiSearchSelect.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 485[2mms[22m[39m
+   [33m[2m✓[22m[39m UserMultiSearchSelect[2m > [22mshows the users-endpoint label for a preselected user ID [33m414[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/profile-correction-requests/services/__tests__/profileCorrectionRequestsApiService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetablePeriodValidation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/features/teachers/components/__tests__/TeacherListTable.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1733[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherListTable[2m > [22mrenders the contract columns and navigates from a row [33m526[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherListTable[2m > [22mkeeps row actions separate from row navigation [33m696[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherListTable[2m > [22moffers safe disable action when permitted [33m504[2mms[22m[39m
+ [32m✓[39m src/components/ui/button/__tests__/Button.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 384[2mms[22m[39m
+ [32m✓[39m src/features/attendance/late-early/components/__tests__/LateEarlyFiltersBar.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 118[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/hooks/__tests__/useReinforcementUrlFilters.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 112[2mms[22m[39m
+ [32m✓[39m src/features/grades/shared/utils/__tests__/assessmentWorkflow.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 61[2mms[22m[39m
+ [32m✓[39m src/features/settings/credentials/components/__tests__/CredentialStatusTable.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 356[2mms[22m[39m
+   [33m[2m✓[22m[39m CredentialStatusTable[2m > [22mrenders credential-specific labels for every backend status [33m353[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/XpPolicyComponents.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[90m 95[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/guardians/services/__tests__/guardiansApiService.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/api/__tests__/applicationsApi.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/lessonPlanBoardActions.test.ts [2m([22m[2m13 tests[22m[2m)[22m[90m 43[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/onboardingTranslations.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/components/__tests__/FilterBar.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 361[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher allocation FilterBar[2m > [22memits only the grade change when selecting a grade [33m359[2mms[22m[39m
+ [32m✓[39m src/features/communication/utils/communication-metadata.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 66[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/lessonPlansPresentation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/ReinforcementLayout.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 76[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/studentProfileTranslations.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/lib/__tests__/api-error.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/features/teachers/components/__tests__/TeacherFilterBar.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1077[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherFilterBar[2m > [22memits search and exact contract enum values [33m743[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherFilterBar[2m > [22mdelegates clearing all filters [33m331[2mms[22m[39m
+ [32m✓[39m src/features/admissions/workflow-policy/components/__tests__/WorkflowPolicyForm.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1452[2mms[22m[39m
+   [33m[2m✓[22m[39m WorkflowPolicyForm[2m > [22msubmits changed fields only and can reset the draft [33m1067[2mms[22m[39m
+ [32m✓[39m src/features/attendance/shared/components/__tests__/AttendancePermissionGuard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 192[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/hooks/usePresence.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 52[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/deliveries/components/__tests__/DeliveryRecipientTable.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 324[2mms[22m[39m
+   [33m[2m✓[22m[39m DeliveryRecipientTable[2m > [22mshows backend recipient lifecycle fields [33m321[2mms[22m[39m
+ [32m✓[39m src/features/teachers/components/__tests__/TeacherLifecycleDialogs.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 970[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher lifecycle dialogs[2m > [22mblocks activation until profile and credentials are ready [33m481[2mms[22m[39m
+   [33m[2m✓[22m[39m teacher lifecycle dialogs[2m > [22msubmits a legal transition and omits optional effectiveAt by default [33m435[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/shared/components/__tests__/StudentsGuardiansPermissionGuard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 86[2mms[22m[39m
+ [32m✓[39m src/components/ui/google-location-picker/__tests__/locationModel.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/shared/__tests__/recipientPreview.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/services/__tests__/excuseApprovalEligibility.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m src/features/settings/credentials/components/__tests__/TemporaryPasswordRevealModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 352[2mms[22m[39m
+   [33m[2m✓[22m[39m TemporaryPasswordRevealModal Sprint 11 behavior[2m > [22mdoes not persist temporary passwords and removes them from UI on close [33m349[2mms[22m[39m
+ [32m✓[39m src/features/support/api/schoolSupport.service.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/excusePolicyState.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationTabs.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 232[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/NotificationToast.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 222[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/utils/__tests__/assessmentValidation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/services/__tests__/applicationDocumentsApiService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/services/__tests__/filesService.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/features/admissions/shared/components/__tests__/AdmissionsAccessGuard.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 80[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/__tests__/accountLinkingEndpointContracts.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/academics/components/__tests__/AcademicsPermissionGuard.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 93[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/hooks/__tests__/useHeroJourneyMissionSearch.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 52[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/__tests__/reinforcementTaskPresentation.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/components/__tests__/ExcuseDetailsDrawer.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 348[2mms[22m[39m
+   [33m[2m✓[22m[39m ExcuseDetailsDrawer[2m > [22mallows editing a pending request without backend scope fields [33m346[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/utils/__tests__/nedaaFilters.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/features/communication/components/announcements/__tests__/AnnouncementList.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 285[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/registration/utils/__tests__/registrationResultMapper.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/utils/render-helpers.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/app/__tests__/localeProviderBoundary.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 137[2mms[22m[39m
+ [32m✓[39m src/features/attendance/absences/components/__tests__/EarlyLeaveEditorModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 93[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useResizablePanels.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 47[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/InvitesPanel.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 129[2mms[22m[39m
+ [32m✓[39m src/features/attendance/shared/utils/__tests__/dateRange.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/academics/calendar/components/__tests__/CalendarToolbar.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 582[2mms[22m[39m
+   [33m[2m✓[22m[39m CalendarToolbar[2m > [22mallows navigating to any selected date [33m580[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/services/__tests__/heroJourneyDashboardService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/teachers/components/__tests__/RehireTeacherDialog.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 4978[2mms[22m[39m
+   [33m[2m✓[22m[39m RehireTeacherDialog[2m > [22msubmits the archived ID and complete profile without identity or lifecycle fields [33m4974[2mms[22m[39m
+ [32m✓[39m src/features/admissions/workflow-policy/api/__tests__/workflowPolicyApi.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetablePublishFingerprint.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m src/features/attendance/absences/components/__tests__/AbsencesFiltersBar.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 630[2mms[22m[39m
+   [33m[2m✓[22m[39m AbsencesFiltersBar[2m > [22mdoes not restore stale descendant IDs after changing scope type [33m626[2mms[22m[39m
+ [32m✓[39m src/app/[lang]/(onboarding)/__tests__/layout.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 165[2mms[22m[39m
+ [32m✓[39m src/features/onboarding/__tests__/SetupStatusProvider.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 65[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/hooks/__tests__/useLessonPlansFilters.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/utils/linkPreview.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/features/academics/teacher-allocation/components/__tests__/TeacherSelect.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 682[2mms[22m[39m
+   [33m[2m✓[22m[39m TeacherSelect[2m > [22mloads active teachers lazily after the dropdown opens [33m680[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/JoinRequestsPanel.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 149[2mms[22m[39m
+ [32m✓[39m src/features/academics/components/shared/__tests__/AcademicModuleEmptyState.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 258[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/hooks/__tests__/useAdmissionsGradeLabels.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 102[2mms[22m[39m
+ [32m✓[39m src/features/auth/components/__tests__/AuthReadyGate.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 71[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/credential-deliveries/services/__tests__/credentialDeliveryService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/teachers/components/__tests__/TeacherStatusIndicators.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 337[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/excuseScopeReadiness.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/features/grades/assessments/utils/__tests__/assessmentContract.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/components/ui/file-preview-modal/FilePreviewModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 154[2mms[22m[39m
+ [32m✓[39m src/features/app-download/components/__tests__/AppDownloadGate.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 204[2mms[22m[39m
+ [32m✓[39m src/features/grades/assessments/utils/__tests__/assessmentScopeHierarchy.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/components/ui/language-switcher/__tests__/LanguageSwitcher.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 361[2mms[22m[39m
+   [33m[2m✓[22m[39m LanguageSwitcher[2m > [22mpreserves query params when switching locale [33m358[2mms[22m[39m
+ [32m✓[39m src/features/academics/academic-structure-tree/utils/__tests__/classroomNameValidation.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/services/__tests__/heroJourneyProgressService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/behavior/shared/components/__tests__/BehaviorAccessGuard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 146[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/tabs/__tests__/NotesTab.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 226[2mms[22m[39m
+ [32m✓[39m src/features/hero-journey/services/__tests__/heroJourneyRewardsService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/features/admissions/shared/__tests__/StatusBadge.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 147[2mms[22m[39m
+ [32m✓[39m src/components/ui/input/__tests__/Input.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 327[2mms[22m[39m
+   [33m[2m✓[22m[39m Input[2m > [22mallows interactive right icons to receive clicks [33m321[2mms[22m[39m
+ [32m✓[39m src/features/admissions/enrollment/model/__tests__/enrollmentPlacement.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/features/settings/login-identity/components/__tests__/ReservedUsernamesInput.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 879[2mms[22m[39m
+   [33m[2m✓[22m[39m ReservedUsernamesInput[2m > [22mnormalizes and deduplicates reserved usernames [33m876[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/lessonPlansService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/components/__tests__/LessonPlansPageHeader.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 420[2mms[22m[39m
+   [33m[2m✓[22m[39m LessonPlansPageHeader[2m > [22mopens create plan from the standalone writable action [33m362[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/ReinforcementTaskTargetSelector.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/components/ui/dropdown/__tests__/DropdownMenu.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 350[2mms[22m[39m
+   [33m[2m✓[22m[39m DropdownMenu[2m > [22mrenders the open menu outside the component container [33m347[2mms[22m[39m
+ [32m✓[39m src/features/grades/submissions/utils/__tests__/submissionStatus.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/templates/components/__tests__/TemplateKeyTabs.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 353[2mms[22m[39m
+   [33m[2m✓[22m[39m TemplateKeyTabs[2m > [22mlocks template switching while an operation is pending [33m350[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/model/__tests__/workflow.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/settings/components/__tests__/RoleEditorModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 504[2mms[22m[39m
+   [33m[2m✓[22m[39m RoleEditorModal[2m > [22mkeeps typed values when the parent updates field state [33m502[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/components/__tests__/ReinforcementAccessGuard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 97[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/utils/participant-role-transitions.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/providers/__tests__/ScopePermissionDeniedProvider.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 396[2mms[22m[39m
+   [33m[2m✓[22m[39m ScopePermissionDeniedProvider[2m > [22mopens a localized permission modal after a missing-scope response [33m367[2mms[22m[39m
+ [32m✓[39m src/features/support/pages/SupportHomePage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 250[2mms[22m[39m
+ [32m✓[39m src/features/settings/login-identity/components/__tests__/UsernamePreviewCard.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 121[2mms[22m[39m
+ [32m✓[39m src/app/[lang]/(onboarding)/__tests__/routes.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 214[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/uploadExcuseAttachments.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 43[2mms[22m[39m
+ [32m✓[39m src/features/nedaa/components/__tests__/NedaaAccessGuard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 109[2mms[22m[39m
+ [32m✓[39m src/features/attendance/shared/components/__tests__/AttendanceBottomDrawer.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 140[2mms[22m[39m
+ [32m✓[39m src/features/app-download/utils/__tests__/appDownloadAudience.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+ [32m✓[39m src/components/ui/file-upload/__tests__/FileUploadButton.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 550[2mms[22m[39m
+   [33m[2m✓[22m[39m FileUploadButton[2m > [22muses the caller size error formatter [33m548[2mms[22m[39m
+ [32m✓[39m src/features/grades/shared/components/__tests__/GradesAccessGuard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 155[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/excusePresentation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 119[2mms[22m[39m
+ [32m✓[39m src/utils/validation/__tests__/passwordPolicy.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/modals/__tests__/DocumentViewerModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 127[2mms[22m[39m
+ [32m✓[39m src/features/settings/services/__tests__/settingsUsersService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 24[2mms[22m[39m
+ [32m✓[39m src/features/grades/assessments/utils/__tests__/distributeQuestionPoints.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 52[2mms[22m[39m
+ [32m✓[39m src/features/academics/timetable/services/__tests__/timetableTimeFormat.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 62[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/campaigns/components/__tests__/CampaignMessages.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 355[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/__tests__/applicantPortalEndpointOwnership.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 148[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/services/__tests__/homeworkFilesService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/components/ui/panel/__tests__/PanelResizeHandle.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 174[2mms[22m[39m
+ [32m✓[39m src/features/auth/__tests__/authEndpointContracts.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/academics/curriculum/pages/__tests__/curriculumConfirmation.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/dashboard/utils/resolveDashboardActionTarget.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/components/i18n/__tests__/DocumentLocaleSync.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 72[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/components/ConversationRoutePage.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 87[2mms[22m[39m
+ [32m✓[39m src/messages/__tests__/admissionsWorkflowPolicyTranslations.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/components/__tests__/ExcuseModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 125[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/timetableConfigCache.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/features/settings/email/shared/__tests__/previewFingerprint.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 51[2mms[22m[39m
+ [32m✓[39m src/features/settings/shared/components/__tests__/SettingsWorkflowErrorAlert.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 217[2mms[22m[39m
+ [32m✓[39m src/app/[lang]/(dashboard)/nedaa/__tests__/layout.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 58[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/enrollments/services/__tests__/enrollmentsApiService.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/behavior/shared/components/__tests__/BehaviorFiltersBar.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 918[2mms[22m[39m
+   [33m[2m✓[22m[39m BehaviorFiltersBar[2m > [22moffers cancelled as a record status filter [33m915[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/__tests__/ApplicationCreateStepper.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/excuseAttachmentDiff.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/grades/rules/utils/__tests__/rulesRoute.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/utils/__tests__/rollCallContextKey.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/attendance/roll-call/utils/__tests__/localDate.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/features/attendance/absences/utils/__tests__/correctionPermissions.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/features/communication/__tests__/utils/formatters.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 57[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/registration/__tests__/registrationMessages.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 45[2mms[22m[39m
+ [32m✓[39m src/features/academics/lesson-plans/services/__tests__/lessonPlansErrors.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/utils/__tests__/applicationSourceLabel.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/features/admissions/applications/components/registration/__tests__/RegistrationFields.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/features/communication/utils/notification-filter-dates.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/features/reinforcement/utils/__tests__/reinforcementFileUrl.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/grades/shared/utils/__tests__/dateOnly.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/features/academics/homework/utils/homeworkLifecycle.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 39[2mms[22m[39m
+ [32m✓[39m src/components/ui/access-denied/AccessDenied.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 229[2mms[22m[39m
+ [32m✓[39m src/features/attendance/policies/utils/policyMode.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/attendance/policies/__tests__/policyScopes.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/excusePeriodSelection.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/usePermissions.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/features/attendance/excuses/utils/excusePeriodLoading.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 37[2mms[22m[39m
+ [32m✓[39m src/features/students-guardians/students/components/modals/__tests__/AddNoteModal.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 594[2mms[22m[39m
+   [33m[2m✓[22m[39m AddNoteModal[2m > [22msubmits note values from the backend contract [33m583[2mms[22m[39m
+ [32m✓[39m src/app/[lang]/(dashboard)/nedaa/operations/__tests__/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 49[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m469 passed[39m[22m[90m (469)[39m
+[2m      Tests [22m [1m[32m2290 passed[39m[22m[90m (2290)[39m
+[2m   Start at [22m 21:40:59
+[2m   Duration [22m 346.60s[2m (transform 115.32s, setup 478.15s, collect 1458.08s, tests 322.21s, environment 968.49s, prepare 164.67s)[22m
+

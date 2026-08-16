@@ -1,0 +1,63 @@
+@baseUrl = http://localhost:3000/api/v1
+@schoolToken = replace_with_school_admin_access_token
+@conversationId = replace_after_get_conversation
+@now = 2026-07-08T12:05:00.000Z
+
+### School: get or create support conversation
+GET {{baseUrl}}/school-support/conversation
+Authorization: Bearer {{schoolToken}}
+
+### School: list messages
+GET {{baseUrl}}/school-support/messages?page=1&limit=50
+Authorization: Bearer {{schoolToken}}
+
+### School: send message
+POST {{baseUrl}}/school-support/messages
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "body": "We need help configuring the school dashboard.",
+  "clientMessageId": "school-msg-001"
+}
+
+### School: retry same message idempotently
+POST {{baseUrl}}/school-support/messages
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "body": "We need help configuring the school dashboard.",
+  "clientMessageId": "school-msg-001"
+}
+
+### School: mark read
+POST {{baseUrl}}/school-support/read
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "readAt": "{{now}}"
+}
+
+### School negative: empty message should fail
+POST {{baseUrl}}/school-support/messages
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "body": "   "
+}
+
+### School negative: tenant override fields should be rejected by validation
+POST {{baseUrl}}/school-support/messages
+Authorization: Bearer {{schoolToken}}
+Content-Type: application/json
+
+{
+  "body": "This request incorrectly tries to override tenancy.",
+  "schoolId": "00000000-0000-0000-0000-000000000000",
+  "organizationId": "00000000-0000-0000-0000-000000000000",
+  "membershipId": "00000000-0000-0000-0000-000000000000",
+  "participantId": "00000000-0000-0000-0000-000000000000"
+}

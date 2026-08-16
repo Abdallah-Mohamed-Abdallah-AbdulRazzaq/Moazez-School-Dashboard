@@ -1,0 +1,7 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "",
+    "ANTHROPIC_BASE_URL": "https://example.invalid",
+    "ANTHROPIC_MODEL": "claude-model-name"
+  }
+}

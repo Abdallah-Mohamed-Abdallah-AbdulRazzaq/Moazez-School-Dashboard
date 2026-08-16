@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Animated 100 emoji">
+<style>
+  svg {
+    overflow: visible;
+  }
+  .part {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pop 3.2s cubic-bezier(.22,.61,.36,1) infinite both;
+  }
+  .fill {
+    fill: #f44336;
+    fill-rule: evenodd;
+    animation: reveal 3.2s linear infinite both;
+  }
+  .outline {
+    fill: none;
+    stroke: #f44336;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    pathLength: 100;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: draw 3.2s ease-out infinite both;
+  }
+  .part.underline1, .part.underline2 {
+    transform-origin: left center;
+  }
+  @keyframes pop {
+    0%, 6% { opacity: 0; transform: translateY(10px) scale(.94); }
+    12% { opacity: 1; transform: translateY(0) scale(1.03); }
+    18%, 82% { opacity: 1; transform: translateY(0) scale(1); }
+    90%, 100% { opacity: 0; transform: translateY(0) scale(1); }
+  }
+  @keyframes reveal {
+    0%, 8% { fill-opacity: 0; }
+    16%, 82% { fill-opacity: 1; }
+    90%, 100% { fill-opacity: 0; }
+  }
+  @keyframes draw {
+    0% { stroke-dashoffset: 100; opacity: 1; }
+    12% { stroke-dashoffset: 0; opacity: 1; }
+    82% { stroke-dashoffset: 0; opacity: .18; }
+    90%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  .one { animation-delay: 0.0s; }
+  .one .fill, .one .outline { animation-delay: 0.0s; }
+  .hundred { animation-delay: 0.18s; }
+  .hundred .fill, .hundred .outline { animation-delay: 0.18s; }
+  .underline1 { animation-delay: 0.78s; }
+  .underline1 .fill, .underline1 .outline { animation-delay: 0.78s; }
+  .underline2 { animation-delay: 0.98s; }
+  .underline2 .fill, .underline2 .outline { animation-delay: 0.98s; }
+</style>
+<g><g class="part one"><path class="fill" d="M 166 16 L 160 16 L 70 53 L 37 70 L 24 79 L 18 87 L 16 94 L 16 104 L 20 109 L 24 109 L 57 95 L 92 83 L 104 81 L 109 86 L 70 181 L 46 255 L 38 287 L 32 322 L 33 324 L 31 333 L 31 344 L 32 348 L 36 351 L 43 350 L 47 347 L 60 305 L 93 215 L 132 119 L 172 29 L 172 22 Z"/><path class="outline" d="M 166 16 L 160 16 L 70 53 L 37 70 L 24 79 L 18 87 L 16 94 L 16 104 L 20 109 L 24 109 L 57 95 L 92 83 L 104 81 L 109 86 L 70 181 L 46 255 L 38 287 L 32 322 L 33 324 L 31 333 L 31 344 L 32 348 L 36 351 L 43 350 L 47 347 L 60 305 L 93 215 L 132 119 L 172 29 L 172 22 Z"/></g><g class="part hundred"><path class="fill" d="M 470 49 L 458 39 L 440 33 L 439 34 L 429 32 L 407 32 L 381 35 L 379 34 L 350 39 L 349 38 L 303 49 L 284 56 L 262 68 L 256 76 L 256 84 L 258 89 L 264 95 L 271 96 L 273 98 L 277 125 L 277 137 L 275 147 L 276 150 L 269 184 L 262 204 L 254 221 L 238 245 L 220 262 L 213 266 L 202 268 L 199 267 L 190 258 L 185 247 L 181 232 L 182 231 L 179 215 L 179 195 L 184 162 L 190 141 L 201 116 L 218 90 L 245 64 L 254 48 L 256 42 L 256 35 L 253 33 L 245 33 L 233 36 L 220 42 L 210 49 L 190 69 L 176 89 L 169 102 L 153 142 L 145 177 L 146 178 L 143 196 L 143 215 L 146 232 L 145 233 L 154 264 L 166 284 L 176 294 L 184 299 L 198 303 L 209 303 L 222 300 L 235 294 L 247 286 L 261 273 L 277 252 L 291 226 L 300 203 L 307 177 L 307 171 L 310 160 L 309 158 L 311 152 L 310 149 L 312 139 L 312 121 L 306 83 L 310 79 L 315 77 L 367 67 L 370 69 L 371 72 L 359 89 L 347 112 L 337 139 L 331 163 L 327 195 L 327 215 L 333 251 L 338 265 L 348 282 L 356 291 L 370 300 L 382 303 L 393 303 L 411 298 L 429 287 L 444 273 L 465 244 L 481 209 L 486 194 L 493 162 L 492 161 L 495 144 L 495 119 L 492 97 L 484 71 Z M 435 68 L 440 70 L 448 78 L 453 87 L 457 99 L 461 127 L 459 145 L 460 147 L 457 166 L 445 204 L 428 236 L 409 258 L 397 266 L 387 268 L 379 264 L 373 257 L 367 242 L 364 229 L 365 228 L 363 221 L 363 186 L 367 163 L 379 128 L 387 112 L 399 94 L 418 75 L 426 70 Z"/><path class="outline" d="M 470 49 L 458 39 L 440 33 L 439 34 L 429 32 L 407 32 L 381 35 L 379 34 L 350 39 L 349 38 L 303 49 L 284 56 L 262 68 L 256 76 L 256 84 L 258 89 L 264 95 L 271 96 L 273 98 L 277 125 L 277 137 L 275 147 L 276 150 L 269 184 L 262 204 L 254 221 L 238 245 L 220 262 L 213 266 L 202 268 L 199 267 L 190 258 L 185 247 L 181 232 L 182 231 L 179 215 L 179 195 L 184 162 L 190 141 L 201 116 L 218 90 L 245 64 L 254 48 L 256 42 L 256 35 L 253 33 L 245 33 L 233 36 L 220 42 L 210 49 L 190 69 L 176 89 L 169 102 L 153 142 L 145 177 L 146 178 L 143 196 L 143 215 L 146 232 L 145 233 L 154 264 L 166 284 L 176 294 L 184 299 L 198 303 L 209 303 L 222 300 L 235 294 L 247 286 L 261 273 L 277 252 L 291 226 L 300 203 L 307 177 L 307 171 L 310 160 L 309 158 L 311 152 L 310 149 L 312 139 L 312 121 L 306 83 L 310 79 L 315 77 L 367 67 L 370 69 L 371 72 L 359 89 L 347 112 L 337 139 L 331 163 L 327 195 L 327 215 L 333 251 L 338 265 L 348 282 L 356 291 L 370 300 L 382 303 L 393 303 L 411 298 L 429 287 L 444 273 L 465 244 L 481 209 L 486 194 L 493 162 L 492 161 L 495 144 L 495 119 L 492 97 L 484 71 Z M 435 68 L 440 70 L 448 78 L 453 87 L 457 99 L 461 127 L 459 145 L 460 147 L 457 166 L 445 204 L 428 236 L 409 258 L 397 266 L 387 268 L 379 264 L 373 257 L 367 242 L 364 229 L 365 228 L 363 221 L 363 186 L 367 163 L 379 128 L 387 112 L 399 94 L 418 75 L 426 70 Z"/></g><g class="part underline1"><path class="fill" d="M 415 323 L 413 321 L 403 320 L 332 320 L 320 322 L 302 322 L 293 324 L 290 323 L 274 326 L 272 325 L 225 332 L 220 334 L 219 333 L 194 338 L 190 340 L 185 340 L 107 361 L 103 363 L 98 369 L 97 380 L 103 392 L 108 397 L 113 399 L 119 399 L 147 389 L 203 374 L 280 357 L 284 355 L 289 355 L 293 353 L 298 353 L 302 351 L 307 351 L 311 349 L 413 328 L 415 326 Z"/><path class="outline" d="M 415 323 L 413 321 L 403 320 L 332 320 L 320 322 L 302 322 L 293 324 L 290 323 L 274 326 L 272 325 L 225 332 L 220 334 L 219 333 L 194 338 L 190 340 L 185 340 L 107 361 L 103 363 L 98 369 L 97 380 L 103 392 L 108 397 L 113 399 L 119 399 L 147 389 L 203 374 L 280 357 L 284 355 L 289 355 L 293 353 L 298 353 L 302 351 L 307 351 L 311 349 L 413 328 L 415 326 Z"/></g><g class="part underline2"><path class="fill" d="M 495 368 L 490 365 L 469 367 L 464 366 L 443 369 L 441 368 L 434 370 L 432 369 L 425 371 L 424 370 L 417 372 L 416 371 L 410 373 L 408 372 L 329 385 L 225 406 L 221 408 L 171 418 L 167 420 L 145 424 L 137 427 L 128 428 L 120 431 L 26 453 L 18 459 L 16 464 L 16 472 L 23 490 L 31 495 L 38 495 L 74 480 L 155 455 L 337 408 L 492 373 L 495 371 Z"/><path class="outline" d="M 495 368 L 490 365 L 469 367 L 464 366 L 443 369 L 441 368 L 434 370 L 432 369 L 425 371 L 424 370 L 417 372 L 416 371 L 410 373 L 408 372 L 329 385 L 225 406 L 221 408 L 171 418 L 167 420 L 145 424 L 137 427 L 128 428 L 120 431 L 26 453 L 18 459 L 16 464 L 16 472 L 23 490 L 31 495 L 38 495 L 74 480 L 155 455 L 337 408 L 492 373 L 495 371 Z"/></g></g></svg>

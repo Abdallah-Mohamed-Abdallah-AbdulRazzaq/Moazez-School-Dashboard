@@ -1,0 +1,197 @@
+@baseUrl = http://localhost:3000/api/v1
+@dashboardToken = REPLACE_WITH_DASHBOARD_ADMIN_TOKEN
+@teacherToken = REPLACE_WITH_TEACHER_TOKEN
+@studentToken = REPLACE_WITH_STUDENT_TOKEN
+@parentToken = REPLACE_WITH_PARENT_TOKEN
+
+@taskId = REPLACE_WITH_TASK_ID
+@stageId = REPLACE_WITH_STAGE_ID
+@submissionId = REPLACE_WITH_SUBMISSION_ID
+@classId = REPLACE_WITH_TEACHER_SUBJECT_ALLOCATION_ID
+@studentId = REPLACE_WITH_CHILD_STUDENT_ID
+@missionId = REPLACE_WITH_MISSION_ID
+@objectiveId = REPLACE_WITH_OBJECTIVE_ID
+@rewardId = REPLACE_WITH_REWARD_ID
+@redemptionId = REPLACE_WITH_REDEMPTION_ID
+@proofFileId = REPLACE_WITH_STUDENT_UPLOADED_FILE_ID
+
+### Core Reinforcement - list tasks
+GET {{baseUrl}}/reinforcement/tasks
+Authorization: Bearer {{dashboardToken}}
+
+### Core Reinforcement - review queue
+GET {{baseUrl}}/reinforcement/review-queue
+Authorization: Bearer {{dashboardToken}}
+
+### Core XP - summary
+GET {{baseUrl}}/reinforcement/xp/summary
+Authorization: Bearer {{dashboardToken}}
+
+### Core Rewards - catalog
+GET {{baseUrl}}/reinforcement/rewards/catalog
+Authorization: Bearer {{dashboardToken}}
+
+### Core Hero - missions
+GET {{baseUrl}}/reinforcement/hero/missions
+Authorization: Bearer {{dashboardToken}}
+
+### Teacher Tasks - dashboard
+GET {{baseUrl}}/teacher/tasks/dashboard
+Authorization: Bearer {{teacherToken}}
+
+### Teacher Tasks - selectors
+GET {{baseUrl}}/teacher/tasks/selectors
+Authorization: Bearer {{teacherToken}}
+
+### Teacher Tasks - list
+GET {{baseUrl}}/teacher/tasks
+Authorization: Bearer {{teacherToken}}
+
+### Teacher Review Queue - list
+GET {{baseUrl}}/teacher/tasks/review-queue
+Authorization: Bearer {{teacherToken}}
+
+### Teacher Review Queue - detail
+GET {{baseUrl}}/teacher/tasks/review-queue/{{submissionId}}
+Authorization: Bearer {{teacherToken}}
+
+### Teacher XP - dashboard
+GET {{baseUrl}}/teacher/xp/dashboard
+Authorization: Bearer {{teacherToken}}
+
+### Teacher XP - class
+GET {{baseUrl}}/teacher/xp/classes/{{classId}}
+Authorization: Bearer {{teacherToken}}
+
+### Student Tasks - list
+GET {{baseUrl}}/student/tasks
+Authorization: Bearer {{studentToken}}
+
+### Student Tasks - summary
+GET {{baseUrl}}/student/tasks/summary
+Authorization: Bearer {{studentToken}}
+
+### Student Tasks - detail
+GET {{baseUrl}}/student/tasks/{{taskId}}
+Authorization: Bearer {{studentToken}}
+
+### Student Tasks - submit stage proof text
+POST {{baseUrl}}/student/tasks/{{taskId}}/stages/{{stageId}}/submit
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "proofText": "Completed the required reinforcement task stage."
+}
+
+### Student Tasks - submit stage proof file
+POST {{baseUrl}}/student/tasks/{{taskId}}/stages/{{stageId}}/submit
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "proofFileId": "{{proofFileId}}"
+}
+
+### Student Hero - overview
+GET {{baseUrl}}/student/hero
+Authorization: Bearer {{studentToken}}
+
+### Student Hero - missions
+GET {{baseUrl}}/student/hero/missions
+Authorization: Bearer {{studentToken}}
+
+### Student Hero - mission detail
+GET {{baseUrl}}/student/hero/missions/{{missionId}}
+Authorization: Bearer {{studentToken}}
+
+### Student Hero - start mission
+POST {{baseUrl}}/student/hero/missions/{{missionId}}/start
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{}
+
+### Student Hero - complete objective
+POST {{baseUrl}}/student/hero/missions/{{missionId}}/objectives/{{objectiveId}}/complete
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{}
+
+### Student Hero - complete mission
+POST {{baseUrl}}/student/hero/missions/{{missionId}}/complete
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{}
+
+### Student Rewards - list
+GET {{baseUrl}}/student/rewards
+Authorization: Bearer {{studentToken}}
+
+### Student Rewards - detail
+GET {{baseUrl}}/student/rewards/{{rewardId}}
+Authorization: Bearer {{studentToken}}
+
+### Student Rewards - redeem
+POST {{baseUrl}}/student/rewards/{{rewardId}}/redeem
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "note": "I would like to request this reward."
+}
+
+### Student Rewards - redemptions
+GET {{baseUrl}}/student/rewards/redemptions
+Authorization: Bearer {{studentToken}}
+
+### Parent Tasks - list child tasks
+GET {{baseUrl}}/parent/children/{{studentId}}/tasks
+Authorization: Bearer {{parentToken}}
+
+### Parent Tasks - child task detail
+GET {{baseUrl}}/parent/children/{{studentId}}/tasks/{{taskId}}
+Authorization: Bearer {{parentToken}}
+
+### Parent Tasks - child task submissions
+GET {{baseUrl}}/parent/children/{{studentId}}/tasks/{{taskId}}/submissions
+Authorization: Bearer {{parentToken}}
+
+### Parent Hero - overview
+GET {{baseUrl}}/parent/children/{{studentId}}/hero
+Authorization: Bearer {{parentToken}}
+
+### Parent Hero - missions
+GET {{baseUrl}}/parent/children/{{studentId}}/hero/missions
+Authorization: Bearer {{parentToken}}
+
+### Parent XP - progress route
+GET {{baseUrl}}/parent/children/{{studentId}}/progress/xp
+Authorization: Bearer {{parentToken}}
+
+### Parent Rewards - list
+GET {{baseUrl}}/parent/children/{{studentId}}/rewards
+Authorization: Bearer {{parentToken}}
+
+### Parent Rewards - redemptions
+GET {{baseUrl}}/parent/children/{{studentId}}/rewards/redemptions
+Authorization: Bearer {{parentToken}}
+
+### Negative - parent reward redeem route should not exist
+POST {{baseUrl}}/parent/children/{{studentId}}/rewards/{{rewardId}}/redeem
+Authorization: Bearer {{parentToken}}
+Content-Type: application/json
+
+{}
+
+### Negative - teacher manual XP grant route is deferred and should not be used
+POST {{baseUrl}}/teacher/xp/students/{{studentId}}/grants/manual
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "amount": 10,
+  "reason": "bonus"
+}
