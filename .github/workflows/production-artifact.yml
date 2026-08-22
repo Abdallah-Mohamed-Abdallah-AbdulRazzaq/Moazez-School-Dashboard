@@ -211,8 +211,19 @@ jobs:
           for argument in expected_arguments:
               require(build_arguments.count(argument) == 2, "Required build argument count mismatch.")
 
-          validate_start = text.index("  validate-source:")
-          publish_start = text.index("  publish-production-artifact:")
+          validate_header = re.search(r"(?m)^  validate-source:\s*$", text)
+          publish_header = re.search(r"(?m)^  publish-production-artifact:\s*$", text)
+          require(validate_header is not None, "Missing validate-source job.")
+          require(
+              publish_header is not None,
+              "Missing publish-production-artifact job.",
+          )
+          require(
+              validate_header.start() < publish_header.start(),
+              "Workflow job ordering is invalid.",
+          )
+          validate_start = validate_header.start()
+          publish_start = publish_header.start()
           validate_job = text[validate_start:publish_start]
           publish_job = text[publish_start:]
           validate_arguments = re.findall(
