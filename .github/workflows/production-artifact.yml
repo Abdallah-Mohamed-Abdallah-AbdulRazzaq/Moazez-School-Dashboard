@@ -1,0 +1,450 @@
+name: Production Artifact
+
+on:
+  push:
+    paths:
+      - .github/workflows/production-artifact.yml
+      - Dockerfile
+      - .dockerignore
+      - .env.example
+      - package.json
+      - package-lock.json
+      - scripts/setup-fonts.js
+      - next.config.ts
+  workflow_dispatch:
+    inputs:
+      expected_source_sha:
+        description: Exact 40-character merged main SHA authorized by DevOps.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  ARTIFACT_REGISTRY_HOST: me-central2-docker.pkg.dev
+  ARTIFACT_PACKAGE: me-central2-docker.pkg.dev/moazez-production/moazez-production-containers/moazez-school-dashboard
+  PRODUCTION_API_URL: https://api.moazez.cloud
+  PRODUCTION_REALTIME_URL: https://api.moazez.cloud/api/v1/realtime
+  PRODUCTION_REALTIME_SOCKET_PATH: /socket.io
+
+jobs:
+  validate-source:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact pushed source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact pushed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$GITHUB_SHA" ]]; then
+            echo "Checked-out HEAD does not match GITHUB_SHA." >&2
+            exit 1
+          fi
+
+      - name: Validate Production workflow contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          workflow_path = Path(".github/workflows/production-artifact.yml")
+          text = workflow_path.read_text(encoding="utf-8")
+
+          def require(condition: bool, message: str) -> None:
+              if not condition:
+                  raise SystemExit(message)
+
+          checkout_sha = "3d3c42e5aac5ba805825da76410c181273ba90b1"
+          auth_sha = "7c6bc770dae815cd3e89ee6cdf493a5fab2cc093"
+          checkout_ref = "actions/check" + "out@" + checkout_sha
+          auth_ref = "google-github-actions/" + "auth@" + auth_sha
+          provider = (
+              "projects/91001421934/locations/global/workloadIdentityPools/"
+              "moazez-github-production/providers/moazez-school-dashboard-main"
+          )
+          service_account = (
+              "moazez-ui-artifact-builder" + "@moazez-production.iam.gserviceaccount.com"
+          )
+          project_id = "moazez-production"
+          artifact_package = (
+              "me-central2-docker.pkg.dev/moazez-production/"
+              "moazez-production-containers/moazez-school-dashboard"
+          )
+          api_url = "https://api." + "moazez.cloud"
+          realtime_url = api_url + "/api/v1/realtime"
+          socket_path = "/socket" + ".io"
+
+          require(text.count("uses: " + checkout_ref) == 2, "Unexpected checkout action references.")
+          require(
+              not re.search(r"uses:\s*actions/checkout@(?!" + re.escape(checkout_sha) + r")", text),
+              "Unapproved checkout action reference.",
+          )
+          require(text.count("uses: " + auth_ref) == 1, "Unexpected Google auth action reference.")
+          require(
+              not re.search(
+                  r"uses:\s*google-github-actions/auth@(?!" + re.escape(auth_sha) + r")",
+                  text,
+              ),
+              "Unapproved Google auth action reference.",
+          )
+
+          required_fragments = [
+              "workload_identity_provider: " + provider,
+              "service_account: " + service_account,
+              "project_id: " + project_id,
+              "ARTIFACT_PACKAGE: " + artifact_package,
+              "PRODUCTION_API_URL: " + api_url,
+              "PRODUCTION_REALTIME_URL: " + realtime_url,
+              "PRODUCTION_REALTIME_SOCKET_PATH: " + socket_path,
+              "token_" + "format: access_token",
+              "create_" + "credentials_file: false",
+              "export_" + "environment_variables: false",
+          ]
+          for fragment in required_fragments:
+              require(fragment in text, "Missing required Production contract value.")
+
+          dispatch_match = re.search(
+              r"(?ms)^  workflow_dispatch:\s*\n(?P<body>.*?)(?=^\S)", text
+          )
+          require(dispatch_match is not None, "Missing workflow_dispatch trigger.")
+          dispatch_body = dispatch_match.group("body")
+          input_names = re.findall(r"(?m)^      ([a-zA-Z0-9_-]+):\s*$", dispatch_body)
+          require(input_names == ["expected_source_sha"], "Unexpected workflow_dispatch inputs.")
+          require(
+              re.search(
+                  r"(?ms)^      expected_source_sha:\s*\n"
+                  r"        description: Exact 40-character merged main SHA authorized by DevOps\.\s*\n"
+                  r"        required: true\s*\n"
+                  r"        type: string\s*$",
+                  dispatch_body,
+              )
+              is not None,
+              "expected_source_sha must be a required string input.",
+          )
+
+          forbidden_patterns = [
+              "credentials" + "_json",
+              "GOOGLE_" + "APPLICATION_CREDENTIALS",
+              "gha-" + "creds-",
+              "gcloud auth " + "activate-service-account",
+              "gcloud iam service-accounts keys " + "create",
+              "google-github-actions/" + "deploy-cloudrun",
+              "gcloud run " + "deploy",
+              "terraform " + "init",
+              "terraform " + "plan",
+              "terraform " + "apply",
+              "terraform " + "destroy",
+              "gcloud " + "dns",
+              "dns " + "record-sets",
+              "contents" + ": write",
+              "packages" + ": write",
+              "actions" + ": write",
+              "deployments" + ": write",
+          ]
+          lower_text = text.lower()
+          for pattern in forbidden_patterns:
+              require(pattern.lower() not in lower_text, "Forbidden operational or security pattern detected.")
+
+          public_prefix = "NEXT_" + "PUBLIC_"
+          forbidden_public_names = [
+              public_prefix + "REALTIME_DEBUG",
+              public_prefix + "GOOGLE_MAPS_API_KEY",
+              public_prefix + "GOOGLE_MAPS_MAP_ID",
+              public_prefix + "DEFAULT_SCHOOL_ID",
+          ]
+          for variable_name in forbidden_public_names:
+              require(variable_name not in text, "Forbidden optional public value detected.")
+          require(
+              public_prefix + "MOBILE_APP_" not in text,
+              "Forbidden mobile-app public value detected.",
+          )
+
+          build_arguments = re.findall(r"--build-arg\s+(NEXT_PUBLIC_[A-Z0-9_]+)=", text)
+          expected_arguments = {
+              public_prefix + "API_URL",
+              public_prefix + "REALTIME_URL",
+              public_prefix + "REALTIME_SOCKET_PATH",
+          }
+          require(len(build_arguments) == 6, "Unexpected number of public Docker build arguments.")
+          require(set(build_arguments) == expected_arguments, "Unexpected public Docker build argument.")
+          for argument in expected_arguments:
+              require(build_arguments.count(argument) == 2, "Required build argument count mismatch.")
+
+          validate_start = text.index("  validate-source:")
+          publish_start = text.index("  publish-production-artifact:")
+          validate_job = text[validate_start:publish_start]
+          publish_job = text[publish_start:]
+          oidc_permission = "id-" + "token:"
+          require(oidc_permission not in validate_job, "Push validation job must not receive an OIDC token.")
+          require(auth_ref not in validate_job, "Push validation job must not authenticate to Google Cloud.")
+          require("docker " + "login" not in validate_job, "Push validation job must not log in to a registry.")
+          require("docker " + "push" not in validate_job, "Push validation job must not push an image.")
+          require("if: github.event_name == 'workflow_dispatch'" in publish_job, "Publishing job is not manual-only.")
+          require(oidc_permission + " write" in publish_job, "Publishing job lacks OIDC permission.")
+          require(
+              publish_job.index("Enforce fail-closed exact-source guards")
+              < publish_job.index("uses: " + auth_ref),
+              "Exact-source guards must execute before Google authentication.",
+          )
+          require(
+              len(re.findall(r"(?m)^\s*docker push ", text)) == 1,
+              "Production workflow must have exactly one Docker push path.",
+          )
+          PY
+
+      - name: Build ephemeral local Production image
+        shell: bash
+        run: |
+          set -euo pipefail
+          validation_image="school-dashboard-validation:${GITHUB_SHA}"
+          docker build \
+            --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_API_URL="${PRODUCTION_API_URL}" \
+            --build-arg NEXT_PUBLIC_REALTIME_URL="${PRODUCTION_REALTIME_URL}" \
+            --build-arg NEXT_PUBLIC_REALTIME_SOCKET_PATH="${PRODUCTION_REALTIME_SOCKET_PATH}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --tag "$validation_image" \
+            .
+
+      - name: Verify ephemeral local Production image
+        shell: bash
+        run: |
+          set -euo pipefail
+          validation_image="school-dashboard-validation:${GITHUB_SHA}"
+          actual_revision="$(
+            docker image inspect "$validation_image" \
+              --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
+          )"
+          if [[ "$actual_revision" != "$GITHUB_SHA" ]]; then
+            echo "Local image OCI revision does not match GITHUB_SHA." >&2
+            exit 1
+          fi
+
+          image_environment="$(
+            docker image inspect "$validation_image" \
+              --format '{{ range .Config.Env }}{{ println . }}{{ end }}'
+          )"
+          for required_value in \
+            "NEXT_PUBLIC_API_URL=${PRODUCTION_API_URL}" \
+            "NEXT_PUBLIC_REALTIME_URL=${PRODUCTION_REALTIME_URL}" \
+            "NEXT_PUBLIC_REALTIME_SOCKET_PATH=${PRODUCTION_REALTIME_SOCKET_PATH}"
+          do
+            if [[ "$(grep -Fxc -- "$required_value" <<<"$image_environment")" -ne 1 ]]; then
+              echo "Required runtime environment value is missing or duplicated." >&2
+              exit 1
+            fi
+          done
+
+  publish-production-artifact:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: production-artifact-${{ github.repository_id }}-${{ github.event.inputs.expected_source_sha }}
+      cancel-in-progress: false
+    outputs:
+      source_sha: ${{ steps.publish-result.outputs.source_sha }}
+      image_tag: ${{ steps.publish-result.outputs.image_tag }}
+      image_digest: ${{ steps.publish-result.outputs.image_digest }}
+      immutable_ref: ${{ steps.publish-result.outputs.immutable_ref }}
+    steps:
+      - name: Checkout exact event source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Enforce fail-closed exact-source guards
+        shell: bash
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.inputs.expected_source_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REPOSITORY" != "Abdallah-Mohamed-Abdallah-AbdulRazzaq/Moazez-School-Dashboard" ]]; then
+            echo "Repository guard failed." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REPOSITORY_ID" != "1335686453" ]]; then
+            echo "Repository ID guard failed." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Main ref guard failed." >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Expected source SHA must be exactly 40 lowercase hexadecimal characters." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_SHA" != "$EXPECTED_SOURCE_SHA" ]]; then
+            echo "Event SHA does not match the DevOps-authorized source SHA." >&2
+            exit 1
+          fi
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$GITHUB_SHA" ]]; then
+            echo "Checked-out HEAD does not match GITHUB_SHA." >&2
+            exit 1
+          fi
+
+      - name: Authenticate with dedicated Production artifact identity
+        id: gcp-auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: projects/91001421934/locations/global/workloadIdentityPools/moazez-github-production/providers/moazez-school-dashboard-main
+          service_account: moazez-ui-artifact-builder@moazez-production.iam.gserviceaccount.com
+          project_id: moazez-production
+          token_format: access_token
+          create_credentials_file: false
+          export_environment_variables: false
+
+      - name: Authenticate Docker to Production Artifact Registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' '${{ steps.gcp-auth.outputs.access_token }}' \
+            | docker login \
+                --username oauth2accesstoken \
+                --password-stdin \
+                "$ARTIFACT_REGISTRY_HOST"
+
+      - name: Refuse remote source-SHA tag overwrite
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_tag="${ARTIFACT_PACKAGE}:${GITHUB_SHA}"
+          inspection_output_file="$(mktemp)"
+          trap 'rm -f "$inspection_output_file"' EXIT
+
+          if docker buildx imagetools inspect "$image_tag" >"$inspection_output_file" 2>&1; then
+            existing_digest="$(
+              sed -nE 's/^[[:space:]]*Digest:[[:space:]]*(sha256:[0-9a-f]{64})[[:space:]]*$/\1/p' \
+                "$inspection_output_file" \
+                | head -n 1
+            )"
+            if [[ "$existing_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "Refusing to overwrite existing artifact: ${ARTIFACT_PACKAGE}@${existing_digest}" >&2
+            else
+              echo "Refusing to overwrite the existing source-SHA tag; its digest could not be safely resolved." >&2
+            fi
+            exit 1
+          fi
+
+          absence_proven=false
+          if grep -Fxiq -- "ERROR: ${image_tag}: not found" "$inspection_output_file"; then
+            absence_proven=true
+          elif grep -Fi -- "$image_tag" "$inspection_output_file" | grep -Fiq -- "manifest unknown"; then
+            absence_proven=true
+          fi
+          if [[ "$absence_proven" != "true" ]]; then
+            echo "Registry inspection failed for a reason that does not prove tag absence." >&2
+            exit 1
+          fi
+
+      - name: Build exact Production image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_tag="${ARTIFACT_PACKAGE}:${GITHUB_SHA}"
+          docker build \
+            --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_API_URL="${PRODUCTION_API_URL}" \
+            --build-arg NEXT_PUBLIC_REALTIME_URL="${PRODUCTION_REALTIME_URL}" \
+            --build-arg NEXT_PUBLIC_REALTIME_SOCKET_PATH="${PRODUCTION_REALTIME_SOCKET_PATH}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --tag "$image_tag" \
+            .
+
+      - name: Verify local Production image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_tag="${ARTIFACT_PACKAGE}:${GITHUB_SHA}"
+          actual_revision="$(
+            docker image inspect "$image_tag" \
+              --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
+          )"
+          if [[ "$actual_revision" != "$GITHUB_SHA" ]]; then
+            echo "Production image OCI revision does not match GITHUB_SHA." >&2
+            exit 1
+          fi
+
+          image_environment="$(
+            docker image inspect "$image_tag" \
+              --format '{{ range .Config.Env }}{{ println . }}{{ end }}'
+          )"
+          for required_value in \
+            "NEXT_PUBLIC_API_URL=${PRODUCTION_API_URL}" \
+            "NEXT_PUBLIC_REALTIME_URL=${PRODUCTION_REALTIME_URL}" \
+            "NEXT_PUBLIC_REALTIME_SOCKET_PATH=${PRODUCTION_REALTIME_SOCKET_PATH}"
+          do
+            if [[ "$(grep -Fxc -- "$required_value" <<<"$image_environment")" -ne 1 ]]; then
+              echo "Required runtime environment value is missing or duplicated." >&2
+              exit 1
+            fi
+          done
+
+      - name: Push source-SHA Production tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "${ARTIFACT_PACKAGE}:${GITHUB_SHA}"
+
+      - name: Resolve and verify immutable remote digest
+        id: publish-result
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_tag="${ARTIFACT_PACKAGE}:${GITHUB_SHA}"
+          remote_inspection="$(docker buildx imagetools inspect "$image_tag")"
+          remote_digest="$(
+            sed -nE 's/^[[:space:]]*Digest:[[:space:]]*(sha256:[0-9a-f]{64})[[:space:]]*$/\1/p' \
+              <<<"$remote_inspection" \
+              | head -n 1
+          )"
+          if [[ ! "$remote_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Remote registry manifest digest is missing or invalid." >&2
+            exit 1
+          fi
+
+          immutable_ref="${ARTIFACT_PACKAGE}@${remote_digest}"
+          docker buildx imagetools inspect "$immutable_ref" >/dev/null
+
+          {
+            echo "source_sha=${GITHUB_SHA}"
+            echo "image_tag=${image_tag}"
+            echo "image_digest=${remote_digest}"
+            echo "immutable_ref=${immutable_ref}"
+          } >>"$GITHUB_OUTPUT"
+
+          {
+            echo "## Production Artifact"
+            echo
+            echo "- Repository: ${GITHUB_REPOSITORY}"
+            echo "- Source SHA: ${GITHUB_SHA}"
+            echo "- Production API URL: ${PRODUCTION_API_URL}"
+            echo "- Production Realtime URL: ${PRODUCTION_REALTIME_URL}"
+            echo "- Production Realtime Socket Path: ${PRODUCTION_REALTIME_SOCKET_PATH}"
+            echo "- Artifact Registry package: ${ARTIFACT_PACKAGE}"
+            echo "- Source-SHA tag: ${image_tag}"
+            echo "- Remote sha256 digest: ${remote_digest}"
+            echo "- Immutable reference: ${immutable_ref}"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Log out of Production Artifact Registry
+        if: always()
+        shell: bash
+        run: docker logout me-central2-docker.pkg.dev || true
