@@ -330,7 +330,7 @@ jobs:
               )
           require(
               re.search(r"(?m)^\s*set\s+-[^\n]*x", text) is None
-              and "xtrace" not in lower_text,
+              and ("x" + "trace") not in lower_text,
               "Shell tracing is forbidden.",
           )
           for line in workflow_lines:
@@ -355,7 +355,7 @@ jobs:
               "Exact-source guards must execute before Google authentication.",
           )
           require(
-              len(re.findall(r"(?m)^\s*docker push ", text)) == 1,
+              len(re.findall(r"(?m)^\s*docker " + "push ", text)) == 1,
               "Production workflow must have exactly one Docker push path.",
           )
           PY
