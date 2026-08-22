@@ -24,7 +24,7 @@ permissions:
 env:
   ARTIFACT_REGISTRY_HOST: me-central2-docker.pkg.dev
   ARTIFACT_PACKAGE: me-central2-docker.pkg.dev/moazez-production/moazez-production-containers/moazez-school-dashboard
-  PRODUCTION_API_URL: https://api.moazez.cloud
+  PRODUCTION_API_URL: https://api.moazez.cloud/api/v1
   PRODUCTION_REALTIME_URL: https://api.moazez.cloud/api/v1/realtime
   PRODUCTION_REALTIME_SOCKET_PATH: /socket.io
 
@@ -82,9 +82,13 @@ jobs:
               "me-central2-docker.pkg.dev/moazez-production/"
               "moazez-production-containers/moazez-school-dashboard"
           )
-          api_url = "https://api." + "moazez.cloud"
-          realtime_url = api_url + "/api/v1/realtime"
+          api_url = "https://api." + "moazez.cloud/api/v1"
+          realtime_url = api_url + "/realtime"
           socket_path = "/socket" + ".io"
+          public_prefix = "NEXT_" + "PUBLIC_"
+          maps_public_name = public_prefix + "GOOGLE_MAPS_API_KEY"
+          maps_alias = "PRODUCTION_" + "GOOGLE_MAPS_API_KEY"
+          maps_expression = "$" + "{{ " + "vars." + maps_public_name + " }}"
 
           require(text.count("uses: " + checkout_ref) == 2, "Unexpected checkout action references.")
           require(
@@ -114,6 +118,27 @@ jobs:
           ]
           for fragment in required_fragments:
               require(fragment in text, "Missing required Production contract value.")
+
+          workflow_lines = text.splitlines()
+          require(
+              workflow_lines.count("  PRODUCTION_API_URL: " + api_url) == 1,
+              "Production API URL assignment must be exact and unique.",
+          )
+          require(
+              workflow_lines.count("  PRODUCTION_REALTIME_URL: " + realtime_url) == 1,
+              "Production realtime URL assignment must be exact and unique.",
+          )
+          require(
+              workflow_lines.count("  PRODUCTION_REALTIME_SOCKET_PATH: " + socket_path) == 1,
+              "Production realtime socket path assignment must be exact and unique.",
+          )
+          old_api_assignment = (
+              "  PRODUCTION_" + "API_URL: https://api." + "moazez.cloud"
+          )
+          require(
+              old_api_assignment not in workflow_lines,
+              "Unversioned Production API URL assignment is forbidden.",
+          )
 
           dispatch_match = re.search(
               r"(?ms)^  workflow_dispatch:\s*\n(?P<body>.*?)(?=^\S)", text
@@ -157,10 +182,13 @@ jobs:
           for pattern in forbidden_patterns:
               require(pattern.lower() not in lower_text, "Forbidden operational or security pattern detected.")
 
-          public_prefix = "NEXT_" + "PUBLIC_"
+          require(
+              re.search(r"AIza[0-9A-Za-z_-]{20,}", text) is None,
+              "Committed Google API key pattern detected.",
+          )
+
           forbidden_public_names = [
               public_prefix + "REALTIME_DEBUG",
-              public_prefix + "GOOGLE_MAPS_API_KEY",
               public_prefix + "GOOGLE_MAPS_MAP_ID",
               public_prefix + "DEFAULT_SCHOOL_ID",
           ]
@@ -176,8 +204,9 @@ jobs:
               public_prefix + "API_URL",
               public_prefix + "REALTIME_URL",
               public_prefix + "REALTIME_SOCKET_PATH",
+              maps_public_name,
           }
-          require(len(build_arguments) == 6, "Unexpected number of public Docker build arguments.")
+          require(len(build_arguments) == 8, "Unexpected number of public Docker build arguments.")
           require(set(build_arguments) == expected_arguments, "Unexpected public Docker build argument.")
           for argument in expected_arguments:
               require(build_arguments.count(argument) == 2, "Required build argument count mismatch.")
@@ -186,6 +215,122 @@ jobs:
           publish_start = text.index("  publish-production-artifact:")
           validate_job = text[validate_start:publish_start]
           publish_job = text[publish_start:]
+          validate_arguments = re.findall(
+              r"--build-arg\s+(NEXT_PUBLIC_[A-Z0-9_]+)=", validate_job
+          )
+          publish_arguments = re.findall(
+              r"--build-arg\s+(NEXT_PUBLIC_[A-Z0-9_]+)=", publish_job
+          )
+          require(
+              len(validate_arguments) == 4 and set(validate_arguments) == expected_arguments,
+              "Push validation build arguments do not match the authorized contract.",
+          )
+          require(
+              len(publish_arguments) == 4 and set(publish_arguments) == expected_arguments,
+              "Production build arguments do not match the authorized contract.",
+          )
+          for argument in expected_arguments:
+              require(
+                  validate_arguments.count(argument) == 1,
+                  "Push validation build argument count mismatch.",
+              )
+              require(
+                  publish_arguments.count(argument) == 1,
+                  "Production build argument count mismatch.",
+              )
+
+          require(text.count(maps_expression) == 1, "Maps external configuration reference mismatch.")
+          require(
+              workflow_lines.count("      " + maps_alias + ": " + maps_expression) == 1,
+              "Maps external configuration alias is missing or duplicated.",
+          )
+          require(
+              maps_expression not in validate_job and maps_alias not in validate_job,
+              "Push validation must not require Production Maps configuration.",
+          )
+          validation_sentinel_assignment = (
+              'validation_maps_value="pt-1b-non-production-maps-'
+              + 'validation-${GITHUB_SHA}"'
+          )
+          require(
+              validate_job.count(validation_sentinel_assignment) == 2,
+              "Push validation Maps sentinel is missing or duplicated.",
+          )
+          validation_maps_argument = (
+              "--build-arg " + maps_public_name + '="${validation_maps_value}"'
+          )
+          production_maps_argument = (
+              "--build-arg " + maps_public_name + '="${' + maps_alias + '}"'
+          )
+          require(
+              validate_job.count(validation_maps_argument) == 1,
+              "Push validation Maps build argument must use only its sentinel.",
+          )
+          require(
+              publish_job.count(production_maps_argument) == 1,
+              "Production Maps build argument must use the external configuration alias.",
+          )
+          maps_environment_extraction = "s/^" + maps_public_name + "=//p"
+          validation_maps_comparison = (
+              '[[ "${image_maps_values[0]}" != "$validation_'
+              + 'maps_value" ]]'
+          )
+          production_maps_comparison = (
+              '[[ "${image_maps_values[0]}" != "$' + maps_alias + '" ]]'
+          )
+          require(
+              validate_job.count(maps_environment_extraction) == 1
+              and validate_job.count(validation_maps_comparison) == 1,
+              "Push validation image Maps verification contract mismatch.",
+          )
+          require(
+              publish_job.count(maps_environment_extraction) == 1
+              and publish_job.count(production_maps_comparison) == 1,
+              "Production image Maps verification contract mismatch.",
+          )
+
+          maps_guard_name = "Require external Google Maps browser configuration"
+          maps_missing_condition = 'if [[ -z "${' + maps_alias + ':-}" ]]; then'
+          maps_missing_message = "Required Google Maps browser " + "configuration is missing."
+          require(publish_job.count(maps_guard_name) == 1, "Maps configuration guard mismatch.")
+          require(
+              publish_job.count(maps_missing_condition) == 1,
+              "Maps configuration guard must fail closed on an empty value.",
+          )
+          require(
+              publish_job.count(maps_missing_message) == 1,
+              "Maps configuration guard message mismatch.",
+          )
+          require(
+              publish_job.index(maps_guard_name) < publish_job.index("uses: " + auth_ref),
+              "Maps configuration guard must execute before Google authentication.",
+          )
+          maps_value_references = [maps_alias, "image_maps_values", "image_environment"]
+          for value_reference in maps_value_references:
+              require(
+                  re.search(
+                      r"(?mi)^\s*(?:echo|printf)\b[^\n]*\$\{?"
+                      + re.escape(value_reference)
+                      + r"(?:\[[^\]]+\])?\}?",
+                      text,
+                  )
+                  is None,
+                  "Maps configuration value must not be printed.",
+              )
+          require(
+              re.search(r"(?m)^\s*set\s+-[^\n]*x", text) is None
+              and "xtrace" not in lower_text,
+              "Shell tracing is forbidden.",
+          )
+          for line in workflow_lines:
+              if any(value_reference in line for value_reference in maps_value_references):
+                  require(
+                      "GITHUB_OUTPUT" not in line and "GITHUB_STEP_SUMMARY" not in line,
+                      "Maps configuration value must not be written to workflow outputs.",
+                  )
+          maps_summary = "Google Maps browser configuration: externally " + "configured"
+          require(maps_summary in publish_job, "Non-sensitive Maps handoff summary is missing.")
+
           oidc_permission = "id-" + "token:"
           require(oidc_permission not in validate_job, "Push validation job must not receive an OIDC token.")
           require(auth_ref not in validate_job, "Push validation job must not authenticate to Google Cloud.")
@@ -209,11 +354,13 @@ jobs:
         run: |
           set -euo pipefail
           validation_image="school-dashboard-validation:${GITHUB_SHA}"
+          validation_maps_value="pt-1b-non-production-maps-validation-${GITHUB_SHA}"
           docker build \
             --platform linux/amd64 \
             --build-arg NEXT_PUBLIC_API_URL="${PRODUCTION_API_URL}" \
             --build-arg NEXT_PUBLIC_REALTIME_URL="${PRODUCTION_REALTIME_URL}" \
             --build-arg NEXT_PUBLIC_REALTIME_SOCKET_PATH="${PRODUCTION_REALTIME_SOCKET_PATH}" \
+            --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${validation_maps_value}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --tag "$validation_image" \
             .
@@ -223,6 +370,7 @@ jobs:
         run: |
           set -euo pipefail
           validation_image="school-dashboard-validation:${GITHUB_SHA}"
+          validation_maps_value="pt-1b-non-production-maps-validation-${GITHUB_SHA}"
           actual_revision="$(
             docker image inspect "$validation_image" \
               --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
@@ -247,12 +395,23 @@ jobs:
             fi
           done
 
+          mapfile -t image_maps_values < <(
+            sed -n 's/^NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=//p' <<<"$image_environment"
+          )
+          if [[ "${#image_maps_values[@]}" -ne 1 ]] \
+            || [[ "${image_maps_values[0]}" != "$validation_maps_value" ]]; then
+            echo "Validation image Maps browser configuration mismatch." >&2
+            exit 1
+          fi
+
   publish-production-artifact:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
+    env:
+      PRODUCTION_GOOGLE_MAPS_API_KEY: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
     concurrency:
       group: production-artifact-${{ github.repository_id }}-${{ github.event.inputs.expected_source_sha }}
       cancel-in-progress: false
@@ -297,6 +456,15 @@ jobs:
           checked_out_sha="$(git rev-parse HEAD)"
           if [[ "$checked_out_sha" != "$GITHUB_SHA" ]]; then
             echo "Checked-out HEAD does not match GITHUB_SHA." >&2
+            exit 1
+          fi
+
+      - name: Require external Google Maps browser configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${PRODUCTION_GOOGLE_MAPS_API_KEY:-}" ]]; then
+            echo "Required Google Maps browser configuration is missing." >&2
             exit 1
           fi
 
@@ -364,6 +532,7 @@ jobs:
             --build-arg NEXT_PUBLIC_API_URL="${PRODUCTION_API_URL}" \
             --build-arg NEXT_PUBLIC_REALTIME_URL="${PRODUCTION_REALTIME_URL}" \
             --build-arg NEXT_PUBLIC_REALTIME_SOCKET_PATH="${PRODUCTION_REALTIME_SOCKET_PATH}" \
+            --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${PRODUCTION_GOOGLE_MAPS_API_KEY}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --tag "$image_tag" \
             .
@@ -396,6 +565,15 @@ jobs:
               exit 1
             fi
           done
+
+          mapfile -t image_maps_values < <(
+            sed -n 's/^NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=//p' <<<"$image_environment"
+          )
+          if [[ "${#image_maps_values[@]}" -ne 1 ]] \
+            || [[ "${image_maps_values[0]}" != "$PRODUCTION_GOOGLE_MAPS_API_KEY" ]]; then
+            echo "Production image Maps browser configuration mismatch." >&2
+            exit 1
+          fi
 
       - name: Push source-SHA Production tag
         shell: bash
@@ -438,6 +616,7 @@ jobs:
             echo "- Production API URL: ${PRODUCTION_API_URL}"
             echo "- Production Realtime URL: ${PRODUCTION_REALTIME_URL}"
             echo "- Production Realtime Socket Path: ${PRODUCTION_REALTIME_SOCKET_PATH}"
+            echo "- Google Maps browser configuration: externally configured"
             echo "- Artifact Registry package: ${ARTIFACT_PACKAGE}"
             echo "- Source-SHA tag: ${image_tag}"
             echo "- Remote sha256 digest: ${remote_digest}"
