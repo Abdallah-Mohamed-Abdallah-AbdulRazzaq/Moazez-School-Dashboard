@@ -85,10 +85,179 @@ jobs:
           api_url = "https://api." + "moazez.cloud/api/v1"
           realtime_url = api_url + "/realtime"
           socket_path = "/socket" + ".io"
+          MOBILE_PUBLIC_VARIABLE_COUNT = 8
+          REQUIRED_MOBILE_URL_COUNT = 6
+          OPTIONAL_EMPTY_MOBILE_URL_COUNT = 2
+          AUTHORIZED_PUBLIC_BUILD_ARGUMENT_COUNT = 12
+          GLOBAL_BUILD_ARG_OCCURRENCES = 24
+          VALIDATE_BUILD_ARG_COUNT = 12
+          PRODUCTION_BUILD_ARG_COUNT = 12
           public_prefix = "NEXT_" + "PUBLIC_"
+          production_prefix = "PRODUCTION_"
           maps_public_name = public_prefix + "GOOGLE_MAPS_API_KEY"
-          maps_alias = "PRODUCTION_" + "GOOGLE_MAPS_API_KEY"
+          maps_alias = production_prefix + "GOOGLE_MAPS_API_KEY"
           maps_expression = "$" + "{{ " + "vars." + maps_public_name + " }}"
+          mobile_marker = "MOBILE_" + "APP_"
+          mobile_roles = (
+              ("STUDENT", "student"),
+              ("TEACHER", "teacher"),
+              ("PARENT", "parent"),
+              ("DISMISSAL_" + "STAFF", "dismissal-staff"),
+          )
+          google_play_mobile_store_name = "GOOGLE_" + "PLAY"
+          app_store_mobile_store_name = "APP_" + "STORE"
+          mobile_stores = (
+              (google_play_mobile_store_name, "google-play", "play.google.com"),
+              (app_store_mobile_store_name, "app-store", "apps.apple.com"),
+          )
+          optional_empty_mobile_role_names = ("STUDENT", "TEACHER")
+
+          def derive_mobile_public_name(role_name: str, store_name: str) -> str:
+              return (
+                  public_prefix
+                  + mobile_marker
+                  + role_name
+                  + "_"
+                  + store_name
+                  + "_URL"
+              )
+
+          mobile_contracts = []
+          for role_name, role_path in mobile_roles:
+              for store_name, store_path, expected_hostname in mobile_stores:
+                  mobile_suffix = mobile_marker + role_name + "_" + store_name + "_URL"
+                  mobile_public_name = derive_mobile_public_name(
+                      role_name, store_name
+                  )
+                  mobile_alias = production_prefix + mobile_suffix
+                  mobile_expression = (
+                      "$" + "{{ " + "vars." + mobile_public_name + " }}"
+                  )
+                  required_non_empty = not (
+                      store_name == app_store_mobile_store_name
+                      and role_name in optional_empty_mobile_role_names
+                  )
+                  mobile_sentinel_name = "validation_" + mobile_suffix.lower()
+                  mobile_sentinel_value = (
+                      "https://example.invalid/moazez-pre35/"
+                      + "${"
+                      + "GITHUB_SHA}"
+                      + "/"
+                      + role_path
+                      + "/"
+                      + store_path
+                  )
+                  mobile_contracts.append(
+                      (
+                          mobile_public_name,
+                          mobile_alias,
+                          mobile_expression,
+                          mobile_sentinel_name,
+                          mobile_sentinel_value,
+                          expected_hostname,
+                          required_non_empty,
+                      )
+                  )
+          mobile_contracts = tuple(mobile_contracts)
+          expected_mobile_public_names = {
+              contract[0] for contract in mobile_contracts
+          }
+          expected_mobile_aliases = {contract[1] for contract in mobile_contracts}
+          required_mobile_contracts = tuple(
+              contract for contract in mobile_contracts if contract[6] is True
+          )
+          optional_empty_mobile_contracts = tuple(
+              contract for contract in mobile_contracts if contract[6] is False
+          )
+          required_mobile_public_names = {
+              contract[0] for contract in required_mobile_contracts
+          }
+          optional_empty_mobile_public_names = {
+              contract[0] for contract in optional_empty_mobile_contracts
+          }
+          expected_optional_empty_mobile_public_names = {
+              derive_mobile_public_name(role_name, app_store_mobile_store_name)
+              for role_name in optional_empty_mobile_role_names
+          }
+          mobile_availability_by_public_name = {
+              contract[0]: contract[6] for contract in mobile_contracts
+          }
+          require(
+              MOBILE_PUBLIC_VARIABLE_COUNT
+              == REQUIRED_MOBILE_URL_COUNT + OPTIONAL_EMPTY_MOBILE_URL_COUNT,
+              "Mobile availability governance counts must partition the specification.",
+          )
+          require(
+              len(mobile_contracts) == MOBILE_PUBLIC_VARIABLE_COUNT
+              and len(expected_mobile_public_names) == MOBILE_PUBLIC_VARIABLE_COUNT
+              and len(expected_mobile_aliases) == MOBILE_PUBLIC_VARIABLE_COUNT,
+              "Mobile app store URL specification must define exactly eight contracts.",
+          )
+          require(
+              all(isinstance(contract[6], bool) for contract in mobile_contracts),
+              "Every mobile contract must define boolean availability metadata.",
+          )
+          require(
+              len(required_mobile_contracts) == REQUIRED_MOBILE_URL_COUNT,
+              "Mobile specification must define exactly six required URLs.",
+          )
+          require(
+              len(optional_empty_mobile_contracts)
+              == OPTIONAL_EMPTY_MOBILE_URL_COUNT,
+              "Mobile specification must define exactly two optional-empty URLs.",
+          )
+          require(
+              optional_empty_mobile_public_names
+              == expected_optional_empty_mobile_public_names,
+              "Optional-empty mobile public values do not match the exact allowlist.",
+          )
+          require(
+              required_mobile_public_names.isdisjoint(
+                  optional_empty_mobile_public_names
+              )
+              and (
+                  required_mobile_public_names
+                  | optional_empty_mobile_public_names
+              )
+              == expected_mobile_public_names,
+              "Required and optional-empty mobile contracts must exactly partition the allowlist.",
+          )
+          google_play_mobile_public_names = {
+              derive_mobile_public_name(role_name, google_play_mobile_store_name)
+              for role_name, _role_path in mobile_roles
+          }
+          require(
+              google_play_mobile_public_names <= required_mobile_public_names
+              and google_play_mobile_public_names.isdisjoint(
+                  optional_empty_mobile_public_names
+              ),
+              "Every Google Play mobile URL must be required.",
+          )
+          for required_app_store_role_name in (
+              "PARENT",
+              "DISMISSAL_" + "STAFF",
+          ):
+              require(
+                  mobile_availability_by_public_name[
+                      derive_mobile_public_name(
+                          required_app_store_role_name,
+                          app_store_mobile_store_name,
+                      )
+                  ]
+                  is True,
+                  "Parent and Dismissal Staff App Store URLs must be required.",
+              )
+          for optional_app_store_role_name in optional_empty_mobile_role_names:
+              require(
+                  mobile_availability_by_public_name[
+                      derive_mobile_public_name(
+                          optional_app_store_role_name,
+                          app_store_mobile_store_name,
+                      )
+                  ]
+                  is False,
+                  "Student and Teacher App Store URLs must be optional-empty.",
+              )
 
           require(text.count("uses: " + checkout_ref) == 2, "Unexpected checkout action references.")
           require(
@@ -194,19 +363,30 @@ jobs:
           ]
           for variable_name in forbidden_public_names:
               require(variable_name not in text, "Forbidden optional public value detected.")
+          mobile_public_pattern = re.compile(
+              r"\b" + re.escape(public_prefix + mobile_marker) + r"[A-Za-z0-9_]+\b"
+          )
+          observed_mobile_public_names = set(mobile_public_pattern.findall(text))
           require(
-              public_prefix + "MOBILE_APP_" not in text,
-              "Forbidden mobile-app public value detected.",
+              observed_mobile_public_names == expected_mobile_public_names,
+              "Mobile app public values do not match the exact authorized allowlist.",
           )
 
-          build_arguments = re.findall(r"--build-arg\s+(NEXT_PUBLIC_[A-Z0-9_]+)=", text)
+          build_arguments = re.findall(r"--build-arg\s+(NEXT_PUBLIC_[A-Za-z0-9_]+)=", text)
           expected_arguments = {
               public_prefix + "API_URL",
               public_prefix + "REALTIME_URL",
               public_prefix + "REALTIME_SOCKET_PATH",
               maps_public_name,
-          }
-          require(len(build_arguments) == 8, "Unexpected number of public Docker build arguments.")
+          } | expected_mobile_public_names
+          require(
+              len(expected_arguments) == AUTHORIZED_PUBLIC_BUILD_ARGUMENT_COUNT,
+              "Authorized public build argument model mismatch.",
+          )
+          require(
+              len(build_arguments) == GLOBAL_BUILD_ARG_OCCURRENCES,
+              "Unexpected number of public Docker build arguments.",
+          )
           require(set(build_arguments) == expected_arguments, "Unexpected public Docker build argument.")
           for argument in expected_arguments:
               require(build_arguments.count(argument) == 2, "Required build argument count mismatch.")
@@ -226,18 +406,43 @@ jobs:
           publish_start = publish_header.start()
           validate_job = text[validate_start:publish_start]
           publish_job = text[publish_start:]
+
+          def extract_step_body(job_source: str, step_name: str) -> str:
+              step_pattern = re.compile(
+                  r"(?ms)^      - name: "
+                  + re.escape(step_name)
+                  + r"[ \t]*\r?\n(?P<body>.*?)(?=^      - name: |\Z)"
+              )
+              matches = list(step_pattern.finditer(job_source))
+              require(len(matches) == 1, "Required workflow step is missing or duplicated.")
+              return matches[0].group("body")
+
+          validation_build_step = extract_step_body(
+              validate_job, "Build ephemeral local Production image"
+          )
+          validation_verify_step = extract_step_body(
+              validate_job, "Verify ephemeral local Production image"
+          )
+          production_build_step = extract_step_body(
+              publish_job, "Build exact Production image"
+          )
+          production_verify_step = extract_step_body(
+              publish_job, "Verify local Production image"
+          )
           validate_arguments = re.findall(
-              r"--build-arg\s+(NEXT_PUBLIC_[A-Z0-9_]+)=", validate_job
+              r"--build-arg\s+(NEXT_PUBLIC_[A-Za-z0-9_]+)=", validate_job
           )
           publish_arguments = re.findall(
-              r"--build-arg\s+(NEXT_PUBLIC_[A-Z0-9_]+)=", publish_job
+              r"--build-arg\s+(NEXT_PUBLIC_[A-Za-z0-9_]+)=", publish_job
           )
           require(
-              len(validate_arguments) == 4 and set(validate_arguments) == expected_arguments,
+              len(validate_arguments) == VALIDATE_BUILD_ARG_COUNT
+              and set(validate_arguments) == expected_arguments,
               "Push validation build arguments do not match the authorized contract.",
           )
           require(
-              len(publish_arguments) == 4 and set(publish_arguments) == expected_arguments,
+              len(publish_arguments) == PRODUCTION_BUILD_ARG_COUNT
+              and set(publish_arguments) == expected_arguments,
               "Production build arguments do not match the authorized contract.",
           )
           for argument in expected_arguments:
@@ -300,6 +505,197 @@ jobs:
               "Production image Maps verification contract mismatch.",
           )
 
+          publish_env_match = re.search(
+              r"(?ms)^    env:[ \t]*\r?\n(?P<body>.*?)(?=^    [A-Za-z0-9_-]+:)",
+              publish_job,
+          )
+          require(publish_env_match is not None, "Missing Production job environment block.")
+          publish_env_lines = publish_env_match.group("body").splitlines()
+          production_mobile_pattern = re.compile(
+              r"\b" + re.escape(production_prefix + mobile_marker) + r"[A-Za-z0-9_]+\b"
+          )
+          require(
+              set(production_mobile_pattern.findall(text)) == expected_mobile_aliases,
+              "Production mobile aliases do not match the exact authorized allowlist.",
+          )
+
+          mobile_verification_command = "require_" + "mobile_image_environment_value"
+          mobile_verification_definition = mobile_verification_command + "() {"
+          mobile_environment_extraction = (
+              'sed -n "s/^${environment_'
+              + 'name}=//p" <<<"$image_'
+              + 'environment"'
+          )
+          mobile_count_condition = (
+              '[[ "${#image_' + 'mobile_values[@]}" -ne 1 ]]'
+          )
+          mobile_comparison_condition = (
+              '[[ "${image_'
+              + 'mobile_values[0]}" != "$expected_'
+              + 'value" ]]'
+          )
+
+          def extract_mobile_verification_function_body(
+              verification_step: str,
+          ) -> str:
+              function_pattern = re.compile(
+                  r"(?ms)^          "
+                  + re.escape(mobile_verification_command)
+                  + r"\(\)[ \t]+\{[ \t]*\r?\n"
+                  + r"(?P<body>.*?)(?=^          \}[ \t]*$)"
+              )
+              matches = list(function_pattern.finditer(verification_step))
+              require(
+                  len(matches) == 1
+                  and verification_step.count(mobile_verification_definition) == 1,
+                  "Mobile image verification helper is missing or duplicated.",
+              )
+              return matches[0].group("body")
+
+          validation_mobile_function_body = (
+              extract_mobile_verification_function_body(validation_verify_step)
+          )
+          production_mobile_function_body = (
+              extract_mobile_verification_function_body(production_verify_step)
+          )
+          for function_body, job_label in (
+              (validation_mobile_function_body, "Push validation"),
+              (production_mobile_function_body, "Production"),
+          ):
+              function_lines = function_body.splitlines()
+              require(
+                  function_body.count('local environment_name="$1"') == 1
+                  and function_body.count('local expected_value="$2"') == 1
+                  and function_body.count("local -a image_mobile_values") == 1
+                  and function_body.count(mobile_environment_extraction) == 1
+                  and function_body.count(mobile_count_condition) == 1
+                  and function_body.count(mobile_comparison_condition) == 1
+                  and function_lines.count("              exit 1") == 1,
+                  job_label + " mobile image verification primitive mismatch.",
+              )
+
+          for (
+              mobile_public_name,
+              mobile_alias,
+              mobile_expression,
+              mobile_sentinel_name,
+              mobile_sentinel_value,
+              _expected_hostname,
+              _required_non_empty,
+          ) in mobile_contracts:
+              mobile_env_assignment = (
+                  "      " + mobile_alias + ": " + mobile_expression
+              )
+              repository_variable_pattern = re.compile(
+                  r"\bvars[ \t]*(?:\.[ \t]*"
+                  + re.escape(mobile_public_name)
+                  + r"\b|\[[ \t]*[\"']"
+                  + re.escape(mobile_public_name)
+                  + r"[\"'][ \t]*\])"
+              )
+              secret_variable_pattern = re.compile(
+                  r"\bsecrets[ \t]*(?:\.[ \t]*"
+                  + re.escape(mobile_public_name)
+                  + r"\b|\[[ \t]*[\"']"
+                  + re.escape(mobile_public_name)
+                  + r"[\"'][ \t]*\])"
+              )
+              require(
+                  text.count(mobile_expression) == 1,
+                  "Mobile repository-variable expression must be exact and unique.",
+              )
+              require(
+                  len(list(repository_variable_pattern.finditer(text))) == 1
+                  and len(list(repository_variable_pattern.finditer(publish_job))) == 1
+                  and repository_variable_pattern.search(validate_job) is None,
+                  "Mobile repository-variable reference must exist only in Production.",
+              )
+              require(
+                  secret_variable_pattern.search(text) is None,
+                  "Mobile browser configuration must not use GitHub secrets.",
+              )
+              require(
+                  workflow_lines.count(mobile_env_assignment) == 1
+                  and publish_env_lines.count(mobile_env_assignment) == 1,
+                  "Production mobile job-level alias mapping is missing or duplicated.",
+              )
+              require(
+                  mobile_expression not in validate_job
+                  and mobile_alias not in validate_job,
+                  "Push validation must not require Production mobile configuration.",
+              )
+
+              mobile_sentinel_assignment = (
+                  mobile_sentinel_name + '="' + mobile_sentinel_value + '"'
+              )
+              require(
+                  validate_job.count(mobile_sentinel_assignment) == 2
+                  and validate_job.count(mobile_sentinel_value) == 2
+                  and validation_build_step.count(mobile_sentinel_assignment) == 1
+                  and validation_verify_step.count(mobile_sentinel_assignment) == 1,
+                  "Push validation mobile sentinel is missing or duplicated.",
+              )
+              validation_mobile_argument = (
+                  "--build-arg "
+                  + mobile_public_name
+                  + '="${'
+                  + mobile_sentinel_name
+                  + '}"'
+              )
+              production_mobile_argument = (
+                  "--build-arg "
+                  + mobile_public_name
+                  + '="${'
+                  + mobile_alias
+                  + '}"'
+              )
+              require(
+                  validation_build_step.count(validation_mobile_argument) == 1,
+                  "Push validation mobile build argument must use only its sentinel.",
+              )
+              require(
+                  production_build_step.count(production_mobile_argument) == 1,
+                  "Production mobile build argument must use its external alias.",
+              )
+
+              validation_mobile_verification = (
+                  mobile_verification_command
+                  + " "
+                  + mobile_public_name
+                  + ' "$'
+                  + mobile_sentinel_name
+                  + '"'
+              )
+              production_mobile_verification = (
+                  mobile_verification_command
+                  + " "
+                  + mobile_public_name
+                  + ' "$'
+                  + mobile_alias
+                  + '"'
+              )
+              require(
+                  validation_verify_step.count(validation_mobile_verification) == 1,
+                  "Push image mobile verification must compare with its sentinel.",
+              )
+              require(
+                  production_verify_step.count(production_mobile_verification) == 1,
+                  "Production image mobile verification must compare with its alias.",
+              )
+              require(
+                  validation_mobile_verification not in validation_mobile_function_body
+                  and production_mobile_verification
+                  not in production_mobile_function_body,
+                  "Mobile image verification calls must execute outside their helper.",
+              )
+              require(
+                  validation_verify_step.index(mobile_verification_definition)
+                  < validation_verify_step.index(validation_mobile_verification)
+                  and production_verify_step.index(mobile_verification_definition)
+                  < production_verify_step.index(production_mobile_verification),
+                  "Mobile image verification helper must be defined before use.",
+              )
+
           maps_guard_name = "Require external Google Maps browser configuration"
           maps_missing_condition = 'if [[ -z "${' + maps_alias + ':-}" ]]; then'
           maps_missing_message = "Required Google Maps browser " + "configuration is missing."
@@ -316,6 +712,257 @@ jobs:
               publish_job.index(maps_guard_name) < publish_job.index("uses: " + auth_ref),
               "Maps configuration guard must execute before Google authentication.",
           )
+
+          mobile_guard_name = "Require external mobile " + "app store URL configuration"
+          mobile_guard_line = "      - name: " + mobile_guard_name
+          require(
+              workflow_lines.count(mobile_guard_line) == 1,
+              "Mobile configuration guard step must be exact and unique.",
+          )
+          mobile_guard_match = re.search(
+              r"(?ms)^"
+              + re.escape(mobile_guard_line)
+              + r"\r?\n(?P<body>.*?)(?=^      - name: |\Z)",
+              publish_job,
+          )
+          require(
+              mobile_guard_match is not None,
+              "Mobile configuration guard must be inside the Production publishing job.",
+          )
+          mobile_guard_body = mobile_guard_match.group("body")
+          require(
+              len(
+                  re.findall(
+                      r"(?m)^          contracts[ \t]*=", mobile_guard_body
+                  )
+              )
+              == 1,
+              "Mobile configuration guard contracts must be assigned exactly once.",
+          )
+          require(
+              mobile_guard_body.count("contracts") == 2,
+              "Mobile configuration guard must use only its defined contracts tuple.",
+          )
+          mobile_guard_contracts_match = re.search(
+              r"(?ms)^          contracts = \([ \t]*\r?\n"
+              r"(?P<body>.*?)(?=^          \)[ \t]*$)",
+              mobile_guard_body,
+          )
+          require(
+              mobile_guard_contracts_match is not None,
+              "Mobile configuration guard must define its contracts tuple.",
+          )
+          mobile_guard_contracts_body = mobile_guard_contracts_match.group("body")
+          observed_guard_contract_lines = [
+              line.strip()
+              for line in mobile_guard_contracts_body.splitlines()
+              if line.strip()
+          ]
+          def format_guard_contract(contract: tuple) -> str:
+              return (
+                  '("'
+                  + contract[1]
+                  + '", "'
+                  + contract[5]
+                  + '", '
+                  + str(contract[6])
+                  + "),"
+              )
+
+          expected_guard_contract_lines = [
+              format_guard_contract(contract) for contract in mobile_contracts
+          ]
+          expected_required_guard_contract_lines = [
+              format_guard_contract(contract)
+              for contract in required_mobile_contracts
+          ]
+          expected_optional_guard_contract_lines = [
+              format_guard_contract(contract)
+              for contract in optional_empty_mobile_contracts
+          ]
+          required_guard_line_suffix = ", " + str(True) + "),"
+          optional_guard_line_suffix = ", " + str(False) + "),"
+          observed_required_guard_contract_lines = [
+              line
+              for line in observed_guard_contract_lines
+              if line.endswith(required_guard_line_suffix)
+          ]
+          observed_optional_guard_contract_lines = [
+              line
+              for line in observed_guard_contract_lines
+              if line.endswith(optional_guard_line_suffix)
+          ]
+          require(
+              len(observed_guard_contract_lines) == MOBILE_PUBLIC_VARIABLE_COUNT
+              and observed_guard_contract_lines == expected_guard_contract_lines,
+              "Mobile configuration guard tuple must contain exactly eight contracts.",
+          )
+          require(
+              len(observed_required_guard_contract_lines)
+              == REQUIRED_MOBILE_URL_COUNT
+              and observed_required_guard_contract_lines
+              == expected_required_guard_contract_lines,
+              "Mobile configuration guard must contain exactly six required contracts.",
+          )
+          require(
+              len(observed_optional_guard_contract_lines)
+              == OPTIONAL_EMPTY_MOBILE_URL_COUNT
+              and observed_optional_guard_contract_lines
+              == expected_optional_guard_contract_lines,
+              "Mobile configuration guard optional-empty contracts must match the exact allowlist.",
+          )
+          expected_optional_empty_mobile_aliases = {
+              contract[1] for contract in optional_empty_mobile_contracts
+          }
+          require(
+              set(
+                  production_mobile_pattern.findall(
+                      "\n".join(observed_optional_guard_contract_lines)
+                  )
+              )
+              == expected_optional_empty_mobile_aliases,
+              "Mobile configuration guard optional-empty aliases must be exact.",
+          )
+          require(
+              set(production_mobile_pattern.findall(mobile_guard_contracts_body))
+              == expected_mobile_aliases,
+              "Mobile configuration guard must validate exactly eight aliases.",
+          )
+          for (
+              _mobile_public_name,
+              mobile_alias,
+              _mobile_expression,
+              _mobile_sentinel_name,
+              _mobile_sentinel_value,
+              expected_hostname,
+              required_non_empty,
+          ) in mobile_contracts:
+              guard_contract = (
+                  '("'
+                  + mobile_alias
+                  + '", "'
+                  + expected_hostname
+                  + '", '
+                  + str(required_non_empty)
+                  + "),"
+              )
+              require(
+                  mobile_guard_contracts_body.count(guard_contract) == 1,
+                  "Mobile configuration guard alias/hostname/availability contract mismatch.",
+              )
+          required_mobile_guard_fragments = [
+              "set -euo pipefail",
+              "python3 - <<'PY'",
+              "import os",
+              "from posixpath import normpath",
+              "from urllib.parse import unquote, urlsplit",
+              "for configuration_name, expected_hostname, required_non_empty in contracts:",
+              'value = os.environ.get(configuration_name, "")',
+              "if not value:",
+              "if required_non_empty:",
+              "continue",
+              "parsed = urlsplit(value)",
+              "parsed_port = parsed.port",
+              "except (TypeError, ValueError):",
+              'parsed.scheme != "https"',
+              "parsed.hostname != expected_hostname",
+              "parsed.netloc != expected_hostname",
+              "parsed.username is not None",
+              "parsed.password is not None",
+              "parsed_port is not None",
+              'explicit_port = ":" in authority',
+              "or explicit_port",
+              "decoded_path = unquote(parsed.path)",
+              'normalized_path = normpath("/" + decoded_path.lstrip("/"))',
+              'normalized_path != "/"',
+              'normalized_path.strip("/").strip()',
+              "or not meaningful_path",
+              "any(character.isspace() for character in value)",
+          ]
+          for fragment in required_mobile_guard_fragments:
+              require(
+                  fragment in mobile_guard_body,
+                  "Mobile configuration guard is missing a fail-closed URL check.",
+              )
+          mobile_guard_empty_flow_pattern = re.compile(
+              r"(?m)^          for configuration_name, expected_hostname, "
+              r"required_non_empty in contracts:\r?\n"
+              r'              value = os\.environ\.get\(configuration_name, ""\)\r?\n'
+              r"              if not value:\r?\n"
+              r"                  if required_non_empty:\r?\n"
+              r"                      raise SystemExit\(\r?\n"
+              r'                          f"Required mobile app store URL configuration '
+              r'is missing: \{configuration_name\}\."\r?\n'
+              r"                      \)\r?\n"
+              r"                  continue\r?\n"
+              r"              try:\r?\n"
+              r"                  parsed = urlsplit\(value\)\r?\n"
+          )
+          require(
+              len(list(mobile_guard_empty_flow_pattern.finditer(mobile_guard_body)))
+              == 1,
+              "Mobile configuration guard empty-value flow must fail required values and skip only empty optional values.",
+          )
+          mobile_guard_invalid_exit_pattern = re.compile(
+              r"(?m)^                  raise SystemExit\(\r?\n"
+              r'                      f"Invalid mobile app store URL configuration: '
+              r'\{configuration_name\}\."\r?\n'
+              r"                  \)(?: from None)?[ \t]*\r?$"
+          )
+          require(
+              len(
+                  list(
+                      mobile_guard_invalid_exit_pattern.finditer(
+                          mobile_guard_body
+                      )
+                  )
+              )
+              == 2,
+              "Mobile configuration guard invalid-value exits must identify only configuration names.",
+          )
+          require(
+              mobile_guard_body.count("required_non_empty") == 2
+              and len(re.findall(r"(?m)^\s*continue\s*$", mobile_guard_body)) == 1
+              and mobile_guard_body.count("parsed = urlsplit(value)") == 1
+              and len(re.findall(r"\bvalue\b", mobile_guard_body)) == 4
+              and mobile_guard_body.count("os.environ") == 1
+              and mobile_guard_body.count("{configuration_name}") == 3,
+              "Mobile availability metadata must only control empty handling before shared URL validation.",
+          )
+          require(
+              mobile_guard_body.count("raise SystemExit(") == 3,
+              "Mobile configuration guard must fail closed on missing or invalid values.",
+          )
+          for forbidden_guard_network_pattern in (
+              "curl ",
+              "wget ",
+              "urllib.request",
+              "http.client",
+              "requests.",
+          ):
+              require(
+                  forbidden_guard_network_pattern not in mobile_guard_body,
+                  "Mobile configuration guard must not perform network requests.",
+              )
+          require(
+              "{value}" not in mobile_guard_body
+              and re.search(r"\bprint\s*\(", mobile_guard_body) is None
+              and re.search(
+                  r"(?m)^\s*(?:echo|printf)\b", mobile_guard_body
+              )
+              is None
+              and "GITHUB_OUTPUT" not in mobile_guard_body
+              and "GITHUB_STEP_SUMMARY" not in mobile_guard_body,
+              "Mobile configuration guard must not print configured URL values.",
+          )
+          require(
+              publish_job.index("Enforce fail-closed exact-source guards")
+              < publish_job.index(maps_guard_name)
+              < publish_job.index(mobile_guard_name)
+              < publish_job.index("uses: " + auth_ref),
+              "Source, Maps, and mobile guards must execute in order before Google authentication.",
+          )
+
           maps_value_references = [maps_alias, "image_maps_values", "image_environment"]
           for value_reference in maps_value_references:
               require(
@@ -341,6 +988,34 @@ jobs:
                   )
           maps_summary = "Google Maps browser configuration: externally " + "configured"
           require(maps_summary in publish_job, "Non-sensitive Maps handoff summary is missing.")
+          mobile_value_references = (
+              [contract[1] for contract in mobile_contracts]
+              + [contract[3] for contract in mobile_contracts]
+              + ["image_" + "mobile_values", "expected_" + "value"]
+          )
+          for value_reference in mobile_value_references:
+              require(
+                  re.search(
+                      r"(?mi)^\s*(?:echo|printf)\b[^\n]*\$\{?"
+                      + re.escape(value_reference)
+                      + r"(?:\[[^\]]+\])?\}?",
+                      text,
+                  )
+                  is None,
+                  "Mobile app store URL values must not be printed.",
+              )
+              for line in workflow_lines:
+                  if value_reference in line:
+                      require(
+                          "GITHUB_OUTPUT" not in line
+                          and "GITHUB_STEP_SUMMARY" not in line,
+                          "Mobile app store URL values must not be written to workflow outputs.",
+                      )
+          mobile_summary = "Mobile app store URLs: externally " + "configured"
+          require(
+              publish_job.count(mobile_summary) == 1,
+              "Non-sensitive mobile app store URL handoff summary is missing or duplicated.",
+          )
 
           oidc_permission = "id-" + "token:"
           require(oidc_permission not in validate_job, "Push validation job must not receive an OIDC token.")
@@ -366,12 +1041,28 @@ jobs:
           set -euo pipefail
           validation_image="school-dashboard-validation:${GITHUB_SHA}"
           validation_maps_value="pt-1b-non-production-maps-validation-${GITHUB_SHA}"
+          validation_mobile_app_student_google_play_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/student/google-play"
+          validation_mobile_app_student_app_store_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/student/app-store"
+          validation_mobile_app_teacher_google_play_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/teacher/google-play"
+          validation_mobile_app_teacher_app_store_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/teacher/app-store"
+          validation_mobile_app_parent_google_play_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/parent/google-play"
+          validation_mobile_app_parent_app_store_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/parent/app-store"
+          validation_mobile_app_dismissal_staff_google_play_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/dismissal-staff/google-play"
+          validation_mobile_app_dismissal_staff_app_store_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/dismissal-staff/app-store"
           docker build \
             --platform linux/amd64 \
             --build-arg NEXT_PUBLIC_API_URL="${PRODUCTION_API_URL}" \
             --build-arg NEXT_PUBLIC_REALTIME_URL="${PRODUCTION_REALTIME_URL}" \
             --build-arg NEXT_PUBLIC_REALTIME_SOCKET_PATH="${PRODUCTION_REALTIME_SOCKET_PATH}" \
             --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${validation_maps_value}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL="${validation_mobile_app_student_google_play_url}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_STUDENT_APP_STORE_URL="${validation_mobile_app_student_app_store_url}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL="${validation_mobile_app_teacher_google_play_url}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_TEACHER_APP_STORE_URL="${validation_mobile_app_teacher_app_store_url}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_PARENT_GOOGLE_PLAY_URL="${validation_mobile_app_parent_google_play_url}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_PARENT_APP_STORE_URL="${validation_mobile_app_parent_app_store_url}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL="${validation_mobile_app_dismissal_staff_google_play_url}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL="${validation_mobile_app_dismissal_staff_app_store_url}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --tag "$validation_image" \
             .
@@ -382,6 +1073,14 @@ jobs:
           set -euo pipefail
           validation_image="school-dashboard-validation:${GITHUB_SHA}"
           validation_maps_value="pt-1b-non-production-maps-validation-${GITHUB_SHA}"
+          validation_mobile_app_student_google_play_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/student/google-play"
+          validation_mobile_app_student_app_store_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/student/app-store"
+          validation_mobile_app_teacher_google_play_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/teacher/google-play"
+          validation_mobile_app_teacher_app_store_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/teacher/app-store"
+          validation_mobile_app_parent_google_play_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/parent/google-play"
+          validation_mobile_app_parent_app_store_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/parent/app-store"
+          validation_mobile_app_dismissal_staff_google_play_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/dismissal-staff/google-play"
+          validation_mobile_app_dismissal_staff_app_store_url="https://example.invalid/moazez-pre35/${GITHUB_SHA}/dismissal-staff/app-store"
           actual_revision="$(
             docker image inspect "$validation_image" \
               --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
@@ -415,6 +1114,29 @@ jobs:
             exit 1
           fi
 
+          require_mobile_image_environment_value() {
+            local environment_name="$1"
+            local expected_value="$2"
+            local -a image_mobile_values
+            mapfile -t image_mobile_values < <(
+              sed -n "s/^${environment_name}=//p" <<<"$image_environment"
+            )
+            if [[ "${#image_mobile_values[@]}" -ne 1 ]] \
+              || [[ "${image_mobile_values[0]}" != "$expected_value" ]]; then
+              echo "Validation image mobile app store URL configuration mismatch." >&2
+              exit 1
+            fi
+          }
+
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL "$validation_mobile_app_student_google_play_url"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_STUDENT_APP_STORE_URL "$validation_mobile_app_student_app_store_url"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL "$validation_mobile_app_teacher_google_play_url"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_TEACHER_APP_STORE_URL "$validation_mobile_app_teacher_app_store_url"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_PARENT_GOOGLE_PLAY_URL "$validation_mobile_app_parent_google_play_url"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_PARENT_APP_STORE_URL "$validation_mobile_app_parent_app_store_url"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL "$validation_mobile_app_dismissal_staff_google_play_url"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL "$validation_mobile_app_dismissal_staff_app_store_url"
+
   publish-production-artifact:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -423,6 +1145,14 @@ jobs:
       id-token: write
     env:
       PRODUCTION_GOOGLE_MAPS_API_KEY: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+      PRODUCTION_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL: ${{ vars.NEXT_PUBLIC_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL }}
+      PRODUCTION_MOBILE_APP_STUDENT_APP_STORE_URL: ${{ vars.NEXT_PUBLIC_MOBILE_APP_STUDENT_APP_STORE_URL }}
+      PRODUCTION_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL: ${{ vars.NEXT_PUBLIC_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL }}
+      PRODUCTION_MOBILE_APP_TEACHER_APP_STORE_URL: ${{ vars.NEXT_PUBLIC_MOBILE_APP_TEACHER_APP_STORE_URL }}
+      PRODUCTION_MOBILE_APP_PARENT_GOOGLE_PLAY_URL: ${{ vars.NEXT_PUBLIC_MOBILE_APP_PARENT_GOOGLE_PLAY_URL }}
+      PRODUCTION_MOBILE_APP_PARENT_APP_STORE_URL: ${{ vars.NEXT_PUBLIC_MOBILE_APP_PARENT_APP_STORE_URL }}
+      PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL: ${{ vars.NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL }}
+      PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL: ${{ vars.NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL }}
     concurrency:
       group: production-artifact-${{ github.repository_id }}-${{ github.event.inputs.expected_source_sha }}
       cancel-in-progress: false
@@ -478,6 +1208,66 @@ jobs:
             echo "Required Google Maps browser configuration is missing." >&2
             exit 1
           fi
+
+      - name: Require external mobile app store URL configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from posixpath import normpath
+          from urllib.parse import unquote, urlsplit
+
+          contracts = (
+              ("PRODUCTION_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL", "play.google.com", True),
+              ("PRODUCTION_MOBILE_APP_STUDENT_APP_STORE_URL", "apps.apple.com", False),
+              ("PRODUCTION_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL", "play.google.com", True),
+              ("PRODUCTION_MOBILE_APP_TEACHER_APP_STORE_URL", "apps.apple.com", False),
+              ("PRODUCTION_MOBILE_APP_PARENT_GOOGLE_PLAY_URL", "play.google.com", True),
+              ("PRODUCTION_MOBILE_APP_PARENT_APP_STORE_URL", "apps.apple.com", True),
+              ("PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL", "play.google.com", True),
+              ("PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL", "apps.apple.com", True),
+          )
+
+          for configuration_name, expected_hostname, required_non_empty in contracts:
+              value = os.environ.get(configuration_name, "")
+              if not value:
+                  if required_non_empty:
+                      raise SystemExit(
+                          f"Required mobile app store URL configuration is missing: {configuration_name}."
+                      )
+                  continue
+              try:
+                  parsed = urlsplit(value)
+                  parsed_port = parsed.port
+              except (TypeError, ValueError):
+                  raise SystemExit(
+                      f"Invalid mobile app store URL configuration: {configuration_name}."
+                  ) from None
+
+              authority = parsed.netloc.rsplit("@", 1)[-1]
+              explicit_port = ":" in authority
+              decoded_path = unquote(parsed.path)
+              normalized_path = normpath("/" + decoded_path.lstrip("/"))
+              meaningful_path = (
+                  normalized_path != "/"
+                  and bool(normalized_path.strip("/").strip())
+              )
+              if (
+                  parsed.scheme != "https"
+                  or parsed.hostname != expected_hostname
+                  or parsed.netloc != expected_hostname
+                  or parsed.username is not None
+                  or parsed.password is not None
+                  or parsed_port is not None
+                  or explicit_port
+                  or not meaningful_path
+                  or any(character.isspace() for character in value)
+              ):
+                  raise SystemExit(
+                      f"Invalid mobile app store URL configuration: {configuration_name}."
+                  )
+          PY
 
       - name: Authenticate with dedicated Production artifact identity
         id: gcp-auth
@@ -544,6 +1334,14 @@ jobs:
             --build-arg NEXT_PUBLIC_REALTIME_URL="${PRODUCTION_REALTIME_URL}" \
             --build-arg NEXT_PUBLIC_REALTIME_SOCKET_PATH="${PRODUCTION_REALTIME_SOCKET_PATH}" \
             --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${PRODUCTION_GOOGLE_MAPS_API_KEY}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL="${PRODUCTION_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_STUDENT_APP_STORE_URL="${PRODUCTION_MOBILE_APP_STUDENT_APP_STORE_URL}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL="${PRODUCTION_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_TEACHER_APP_STORE_URL="${PRODUCTION_MOBILE_APP_TEACHER_APP_STORE_URL}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_PARENT_GOOGLE_PLAY_URL="${PRODUCTION_MOBILE_APP_PARENT_GOOGLE_PLAY_URL}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_PARENT_APP_STORE_URL="${PRODUCTION_MOBILE_APP_PARENT_APP_STORE_URL}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL="${PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL}" \
+            --build-arg NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL="${PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --tag "$image_tag" \
             .
@@ -585,6 +1383,29 @@ jobs:
             echo "Production image Maps browser configuration mismatch." >&2
             exit 1
           fi
+
+          require_mobile_image_environment_value() {
+            local environment_name="$1"
+            local expected_value="$2"
+            local -a image_mobile_values
+            mapfile -t image_mobile_values < <(
+              sed -n "s/^${environment_name}=//p" <<<"$image_environment"
+            )
+            if [[ "${#image_mobile_values[@]}" -ne 1 ]] \
+              || [[ "${image_mobile_values[0]}" != "$expected_value" ]]; then
+              echo "Production image mobile app store URL configuration mismatch." >&2
+              exit 1
+            fi
+          }
+
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL "$PRODUCTION_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_STUDENT_APP_STORE_URL "$PRODUCTION_MOBILE_APP_STUDENT_APP_STORE_URL"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL "$PRODUCTION_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_TEACHER_APP_STORE_URL "$PRODUCTION_MOBILE_APP_TEACHER_APP_STORE_URL"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_PARENT_GOOGLE_PLAY_URL "$PRODUCTION_MOBILE_APP_PARENT_GOOGLE_PLAY_URL"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_PARENT_APP_STORE_URL "$PRODUCTION_MOBILE_APP_PARENT_APP_STORE_URL"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL "$PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL"
+          require_mobile_image_environment_value NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL "$PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL"
 
       - name: Push source-SHA Production tag
         shell: bash
@@ -628,6 +1449,7 @@ jobs:
             echo "- Production Realtime URL: ${PRODUCTION_REALTIME_URL}"
             echo "- Production Realtime Socket Path: ${PRODUCTION_REALTIME_SOCKET_PATH}"
             echo "- Google Maps browser configuration: externally configured"
+            echo "- Mobile app store URLs: externally configured"
             echo "- Artifact Registry package: ${ARTIFACT_PACKAGE}"
             echo "- Source-SHA tag: ${image_tag}"
             echo "- Remote sha256 digest: ${remote_digest}"
