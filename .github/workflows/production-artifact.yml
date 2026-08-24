@@ -85,6 +85,13 @@ jobs:
           api_url = "https://api." + "moazez.cloud/api/v1"
           realtime_url = api_url + "/realtime"
           socket_path = "/socket" + ".io"
+          MOBILE_PUBLIC_VARIABLE_COUNT = 8
+          REQUIRED_MOBILE_URL_COUNT = 6
+          OPTIONAL_EMPTY_MOBILE_URL_COUNT = 2
+          AUTHORIZED_PUBLIC_BUILD_ARGUMENT_COUNT = 12
+          GLOBAL_BUILD_ARG_OCCURRENCES = 24
+          VALIDATE_BUILD_ARG_COUNT = 12
+          PRODUCTION_BUILD_ARG_COUNT = 12
           public_prefix = "NEXT_" + "PUBLIC_"
           production_prefix = "PRODUCTION_"
           maps_public_name = public_prefix + "GOOGLE_MAPS_API_KEY"
@@ -97,18 +104,38 @@ jobs:
               ("PARENT", "parent"),
               ("DISMISSAL_" + "STAFF", "dismissal-staff"),
           )
+          google_play_mobile_store_name = "GOOGLE_" + "PLAY"
+          app_store_mobile_store_name = "APP_" + "STORE"
           mobile_stores = (
-              ("GOOGLE_" + "PLAY", "google-play", "play.google.com"),
-              ("APP_" + "STORE", "app-store", "apps.apple.com"),
+              (google_play_mobile_store_name, "google-play", "play.google.com"),
+              (app_store_mobile_store_name, "app-store", "apps.apple.com"),
           )
+          optional_empty_mobile_role_names = ("STUDENT", "TEACHER")
+
+          def derive_mobile_public_name(role_name: str, store_name: str) -> str:
+              return (
+                  public_prefix
+                  + mobile_marker
+                  + role_name
+                  + "_"
+                  + store_name
+                  + "_URL"
+              )
+
           mobile_contracts = []
           for role_name, role_path in mobile_roles:
               for store_name, store_path, expected_hostname in mobile_stores:
                   mobile_suffix = mobile_marker + role_name + "_" + store_name + "_URL"
-                  mobile_public_name = public_prefix + mobile_suffix
+                  mobile_public_name = derive_mobile_public_name(
+                      role_name, store_name
+                  )
                   mobile_alias = production_prefix + mobile_suffix
                   mobile_expression = (
                       "$" + "{{ " + "vars." + mobile_public_name + " }}"
+                  )
+                  required_non_empty = not (
+                      store_name == app_store_mobile_store_name
+                      and role_name in optional_empty_mobile_role_names
                   )
                   mobile_sentinel_name = "validation_" + mobile_suffix.lower()
                   mobile_sentinel_value = (
@@ -128,6 +155,7 @@ jobs:
                           mobile_sentinel_name,
                           mobile_sentinel_value,
                           expected_hostname,
+                          required_non_empty,
                       )
                   )
           mobile_contracts = tuple(mobile_contracts)
@@ -135,12 +163,101 @@ jobs:
               contract[0] for contract in mobile_contracts
           }
           expected_mobile_aliases = {contract[1] for contract in mobile_contracts}
+          required_mobile_contracts = tuple(
+              contract for contract in mobile_contracts if contract[6] is True
+          )
+          optional_empty_mobile_contracts = tuple(
+              contract for contract in mobile_contracts if contract[6] is False
+          )
+          required_mobile_public_names = {
+              contract[0] for contract in required_mobile_contracts
+          }
+          optional_empty_mobile_public_names = {
+              contract[0] for contract in optional_empty_mobile_contracts
+          }
+          expected_optional_empty_mobile_public_names = {
+              derive_mobile_public_name(role_name, app_store_mobile_store_name)
+              for role_name in optional_empty_mobile_role_names
+          }
+          mobile_availability_by_public_name = {
+              contract[0]: contract[6] for contract in mobile_contracts
+          }
           require(
-              len(mobile_contracts) == 8
-              and len(expected_mobile_public_names) == 8
-              and len(expected_mobile_aliases) == 8,
+              MOBILE_PUBLIC_VARIABLE_COUNT
+              == REQUIRED_MOBILE_URL_COUNT + OPTIONAL_EMPTY_MOBILE_URL_COUNT,
+              "Mobile availability governance counts must partition the specification.",
+          )
+          require(
+              len(mobile_contracts) == MOBILE_PUBLIC_VARIABLE_COUNT
+              and len(expected_mobile_public_names) == MOBILE_PUBLIC_VARIABLE_COUNT
+              and len(expected_mobile_aliases) == MOBILE_PUBLIC_VARIABLE_COUNT,
               "Mobile app store URL specification must define exactly eight contracts.",
           )
+          require(
+              all(isinstance(contract[6], bool) for contract in mobile_contracts),
+              "Every mobile contract must define boolean availability metadata.",
+          )
+          require(
+              len(required_mobile_contracts) == REQUIRED_MOBILE_URL_COUNT,
+              "Mobile specification must define exactly six required URLs.",
+          )
+          require(
+              len(optional_empty_mobile_contracts)
+              == OPTIONAL_EMPTY_MOBILE_URL_COUNT,
+              "Mobile specification must define exactly two optional-empty URLs.",
+          )
+          require(
+              optional_empty_mobile_public_names
+              == expected_optional_empty_mobile_public_names,
+              "Optional-empty mobile public values do not match the exact allowlist.",
+          )
+          require(
+              required_mobile_public_names.isdisjoint(
+                  optional_empty_mobile_public_names
+              )
+              and (
+                  required_mobile_public_names
+                  | optional_empty_mobile_public_names
+              )
+              == expected_mobile_public_names,
+              "Required and optional-empty mobile contracts must exactly partition the allowlist.",
+          )
+          google_play_mobile_public_names = {
+              derive_mobile_public_name(role_name, google_play_mobile_store_name)
+              for role_name, _role_path in mobile_roles
+          }
+          require(
+              google_play_mobile_public_names <= required_mobile_public_names
+              and google_play_mobile_public_names.isdisjoint(
+                  optional_empty_mobile_public_names
+              ),
+              "Every Google Play mobile URL must be required.",
+          )
+          for required_app_store_role_name in (
+              "PARENT",
+              "DISMISSAL_" + "STAFF",
+          ):
+              require(
+                  mobile_availability_by_public_name[
+                      derive_mobile_public_name(
+                          required_app_store_role_name,
+                          app_store_mobile_store_name,
+                      )
+                  ]
+                  is True,
+                  "Parent and Dismissal Staff App Store URLs must be required.",
+              )
+          for optional_app_store_role_name in optional_empty_mobile_role_names:
+              require(
+                  mobile_availability_by_public_name[
+                      derive_mobile_public_name(
+                          optional_app_store_role_name,
+                          app_store_mobile_store_name,
+                      )
+                  ]
+                  is False,
+                  "Student and Teacher App Store URLs must be optional-empty.",
+              )
 
           require(text.count("uses: " + checkout_ref) == 2, "Unexpected checkout action references.")
           require(
@@ -262,8 +379,14 @@ jobs:
               public_prefix + "REALTIME_SOCKET_PATH",
               maps_public_name,
           } | expected_mobile_public_names
-          require(len(expected_arguments) == 12, "Authorized public build argument model mismatch.")
-          require(len(build_arguments) == 24, "Unexpected number of public Docker build arguments.")
+          require(
+              len(expected_arguments) == AUTHORIZED_PUBLIC_BUILD_ARGUMENT_COUNT,
+              "Authorized public build argument model mismatch.",
+          )
+          require(
+              len(build_arguments) == GLOBAL_BUILD_ARG_OCCURRENCES,
+              "Unexpected number of public Docker build arguments.",
+          )
           require(set(build_arguments) == expected_arguments, "Unexpected public Docker build argument.")
           for argument in expected_arguments:
               require(build_arguments.count(argument) == 2, "Required build argument count mismatch.")
@@ -313,11 +436,13 @@ jobs:
               r"--build-arg\s+(NEXT_PUBLIC_[A-Za-z0-9_]+)=", publish_job
           )
           require(
-              len(validate_arguments) == 12 and set(validate_arguments) == expected_arguments,
+              len(validate_arguments) == VALIDATE_BUILD_ARG_COUNT
+              and set(validate_arguments) == expected_arguments,
               "Push validation build arguments do not match the authorized contract.",
           )
           require(
-              len(publish_arguments) == 12 and set(publish_arguments) == expected_arguments,
+              len(publish_arguments) == PRODUCTION_BUILD_ARG_COUNT
+              and set(publish_arguments) == expected_arguments,
               "Production build arguments do not match the authorized contract.",
           )
           for argument in expected_arguments:
@@ -456,6 +581,7 @@ jobs:
               mobile_sentinel_name,
               mobile_sentinel_value,
               _expected_hostname,
+              _required_non_empty,
           ) in mobile_contracts:
               mobile_env_assignment = (
                   "      " + mobile_alias + ": " + mobile_expression
@@ -632,15 +758,70 @@ jobs:
               for line in mobile_guard_contracts_body.splitlines()
               if line.strip()
           ]
-          expected_guard_contract_lines = {
-              '("' + contract[1] + '", "' + contract[5] + '"),'
-              for contract in mobile_contracts
+          def format_guard_contract(contract: tuple) -> str:
+              return (
+                  '("'
+                  + contract[1]
+                  + '", "'
+                  + contract[5]
+                  + '", '
+                  + str(contract[6])
+                  + "),"
+              )
+
+          expected_guard_contract_lines = [
+              format_guard_contract(contract) for contract in mobile_contracts
+          ]
+          expected_required_guard_contract_lines = [
+              format_guard_contract(contract)
+              for contract in required_mobile_contracts
+          ]
+          expected_optional_guard_contract_lines = [
+              format_guard_contract(contract)
+              for contract in optional_empty_mobile_contracts
+          ]
+          required_guard_line_suffix = ", " + str(True) + "),"
+          optional_guard_line_suffix = ", " + str(False) + "),"
+          observed_required_guard_contract_lines = [
+              line
+              for line in observed_guard_contract_lines
+              if line.endswith(required_guard_line_suffix)
+          ]
+          observed_optional_guard_contract_lines = [
+              line
+              for line in observed_guard_contract_lines
+              if line.endswith(optional_guard_line_suffix)
+          ]
+          require(
+              len(observed_guard_contract_lines) == MOBILE_PUBLIC_VARIABLE_COUNT
+              and observed_guard_contract_lines == expected_guard_contract_lines,
+              "Mobile configuration guard tuple must contain exactly eight contracts.",
+          )
+          require(
+              len(observed_required_guard_contract_lines)
+              == REQUIRED_MOBILE_URL_COUNT
+              and observed_required_guard_contract_lines
+              == expected_required_guard_contract_lines,
+              "Mobile configuration guard must contain exactly six required contracts.",
+          )
+          require(
+              len(observed_optional_guard_contract_lines)
+              == OPTIONAL_EMPTY_MOBILE_URL_COUNT
+              and observed_optional_guard_contract_lines
+              == expected_optional_guard_contract_lines,
+              "Mobile configuration guard optional-empty contracts must match the exact allowlist.",
+          )
+          expected_optional_empty_mobile_aliases = {
+              contract[1] for contract in optional_empty_mobile_contracts
           }
           require(
-              len(observed_guard_contract_lines) == 8
-              and set(observed_guard_contract_lines)
-              == expected_guard_contract_lines,
-              "Mobile configuration guard tuple must contain exactly eight contracts.",
+              set(
+                  production_mobile_pattern.findall(
+                      "\n".join(observed_optional_guard_contract_lines)
+                  )
+              )
+              == expected_optional_empty_mobile_aliases,
+              "Mobile configuration guard optional-empty aliases must be exact.",
           )
           require(
               set(production_mobile_pattern.findall(mobile_guard_contracts_body))
@@ -654,11 +835,20 @@ jobs:
               _mobile_sentinel_name,
               _mobile_sentinel_value,
               expected_hostname,
+              required_non_empty,
           ) in mobile_contracts:
-              guard_contract = '("' + mobile_alias + '", "' + expected_hostname + '"),'
+              guard_contract = (
+                  '("'
+                  + mobile_alias
+                  + '", "'
+                  + expected_hostname
+                  + '", '
+                  + str(required_non_empty)
+                  + "),"
+              )
               require(
                   mobile_guard_contracts_body.count(guard_contract) == 1,
-                  "Mobile configuration guard alias/hostname contract mismatch.",
+                  "Mobile configuration guard alias/hostname/availability contract mismatch.",
               )
           required_mobile_guard_fragments = [
               "set -euo pipefail",
@@ -666,9 +856,11 @@ jobs:
               "import os",
               "from posixpath import normpath",
               "from urllib.parse import unquote, urlsplit",
-              "for configuration_name, expected_hostname in contracts:",
-              "value = os.environ.get(configuration_name)",
+              "for configuration_name, expected_hostname, required_non_empty in contracts:",
+              'value = os.environ.get(configuration_name, "")',
               "if not value:",
+              "if required_non_empty:",
+              "continue",
               "parsed = urlsplit(value)",
               "parsed_port = parsed.port",
               "except (TypeError, ValueError):",
@@ -692,6 +884,51 @@ jobs:
                   fragment in mobile_guard_body,
                   "Mobile configuration guard is missing a fail-closed URL check.",
               )
+          mobile_guard_empty_flow_pattern = re.compile(
+              r"(?m)^          for configuration_name, expected_hostname, "
+              r"required_non_empty in contracts:\r?\n"
+              r'              value = os\.environ\.get\(configuration_name, ""\)\r?\n'
+              r"              if not value:\r?\n"
+              r"                  if required_non_empty:\r?\n"
+              r"                      raise SystemExit\(\r?\n"
+              r'                          f"Required mobile app store URL configuration '
+              r'is missing: \{configuration_name\}\."\r?\n'
+              r"                      \)\r?\n"
+              r"                  continue\r?\n"
+              r"              try:\r?\n"
+              r"                  parsed = urlsplit\(value\)\r?\n"
+          )
+          require(
+              len(list(mobile_guard_empty_flow_pattern.finditer(mobile_guard_body)))
+              == 1,
+              "Mobile configuration guard empty-value flow must fail required values and skip only empty optional values.",
+          )
+          mobile_guard_invalid_exit_pattern = re.compile(
+              r"(?m)^                  raise SystemExit\(\r?\n"
+              r'                      f"Invalid mobile app store URL configuration: '
+              r'\{configuration_name\}\."\r?\n'
+              r"                  \)(?: from None)?[ \t]*\r?$"
+          )
+          require(
+              len(
+                  list(
+                      mobile_guard_invalid_exit_pattern.finditer(
+                          mobile_guard_body
+                      )
+                  )
+              )
+              == 2,
+              "Mobile configuration guard invalid-value exits must identify only configuration names.",
+          )
+          require(
+              mobile_guard_body.count("required_non_empty") == 2
+              and len(re.findall(r"(?m)^\s*continue\s*$", mobile_guard_body)) == 1
+              and mobile_guard_body.count("parsed = urlsplit(value)") == 1
+              and len(re.findall(r"\bvalue\b", mobile_guard_body)) == 4
+              and mobile_guard_body.count("os.environ") == 1
+              and mobile_guard_body.count("{configuration_name}") == 3,
+              "Mobile availability metadata must only control empty handling before shared URL validation.",
+          )
           require(
               mobile_guard_body.count("raise SystemExit(") == 3,
               "Mobile configuration guard must fail closed on missing or invalid values.",
@@ -709,7 +946,13 @@ jobs:
               )
           require(
               "{value}" not in mobile_guard_body
-              and re.search(r"\bprint\s*\(\s*value\b", mobile_guard_body) is None,
+              and re.search(r"\bprint\s*\(", mobile_guard_body) is None
+              and re.search(
+                  r"(?m)^\s*(?:echo|printf)\b", mobile_guard_body
+              )
+              is None
+              and "GITHUB_OUTPUT" not in mobile_guard_body
+              and "GITHUB_STEP_SUMMARY" not in mobile_guard_body,
               "Mobile configuration guard must not print configured URL values.",
           )
           require(
@@ -976,22 +1219,24 @@ jobs:
           from urllib.parse import unquote, urlsplit
 
           contracts = (
-              ("PRODUCTION_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL", "play.google.com"),
-              ("PRODUCTION_MOBILE_APP_STUDENT_APP_STORE_URL", "apps.apple.com"),
-              ("PRODUCTION_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL", "play.google.com"),
-              ("PRODUCTION_MOBILE_APP_TEACHER_APP_STORE_URL", "apps.apple.com"),
-              ("PRODUCTION_MOBILE_APP_PARENT_GOOGLE_PLAY_URL", "play.google.com"),
-              ("PRODUCTION_MOBILE_APP_PARENT_APP_STORE_URL", "apps.apple.com"),
-              ("PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL", "play.google.com"),
-              ("PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL", "apps.apple.com"),
+              ("PRODUCTION_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL", "play.google.com", True),
+              ("PRODUCTION_MOBILE_APP_STUDENT_APP_STORE_URL", "apps.apple.com", False),
+              ("PRODUCTION_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL", "play.google.com", True),
+              ("PRODUCTION_MOBILE_APP_TEACHER_APP_STORE_URL", "apps.apple.com", False),
+              ("PRODUCTION_MOBILE_APP_PARENT_GOOGLE_PLAY_URL", "play.google.com", True),
+              ("PRODUCTION_MOBILE_APP_PARENT_APP_STORE_URL", "apps.apple.com", True),
+              ("PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL", "play.google.com", True),
+              ("PRODUCTION_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL", "apps.apple.com", True),
           )
 
-          for configuration_name, expected_hostname in contracts:
-              value = os.environ.get(configuration_name)
+          for configuration_name, expected_hostname, required_non_empty in contracts:
+              value = os.environ.get(configuration_name, "")
               if not value:
-                  raise SystemExit(
-                      f"Required mobile app store URL configuration is missing: {configuration_name}."
-                  )
+                  if required_non_empty:
+                      raise SystemExit(
+                          f"Required mobile app store URL configuration is missing: {configuration_name}."
+                      )
+                  continue
               try:
                   parsed = urlsplit(value)
                   parsed_port = parsed.port
