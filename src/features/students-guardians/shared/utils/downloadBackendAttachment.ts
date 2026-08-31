@@ -14,15 +14,16 @@ function getContentDisposition(
   return typeof headerValue === "string" ? headerValue : undefined;
 }
 
-function sanitizeFilename(filename: string, fallbackFilename: string): string {
-  return filename.replace(/[\\/\r\n]/g, "_").trim() || fallbackFilename;
+function sanitizeFilename(filename: string): string {
+  return filename.replace(/[\u0000-\u001F\u007F\\/]/g, "_").trim();
 }
 
 function getDownloadFilename(
   contentDisposition: string | undefined,
   fallbackFilename: string,
 ): string {
-  if (!contentDisposition) return fallbackFilename;
+  const safeFallbackFilename = sanitizeFilename(fallbackFilename) || "download";
+  if (!contentDisposition) return safeFallbackFilename;
 
   const encodedMatch = contentDisposition.match(
     /(?:^|;)\s*filename\*\s*=\s*([^;]+)/i,
@@ -32,9 +33,9 @@ function getDownloadFilename(
     const encodedValue = encodedFilename.match(/^[^']*'[^']*'(.*)$/)?.[1];
     if (encodedValue) {
       try {
-        return sanitizeFilename(decodeURIComponent(encodedValue), fallbackFilename);
+        return sanitizeFilename(decodeURIComponent(encodedValue)) || safeFallbackFilename;
       } catch {
-        return fallbackFilename;
+        return safeFallbackFilename;
       }
     }
   }
@@ -43,13 +44,13 @@ function getDownloadFilename(
     /(?:^|;)\s*filename\s*=\s*"((?:[^"\\]|\\.)*)"/i,
   );
   if (quotedMatch) {
-    return sanitizeFilename(quotedMatch[1].replace(/\\(.)/g, "$1"), fallbackFilename);
+    return sanitizeFilename(quotedMatch[1].replace(/\\(.)/g, "$1")) || safeFallbackFilename;
   }
 
   const unquotedMatch = contentDisposition.match(/(?:^|;)\s*filename\s*=\s*([^;]+)/i);
   return unquotedMatch
-    ? sanitizeFilename(unquotedMatch[1].trim(), fallbackFilename)
-    : fallbackFilename;
+    ? sanitizeFilename(unquotedMatch[1].trim()) || safeFallbackFilename
+    : safeFallbackFilename;
 }
 
 export async function downloadBackendAttachment(

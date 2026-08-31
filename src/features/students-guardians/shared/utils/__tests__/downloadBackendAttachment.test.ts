@@ -61,6 +61,12 @@ describe("downloadBackendAttachment", () => {
       "fallback.csv",
       "student crédentials.csv",
     ],
+    [
+      "attachment; filename=\"student\u0000\t\u007f/credentials.csv\"",
+      "fallback.csv",
+      "student____credentials.csv",
+    ],
+    [undefined, "fallback\u0000/\t\u007f.csv", "fallback____.csv"],
     [undefined, "fallback.csv", "fallback.csv"],
   ])(
     "downloads the backend blob with filename %s",

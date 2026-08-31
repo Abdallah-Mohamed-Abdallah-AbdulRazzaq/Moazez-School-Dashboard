@@ -82,33 +82,42 @@ export function useBatchPolling<T>(
       setIsInitialLoading(!hasFinishedInitialRead);
       setIsRefreshing(hasFinishedInitialRead);
 
+      const handleSuccessfulRead = (nextBatch: T) => {
+        if (stopped || controller.signal.aborted) return;
+
+        consecutiveFailures = 0;
+        setData(nextBatch);
+        setError(null);
+        try {
+          pollingEnabled = latestOptions.current.shouldPoll(nextBatch);
+        } catch (predicateError) {
+          pollingEnabled = false;
+          setError(toApiError(predicateError));
+          return;
+        }
+        if (pollingEnabled) {
+          scheduleRead(latestOptions.current.intervalMs ?? DEFAULT_INTERVAL_MS, read);
+        }
+      };
+
+      const handleLoadFailure = (loadError: unknown) => {
+        if (stopped || controller.signal.aborted) return;
+
+        consecutiveFailures += 1;
+        setError(toApiError(loadError));
+        pollingEnabled = true;
+        const intervalMs = latestOptions.current.intervalMs ?? DEFAULT_INTERVAL_MS;
+        const maxBackoffMs = latestOptions.current.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS;
+        const retryDelayMs = Math.min(
+          intervalMs * 2 ** consecutiveFailures,
+          maxBackoffMs,
+        );
+        scheduleRead(retryDelayMs, read);
+      };
+
       void latestOptions.current
         .load(controller.signal)
-        .then((nextBatch) => {
-          if (stopped || controller.signal.aborted) return;
-
-          consecutiveFailures = 0;
-          setData(nextBatch);
-          setError(null);
-          pollingEnabled = latestOptions.current.shouldPoll(nextBatch);
-          if (pollingEnabled) {
-            scheduleRead(latestOptions.current.intervalMs ?? DEFAULT_INTERVAL_MS, read);
-          }
-        })
-        .catch((loadError: unknown) => {
-          if (stopped || controller.signal.aborted) return;
-
-          consecutiveFailures += 1;
-          setError(toApiError(loadError));
-          pollingEnabled = true;
-          const intervalMs = latestOptions.current.intervalMs ?? DEFAULT_INTERVAL_MS;
-          const maxBackoffMs = latestOptions.current.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS;
-          const retryDelayMs = Math.min(
-            intervalMs * 2 ** consecutiveFailures,
-            maxBackoffMs,
-          );
-          scheduleRead(retryDelayMs, read);
-        })
+        .then(handleSuccessfulRead, handleLoadFailure)
         .finally(() => {
           if (stopped || controller.signal.aborted) return;
 

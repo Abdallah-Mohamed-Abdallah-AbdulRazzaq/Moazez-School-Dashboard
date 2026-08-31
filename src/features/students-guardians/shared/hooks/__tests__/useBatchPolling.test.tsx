@@ -134,6 +134,29 @@ describe("useBatchPolling", () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
+  it("does not schedule another read when shouldPoll throws", async () => {
+    const load = vi.fn().mockResolvedValue({ status: "RUNNING" } satisfies BatchStatus);
+    const shouldPoll = vi.fn(() => {
+      throw new Error("Invalid polling predicate");
+    });
+    const { result } = renderBatchPolling(load, { shouldPoll });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toMatchObject({
+      code: "BATCH_POLLING_ERROR",
+      message: "Invalid polling predicate",
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("aborts an active request and clears its scheduled polling timer on unmount", async () => {
     const pendingRead = deferred<BatchStatus>();
     let activeSignal: AbortSignal | undefined;
@@ -190,6 +213,32 @@ describe("useBatchPolling", () => {
     });
   });
 
+  it("clears the previous resource timer before loading a replacement resource", async () => {
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({ status: "RUNNING" } satisfies BatchStatus)
+      .mockResolvedValueOnce({ status: "COMPLETE" } satisfies BatchStatus);
+    const { rerender } = renderBatchPolling(load);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(vi.getTimerCount()).toBe(1);
+
+    rerender({ resourceId: "batch-2" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(vi.getTimerCount()).toBe(0);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
   it("defers scheduled reads while hidden and refreshes immediately on return", async () => {
     const load = vi
       .fn()
@@ -243,19 +292,37 @@ describe("useBatchPolling", () => {
     });
     expect(load).toHaveBeenCalledTimes(3);
 
-    act(() => result.current.retry());
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(399);
+    });
+    expect(load).toHaveBeenCalledTimes(3);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
     });
     expect(load).toHaveBeenCalledTimes(4);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(199);
+      await vi.advanceTimersByTimeAsync(399);
     });
     expect(load).toHaveBeenCalledTimes(4);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
     expect(load).toHaveBeenCalledTimes(5);
+
+    act(() => result.current.retry());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(load).toHaveBeenCalledTimes(6);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(199);
+    });
+    expect(load).toHaveBeenCalledTimes(6);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(load).toHaveBeenCalledTimes(7);
   });
 });
