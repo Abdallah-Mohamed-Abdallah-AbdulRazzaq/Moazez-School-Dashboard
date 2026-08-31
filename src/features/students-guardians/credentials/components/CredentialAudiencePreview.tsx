@@ -36,6 +36,7 @@ const copy = {
     loginEmail: "Login email",
     noEligible: "No eligible students matched.",
     error: "The audience preview could not be loaded.",
+    retry: "Try again",
   },
   ar: {
     preview: "معاينة النطاق",
@@ -49,6 +50,7 @@ const copy = {
     loginEmail: "بريد تسجيل الدخول",
     noEligible: "لا يوجد طلاب مؤهلون مطابقون.",
     error: "تعذر تحميل معاينة النطاق.",
+    retry: "حاول مرة أخرى",
   },
 } as const;
 
@@ -63,7 +65,7 @@ export default function CredentialAudiencePreview({
   const [localSnapshot, setLocalSnapshot] =
     useState<CredentialAudiencePreviewSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [errorAudienceKey, setErrorAudienceKey] = useState<string | null>(null);
   const audienceKey = audience ? getCredentialAudienceKey(audience) : null;
 
   useEffect(() => {
@@ -81,9 +83,10 @@ export default function CredentialAudiencePreview({
         : null;
 
   const loadPreview = async () => {
-    if (!audience) return;
+    if (!audience || loading) return;
+    const requestAudienceKey = getCredentialAudienceKey(audience);
     setLoading(true);
-    setError(false);
+    setErrorAudienceKey(null);
     try {
       const result = await previewCredentialAudience(audience);
       const nextSnapshot = {
@@ -93,13 +96,14 @@ export default function CredentialAudiencePreview({
       setLocalSnapshot(nextSnapshot);
       onChange(nextSnapshot);
     } catch {
-      setError(true);
+      setErrorAudienceKey(requestAudienceKey);
     } finally {
       setLoading(false);
     }
   };
 
   const result = currentSnapshot?.result;
+  const showError = errorAudienceKey === audienceKey;
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -114,7 +118,24 @@ export default function CredentialAudiencePreview({
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-600">{text.error}</p>}
+      {showError && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          <p>{text.error}</p>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            loading={loading}
+            disabled={disabled}
+            onClick={loadPreview}
+          >
+            {text.retry}
+          </Button>
+        </div>
+      )}
 
       {result && (
         <div className="space-y-4" aria-live="polite">

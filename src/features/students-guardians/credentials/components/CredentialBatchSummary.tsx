@@ -7,13 +7,14 @@ import type { CredentialBatch } from "../api/credentialBatchDtos";
 
 interface CredentialBatchSummaryProps {
   batch: CredentialBatch;
+  exportAvailable: boolean;
 }
 
 const copy = {
   en: {
     audience: "Audience",
     mode: "Credential mode",
-    total: "Total rows",
+    total: "Eligible students",
     generated: "Generated rows",
     skipped: "Skipped rows",
     failed: "Failed rows",
@@ -21,6 +22,9 @@ const copy = {
     updatedAt: "Updated at",
     startedAt: "Started at",
     completedAt: "Completed at",
+    export: "Credential export",
+    exportAvailable: "Available for 24 hours",
+    exportPending: "Available after generation",
     statuses: {
       pending: "Pending",
       processing: "Processing",
@@ -32,7 +36,7 @@ const copy = {
   ar: {
     audience: "النطاق",
     mode: "نوع بيانات الدخول",
-    total: "إجمالي الصفوف",
+    total: "الطلاب المؤهلون",
     generated: "البيانات المنشأة",
     skipped: "الصفوف المستبعدة",
     failed: "الصفوف الفاشلة",
@@ -40,6 +44,9 @@ const copy = {
     updatedAt: "آخر تحديث",
     startedAt: "وقت البدء",
     completedAt: "وقت الاكتمال",
+    export: "تصدير بيانات الدخول",
+    exportAvailable: "متاح لمدة 24 ساعة",
+    exportPending: "متاح بعد الإنشاء",
     statuses: {
       pending: "قيد الانتظار",
       processing: "جارٍ التنفيذ",
@@ -59,6 +66,7 @@ function formatTimestamp(timestamp: string, locale: "ar" | "en"): string {
 
 export default function CredentialBatchSummary({
   batch,
+  exportAvailable,
 }: CredentialBatchSummaryProps) {
   const locale = useLocale() === "ar" ? "ar" : "en";
   const text = copy[locale];
@@ -81,6 +89,12 @@ export default function CredentialBatchSummary({
             <div>
               <dt className="text-xs font-medium text-gray-500">{text.mode}</dt>
               <dd className="mt-1 text-gray-900">{batch.credentialMode}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-gray-500">{text.export}</dt>
+              <dd className="mt-1 text-gray-900">
+                {exportAvailable ? text.exportAvailable : text.exportPending}
+              </dd>
             </div>
           </dl>
           <span className="rounded-full bg-primary-50 px-3 py-1 text-sm font-semibold text-primary">

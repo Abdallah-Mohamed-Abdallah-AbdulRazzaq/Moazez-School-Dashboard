@@ -49,6 +49,13 @@ const copy = {
       "Confirmation and provisioning",
       "Final result and credential handoff",
     ],
+    step: "Step",
+    of: "of",
+    milestoneState: {
+      complete: "Complete",
+      current: "Current",
+      upcoming: "Upcoming",
+    },
     loadError: "Academic options could not be loaded.",
     preflightError: "Placement could not be checked.",
     downloadSuccess: "CSV template downloaded.",
@@ -68,6 +75,13 @@ const copy = {
       "التأكيد وإنشاء السجلات",
       "النتيجة النهائية وإنشاء بيانات الدخول",
     ],
+    step: "الخطوة",
+    of: "من",
+    milestoneState: {
+      complete: "مكتملة",
+      current: "الحالية",
+      upcoming: "القادمة",
+    },
     loadError: "تعذر تحميل الخيارات الأكاديمية.",
     preflightError: "تعذر التحقق من التسكين.",
     downloadSuccess: "تم تنزيل قالب CSV.",
@@ -314,19 +328,35 @@ export default function BulkRegistrationStartPage() {
         </header>
 
         <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-          {text.milestones.map((milestone, index) => (
-            <li
-              key={milestone}
-              className={`rounded-xl border p-3 text-sm font-medium ${
-                index <= (validPreflight ? 1 : 0)
-                  ? "border-primary bg-primary-50 text-primary"
-                  : "border-gray-200 bg-white text-gray-500"
-              }`}
-            >
-              <span className="me-2">{index + 1}.</span>
-              {milestone}
-            </li>
-          ))}
+          {text.milestones.map((milestone, index) => {
+            const activeMilestone = validPreflight ? 1 : 0;
+            const state =
+              index < activeMilestone
+                ? "complete"
+                : index === activeMilestone
+                  ? "current"
+                  : "upcoming";
+            return (
+              <li
+                key={milestone}
+                aria-current={state === "current" ? "step" : undefined}
+                aria-label={`${text.step} ${index + 1} ${text.of} ${text.milestones.length}: ${milestone}. ${text.milestoneState[state]}`}
+                className={`flex items-center gap-2 rounded-xl border p-3 text-sm font-medium ${
+                  state === "complete"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : state === "current"
+                      ? "border-primary bg-primary-50 text-primary"
+                      : "border-gray-200 bg-white text-gray-500"
+                }`}
+              >
+                <span aria-hidden="true">{state === "complete" ? "✓" : `${index + 1}.`}</span>
+                <span>{milestone}</span>
+                <span className="ms-auto text-xs" aria-hidden="true">
+                  {text.milestoneState[state]}
+                </span>
+              </li>
+            );
+          })}
         </ol>
 
         {loadingYears ? (
@@ -346,7 +376,11 @@ export default function BulkRegistrationStartPage() {
           />
         )}
 
-        <BulkRegistrationPreflightSummary preflight={preflight} />
+        <BulkRegistrationPreflightSummary
+          preflight={preflight}
+          retrying={checkingPlacement}
+          onRetry={checkPlacement}
+        />
 
         <BulkRegistrationUploadPanel
           key={[

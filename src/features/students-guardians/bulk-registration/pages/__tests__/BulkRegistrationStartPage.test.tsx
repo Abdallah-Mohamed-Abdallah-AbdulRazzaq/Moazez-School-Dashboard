@@ -241,6 +241,26 @@ describe("BulkRegistrationStartPage", () => {
     );
   });
 
+  it("offers a local placement retry after preflight rejection", async () => {
+    bulkRegistrationApiMocks.preflightBulkRegistration.mockResolvedValue({
+      valid: false,
+      errors: ["students.bulk_registration.execution_placement_invalid"],
+      templateVersion: 1,
+      placement: null,
+      studentSeat: null,
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await completePlacement(user);
+    await user.click(screen.getByRole("button", { name: "Check placement" }));
+    await user.click(await screen.findByRole("button", { name: "Try again" }));
+
+    await waitFor(() =>
+      expect(bulkRegistrationApiMocks.preflightBulkRegistration).toHaveBeenCalledTimes(2),
+    );
+  });
+
   it("shows nullable seat limits as not capped", async () => {
     const user = userEvent.setup();
     renderPage();

@@ -92,7 +92,7 @@ export default function CredentialBatchPage({ batchId }: CredentialBatchPageProp
           </div>
         )}
 
-        <CredentialBatchSummary batch={batch} />
+        <CredentialBatchSummary batch={batch} exportAvailable={state.exportEligible} />
         <CredentialExportPanel
           batchId={batch.id}
           enabled={state.exportEligible}

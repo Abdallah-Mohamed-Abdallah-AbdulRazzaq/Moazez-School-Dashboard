@@ -2,12 +2,15 @@
 
 import { CheckCircle2, School, Users } from "lucide-react";
 import { useLocale } from "next-intl";
+import Button from "@/components/ui/button/Button";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import type { BulkRegistrationPreflight } from "@/features/students-guardians/bulk-registration/api/bulkRegistrationDtos";
 import { getBulkRegistrationErrorCode } from "@/features/students-guardians/bulk-registration/model/bulkRegistrationModel";
 
 interface BulkRegistrationPreflightSummaryProps {
   preflight: BulkRegistrationPreflight | null;
+  onRetry?: () => void;
+  retrying?: boolean;
 }
 
 const copy = {
@@ -24,6 +27,7 @@ const copy = {
     unknown: "We could not verify this placement. Please try again.",
     placementUnavailable: "The selected academic placement is not available.",
     selectedPlacement: "Selected placement",
+    retry: "Try again",
   },
   ar: {
     title: "جاهزية التحقق المسبق",
@@ -38,6 +42,7 @@ const copy = {
     unknown: "تعذر التحقق من التسكين. يرجى المحاولة مرة أخرى.",
     placementUnavailable: "التسكين الأكاديمي المحدد غير متاح.",
     selectedPlacement: "التسكين المحدد",
+    retry: "حاول مرة أخرى",
   },
 } as const;
 
@@ -61,6 +66,8 @@ function localizedName(
 
 export default function BulkRegistrationPreflightSummary({
   preflight,
+  onRetry,
+  retrying = false,
 }: BulkRegistrationPreflightSummaryProps) {
   const locale = useLocale() === "ar" ? "ar" : "en";
   const text = copy[locale];
@@ -83,6 +90,19 @@ export default function BulkRegistrationPreflightSummary({
             ),
           )}
         </ul>
+        {onRetry && (
+          <div className="mt-4">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              loading={retrying}
+              onClick={onRetry}
+            >
+              {text.retry}
+            </Button>
+          </div>
+        )}
       </section>
     );
   }

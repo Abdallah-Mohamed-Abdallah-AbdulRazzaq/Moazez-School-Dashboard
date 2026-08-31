@@ -77,4 +77,30 @@ describe("CredentialAudiencePreview", () => {
 
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(null));
   });
+
+  it("offers a local retry when the preview request fails", async () => {
+    vi.mocked(previewCredentialAudience)
+      .mockRejectedValueOnce(new Error("Preview unavailable"))
+      .mockResolvedValueOnce(result);
+    const user = userEvent.setup();
+
+    render(
+      <CredentialAudiencePreview
+        audience={audience}
+        snapshot={null}
+        onChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Preview audience" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The audience preview could not be loaded.",
+    );
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    await waitFor(() =>
+      expect(previewCredentialAudience).toHaveBeenCalledTimes(2),
+    );
+  });
 });

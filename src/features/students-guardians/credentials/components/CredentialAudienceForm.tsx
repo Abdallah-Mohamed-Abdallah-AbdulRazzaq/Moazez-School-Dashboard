@@ -27,6 +27,7 @@ interface CredentialAudienceFormProps {
   academicOptions: AcademicStudentCascadeOptions;
   onChange: (draft: CredentialAudienceDraft) => void;
   onSelectedStudentsChange: (students: SelectedCredentialStudent[]) => void;
+  loadingAcademicYears?: boolean;
   loadingOptions?: boolean;
   disabled?: boolean;
 }
@@ -102,6 +103,7 @@ export default function CredentialAudienceForm({
   academicOptions,
   onChange,
   onSelectedStudentsChange,
+  loadingAcademicYears = false,
   loadingOptions = false,
   disabled = false,
 }: CredentialAudienceFormProps) {
@@ -183,7 +185,7 @@ export default function CredentialAudienceForm({
               label: localizedYearName(year, locale),
             }))}
             placeholder={text.selectYear}
-            disabled={disabled}
+            disabled={disabled || loadingAcademicYears}
             onChange={(academicYearId) =>
               onChange({ audienceMode: draft.audienceMode, academicYearId })
             }

@@ -9,6 +9,11 @@ const navigation = vi.hoisted(() => ({
 const permissions = vi.hoisted(() => ({ canManage: true }));
 const apiMocks = vi.hoisted(() => ({ createCredentialBatch: vi.fn() }));
 const toastMocks = vi.hoisted(() => ({ showError: vi.fn(), showSuccess: vi.fn() }));
+const academicServiceMocks = vi.hoisted(() => ({
+  fetchAcademicYears: vi.fn(),
+  fetchTermsByYear: vi.fn(),
+  fetchStructureTree: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ lang: "en" }),
@@ -33,11 +38,7 @@ vi.mock("@/components/ui/toast/Toast", () => ({
 }));
 vi.mock(
   "@/features/academics/academic-structure-tree/services/structureService",
-  () => ({
-    fetchAcademicYears: vi.fn().mockResolvedValue([]),
-    fetchTermsByYear: vi.fn().mockResolvedValue([]),
-    fetchStructureTree: vi.fn().mockResolvedValue(null),
-  }),
+  () => academicServiceMocks,
 );
 vi.mock("../../api/credentialBatchApi", () => ({
   createCredentialBatch: apiMocks.createCredentialBatch,
@@ -139,6 +140,25 @@ describe("CredentialsStartPage", () => {
     navigation.sourceRegistrationBatchId = null;
     permissions.canManage = true;
     apiMocks.createCredentialBatch.mockReset().mockResolvedValue({ id: "batch-1" });
+    academicServiceMocks.fetchAcademicYears.mockReset().mockResolvedValue([]);
+    academicServiceMocks.fetchTermsByYear.mockReset().mockResolvedValue([]);
+    academicServiceMocks.fetchStructureTree.mockReset().mockResolvedValue(null);
+  });
+
+  it("shows non-academic audiences immediately and loads academic options on demand", async () => {
+    const user = userEvent.setup();
+    render(<CredentialsStartPage />);
+
+    expect(screen.getByTestId("audience-draft")).toHaveTextContent(
+      '"audienceMode":"missing_password"',
+    );
+    expect(academicServiceMocks.fetchAcademicYears).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Change audience" }));
+
+    await waitFor(() =>
+      expect(academicServiceMocks.fetchAcademicYears).toHaveBeenCalledTimes(1),
+    );
   });
 
   it("requires a fresh eligible preview and invalidates it on audience change", async () => {

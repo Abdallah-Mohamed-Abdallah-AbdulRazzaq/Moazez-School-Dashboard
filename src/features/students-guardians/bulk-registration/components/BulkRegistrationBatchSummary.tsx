@@ -29,7 +29,7 @@ interface BulkRegistrationBatchSummaryProps {
 const copy = {
   en: {
     placement: "Academic placement",
-    total: "Total rows",
+    total: "Uploaded rows",
     valid: "Valid rows",
     invalid: "Invalid rows",
     created: "Created rows",
@@ -47,7 +47,7 @@ const copy = {
   },
   ar: {
     placement: "التسكين الأكاديمي",
-    total: "إجمالي الصفوف",
+    total: "الصفوف المرفوعة",
     valid: "الصفوف الصحيحة",
     invalid: "الصفوف غير الصحيحة",
     created: "الطلاب المنشؤون",
