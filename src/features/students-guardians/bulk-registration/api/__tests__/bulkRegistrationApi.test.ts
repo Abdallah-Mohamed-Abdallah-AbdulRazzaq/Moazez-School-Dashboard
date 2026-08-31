@@ -40,11 +40,19 @@ describe("bulkRegistrationApi", () => {
   });
 
   it("posts only placement fields for preflight", async () => {
-    const preflight = await preflightBulkRegistration(placement);
+    const preflight = await preflightBulkRegistration({
+      ...placement,
+      ignoredRuntimeProperty: "must not reach the backend",
+    });
 
     expect(apiMocks.apiPost).toHaveBeenCalledWith(
       "/students-guardians/bulk-registrations/preflight",
-      placement,
+      {
+        academicYearId: "year-1",
+        termId: "term-1",
+        classroomId: "classroom-1",
+        enrollmentDate: "2026-09-01",
+      },
     );
     expect(preflight).toEqual({ id: "batch-1" });
   });
@@ -92,6 +100,27 @@ describe("bulkRegistrationApi", () => {
     ]);
     expect(config).toBeUndefined();
     expect(batch).toEqual({ id: "batch-1" });
+  });
+
+  it("omits an absent term from multipart data", async () => {
+    const file = new File(["header\n"], "students.csv", { type: "text/csv" });
+
+    await createBulkRegistration(
+      {
+        academicYearId: "year-1",
+        classroomId: "classroom-1",
+        enrollmentDate: "2026-09-01",
+      },
+      file,
+    );
+
+    const [, body] = apiMocks.apiClient.post.mock.calls[0];
+    expect(Array.from((body as FormData).entries())).toEqual([
+      ["file", file],
+      ["academicYearId", "year-1"],
+      ["classroomId", "classroom-1"],
+      ["enrollmentDate", "2026-09-01"],
+    ]);
   });
 
   it("gets a batch with the caller cancellation signal", async () => {
