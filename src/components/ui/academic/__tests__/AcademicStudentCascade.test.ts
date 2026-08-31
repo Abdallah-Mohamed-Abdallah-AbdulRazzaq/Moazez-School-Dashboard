@@ -149,6 +149,25 @@ describe("AcademicStudentCascade", () => {
     expect(screen.getByRole("button", { name: "Student" })).toBeInTheDocument();
   });
 
+  it("stops at the requested academic level", () => {
+    const onChange = vi.fn();
+
+    render(
+      createElement(AcademicStudentCascade, {
+        value,
+        options,
+        onChange,
+        showStudent: false,
+        lastVisibleLevel: "grade",
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: "Stage" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Grade" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Section" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Classroom" })).not.toBeInTheDocument();
+  });
+
   it("clears all descendants when the stage changes", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
