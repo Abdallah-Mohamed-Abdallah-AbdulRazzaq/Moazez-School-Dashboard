@@ -1,12 +1,15 @@
-export type CredentialAudienceMode =
-  | "import_batch"
-  | "selected_students"
-  | "academic_year"
-  | "stage"
-  | "grade"
-  | "section"
-  | "classroom"
-  | "missing_password";
+export const CREDENTIAL_AUDIENCE_MODES = [
+  "import_batch",
+  "selected_students",
+  "academic_year",
+  "stage",
+  "grade",
+  "section",
+  "classroom",
+  "missing_password",
+] as const;
+
+export type CredentialAudienceMode = (typeof CREDENTIAL_AUDIENCE_MODES)[number];
 
 export type CredentialAudience =
   | {
@@ -43,10 +46,13 @@ export type CredentialAudience =
     }
   | { audienceMode: "missing_password" };
 
-export type CredentialMode =
-  | "unique_generated"
-  | "shared_temporary"
-  | "shared_admin_provided";
+export const CREDENTIAL_MODES = [
+  "unique_generated",
+  "shared_temporary",
+  "shared_admin_provided",
+] as const;
+
+export type CredentialMode = (typeof CREDENTIAL_MODES)[number];
 
 export type CredentialBatchStatus =
   | "pending"
