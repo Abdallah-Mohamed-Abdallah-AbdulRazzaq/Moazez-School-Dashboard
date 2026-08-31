@@ -266,7 +266,37 @@ Mutation errors keep safe form inputs available for correction, except that a pa
 
 ## Component design
 
-Bulk registration uses focused components for:
+### Existing-component reuse requirement
+
+Implementation must compose the existing shared component system. It must not introduce alternate buttons, inputs, selects, tables, upload areas, confirmation dialogs, loading indicators, access-denied screens, empty states, KPI cards, or toast systems.
+
+Use these existing components and capabilities:
+
+| Need | Existing component |
+|---|---|
+| Actions and download triggers | `Button` from `src/components/ui/button` |
+| Text, UUID, date, and password fields | `Input` and `DatePicker` from `src/components/ui/input` |
+| Year, term, audience, status, and academic selectors | `Select` from `src/components/ui/input` |
+| Stage → grade → section → classroom cascade | `AcademicStudentCascade` from `src/components/ui/academic/AcademicStudentCascade.tsx` |
+| CSV selection | `DragDropUploadArea` from `src/components/ui/drag-drop-upload/DragDropUploadArea.tsx` |
+| Row results | `DataTable` from `src/components/ui/data-table`, using its `serverPagination` contract |
+| Row-status filtering | `FilterPanel` from `src/components/ui/filter-panel` |
+| READY confirmation | `ConfirmDialog` from `src/components/ui/confirm-dialog` |
+| Empty audience and row states | `EmptyState` from `src/components/ui/empty-state` |
+| Route-level permission failure | `AccessDenied` from `src/components/ui/access-denied` |
+| Inline loading | `PartialLoader` from `src/components/ui/loaders/PartialLoader.tsx` |
+| Batch counters | `KPICardV2` from `src/components/ui/kpi-card/KPICardV2.tsx` |
+| Transient success/failure notices | The existing toast system in `src/components/ui/toast/Toast.tsx` |
+
+`AcademicStudentCascade` currently always renders its student selector. Extend it with one backward-compatible optional visibility prop, defaulting to the current behavior, so bulk placement and academic credential audiences can reuse the first four selectors without rendering a student field. Do not build a second stage/grade/section/classroom cascade.
+
+For `selected_students`, reuse `Select` with its server-search callbacks to find one student at a time, then render the retained selection as a lightweight list using existing buttons for removal. Do not create a second dropdown implementation. Configure `DragDropUploadArea` for a single file with the CSV accept list and 10 MiB bound; do not create another drop zone. Use `DataTable.serverPagination` for backend row pages rather than implementing a separate paginator.
+
+New components are limited to feature-specific compositions that have no existing equivalent, such as batch status/counters, preflight readiness, row-error presentation, audience preview, credential-mode selection, and the sensitive export notice. These components must be assembled from the shared primitives above and must not establish a new visual system.
+
+### Feature-specific composition
+
+Bulk registration composes the existing components into focused feature sections for:
 
 - Academic placement.
 - Preflight readiness.
@@ -277,7 +307,7 @@ Bulk registration uses focused components for:
 - READY confirmation.
 - Final result and credential handoff.
 
-Credentials uses focused components for:
+Credentials composes the existing components into focused feature sections for:
 
 - Audience mode and mode-specific selectors.
 - Searchable selected-student selection.
@@ -287,7 +317,7 @@ Credentials uses focused components for:
 - Batch status and counters.
 - Sensitive export.
 
-The page layout follows existing School Dashboard cards, buttons, inputs, selects, tables, spacing, and status colors. It is full-page and responsive rather than modal-based. All user-facing text belongs to matching `next-intl` trees in `src/messages/en.json` and `src/messages/ar.json`.
+The page layout follows existing School Dashboard page headers, cards, spacing, and status colors. It is full-page and responsive rather than modal-based. All user-facing text belongs to matching `next-intl` trees in `src/messages/en.json` and `src/messages/ar.json`.
 
 ## Accessibility and localization
 
@@ -339,6 +369,7 @@ The page layout follows existing School Dashboard cards, buttons, inputs, select
 - Password clearing on mode change, cancellation, success, and unmount.
 - Absence of secret persistence, URL serialization, and normal result rendering.
 - Credential execution states and secure export errors.
+- Reuse of `AcademicStudentCascade`, `DragDropUploadArea`, `DataTable.serverPagination`, `ConfirmDialog`, and `AccessDenied` instead of feature-local replacements.
 - English, Arabic, RTL, keyboard focus, and status announcements.
 
 ### Required verification
