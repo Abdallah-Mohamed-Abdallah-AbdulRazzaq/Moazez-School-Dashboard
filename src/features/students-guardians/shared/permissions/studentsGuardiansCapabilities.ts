@@ -20,7 +20,10 @@ export type StudentsGuardiansCapability =
   | "canViewNotes"
   | "canManageNotes"
   | "canViewProfileCorrectionRequests"
-  | "canReviewProfileCorrectionRequests";
+  | "canReviewProfileCorrectionRequests"
+  | "canBulkRegisterStudents"
+  | "canViewStudentCredentialBatches"
+  | "canManageStudentCredentialBatches";
 
 export type StudentsGuardiansCapabilities = Record<
   StudentsGuardiansCapability,
@@ -56,6 +59,18 @@ export const studentsGuardiansCapabilityPermissions = {
   canManageNotes: ["students.notes.manage"],
   canViewProfileCorrectionRequests: ["students.records.view"],
   canReviewProfileCorrectionRequests: ["students.records.manage"],
+  canBulkRegisterStudents: [
+    "students.records.manage",
+    "students.enrollments.manage",
+  ],
+  canViewStudentCredentialBatches: [
+    "students.records.view",
+    "settings.users.view",
+  ],
+  canManageStudentCredentialBatches: [
+    "students.records.view",
+    "settings.users.manage",
+  ],
 } as const satisfies Record<StudentsGuardiansCapability, PermissionKey[]>;
 
 export function hasStudentsGuardiansCapability(

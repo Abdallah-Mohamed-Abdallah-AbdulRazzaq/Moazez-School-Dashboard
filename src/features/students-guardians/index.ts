@@ -27,7 +27,6 @@ export * from './dashboard/utils/studentStatsCalculator';
 export * from './students/pages/StudentsList';
 export * from './students/pages/StudentProfilePage';
 export * from './students/components/modals/AddNoteModal';
-export * from './students/components/modals/BulkUploadModal';
 export * from './students/components/modals/ChangePasswordModal';
 export * from './students/components/modals/UploadDocumentModal';
 export * from './students/utils/studentsListFilters';
