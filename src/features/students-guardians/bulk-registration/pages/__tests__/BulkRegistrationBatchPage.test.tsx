@@ -282,6 +282,10 @@ describe("BulkRegistrationBatchPage", () => {
     expect(screen.getByText("Invalid rows").parentElement).toHaveTextContent("30");
     expect(screen.getByText("Created rows").parentElement).toHaveTextContent("10");
     expect(screen.getByText("Failed rows").parentElement).toHaveTextContent("2");
+    expect(screen.getByText("Total rows").closest("section")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
     expect(screen.getByText("The CSV headers do not match the required template.")).toBeInTheDocument();
     expect(screen.getByText("Validated at")).toBeInTheDocument();
     expect(screen.getByText("Completed at")).toBeInTheDocument();

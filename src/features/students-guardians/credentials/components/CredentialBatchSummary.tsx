@@ -70,7 +70,7 @@ export default function CredentialBatchSummary({
   ].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" aria-live="polite">
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <dl className="grid gap-3 text-sm sm:grid-cols-2">

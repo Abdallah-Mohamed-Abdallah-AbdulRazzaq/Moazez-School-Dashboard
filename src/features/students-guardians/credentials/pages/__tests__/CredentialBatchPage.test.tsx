@@ -65,6 +65,10 @@ describe("CredentialBatchPage", () => {
     expect(screen.getByText("Partially completed")).toBeInTheDocument();
     expect(screen.getByText("Created at")).toBeInTheDocument();
     expect(screen.getByText("Completed at")).toBeInTheDocument();
+    expect(screen.getByText("Partially completed").closest("section")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
     expect(screen.queryByText("must-never-render")).not.toBeInTheDocument();
     expect(screen.queryByText("secret-object-key")).not.toBeInTheDocument();
   });

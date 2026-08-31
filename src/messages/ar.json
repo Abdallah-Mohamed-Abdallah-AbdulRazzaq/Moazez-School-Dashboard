@@ -4223,6 +4223,164 @@
       "confirm_reject": "هل أنت متأكد من رفضك لهذا الطلب؟",
       "no_changes": "لم يتم تحديد أي تغييرات في هذا الطلب."
     },
+    "bulk_registration": {
+      "title": "التسجيل الجماعي للطلاب",
+      "description": "ارفع ملف CSV المعتمد، وراجع التحقق، ثم أكد إنشاء الطلاب.",
+      "trace_id": "معرف التتبع: {traceId}",
+      "unknown": "حدث خطأ غير متوقع في التسجيل الجماعي.",
+      "milestones": {
+        "placement": "التسكين والتحقق المسبق",
+        "upload": "القالب ورفع CSV",
+        "validation": "التحقق ومراجعة الأخطاء",
+        "confirmation": "التأكيد وإنشاء السجلات",
+        "credentials": "النتيجة النهائية وبيانات الدخول"
+      },
+      "actions": {
+        "check_placement": "تحقق من التسكين",
+        "download_template": "تنزيل قالب CSV",
+        "upload": "رفع CSV",
+        "confirm": "تأكيد التسجيل",
+        "refresh": "تحديث الدفعة",
+        "corrected_upload": "رفع CSV مصحح",
+        "continue_credentials": "الانتقال إلى بيانات الدخول"
+      },
+      "statuses": {
+        "batch": {
+          "UPLOADED": "تم الرفع",
+          "VALIDATING": "جارٍ التحقق",
+          "VALIDATION_FAILED": "فشل التحقق",
+          "READY": "جاهز",
+          "EXECUTING": "جارٍ التنفيذ",
+          "EXECUTION_PARTIAL_FAILED": "اكتمل جزئيًا",
+          "FAILED": "فشل",
+          "COMPLETED": "مكتمل"
+        },
+        "row": {
+          "PENDING": "قيد الانتظار",
+          "VALID": "صحيح",
+          "INVALID": "غير صحيح",
+          "PROCESSING": "جارٍ التنفيذ",
+          "CREATED": "تم الإنشاء",
+          "FAILED": "فشل"
+        }
+      },
+      "counters": {
+        "total": "إجمالي الصفوف",
+        "valid": "الصفوف الصحيحة",
+        "invalid": "الصفوف غير الصحيحة",
+        "created": "الصفوف المنشأة",
+        "failed": "الصفوف الفاشلة"
+      },
+      "errors": {
+        "csv_malformed": "تعذرت قراءة ملف CSV.",
+        "header_invalid": "عناوين CSV لا تطابق القالب المطلوب.",
+        "no_data_rows": "لا يحتوي CSV على صفوف طلاب.",
+        "field_invalid": "أحد حقول الطالب غير صالح.",
+        "duplicate_username": "اسم مستخدم مكرر.",
+        "duplicate_row": "صف طالب مكرر.",
+        "confirm_conflict": "تغيرت الدفعة قبل التأكيد.",
+        "execution_invariant_invalid": "حالة تنفيذ الدفعة غير صالحة.",
+        "execution_metadata_invalid": "بيانات تنفيذ الدفعة غير صالحة.",
+        "execution_tenant_ineligible": "لا يمكن لهذه المدرسة تنفيذ الدفعة.",
+        "row_data_invalid": "لا يمكن معالجة أحد الصفوف.",
+        "execution_placement_invalid": "التسكين الأكاديمي لم يعد صالحًا.",
+        "login_email_taken": "بريد تسجيل الدخول مستخدم بالفعل.",
+        "username_invalid": "اسم المستخدم غير صالح.",
+        "login_identity_not_configured": "هوية دخول الطلاب غير مهيأة.",
+        "unknown": "يوجد خطأ في الملف أو أحد الصفوف يحتاج إلى المراجعة."
+      }
+    },
+    "credentials": {
+      "title": "بيانات دخول الطلاب",
+      "description": "عاين الطلاب المؤهلين، وأنشئ بيانات دخول مؤقتة، وصدّر CSV المحمي.",
+      "trace_id": "معرف التتبع: {traceId}",
+      "unknown": "حدث خطأ غير متوقع في بيانات الدخول.",
+      "audiences": {
+        "import_batch": "دفعة تسجيل",
+        "selected_students": "طلاب محددون",
+        "academic_year": "العام الدراسي",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل",
+        "missing_password": "طلاب بدون كلمات مرور"
+      },
+      "modes": {
+        "unique_generated": "كلمة فريدة مولدة",
+        "shared_temporary": "كلمة مؤقتة مشتركة",
+        "shared_admin_provided": "كلمة مشتركة يحددها المسؤول"
+      },
+      "statuses": {
+        "pending": "قيد الانتظار",
+        "processing": "جارٍ التنفيذ",
+        "completed": "مكتمل",
+        "partial_failed": "اكتمل جزئيًا",
+        "failed": "فشل"
+      },
+      "actions": {
+        "preview": "معاينة النطاق",
+        "create": "إنشاء بيانات الدخول",
+        "download": "تنزيل CSV لبيانات الدخول",
+        "refresh": "تحديث الدفعة",
+        "cancel": "إلغاء"
+      },
+      "counters": {
+        "matched": "المطابقون",
+        "eligible": "المؤهلون",
+        "skipped": "المستبعدون",
+        "total_rows": "إجمالي الصفوف",
+        "generated_rows": "البيانات المنشأة",
+        "skipped_rows": "الصفوف المستبعدة",
+        "failed_rows": "الصفوف الفاشلة"
+      },
+      "password_guidance": {
+        "length": "12 حرفًا على الأقل",
+        "uppercase": "حرف إنجليزي كبير",
+        "lowercase": "حرف إنجليزي صغير",
+        "number": "رقم واحد",
+        "symbol": "رمز واحد",
+        "confirmation": "يجب أن تتطابق كلمتا المرور."
+      },
+      "password_reasons": {
+        "password_required": "كلمة المرور مطلوبة.",
+        "password_too_short": "كلمة المرور قصيرة جدًا.",
+        "password_missing_uppercase": "أضف حرفًا إنجليزيًا كبيرًا.",
+        "password_missing_lowercase": "أضف حرفًا إنجليزيًا صغيرًا.",
+        "password_missing_number": "أضف رقمًا.",
+        "password_missing_symbol": "أضف رمزًا.",
+        "password_common": "كلمة المرور شائعة جدًا."
+      },
+      "skipped_reasons": {
+        "password_already_present": "كلمة المرور موجودة بالفعل.",
+        "target_ineligible": "حساب الطالب غير مؤهل.",
+        "credential_version_changed": "تغيرت بيانات الدخول قبل التنفيذ.",
+        "unknown": "تم استبعاد الطالب."
+      },
+      "secure_export": "هذا ملف حساس يحتوي كلمات مرور مؤقتة وتنتهي صلاحيته بعد 24 ساعة.",
+      "export_errors": {
+        "export_not_ready": "ملف التصدير غير جاهز بعد.",
+        "export_empty": "لا توجد بيانات دخول منشأة للتصدير.",
+        "export_too_large": "ملف التصدير كبير جدًا.",
+        "secret_artifact_unavailable": "ملف بيانات الدخول المؤقتة غير متاح.",
+        "secret_artifact_expired": "انتهت صلاحية ملف بيانات الدخول المؤقتة.",
+        "secret_artifact_invalid": "ملف بيانات الدخول المؤقتة غير صالح.",
+        "export_placement_provenance_invalid": "تعذر التحقق من التسكين الأكاديمي للتصدير."
+      },
+      "errors": {
+        "audience_invalid": "النطاق المحدد غير صالح.",
+        "no_eligible_students": "لا يوجد طلاب مؤهلون مطابقون.",
+        "execution_invariant_invalid": "حالة تنفيذ بيانات الدخول غير صالحة.",
+        "execution_tenant_ineligible": "لا يمكن لهذه المدرسة إنشاء بيانات الدخول.",
+        "password_policy_failed": "كلمة المرور لا تستوفي السياسة.",
+        "export_not_ready": "ملف التصدير غير جاهز بعد.",
+        "export_empty": "لا توجد بيانات دخول منشأة للتصدير.",
+        "export_too_large": "ملف التصدير كبير جدًا.",
+        "secret_artifact_unavailable": "ملف بيانات الدخول المؤقتة غير متاح.",
+        "secret_artifact_expired": "انتهت صلاحية ملف بيانات الدخول المؤقتة.",
+        "secret_artifact_invalid": "ملف بيانات الدخول المؤقتة غير صالح.",
+        "unknown": "تعذر إكمال عملية بيانات الدخول."
+      }
+    },
     "shared": {
       "year_term_context": {
         "title": "السياق الأكاديمي",

@@ -117,7 +117,7 @@ export default function CredentialAudiencePreview({
       {error && <p className="text-sm text-red-600">{text.error}</p>}
 
       {result && (
-        <>
+        <div className="space-y-4" aria-live="polite">
           <div className="grid gap-3 sm:grid-cols-3">
             <KPICardV2 title={text.total} value={result.totalMatched} showChart={false} />
             <KPICardV2 title={text.eligible} value={result.eligible} showChart={false} />
@@ -167,7 +167,7 @@ export default function CredentialAudiencePreview({
               </table>
             </div>
           )}
-        </>
+        </div>
       )}
     </section>
   );
