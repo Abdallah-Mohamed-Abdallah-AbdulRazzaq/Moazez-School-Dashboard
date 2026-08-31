@@ -88,4 +88,16 @@ describe("downloadBackendAttachment", () => {
       expect(temporaryAnchor).not.toBeInTheDocument();
     },
   );
+
+  it("falls back safely when an RFC 5987 filename has malformed percent encoding", async () => {
+    mockedGet.mockResolvedValue(
+      blobResponse("attachment; filename*=UTF-8''student%ZZ.csv"),
+    );
+
+    await expect(
+      downloadBackendAttachment("/batches/batch-1/attachment", "fallback.csv"),
+    ).resolves.toBeUndefined();
+
+    expect(clickedFilenames).toEqual(["fallback.csv"]);
+  });
 });
