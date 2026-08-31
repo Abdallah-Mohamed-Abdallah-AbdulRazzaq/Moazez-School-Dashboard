@@ -30,6 +30,7 @@ const copy = {
     uploadSubtitle: "Drag and drop one completed CSV here.",
     select: "Choose file",
     helper: "CSV only · Maximum 10 MiB",
+    multipleFiles: "Select exactly one CSV file.",
     invalidExtension: "Only CSV files are allowed.",
     selected: "Selected file",
     upload: "Upload and start validation",
@@ -43,6 +44,7 @@ const copy = {
     uploadSubtitle: "اسحب ملف CSV المكتمل وأفلته هنا.",
     select: "اختيار ملف",
     helper: "CSV فقط · الحد الأقصى 10 ميجابايت",
+    multipleFiles: "اختر ملف CSV واحدًا فقط.",
     invalidExtension: "يُسمح بملفات CSV فقط.",
     selected: "الملف المحدد",
     upload: "رفع وبدء التحقق",
@@ -63,6 +65,11 @@ export default function BulkRegistrationUploadPanel({
   const [fileError, setFileError] = useState("");
 
   const selectFile = (files: File[]) => {
+    if (files.length !== 1) {
+      setFileError(text.multipleFiles);
+      onFileChange(null);
+      return;
+    }
     const file = files[0];
     if (!file.name.toLowerCase().endsWith(".csv")) {
       setFileError(text.invalidExtension);

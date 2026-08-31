@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
@@ -296,6 +296,26 @@ describe("BulkRegistrationStartPage", () => {
     ).toBeEnabled();
   });
 
+  it("rejects multiple CSV files dropped together", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await runSuccessfulPreflight(user);
+    const firstCsv = new File(["first"], "first.csv", { type: "text/csv" });
+    const secondCsv = new File(["second"], "second.csv", { type: "text/csv" });
+
+    fireEvent.drop(screen.getByRole("button", { name: "Select CSV file" }), {
+      dataTransfer: { files: [firstCsv, secondCsv] },
+    });
+
+    expect(
+      await screen.findByText("Select exactly one CSV file."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("first.csv")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Upload and start validation" }),
+    ).toBeDisabled();
+  });
+
   it.each([
     [
       "students.xlsx",
@@ -347,10 +367,11 @@ describe("BulkRegistrationStartPage", () => {
   it("ignores a stale preflight response after placement changes", async () => {
     let resolvePreflight: (preflight: typeof validPreflight) => void = () =>
       undefined;
+    const preflightRequest = new Promise<typeof validPreflight>((resolve) => {
+      resolvePreflight = resolve;
+    });
     bulkRegistrationApiMocks.preflightBulkRegistration.mockReturnValue(
-      new Promise((resolve) => {
-        resolvePreflight = resolve;
-      }),
+      preflightRequest,
     );
     const user = userEvent.setup();
     renderPage();
@@ -358,11 +379,12 @@ describe("BulkRegistrationStartPage", () => {
     await user.click(screen.getByRole("button", { name: "Check placement" }));
 
     await selectOption(user, "Classroom", "Classroom 2");
-    resolvePreflight(validPreflight);
-
-    await waitFor(() => {
-      expect(screen.queryByText("Placement is ready")).not.toBeInTheDocument();
+    await act(async () => {
+      resolvePreflight(validPreflight);
+      await preflightRequest;
     });
+
+    expect(screen.queryByText("Placement is ready")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Download CSV template" }),
     ).toBeDisabled();
