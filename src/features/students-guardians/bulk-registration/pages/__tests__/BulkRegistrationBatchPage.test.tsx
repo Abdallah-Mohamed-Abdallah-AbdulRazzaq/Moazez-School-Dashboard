@@ -380,7 +380,7 @@ describe("BulkRegistrationBatchPage", () => {
     });
   });
 
-  it("refreshes a stale 409 before rendering the READY action again", async () => {
+  it("refreshes a stale 409 with the same timestamp before rendering the READY action again", async () => {
     let resolveRefresh!: (batch: BulkRegistrationBatchDetail) => void;
     const refreshRequest = new Promise<BulkRegistrationBatchDetail>((resolve) => {
       resolveRefresh = resolve;
@@ -402,12 +402,31 @@ describe("BulkRegistrationBatchPage", () => {
     });
 
     await act(async () => {
-      resolveRefresh(
-        batchFactory("READY", { updatedAt: "2026-08-31T08:04:00.000Z" }),
-      );
+      resolveRefresh(batchFactory("READY"));
       await refreshRequest;
     });
     expect(await screen.findByRole("button", { name: "Confirm registration" })).toBeEnabled();
+  });
+
+  it("does not resolve placement names from a different term", async () => {
+    bulkRegistrationApiMocks.getBulkRegistrationBatch.mockResolvedValue(
+      batchFactory("READY", {
+        placement: {
+          academicYearId: "year-1",
+          termId: "missing-term",
+          classroomId: "classroom-1",
+          enrollmentDate: "2026-09-15",
+        },
+      }),
+    );
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(academicServiceMocks.fetchTermsByYear).toHaveBeenCalledWith("year-1");
+    });
+    expect(academicServiceMocks.fetchStructureTree).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Primary · Grade 1 · Section A/)).not.toBeInTheDocument();
   });
 
   it("uploads a corrected CSV as a new batch and replaces only the batch URL", async () => {
