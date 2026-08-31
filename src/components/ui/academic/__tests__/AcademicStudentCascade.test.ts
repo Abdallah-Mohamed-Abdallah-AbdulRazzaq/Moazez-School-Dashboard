@@ -122,6 +122,33 @@ describe("AcademicStudentCascade", () => {
     studentId: "student-1",
   };
 
+  it("hides the student selector while retaining the academic selectors", () => {
+    const onChange = vi.fn();
+
+    render(
+      createElement(AcademicStudentCascade, {
+        value,
+        options,
+        onChange,
+        showStudent: false,
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: "Stage" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Grade" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Section" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Classroom" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Student" })).not.toBeInTheDocument();
+  });
+
+  it("renders the student selector by default for backward compatibility", () => {
+    const onChange = vi.fn();
+
+    render(createElement(AcademicStudentCascade, { value, options, onChange }));
+
+    expect(screen.getByRole("button", { name: "Student" })).toBeInTheDocument();
+  });
+
   it("clears all descendants when the stage changes", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

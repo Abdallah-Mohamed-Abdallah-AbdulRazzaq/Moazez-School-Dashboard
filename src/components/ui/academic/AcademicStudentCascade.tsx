@@ -161,6 +161,7 @@ export interface AcademicStudentCascadeProps {
   loading?: boolean;
   disabled?: boolean;
   className?: string;
+  showStudent?: boolean;
 }
 
 export default function AcademicStudentCascade({
@@ -172,6 +173,7 @@ export default function AcademicStudentCascade({
   loading = false,
   disabled = false,
   className = "",
+  showStudent = true,
 }: AcademicStudentCascadeProps) {
   const contextLocale = useLocale();
   const locale = localeProp || (contextLocale === "ar" ? "ar" : "en");
@@ -232,15 +234,17 @@ export default function AcademicStudentCascade({
         placeholder={`${copy.select} ${copy.classroom}`}
         onChange={(classroomId) => onChange({ ...value, classroomId, studentId: undefined })}
       />
-      <Select
-        {...selectProps}
-        label={copy.student}
-        value={value.studentId || ""}
-        disabled={selectProps.disabled || !value.classroomId}
-        options={compactOptions(filtered.students.map((item) => toSelectOption(item, locale)))}
-        placeholder={`${copy.select} ${copy.student}`}
-        onChange={(studentId) => onChange({ ...value, studentId })}
-      />
+      {showStudent && (
+        <Select
+          {...selectProps}
+          label={copy.student}
+          value={value.studentId || ""}
+          disabled={selectProps.disabled || !value.classroomId}
+          options={compactOptions(filtered.students.map((item) => toSelectOption(item, locale)))}
+          placeholder={`${copy.select} ${copy.student}`}
+          onChange={(studentId) => onChange({ ...value, studentId })}
+        />
+      )}
     </div>
   );
 }
