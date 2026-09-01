@@ -277,12 +277,12 @@ describe("BulkRegistrationBatchPage", () => {
     renderPage();
 
     expect(await screen.findByText("2026/2027 · Term 1 · Primary · Grade 1 · Section A · Classroom 1")).toBeInTheDocument();
-    expect(screen.getByText("Total rows").parentElement).toHaveTextContent("120");
+    expect(screen.getByText("Uploaded rows").parentElement).toHaveTextContent("120");
     expect(screen.getByText("Valid rows").parentElement).toHaveTextContent("90");
     expect(screen.getByText("Invalid rows").parentElement).toHaveTextContent("30");
     expect(screen.getByText("Created rows").parentElement).toHaveTextContent("10");
     expect(screen.getByText("Failed rows").parentElement).toHaveTextContent("2");
-    expect(screen.getByText("Total rows").closest("section")).toHaveAttribute(
+    expect(screen.getByText("Uploaded rows").closest("section")).toHaveAttribute(
       "aria-live",
       "polite",
     );
@@ -290,6 +290,34 @@ describe("BulkRegistrationBatchPage", () => {
     expect(screen.getByText("Validated at")).toBeInTheDocument();
     expect(screen.getByText("Completed at")).toBeInTheDocument();
     expect(screen.queryByText("Started at")).not.toBeInTheDocument();
+  });
+
+  it("renders CSV row errors as localized messages instead of backend codes", async () => {
+    bulkRegistrationApiMocks.getBulkRegistrationBatch.mockResolvedValue(
+      batchFactory("VALIDATION_FAILED"),
+    );
+    bulkRegistrationApiMocks.listBulkRegistrationRows.mockResolvedValue({
+      ...rowsPage(),
+      items: [
+        {
+          ...rowsPage().items[0],
+          status: "INVALID",
+          errors: [
+            {
+              code: "students.bulk_registration.field_invalid",
+              field: "contactEmail",
+              reason: "invalid_email",
+            },
+          ],
+        },
+      ],
+    });
+    renderPage();
+
+    expect(
+      await screen.findByText("Contact email must be a valid email address."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("invalid_email")).not.toBeInTheDocument();
   });
 
   it("loads page 1 with 50 rows, requests selected pages and sizes, and applies optional status filters", async () => {

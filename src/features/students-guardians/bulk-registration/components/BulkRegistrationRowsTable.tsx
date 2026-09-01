@@ -11,6 +11,7 @@ import type {
   BulkRegistrationRow,
   BulkRegistrationRowStatus,
 } from "../api/bulkRegistrationDtos";
+import { getBulkRegistrationRowValidationErrorMessage } from "../model/bulkRegistrationErrorMessages";
 import { BULK_REGISTRATION_ROW_STATUSES } from "../model/bulkRegistrationModel";
 
 interface BulkRegistrationRowsTableProps {
@@ -156,7 +157,11 @@ export default function BulkRegistrationRowsTable({
         render: (_field, tableRow) => {
           const row = tableRow as unknown as BulkRegistrationRow;
           return row.errors.length
-            ? row.errors.map((error) => error.reason || error.code).join(", ")
+            ? row.errors
+                .map((error) =>
+                  getBulkRegistrationRowValidationErrorMessage(error, locale),
+                )
+                .join(", ")
             : text.notAvailable;
         },
       },
