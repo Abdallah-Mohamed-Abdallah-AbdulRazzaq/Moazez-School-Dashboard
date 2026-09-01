@@ -105,6 +105,19 @@ function teacherAllocationCellKey(classroomId: string, subjectId: string) {
   return `${classroomId}:${subjectId}`;
 }
 
+function isSubjectRegisteredForGrade(
+  allocations: SubjectAllocation[],
+  gradeId: string,
+  subjectId: string,
+) {
+  return allocations.some(
+    (allocation) =>
+      allocation.gradeId === gradeId &&
+      allocation.subjectId === subjectId &&
+      allocation.weeklyHours > 0,
+  );
+}
+
 function teacherIdForCell(
   allocations: TeacherAllocation[],
   target: { sectionId: string; classroomId: string; subjectId: string },
@@ -825,6 +838,11 @@ export default function AllocationMatrixView({
   const renderCell = (row: TargetRow, column: MatrixColumn & { subject: Subject }) => {
     const teacherId = getAllocation(row.section.id, column.subject.id, row.classroom.id);
     const cellKey = teacherAllocationCellKey(row.classroom.id, column.subject.id);
+    const isSubjectRegistered = isSubjectRegisteredForGrade(
+      subjectAllocations,
+      row.section.gradeId,
+      column.subject.id,
+    );
     const isMissing = !teacherId;
     const isChanged = changedCellKeys.has(cellKey);
     const didSaveFail = failedCellKeys.has(cellKey);
@@ -849,7 +867,7 @@ export default function AllocationMatrixView({
           teacherRoleId={teacherRoleId}
           value={teacherId}
           onChange={(newTeacherId) => setAllocation(row.section.id, column.subject.id, newTeacherId, row.classroom.id)}
-          disabled={isReadOnly}
+          disabled={isReadOnly || !isSubjectRegistered}
           teacherLoads={teacherLoads}
           size="small"
         />

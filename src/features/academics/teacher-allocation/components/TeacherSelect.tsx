@@ -10,7 +10,7 @@ import {
   SelectChangeEvent 
 } from "@mui/material";
 import type { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, type UIEvent } from "react";
 import { usePaginatedUsers } from "@/features/settings/users/hooks/usePaginatedUsers";
 
 /**
@@ -70,23 +70,31 @@ export default function TeacherSelect({
     roleId: teacherRoleId,
     status: "active",
   });
-  const teacherOptions = useMemo(
-    () =>
-      usersState.users.map((user) => {
-        const referenceTeacher = teachers.find((teacher) => teacher.id === user.id);
-        return (
-          referenceTeacher ?? {
-            id: user.id,
-            nameAr: user.fullName,
-            nameEn: user.fullName,
-            email: user.email,
-            subjects: [],
-            isActive: true,
-          }
-        );
-      }),
-    [teachers, usersState.users],
-  );
+  const teacherOptions = useMemo(() => {
+    const loadedTeachers = usersState.users.map((user) => {
+      const referenceTeacher = teachers.find((teacher) => teacher.id === user.id);
+      return (
+        referenceTeacher ?? {
+          id: user.id,
+          nameAr: user.fullName,
+          nameEn: user.fullName,
+          email: user.email,
+          subjects: [],
+          isActive: true,
+        }
+      );
+    });
+    const selectedTeacher = value
+      ? teachers.find((teacher) => teacher.id === value)
+      : undefined;
+    if (
+      selectedTeacher &&
+      !loadedTeachers.some((teacher) => teacher.id === selectedTeacher.id)
+    ) {
+      loadedTeachers.unshift(selectedTeacher);
+    }
+    return loadedTeachers;
+  }, [teachers, usersState.users, value]);
 
   const getTeacherLoad = (teacherId: string): number => {
     return teacherLoads?.get(teacherId) || 0;
@@ -141,6 +149,17 @@ export default function TeacherSelect({
       }}
       MenuProps={{
         PaperProps: {
+          onScroll: (event: UIEvent<HTMLDivElement>) => {
+            const menuPaper = event.currentTarget;
+            if (
+              menuPaper.scrollHeight -
+                menuPaper.scrollTop -
+                menuPaper.clientHeight <=
+              40
+            ) {
+              usersState.loadMore();
+            }
+          },
           sx: {
             mt: 1,
             maxHeight: 320,
@@ -150,12 +169,6 @@ export default function TeacherSelect({
           },
         },
         MenuListProps: {
-          onScroll: (event) => {
-            const list = event.currentTarget;
-            if (list.scrollHeight - list.scrollTop - list.clientHeight <= 40) {
-              usersState.loadMore();
-            }
-          },
           sx: {
             paddingTop: 0,
           },
@@ -210,6 +223,12 @@ export default function TeacherSelect({
           }}
         />
       </ListSubheader>
+
+      <MenuItem value="">
+        <span style={{ color: "var(--color-gray-500, #6b7280)" }}>
+          {t("noTeacher")}
+        </span>
+      </MenuItem>
 
       {/* Teacher options */}
       {teacherOptions.length > 0 ? (
