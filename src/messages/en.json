@@ -4222,6 +4222,164 @@
       "confirm_reject": "Are you sure you want to reject this request?",
       "no_changes": "No changes specified in this request."
     },
+    "bulk_registration": {
+      "title": "Bulk student registration",
+      "description": "Upload the canonical CSV, review validation, and confirm student creation.",
+      "trace_id": "Trace ID: {traceId}",
+      "unknown": "An unexpected bulk registration error occurred.",
+      "milestones": {
+        "placement": "Placement and preflight",
+        "upload": "Template and CSV upload",
+        "validation": "Validation and error review",
+        "confirmation": "Confirmation and provisioning",
+        "credentials": "Final result and credential handoff"
+      },
+      "actions": {
+        "check_placement": "Check placement",
+        "download_template": "Download CSV template",
+        "upload": "Upload CSV",
+        "confirm": "Confirm registration",
+        "refresh": "Refresh batch",
+        "corrected_upload": "Upload corrected CSV",
+        "continue_credentials": "Continue to credentials"
+      },
+      "statuses": {
+        "batch": {
+          "UPLOADED": "Uploaded",
+          "VALIDATING": "Validating",
+          "VALIDATION_FAILED": "Validation failed",
+          "READY": "Ready",
+          "EXECUTING": "Executing",
+          "EXECUTION_PARTIAL_FAILED": "Partially completed",
+          "FAILED": "Failed",
+          "COMPLETED": "Completed"
+        },
+        "row": {
+          "PENDING": "Pending",
+          "VALID": "Valid",
+          "INVALID": "Invalid",
+          "PROCESSING": "Processing",
+          "CREATED": "Created",
+          "FAILED": "Failed"
+        }
+      },
+      "counters": {
+        "total": "Total rows",
+        "valid": "Valid rows",
+        "invalid": "Invalid rows",
+        "created": "Created rows",
+        "failed": "Failed rows"
+      },
+      "errors": {
+        "csv_malformed": "The CSV file could not be read.",
+        "header_invalid": "The CSV headers do not match the required template.",
+        "no_data_rows": "The CSV file contains no student rows.",
+        "field_invalid": "A student field is invalid.",
+        "duplicate_username": "A username is duplicated.",
+        "duplicate_row": "A student row is duplicated.",
+        "confirm_conflict": "The batch changed before confirmation.",
+        "execution_invariant_invalid": "The batch execution state is invalid.",
+        "execution_metadata_invalid": "The batch execution metadata is invalid.",
+        "execution_tenant_ineligible": "This school cannot execute the batch.",
+        "row_data_invalid": "A row cannot be processed.",
+        "execution_placement_invalid": "The academic placement is no longer valid.",
+        "login_email_taken": "A login email is already in use.",
+        "username_invalid": "A username is invalid.",
+        "login_identity_not_configured": "Student login identity is not configured.",
+        "unknown": "A row or file error requires attention."
+      }
+    },
+    "credentials": {
+      "title": "Student credentials",
+      "description": "Preview eligible students, create temporary credentials, and export the protected CSV.",
+      "trace_id": "Trace ID: {traceId}",
+      "unknown": "An unexpected credential error occurred.",
+      "audiences": {
+        "import_batch": "Registration batch",
+        "selected_students": "Selected students",
+        "academic_year": "Academic year",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "missing_password": "Students missing passwords"
+      },
+      "modes": {
+        "unique_generated": "Unique generated",
+        "shared_temporary": "Shared temporary",
+        "shared_admin_provided": "Administrator-provided shared"
+      },
+      "statuses": {
+        "pending": "Pending",
+        "processing": "Processing",
+        "completed": "Completed",
+        "partial_failed": "Partially completed",
+        "failed": "Failed"
+      },
+      "actions": {
+        "preview": "Preview audience",
+        "create": "Create credentials",
+        "download": "Download credential CSV",
+        "refresh": "Refresh batch",
+        "cancel": "Cancel"
+      },
+      "counters": {
+        "matched": "Matched",
+        "eligible": "Eligible",
+        "skipped": "Skipped",
+        "total_rows": "Total rows",
+        "generated_rows": "Generated rows",
+        "skipped_rows": "Skipped rows",
+        "failed_rows": "Failed rows"
+      },
+      "password_guidance": {
+        "length": "At least 12 characters",
+        "uppercase": "One uppercase letter",
+        "lowercase": "One lowercase letter",
+        "number": "One number",
+        "symbol": "One symbol",
+        "confirmation": "Passwords must match."
+      },
+      "password_reasons": {
+        "password_required": "A password is required.",
+        "password_too_short": "The password is too short.",
+        "password_missing_uppercase": "Add an uppercase letter.",
+        "password_missing_lowercase": "Add a lowercase letter.",
+        "password_missing_number": "Add a number.",
+        "password_missing_symbol": "Add a symbol.",
+        "password_common": "This password is too common."
+      },
+      "skipped_reasons": {
+        "password_already_present": "A password is already present.",
+        "target_ineligible": "The student account is ineligible.",
+        "credential_version_changed": "The credential changed before execution.",
+        "unknown": "The student was skipped."
+      },
+      "secure_export": "This sensitive file contains temporary passwords and expires after 24 hours.",
+      "export_errors": {
+        "export_not_ready": "The export is not ready yet.",
+        "export_empty": "No generated credentials are available to export.",
+        "export_too_large": "The credential export is too large.",
+        "secret_artifact_unavailable": "The temporary credential file is unavailable.",
+        "secret_artifact_expired": "The temporary credential file has expired.",
+        "secret_artifact_invalid": "The temporary credential file is invalid.",
+        "export_placement_provenance_invalid": "The academic placement could not be verified for export."
+      },
+      "errors": {
+        "audience_invalid": "The selected audience is invalid.",
+        "no_eligible_students": "No eligible students matched.",
+        "execution_invariant_invalid": "The credential execution state is invalid.",
+        "execution_tenant_ineligible": "This school cannot execute credential creation.",
+        "password_policy_failed": "The password does not meet the policy.",
+        "export_not_ready": "The export is not ready yet.",
+        "export_empty": "No generated credentials are available to export.",
+        "export_too_large": "The credential export is too large.",
+        "secret_artifact_unavailable": "The temporary credential file is unavailable.",
+        "secret_artifact_expired": "The temporary credential file has expired.",
+        "secret_artifact_invalid": "The temporary credential file is invalid.",
+        "unknown": "The credential operation could not be completed."
+      }
+    },
     "shared": {
       "year_term_context": {
         "title": "Academic Context",

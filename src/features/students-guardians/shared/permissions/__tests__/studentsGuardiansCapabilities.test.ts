@@ -41,6 +41,18 @@ describe("studentsGuardiansCapabilities", () => {
       canManageNotes: ["students.notes.manage"],
       canViewProfileCorrectionRequests: ["students.records.view"],
       canReviewProfileCorrectionRequests: ["students.records.manage"],
+      canBulkRegisterStudents: [
+        "students.records.manage",
+        "students.enrollments.manage",
+      ],
+      canViewStudentCredentialBatches: [
+        "students.records.view",
+        "settings.users.view",
+      ],
+      canManageStudentCredentialBatches: [
+        "students.records.view",
+        "settings.users.manage",
+      ],
     });
   });
 
@@ -91,5 +103,34 @@ describe("studentsGuardiansCapabilities", () => {
     expect(viewerCapabilities.canReviewProfileCorrectionRequests).toBe(false);
     expect(managerCapabilities.canViewProfileCorrectionRequests).toBe(false);
     expect(managerCapabilities.canReviewProfileCorrectionRequests).toBe(true);
+  });
+
+  it.each([
+    [
+      "canBulkRegisterStudents",
+      ["students.records.manage", "students.enrollments.manage"],
+    ],
+    [
+      "canViewStudentCredentialBatches",
+      ["students.records.view", "settings.users.view"],
+    ],
+    [
+      "canManageStudentCredentialBatches",
+      ["students.records.view", "settings.users.manage"],
+    ],
+  ] as const)("requires every permission for %s", (capability, required) => {
+    for (const permission of required) {
+      expect(
+        getStudentsGuardiansCapabilities(
+          createPermissionChecker([permission]),
+        )[capability],
+      ).toBe(false);
+    }
+
+    expect(
+      getStudentsGuardiansCapabilities(
+        createPermissionChecker([...required]),
+      )[capability],
+    ).toBe(true);
   });
 });

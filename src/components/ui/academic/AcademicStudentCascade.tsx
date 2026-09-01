@@ -161,6 +161,8 @@ export interface AcademicStudentCascadeProps {
   loading?: boolean;
   disabled?: boolean;
   className?: string;
+  showStudent?: boolean;
+  lastVisibleLevel?: "stage" | "grade" | "section" | "classroom";
 }
 
 export default function AcademicStudentCascade({
@@ -172,6 +174,8 @@ export default function AcademicStudentCascade({
   loading = false,
   disabled = false,
   className = "",
+  showStudent = true,
+  lastVisibleLevel = "classroom",
 }: AcademicStudentCascadeProps) {
   const contextLocale = useLocale();
   const locale = localeProp || (contextLocale === "ar" ? "ar" : "en");
@@ -187,6 +191,9 @@ export default function AcademicStudentCascade({
     noOptionsText: copy.noOptions,
     disabled: disabled || loading,
   };
+  const visibleLevelIndex = ["stage", "grade", "section", "classroom"].indexOf(
+    lastVisibleLevel,
+  );
 
   return (
     <div className={`grid gap-4 md:grid-cols-2 xl:grid-cols-5 ${className}`} dir={locale === "ar" ? "rtl" : "ltr"}>
@@ -201,46 +208,54 @@ export default function AcademicStudentCascade({
           onChange({ stageId, gradeId: undefined, sectionId: undefined, classroomId: undefined, studentId: undefined })
         }
       />
-      <Select
-        {...selectProps}
-        label={copy.grade}
-        value={value.gradeId || ""}
-        disabled={selectProps.disabled || !value.stageId}
-        options={compactOptions(filtered.grades.map((item) => toSelectOption(item, locale)))}
-        placeholder={`${copy.select} ${copy.grade}`}
-        onChange={(gradeId) =>
-          onChange({ ...value, gradeId, sectionId: undefined, classroomId: undefined, studentId: undefined })
-        }
-      />
-      <Select
-        {...selectProps}
-        label={copy.section}
-        value={value.sectionId || ""}
-        disabled={selectProps.disabled || !value.gradeId}
-        options={compactOptions(filtered.sections.map((item) => toSelectOption(item, locale)))}
-        placeholder={`${copy.select} ${copy.section}`}
-        onChange={(sectionId) =>
-          onChange({ ...value, sectionId, classroomId: undefined, studentId: undefined })
-        }
-      />
-      <Select
-        {...selectProps}
-        label={copy.classroom}
-        value={value.classroomId || ""}
-        disabled={selectProps.disabled || !value.sectionId}
-        options={compactOptions(filtered.classrooms.map((item) => toSelectOption(item, locale)))}
-        placeholder={`${copy.select} ${copy.classroom}`}
-        onChange={(classroomId) => onChange({ ...value, classroomId, studentId: undefined })}
-      />
-      <Select
-        {...selectProps}
-        label={copy.student}
-        value={value.studentId || ""}
-        disabled={selectProps.disabled || !value.classroomId}
-        options={compactOptions(filtered.students.map((item) => toSelectOption(item, locale)))}
-        placeholder={`${copy.select} ${copy.student}`}
-        onChange={(studentId) => onChange({ ...value, studentId })}
-      />
+      {visibleLevelIndex >= 1 && (
+        <Select
+          {...selectProps}
+          label={copy.grade}
+          value={value.gradeId || ""}
+          disabled={selectProps.disabled || !value.stageId}
+          options={compactOptions(filtered.grades.map((item) => toSelectOption(item, locale)))}
+          placeholder={`${copy.select} ${copy.grade}`}
+          onChange={(gradeId) =>
+            onChange({ ...value, gradeId, sectionId: undefined, classroomId: undefined, studentId: undefined })
+          }
+        />
+      )}
+      {visibleLevelIndex >= 2 && (
+        <Select
+          {...selectProps}
+          label={copy.section}
+          value={value.sectionId || ""}
+          disabled={selectProps.disabled || !value.gradeId}
+          options={compactOptions(filtered.sections.map((item) => toSelectOption(item, locale)))}
+          placeholder={`${copy.select} ${copy.section}`}
+          onChange={(sectionId) =>
+            onChange({ ...value, sectionId, classroomId: undefined, studentId: undefined })
+          }
+        />
+      )}
+      {visibleLevelIndex >= 3 && (
+        <Select
+          {...selectProps}
+          label={copy.classroom}
+          value={value.classroomId || ""}
+          disabled={selectProps.disabled || !value.sectionId}
+          options={compactOptions(filtered.classrooms.map((item) => toSelectOption(item, locale)))}
+          placeholder={`${copy.select} ${copy.classroom}`}
+          onChange={(classroomId) => onChange({ ...value, classroomId, studentId: undefined })}
+        />
+      )}
+      {showStudent && lastVisibleLevel === "classroom" && (
+        <Select
+          {...selectProps}
+          label={copy.student}
+          value={value.studentId || ""}
+          disabled={selectProps.disabled || !value.classroomId}
+          options={compactOptions(filtered.students.map((item) => toSelectOption(item, locale)))}
+          placeholder={`${copy.select} ${copy.student}`}
+          onChange={(studentId) => onChange({ ...value, studentId })}
+        />
+      )}
     </div>
   );
 }

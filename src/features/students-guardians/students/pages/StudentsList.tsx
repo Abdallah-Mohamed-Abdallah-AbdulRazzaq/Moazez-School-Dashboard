@@ -18,6 +18,7 @@ import {
   Plus,
   Upload,
   Lock,
+  KeyRound,
 } from "lucide-react";
 import {
   Button,
@@ -54,6 +55,17 @@ import {
 } from "@/features/students-guardians/shared/utils/studentsGuardiansExport";
 import { formatStudentsForExport } from "@/features/students-guardians/shared/utils/studentsGuardiansExportFormatters";
 
+const workflowCopy = {
+  en: {
+    bulkRegistration: "Bulk registration",
+    credentials: "Credentials",
+  },
+  ar: {
+    bulkRegistration: "التسجيل الجماعي",
+    credentials: "بيانات الدخول",
+  },
+} as const;
+
 export default function StudentsList() {
   const t = useTranslations("students_guardians.students");
   const locale = useLocale();
@@ -61,7 +73,12 @@ export default function StudentsList() {
   const permissions = usePermissions();
   const { hasPermission } = permissions;
   const canManageAccounts = hasPermission("settings.users.manage");
-  const { canManageNotes } = getStudentsGuardiansCapabilities(permissions);
+  const {
+    canManageNotes,
+    canBulkRegisterStudents,
+    canViewStudentCredentialBatches,
+  } = getStudentsGuardiansCapabilities(permissions);
+  const workflowText = workflowCopy[locale === "ar" ? "ar" : "en"];
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [students, setStudents] = useState<Student[]>([]);
@@ -240,10 +257,6 @@ export default function StudentsList() {
       filenameBase: "students",
       emptyMessage: t("no_students"),
     });
-  };
-
-  const handleBulkUploadClick = () => {
-    setPageError("Bulk upload is not available yet.");
   };
 
   const getStatusBadge = (status: StudentStatus) => {
@@ -458,16 +471,30 @@ export default function StudentsList() {
           >
             {t("export")}
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleBulkUploadClick}
-            disabled
-            title="Not available yet"
-            leftIcon={<Upload className="w-4 h-4" />}
-          >
-            {t("bulk_upload_button")}
-          </Button>
+          {canBulkRegisterStudents && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                router.push(`/${lang}/students-guardians/bulk-registration`)
+              }
+              leftIcon={<Upload className="w-4 h-4" />}
+            >
+              {workflowText.bulkRegistration}
+            </Button>
+          )}
+          {canViewStudentCredentialBatches && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                router.push(`/${lang}/students-guardians/credentials`)
+              }
+              leftIcon={<KeyRound className="w-4 h-4" />}
+            >
+              {workflowText.credentials}
+            </Button>
+          )}
           <Button
             type="button"
             variant="secondary"
