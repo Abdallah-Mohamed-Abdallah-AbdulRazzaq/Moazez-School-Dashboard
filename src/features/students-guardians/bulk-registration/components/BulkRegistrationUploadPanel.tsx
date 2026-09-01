@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Upload } from "lucide-react";
+import { Download, Upload, X } from "lucide-react";
 import { useLocale } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
@@ -33,6 +33,7 @@ const copy = {
     multipleFiles: "Select exactly one CSV file.",
     invalidExtension: "Only CSV files are allowed.",
     selected: "Selected file",
+    remove: "Remove file",
     upload: "Upload and start validation",
   },
   ar: {
@@ -47,6 +48,7 @@ const copy = {
     multipleFiles: "اختر ملف CSV واحدًا فقط.",
     invalidExtension: "يُسمح بملفات CSV فقط.",
     selected: "الملف المحدد",
+    remove: "إزالة الملف",
     upload: "رفع وبدء التحقق",
   },
 } as const;
@@ -78,6 +80,11 @@ export default function BulkRegistrationUploadPanel({
     }
     setFileError("");
     onFileChange(file);
+  };
+
+  const clearSelectedFile = () => {
+    setFileError("");
+    onFileChange(null);
   };
 
   return (
@@ -121,10 +128,22 @@ export default function BulkRegistrationUploadPanel({
       ) : null}
 
       {selectedFile ? (
-        <p className="mt-3 text-sm text-gray-700">
-          <span className="font-medium">{text.selected}:</span>{" "}
-          <span>{selectedFile.name}</span>
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-gray-700">
+            <span className="font-medium">{text.selected}:</span>{" "}
+            <span>{selectedFile.name}</span>
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            leftIcon={<X className="h-4 w-4" />}
+            disabled={uploading}
+            onClick={clearSelectedFile}
+          >
+            {text.remove}
+          </Button>
+        </div>
       ) : null}
 
       <div className="mt-5 flex justify-end">

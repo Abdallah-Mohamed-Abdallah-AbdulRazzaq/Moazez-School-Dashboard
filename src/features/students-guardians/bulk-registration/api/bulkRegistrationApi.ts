@@ -59,6 +59,7 @@ export async function createBulkRegistration(
   const response = await apiClient.post<BulkRegistrationBatch>(
     BULK_REGISTRATIONS_PATH,
     formData,
+    { headers: { "Content-Type": undefined } },
   );
   return response.data;
 }

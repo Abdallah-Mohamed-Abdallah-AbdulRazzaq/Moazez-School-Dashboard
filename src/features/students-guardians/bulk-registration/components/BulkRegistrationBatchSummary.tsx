@@ -10,7 +10,7 @@ import {
 import { useLocale } from "next-intl";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import type { BulkRegistrationBatchDetail } from "../api/bulkRegistrationDtos";
-import { getBulkRegistrationErrorCode } from "../model/bulkRegistrationModel";
+import { getBulkRegistrationBatchValidationErrorMessage } from "../model/bulkRegistrationErrorMessages";
 
 export interface BulkRegistrationPlacementNames {
   academicYear: string;
@@ -40,10 +40,6 @@ const copy = {
     startedAt: "Started at",
     completedAt: "Completed at",
     validationErrors: "Validation errors",
-    unknownError: "A row or file validation error requires attention.",
-    headerInvalid: "The CSV headers do not match the required template.",
-    csvMalformed: "The CSV file could not be read.",
-    noRows: "The CSV file contains no student rows.",
   },
   ar: {
     placement: "التسكين الأكاديمي",
@@ -58,10 +54,6 @@ const copy = {
     startedAt: "وقت بدء التنفيذ",
     completedAt: "وقت الاكتمال",
     validationErrors: "أخطاء التحقق",
-    unknownError: "يوجد خطأ في الملف أو أحد الصفوف يحتاج إلى المراجعة.",
-    headerInvalid: "عناوين CSV لا تطابق القالب المطلوب.",
-    csvMalformed: "تعذرت قراءة ملف CSV.",
-    noRows: "لا يحتوي ملف CSV على صفوف طلاب.",
   },
 } as const;
 
@@ -96,23 +88,6 @@ function timestampLabel(
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(timestamp));
-}
-
-function validationErrorMessage(
-  errorCode: string,
-  text: (typeof copy)["en"] | (typeof copy)["ar"],
-): string {
-  const safeCode = getBulkRegistrationErrorCode(errorCode);
-  if (safeCode === "students.bulk_registration.header_invalid") {
-    return text.headerInvalid;
-  }
-  if (safeCode === "students.bulk_registration.csv_malformed") {
-    return text.csvMalformed;
-  }
-  if (safeCode === "students.bulk_registration.no_data_rows") {
-    return text.noRows;
-  }
-  return text.unknownError;
 }
 
 export function bulkRegistrationPlacementLabel(
@@ -193,7 +168,10 @@ export default function BulkRegistrationBatchSummary({
           <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-red-800">
             {batch.validationErrors.map((errorCode, index) => (
               <li key={`${errorCode}-${index}`}>
-                {validationErrorMessage(errorCode, text)}
+                {getBulkRegistrationBatchValidationErrorMessage(
+                  errorCode,
+                  locale,
+                )}
               </li>
             ))}
           </ul>

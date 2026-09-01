@@ -316,6 +316,35 @@ describe("BulkRegistrationStartPage", () => {
     ).toBeEnabled();
   });
 
+  it("clears a selected CSV before choosing a replacement", async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage();
+    await runSuccessfulPreflight(user);
+    const firstCsv = new File(["first"], "first.csv", { type: "text/csv" });
+    const replacementCsv = new File(["replacement"], "replacement.csv", {
+      type: "text/csv",
+    });
+
+    fireEvent.change(uploadInput(container), { target: { files: [firstCsv] } });
+    expect(await screen.findByText("first.csv")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Remove file" }));
+
+    expect(screen.queryByText("first.csv")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Upload and start validation" }),
+    ).toBeDisabled();
+
+    fireEvent.change(uploadInput(container), {
+      target: { files: [replacementCsv] },
+    });
+
+    expect(await screen.findByText("replacement.csv")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Upload and start validation" }),
+    ).toBeEnabled();
+  });
+
   it("rejects multiple CSV files dropped together", async () => {
     const user = userEvent.setup();
     renderPage();

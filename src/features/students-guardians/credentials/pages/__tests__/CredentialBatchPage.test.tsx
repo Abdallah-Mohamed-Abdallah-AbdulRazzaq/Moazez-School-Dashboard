@@ -11,10 +11,11 @@ const polling = vi.hoisted(() => ({
   isRefreshing: false,
   retry: vi.fn(),
 }));
+const locale = vi.hoisted(() => ({ value: "en" as "ar" | "en" }));
 const permissions = vi.hoisted(() => ({ canManage: true }));
 const apiMocks = vi.hoisted(() => ({ downloadCredentialBatch: vi.fn() }));
 
-vi.mock("next-intl", () => ({ useLocale: () => "en" }));
+vi.mock("next-intl", () => ({ useLocale: () => locale.value }));
 vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
     isPermissionsReady: true,
@@ -47,6 +48,7 @@ const batch: CredentialBatch & { sharedPassword?: string; secretArtifactKey?: st
 
 describe("CredentialBatchPage", () => {
   beforeEach(() => {
+    locale.value = "en";
     polling.data = batch;
     polling.error = null;
     polling.isInitialLoading = false;
@@ -72,6 +74,23 @@ describe("CredentialBatchPage", () => {
     expect(screen.queryByText("must-never-render")).not.toBeInTheDocument();
     expect(screen.queryByText("secret-object-key")).not.toBeInTheDocument();
   });
+
+  it.each([
+    ["en", "Registration batch", "Unique generated"],
+    ["ar", "دفعة تسجيل", "كلمة فريدة مولدة"],
+  ] as const)(
+    "renders localized batch metadata in %s",
+    (currentLocale, audienceLabel, credentialModeLabel) => {
+      locale.value = currentLocale;
+      polling.data = { ...batch, audienceMode: "import_batch" };
+      render(<CredentialBatchPage batchId="batch-1" />);
+
+      expect(screen.getByText(audienceLabel)).toBeInTheDocument();
+      expect(screen.getByText(credentialModeLabel)).toBeInTheDocument();
+      expect(screen.queryByText("import_batch")).not.toBeInTheDocument();
+      expect(screen.queryByText("unique_generated")).not.toBeInTheDocument();
+    },
+  );
 
   it("shows a retryable read error when no authoritative batch is available", async () => {
     polling.data = null;
