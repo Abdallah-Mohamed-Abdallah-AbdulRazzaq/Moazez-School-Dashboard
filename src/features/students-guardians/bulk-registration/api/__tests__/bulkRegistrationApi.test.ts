@@ -83,7 +83,7 @@ describe("bulkRegistrationApi", () => {
     );
   });
 
-  it("posts one file and the placement fields as multipart data", async () => {
+  it("lets the browser provide a multipart boundary for the file upload", async () => {
     const file = new File(["header\n"], "students.csv", { type: "text/csv" });
     const batch = await createBulkRegistration(placement, file);
 
@@ -98,7 +98,9 @@ describe("bulkRegistrationApi", () => {
       ["classroomId", "classroom-1"],
       ["enrollmentDate", "2026-09-01"],
     ]);
-    expect(config).toBeUndefined();
+    expect(config).toEqual({
+      headers: { "Content-Type": undefined },
+    });
     expect(batch).toEqual({ id: "batch-1" });
   });
 
