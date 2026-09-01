@@ -25,6 +25,21 @@ const copy = {
     export: "Credential export",
     exportAvailable: "Available for 24 hours",
     exportPending: "Available after generation",
+    audiences: {
+      import_batch: "Registration batch",
+      selected_students: "Selected students",
+      academic_year: "Academic year",
+      stage: "Stage",
+      grade: "Grade",
+      section: "Section",
+      classroom: "Classroom",
+      missing_password: "Students missing passwords",
+    },
+    modes: {
+      unique_generated: "Unique generated",
+      shared_temporary: "Shared temporary",
+      shared_admin_provided: "Administrator-provided shared",
+    },
     statuses: {
       pending: "Pending",
       processing: "Processing",
@@ -47,6 +62,21 @@ const copy = {
     export: "تصدير بيانات الدخول",
     exportAvailable: "متاح لمدة 24 ساعة",
     exportPending: "متاح بعد الإنشاء",
+    audiences: {
+      import_batch: "دفعة تسجيل",
+      selected_students: "طلاب محددون",
+      academic_year: "العام الدراسي",
+      stage: "المرحلة",
+      grade: "الصف",
+      section: "الشعبة",
+      classroom: "الفصل",
+      missing_password: "طلاب بدون كلمات مرور",
+    },
+    modes: {
+      unique_generated: "كلمة فريدة مولدة",
+      shared_temporary: "كلمة مؤقتة مشتركة",
+      shared_admin_provided: "كلمة مشتركة يحددها المسؤول",
+    },
     statuses: {
       pending: "قيد الانتظار",
       processing: "جارٍ التنفيذ",
@@ -84,11 +114,15 @@ export default function CredentialBatchSummary({
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs font-medium text-gray-500">{text.audience}</dt>
-              <dd className="mt-1 text-gray-900">{batch.audienceMode}</dd>
+              <dd className="mt-1 text-gray-900">
+                {text.audiences[batch.audienceMode]}
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-gray-500">{text.mode}</dt>
-              <dd className="mt-1 text-gray-900">{batch.credentialMode}</dd>
+              <dd className="mt-1 text-gray-900">
+                {text.modes[batch.credentialMode]}
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-gray-500">{text.export}</dt>

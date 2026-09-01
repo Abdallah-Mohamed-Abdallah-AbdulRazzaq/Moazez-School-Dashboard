@@ -73,7 +73,10 @@ export default function CredentialAudiencePreview({
     if (localSnapshot && localSnapshot.audienceKey !== audienceKey) {
       setLocalSnapshot(null);
     }
-  }, [audienceKey, localSnapshot, onChange, snapshot]);
+    if (errorAudienceKey && errorAudienceKey !== audienceKey) {
+      setErrorAudienceKey(null);
+    }
+  }, [audienceKey, errorAudienceKey, localSnapshot, onChange, snapshot]);
 
   const currentSnapshot =
     localSnapshot?.audienceKey === audienceKey
@@ -103,7 +106,8 @@ export default function CredentialAudiencePreview({
   };
 
   const result = currentSnapshot?.result;
-  const showError = errorAudienceKey === audienceKey;
+  const showError =
+    errorAudienceKey !== null && errorAudienceKey === audienceKey;
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">

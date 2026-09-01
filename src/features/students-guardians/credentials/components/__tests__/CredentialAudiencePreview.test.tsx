@@ -103,4 +103,45 @@ describe("CredentialAudiencePreview", () => {
       expect(previewCredentialAudience).toHaveBeenCalledTimes(2),
     );
   });
+
+  it("clears a failed preview when the audience selection changes", async () => {
+    vi.mocked(previewCredentialAudience).mockRejectedValue(
+      new Error("Preview unavailable"),
+    );
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <CredentialAudiencePreview
+        audience={audience}
+        snapshot={null}
+        onChange={onChange}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Preview audience" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The audience preview could not be loaded.",
+    );
+
+    rerender(
+      <CredentialAudiencePreview
+        audience={null}
+        snapshot={null}
+        onChange={onChange}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    );
+
+    rerender(
+      <CredentialAudiencePreview
+        audience={audience}
+        snapshot={null}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });
