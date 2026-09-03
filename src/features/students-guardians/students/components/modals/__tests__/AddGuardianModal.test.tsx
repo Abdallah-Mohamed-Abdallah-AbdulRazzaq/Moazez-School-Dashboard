@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import AddGuardianModal from "../AddGuardianModal";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
@@ -88,5 +89,74 @@ describe("AddGuardianModal", () => {
         ],
       }),
     );
+  });
+
+  it("submits account creation details with the guardian", async () => {
+    vi.mocked(studentsService.fetchAllStudents).mockResolvedValue([] as never);
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    render(
+      <AddGuardianModal isOpen onClose={vi.fn()} onSubmit={onSubmit} />,
+    );
+
+    await user.type(
+      screen.getByPlaceholderText("full_name_placeholder"),
+      "Mohamed Hassan",
+    );
+    await user.type(
+      screen.getByPlaceholderText("email_placeholder"),
+      "parent@example.com",
+    );
+    await user.click(
+      screen.getByRole("checkbox", { name: "create_account" }),
+    );
+    await user.type(
+      screen.getByLabelText("account_username"),
+      "mohamed.hassan",
+    );
+    await user.click(screen.getByRole("button", { name: "add" }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: {
+          username: "mohamed.hassan",
+          contactEmail: "parent@example.com",
+          temporaryPasswordMode: "generate",
+        },
+      }),
+    );
+  });
+
+  it("keeps the temporary password visible after account creation", async () => {
+    vi.mocked(studentsService.fetchAllStudents).mockResolvedValue([] as never);
+    const onClose = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue({
+      temporaryPassword: "Guardian!2026",
+    });
+    const user = userEvent.setup();
+
+    render(<AddGuardianModal isOpen onClose={onClose} onSubmit={onSubmit} />);
+
+    await user.type(
+      screen.getByPlaceholderText("full_name_placeholder"),
+      "Mohamed Hassan",
+    );
+    await user.type(
+      screen.getByPlaceholderText("email_placeholder"),
+      "parent@example.com",
+    );
+    await user.click(
+      screen.getByRole("checkbox", { name: "create_account" }),
+    );
+    await user.type(
+      screen.getByLabelText("account_username"),
+      "mohamed.hassan",
+    );
+    await user.click(screen.getByRole("button", { name: "add" }));
+
+    expect(await screen.findByText("Guardian!2026")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
