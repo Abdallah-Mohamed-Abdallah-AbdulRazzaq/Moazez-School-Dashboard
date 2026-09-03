@@ -6590,6 +6590,11 @@
       "matrix": {
         "title": "جدول توزيع المعلمين",
         "section": "الشعبة",
+        "density": {
+          "label": "كثافة الجدول",
+          "compact": "مضغوط",
+          "comfortable": "مريح"
+        },
         "missingCount": "ناقص",
         "selectTeacher": "اختر معلم",
         "searchTeacher": "ابحث عن معلم...",
