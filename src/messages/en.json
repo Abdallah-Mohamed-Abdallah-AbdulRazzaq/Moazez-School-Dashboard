@@ -3640,6 +3640,7 @@
           "temporary_password_title": "Temporary password",
           "temporary_password_warning": "Copy this password now. It will not be shown again after you close this modal.",
           "copy_password": "Copy password",
+          "password_copied": "Copied",
           "close": "Close",
           "employment_information": "Employment Information",
           "job_title": "Job Title",

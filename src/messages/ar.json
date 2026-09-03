@@ -3641,6 +3641,7 @@
           "temporary_password_title": "كلمة المرور المؤقتة",
           "temporary_password_warning": "انسخ كلمة المرور الآن. لن تظهر مرة أخرى بعد إغلاق هذه النافذة.",
           "copy_password": "نسخ كلمة المرور",
+          "password_copied": "تم النسخ",
           "close": "إغلاق",
           "employment_information": "معلومات العمل",
           "job_title": "المسمى الوظيفي",
