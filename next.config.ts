@@ -70,7 +70,18 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    if (!apiProxyTarget) return [];
+
+    return [
+      {
+        source: "/api/backend/:path*",
+        destination: `${apiProxyTarget}/:path*`,
+      },
+    ];
+  },
 };
 
+const apiProxyTarget = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
 const withNextIntl = createNextIntlPlugin();
 export default withNextIntl(nextConfig);
