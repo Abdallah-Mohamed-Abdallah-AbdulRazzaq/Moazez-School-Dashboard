@@ -32,6 +32,10 @@ import { Button, EmptyState, Input, Modal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
+import {
+  linkGuardianAccount,
+  type AccountLinkResponse,
+} from "@/features/students-guardians/services/accountLinkingService";
 
 interface GuardiansTabProps {
   student: Student;
@@ -109,12 +113,14 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
     };
   }, [showError, student.id]);
 
-  const handleAddGuardian = async (guardianData: GuardianFormData) => {
+  const handleAddGuardian = async (
+    guardianData: GuardianFormData,
+  ): Promise<AccountLinkResponse | undefined> => {
     if (!canManageGuardians) return;
 
     setError(null);
     try {
-      const { selectedStudents, ...guardianFields } = guardianData;
+      const { account, selectedStudents, ...guardianFields } = guardianData;
       const payload = {
         ...guardianFields,
         phone_primary: guardianFields.phone_primary ?? undefined,
@@ -161,7 +167,15 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
           }),
         );
       }
-      setShowAddModal(false);
+      if (!account) {
+        return undefined;
+      }
+      return linkGuardianAccount(guardian.guardianId, {
+        mode: "create",
+        username: account.username.trim(),
+        contactEmail: account.contactEmail.trim() || null,
+        temporaryPasswordMode: account.temporaryPasswordMode,
+      });
     } catch (submitError) {
       throw submitError;
     }

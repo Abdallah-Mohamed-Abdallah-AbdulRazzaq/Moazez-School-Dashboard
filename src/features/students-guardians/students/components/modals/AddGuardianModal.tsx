@@ -3,16 +3,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Search, X } from "lucide-react";
+import { AlertCircle, Copy, Eye, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, Input, Modal, Select } from "@/components/ui";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import type {
+  AccountLinkResponse,
+  TemporaryPasswordMode,
+} from "@/features/students-guardians/services/accountLinkingService";
 import type { Student } from "@/features/students-guardians/students/types";
 
 interface AddGuardianModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (guardianData: GuardianFormData) => Promise<void>;
+  onSubmit: (
+    guardianData: GuardianFormData,
+  ) => Promise<AccountLinkResponse | undefined>;
+}
+
+export interface GuardianAccountFormData {
+  username: string;
+  contactEmail: string;
+  temporaryPasswordMode: TemporaryPasswordMode;
 }
 
 export interface GuardianFormData {
@@ -27,6 +39,7 @@ export interface GuardianFormData {
   is_primary: boolean;
   can_pickup: boolean;
   can_receive_notifications: boolean;
+  account: GuardianAccountFormData | null;
   selectedStudents: SelectedGuardianStudent[];
 }
 
@@ -68,6 +81,7 @@ export default function AddGuardianModal({
     is_primary: false,
     can_pickup: true,
     can_receive_notifications: true,
+    account: null,
     selectedStudents: [],
   });
 
@@ -78,6 +92,7 @@ export default function AddGuardianModal({
     [],
   );
   const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState("");
 
   useEffect(() => {
     if (!isOpen) {
@@ -139,8 +154,13 @@ export default function AddGuardianModal({
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
-      handleReset();
+      const response = await onSubmit(formData);
+      const nextTemporaryPassword = response?.temporaryPassword || "";
+      if (nextTemporaryPassword) {
+        setTemporaryPassword(nextTemporaryPassword);
+        return;
+      }
+      handleCancel();
     } catch (err) {
       setSubmitError(parseApiError(err));
     } finally {
@@ -162,10 +182,12 @@ export default function AddGuardianModal({
       is_primary: false,
       can_pickup: true,
       can_receive_notifications: true,
+      account: null,
       selectedStudents: [],
     });
     setStudentSearch("");
     setStudentSearchResults([]);
+    setTemporaryPassword("");
   };
 
   const handleSelectStudent = (student: Student) => {
@@ -218,6 +240,33 @@ export default function AddGuardianModal({
     onClose();
   };
 
+  const copyTemporaryPassword = async () => {
+    await navigator.clipboard.writeText(temporaryPassword);
+  };
+
+  const toggleAccountCreation = () => {
+    setFormData((current) => ({
+      ...current,
+      account: current.account
+        ? null
+        : {
+            username: "",
+            contactEmail: current.email,
+            temporaryPasswordMode: "generate",
+          },
+    }));
+  };
+
+  const updateAccount = (patch: Partial<GuardianAccountFormData>) => {
+    setFormData((current) => {
+      if (!current.account) {
+        return current;
+      }
+
+      return { ...current, account: { ...current.account, ...patch } };
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -226,26 +275,60 @@ export default function AddGuardianModal({
       onClose={handleCancel}
       title={t("title")}
       size="lg"
-      showCloseButton={!isSubmitting}
-      closeOnOverlayClick={!isSubmitting}
-      closeOnEscape={!isSubmitting}
+      showCloseButton={!isSubmitting && !temporaryPassword}
+      closeOnOverlayClick={!isSubmitting && !temporaryPassword}
+      closeOnEscape={!isSubmitting && !temporaryPassword}
       footer={
-        <>
-          <Button
-            type="button"
-            onClick={handleCancel}
-            variant="secondary"
-            disabled={isSubmitting}
-          >
-            {t("cancel")}
+        temporaryPassword ? (
+          <Button type="button" onClick={handleCancel}>
+            {t("close")}
           </Button>
-          <Button type="submit" form="add-guardian-form" loading={isSubmitting}>
-            {isSubmitting ? "Saving…" : t("add")}
-          </Button>
-        </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              onClick={handleCancel}
+              variant="secondary"
+              disabled={isSubmitting}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              type="submit"
+              form="add-guardian-form"
+              loading={isSubmitting}
+            >
+              {isSubmitting ? "Saving…" : t("add")}
+            </Button>
+          </>
+        )
       }
     >
       <form id="add-guardian-form" onSubmit={handleSubmit}>
+        {temporaryPassword ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="flex items-start gap-2">
+              <Eye className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-semibold">{t("temporary_password_title")}</p>
+                <p className="mt-1">{t("temporary_password_warning")}</p>
+                <code className="mt-3 block break-all rounded bg-white px-3 py-2 text-gray-900">
+                  {temporaryPassword}
+                </code>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-3"
+                  leftIcon={<Copy className="h-4 w-4" />}
+                  onClick={() => void copyTemporaryPassword()}
+                >
+                  {t("copy_password")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6 pb-4">
           {/* Personal Information */}
           <div>
@@ -364,6 +447,80 @@ export default function AddGuardianModal({
                 />
               </div>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 p-4">
+            <div className="flex items-start gap-3">
+              <input
+                id="create-guardian-account"
+                type="checkbox"
+                checked={Boolean(formData.account)}
+                onChange={toggleAccountCreation}
+                aria-label={t("create_account")}
+                className="mt-1 h-4 w-4 cursor-pointer rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <label
+                htmlFor="create-guardian-account"
+                className="cursor-pointer text-sm"
+              >
+                <span className="font-semibold text-gray-900">
+                  {t("create_account")}
+                </span>
+                <span className="mt-1 block text-gray-500">
+                  {t("create_account_help")}
+                </span>
+              </label>
+            </div>
+
+            {formData.account ? (
+              <div className="mt-4 space-y-4 border-t border-gray-200 pt-4">
+                <h4 className="text-sm font-semibold text-gray-900">
+                  {t("account_setup")}
+                </h4>
+                <Input
+                  type="text"
+                  label={t("account_username")}
+                  aria-label={t("account_username")}
+                  placeholder={t("account_username_placeholder")}
+                  value={formData.account.username}
+                  onChange={(event) =>
+                    updateAccount({ username: event.target.value })
+                  }
+                  dir="ltr"
+                  required
+                />
+                <Input
+                  type="email"
+                  label={t("account_contact_email")}
+                  aria-label={t("account_contact_email")}
+                  value={formData.account.contactEmail}
+                  onChange={(event) =>
+                    updateAccount({ contactEmail: event.target.value })
+                  }
+                  dir="ltr"
+                  helperText={t("account_contact_email_help")}
+                />
+                <Select
+                  label={t("temporary_password_mode")}
+                  value={formData.account.temporaryPasswordMode}
+                  onChange={(value) =>
+                    updateAccount({
+                      temporaryPasswordMode: value as TemporaryPasswordMode,
+                    })
+                  }
+                  options={[
+                    {
+                      value: "generate",
+                      label: t("generate_temporary_password"),
+                    },
+                    {
+                      value: "none",
+                      label: t("no_temporary_password"),
+                    },
+                  ]}
+                />
+              </div>
+            ) : null}
           </div>
 
           {/* Employment Information */}
@@ -582,6 +739,7 @@ export default function AddGuardianModal({
             </div>
           </div>
         </div>
+        )}
 
         {/* Validation / API error banner */}
         {submitError && (

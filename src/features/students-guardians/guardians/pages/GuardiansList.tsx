@@ -39,6 +39,10 @@ import AddGuardianModal, {
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
 import GuardianAccountLinkModal from "@/features/students-guardians/guardians/components/GuardianAccountLinkModal";
+import {
+  linkGuardianAccount,
+  type AccountLinkResponse,
+} from "@/features/students-guardians/services/accountLinkingService";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 import {
@@ -197,14 +201,16 @@ export default function GuardiansList() {
     });
   };
 
-  const handleCreateGuardian = async (guardianData: GuardianFormData) => {
+  const handleCreateGuardian = async (
+    guardianData: GuardianFormData,
+  ): Promise<AccountLinkResponse | undefined> => {
     if (!canManageGuardians) {
       return;
     }
 
     try {
       setPageError(null);
-      const { selectedStudents, ...guardianFields } = guardianData;
+      const { account, selectedStudents, ...guardianFields } = guardianData;
       const payload = {
         ...guardianFields,
         phone_primary: guardianFields.phone_primary ?? undefined,
@@ -240,7 +246,16 @@ export default function GuardiansList() {
         );
       }
 
-      setShowCreateGuardianModal(false);
+      if (!account) {
+        return;
+      }
+
+      return linkGuardianAccount(createdGuardian.guardianId, {
+        mode: "create",
+        username: account.username.trim(),
+        contactEmail: account.contactEmail.trim() || null,
+        temporaryPasswordMode: account.temporaryPasswordMode,
+      });
     } catch (error) {
       throw error;
     }
