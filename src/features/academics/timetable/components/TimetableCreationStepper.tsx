@@ -92,7 +92,7 @@ function StepControl({
 
   if (!step.actionable) {
     return (
-      <div className="w-32 text-center text-xs text-gray-500">
+      <div className="flex w-32 flex-col items-center text-center text-xs text-gray-500">
         {content}
         {showPrerequisite && step.prerequisiteKey && (
           <p className="mt-1 text-[11px] leading-4 text-gray-500">
@@ -107,7 +107,7 @@ function StepControl({
   return (
     <Button
       aria-current={step.status === "current" ? "step" : undefined}
-      className="h-auto w-32 cursor-pointer flex-col gap-1 px-1 py-1 text-center transition-colors duration-200 motion-reduce:transition-none"
+      className="h-auto w-32 cursor-pointer flex-col items-center gap-1 px-1 py-1 text-center transition-colors duration-200 motion-reduce:transition-none [&>span]:w-full"
       onClick={() => onAction(step.id)}
       size="sm"
       variant="ghost"
@@ -127,13 +127,13 @@ function StepContent({
   step: TimetableCreationStep;
 }) {
   return (
-    <>
+    <span className="flex w-full flex-col items-center text-center">
       <span className={statusIconClassName(step.status)}>
         {statusIcon(step.status)}
       </span>
       <span className="text-xs font-medium text-gray-900">{label}</span>
       <span className="sr-only">{status}</span>
-    </>
+    </span>
   );
 }
 
