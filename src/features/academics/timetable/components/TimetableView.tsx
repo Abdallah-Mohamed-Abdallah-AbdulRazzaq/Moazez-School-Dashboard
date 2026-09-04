@@ -1059,7 +1059,8 @@ export default function TimetableView({
   };
 
   const schoolName = brandingProfile?.schoolName.trim() || tRoot("school_name");
-  const printLogoUrl = "/images/logo/moazzez_logo.svg";
+  const printLogoUrl =
+    brandingProfile?.logoUrl.trim() || "/images/logo/moazzez_logo.svg";
 
   const selectedPrintTarget = (() => {
     if (selectedClassroom) {
