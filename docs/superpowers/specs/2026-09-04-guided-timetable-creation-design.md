@@ -57,7 +57,14 @@ Saving a template creates editable periods. The user can then add, edit, remove,
 
 ### 3. Timetable Construction
 
-This stage opens only after settings and the required instructional periods are saved. The user builds the timetable in the normal grid experience. A timetable does not need every instructional slot filled to reach validation or publishing; validation determines whether its current contents contain blocking issues. The progress rail still summarizes assignment coverage as a count of assigned versus available instructional slots, but does not present partial coverage as an error by itself.
+This stage opens only after settings and the required instructional periods are saved. It offers two ways to create the timetable:
+
+- **Build manually** is the primary action. It opens the editable timetable grid.
+- **Create automatically** is a secondary action. It fills only empty slots and never changes an assignment made manually by the user.
+
+Automatic creation applies its suggestions immediately. It shows an always-visible “Undo last automatic creation” action that reverses the entire most recent automatic-creation batch, including after an explicit save during the current open session. The undo history expires if the user leaves or reloads the page; a concise hint communicates this before the user navigates away.
+
+A timetable does not need every instructional slot filled to reach validation or publishing; validation determines whether its current contents contain blocking issues. The progress rail still summarizes assignment coverage as a count of assigned versus available instructional slots, but does not present partial coverage as an error by itself.
 
 ### 4. Validation
 
@@ -121,7 +128,9 @@ The page owns data fetching and navigation decisions. A single derived creation-
 9. Applying a template over existing periods requires confirmation and replaces them only after explicit approval.
 10. A setting or period change that affects existing slots warns the user and returns the timetable to a draft that must be validated again.
 11. Reopening a scope with a draft resumes its single existing draft.
+12. Manual building is the primary construction action; automatic creation fills only empty slots and preserves manual assignments.
+13. The user can undo the most recent automatic-creation batch after saving while the page remains open, and receives a clear notice that the option expires on leaving or reloading the page.
 
 ## Verification Plan
 
-Add focused tests for creation-state derivation, stage gating, publish eligibility, and unsaved-change navigation protection. Add component tests for the guidance card, progress rail, template preview, and leave dialog. Manually verify the responsive layout at mobile, tablet, and desktop sizes and verify keyboard navigation, focus restoration, RTL ordering, and reduced-motion behavior.
+Add focused tests for creation-state derivation, stage gating, publish eligibility, unsaved-change navigation protection, automatic creation's empty-slot-only behavior, and session-scoped undo. Add component tests for the guidance card, progress rail, template preview, leave dialog, and automatic-creation undo hint. Manually verify the responsive layout at mobile, tablet, and desktop sizes and verify keyboard navigation, focus restoration, RTL ordering, and reduced-motion behavior.
