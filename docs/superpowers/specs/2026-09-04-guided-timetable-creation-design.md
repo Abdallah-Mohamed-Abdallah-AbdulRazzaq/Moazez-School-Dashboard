@@ -72,7 +72,7 @@ The validation stage becomes actionable once a timetable draft exists. It groups
 
 ### 5. Publishing
 
-Publishing is unavailable until all preceding stages are complete and validation has no blocking errors. The publish area shows a concise final checklist before the confirmation action. A successful publish changes the workspace to a published state. Before the first subsequent edit, the page warns that continuing will unpublish the timetable; confirming the edit unpublishes it immediately, changes it to a draft, and requires validation and publishing again.
+Publishing is unavailable until all preceding stages are complete and validation has no blocking errors. The publish area shows a concise final checklist before the confirmation action. A successful publish changes the workspace to a published state. Before the first subsequent edit, the page explains that continuing creates a separate revision draft. The currently published version remains visible to teachers until the revision draft passes validation and is published.
 
 Changing saved settings or periods after timetable construction warns the user when it affects existing timetable slots. The affected timetable remains a draft that requires validation again; a destructive change cannot silently remove or invalidate slots.
 
@@ -132,8 +132,8 @@ The page owns data fetching and navigation decisions. A single derived creation-
 13. The user can undo the most recent automatic-creation batch after saving while the page remains open, and receives a clear notice that the option expires on leaving or reloading the page.
 14. Automatic creation checks teacher and room conflicts across all timetables in the selected term. If no complete valid result is possible, it changes nothing and explains why.
 15. Any timetable editor can manage period templates.
-16. Editing a published timetable requires confirmation, unpublishes it immediately, and turns it into a draft.
+16. Editing a published timetable requires confirmation and creates a separate revision draft; teachers continue to see the current published version until the revision draft is published.
 
 ## Verification Plan
 
-Add focused tests for creation-state derivation, stage gating, publish eligibility, unpublish-on-edit confirmation, unsaved-change navigation protection, template permissions, automatic creation's empty-slot-only behavior, term-wide teacher and room conflicts, automatic-creation prerequisites, no-change behavior after unsuccessful generation, and session-scoped undo. Add component tests for the guidance card, progress rail, template preview, leave dialog, missing-data guidance, automatic-generation failure, and automatic-creation undo hint. Manually verify the responsive layout at mobile, tablet, and desktop sizes and verify keyboard navigation, focus restoration, RTL ordering, and reduced-motion behavior.
+Add focused tests for creation-state derivation, stage gating, publish eligibility, published-version preservation during revision editing, unsaved-change navigation protection, template permissions, automatic creation's empty-slot-only behavior, term-wide teacher and room conflicts, automatic-creation prerequisites, no-change behavior after unsuccessful generation, and session-scoped undo. Add component tests for the guidance card, progress rail, template preview, leave dialog, missing-data guidance, automatic-generation failure, and automatic-creation undo hint. Manually verify the responsive layout at mobile, tablet, and desktop sizes and verify keyboard navigation, focus restoration, RTL ordering, and reduced-motion behavior.
