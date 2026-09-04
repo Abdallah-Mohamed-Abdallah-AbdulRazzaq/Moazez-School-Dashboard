@@ -14,15 +14,16 @@ This is intentionally not a modal wizard. Experienced users retain direct access
 
 The stepper always represents the saved state for the current selection. Changing the grade, section, or classroom immediately resets the displayed progress to the newly selected scope's actual persisted state; no client-side progress is carried over between scopes.
 
-The resolver consumes existing page data only: selected scope, resolved timetable configuration, periods, timetable entries, validation result, and publication state. It does not persist new workflow state or create a second source of truth.
+The resolver consumes existing page data only: selected scope, effective resolved timetable configuration, periods, timetable entries, dirty state, validation result, publication readiness, and publication state. It does not persist new workflow state or create a second source of truth.
 
 ## Steps
 
 1. **Select scope** — complete when a classroom is selected. Activating the step focuses the existing scope selectors.
-2. **Configure timetable** — complete when the selected scope has a valid timetable configuration with active days. Activating the step opens the existing configuration dialog.
+2. **Configure timetable** — complete when the selected scope has a valid effective timetable configuration with active days. The configuration may be inherited by the selected classroom. Activating the step opens the existing configuration dialog.
 3. **Add periods** — complete when the configuration has at least one valid instructional period. Activating the step opens the existing periods dialog.
-4. **Build schedule** — complete when the selected classroom has timetable entries. Activating the step focuses the grid and its existing generation and editing controls.
-5. **Review & publish** — complete when the schedule passes the existing validation and is published. Activating the step focuses the validation and publication controls.
+4. **Build schedule** — complete when the selected classroom has saved timetable entries. Unsaved grid edits keep this step in progress and prevent the review step from becoming actionable. Activating the step focuses the grid and its existing generation and editing controls.
+5. **Review & validate** — complete when the saved schedule has no blocking validation failures or conflicts. Warnings are shown but do not prevent completion. Activating the step focuses the existing validation panel.
+6. **Publish** — complete when the timetable is published. It becomes actionable only when the backend publication-readiness response permits publication; the resolver displays the existing blocking reason otherwise. Activating the step focuses the existing publication control.
 
 Steps have one of four display states:
 
@@ -51,7 +52,9 @@ No API or backend contract changes are required.
 
 - Missing academic context or scope leaves only **Select scope** actionable.
 - Missing configuration, active days, or instructional periods blocks dependent steps with a specific message.
-- Validation errors keep **Review & publish** incomplete and route the user to the existing validation surface.
+- Unsaved grid edits keep **Build schedule** in progress and block **Review & validate** and **Publish** until saved.
+- Validation errors or conflicts keep **Review & validate** incomplete and route the user to the existing validation surface.
+- Publication-readiness failures keep **Publish** blocked and show the backend-provided blocking reason.
 - A closed term or insufficient permission preserves current read-only behavior; the stepper communicates state but does not expose mutating action targets.
 - Empty or partially completed scopes are valid states, not errors.
 
