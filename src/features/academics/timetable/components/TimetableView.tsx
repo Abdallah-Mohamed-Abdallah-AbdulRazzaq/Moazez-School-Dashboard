@@ -1723,7 +1723,7 @@ export default function TimetableView({
             }
             ctaDisabled={!canEditTimetable}
             onCtaClick={
-              canManageTimetable ? () => setConfigDialogOpen(true) : undefined
+              canManageTimetable ? () => setPeriodsDialogOpen(true) : undefined
             }
             className="h-full"
           />
