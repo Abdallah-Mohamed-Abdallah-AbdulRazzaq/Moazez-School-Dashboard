@@ -71,6 +71,30 @@ describe("TimetableCreationStepper", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows a shared prerequisite only on the first blocked step", () => {
+    render(
+      <TimetableCreationStepper
+        progress={{
+          state: "ready",
+          steps: [
+            completeStep("scope"),
+            completeStep("configuration"),
+            currentStep("periods"),
+            blockedStep("schedule", "addInstructionalPeriod"),
+            blockedStep("validation", "addInstructionalPeriod"),
+            blockedStep("publish", "addInstructionalPeriod"),
+          ],
+        }}
+        copy={copy}
+        onAction={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getAllByText("Add an instructional period first"),
+    ).toHaveLength(1);
+  });
+
   it("shows the backend publication reason before the generic prerequisite", () => {
     render(
       <TimetableCreationStepper

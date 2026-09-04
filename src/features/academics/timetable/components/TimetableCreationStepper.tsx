@@ -48,12 +48,27 @@ export default function TimetableCreationStepper({
     >
       <div className="overflow-x-auto pb-1">
         <ol className="flex min-w-max items-start gap-2">
-          {progress.steps.map((step, index) => (
-            <li key={step.id} className="flex items-start gap-2">
-              {index > 0 && <span aria-hidden className="mt-5 h-px w-6 bg-gray-200" />}
-              <StepControl step={step} copy={copy} onAction={onAction} />
-            </li>
-          ))}
+          {progress.steps.map((step, index) => {
+            const showPrerequisite =
+              step.status === "blocked" &&
+              !progress.steps
+                .slice(0, index)
+                .some((previousStep) => previousStep.status === "blocked");
+
+            return (
+              <li key={step.id} className="flex items-start gap-2">
+                {index > 0 && (
+                  <span aria-hidden className="mt-5 h-px w-6 bg-gray-200" />
+                )}
+                <StepControl
+                  step={step}
+                  copy={copy}
+                  onAction={onAction}
+                  showPrerequisite={showPrerequisite}
+                />
+              </li>
+            );
+          })}
         </ol>
       </div>
     </nav>
@@ -64,10 +79,12 @@ function StepControl({
   step,
   copy,
   onAction,
+  showPrerequisite,
 }: {
   step: TimetableCreationStep;
   copy: TimetableCreationStepperCopy;
   onAction: (action: TimetableCreationAction) => void;
+  showPrerequisite: boolean;
 }) {
   const label = copy.steps[step.id];
   const status = copy.status[step.status];
@@ -77,9 +94,10 @@ function StepControl({
     return (
       <div className="w-32 text-center text-xs text-gray-500">
         {content}
-        {step.prerequisiteKey && (
+        {showPrerequisite && step.prerequisiteKey && (
           <p className="mt-1 text-[11px] leading-4 text-gray-500">
-            {step.prerequisiteMessage ?? copy.prerequisites[step.prerequisiteKey]}
+            {step.prerequisiteMessage ??
+              copy.prerequisites[step.prerequisiteKey]}
           </p>
         )}
       </div>
