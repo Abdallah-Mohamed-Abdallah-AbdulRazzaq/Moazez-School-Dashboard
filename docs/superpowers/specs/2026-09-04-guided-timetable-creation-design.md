@@ -49,7 +49,7 @@ The user saves the timetable's identity, week start day, active days, and select
 
 The empty state leads with “Use a period template” and offers “Add manually” as a secondary action.
 
-Templates are displayed as selectable cards containing a name, period count, break count, and a compact time-range preview. The product supports more than one template; the exact available templates can vary by school configuration. Selecting a template opens a review view before any data is applied. The review shows every period and break, allows editing before save, and requires a clear “Apply and save” action.
+Templates are displayed as selectable cards containing a name, period count, break count, and a compact time-range preview. The product supports more than one template; the exact available templates can vary by school configuration. Any user with timetable-edit permission can create and manage templates. Selecting a template opens a review view before any data is applied. The review shows every period and break, allows editing before save, and requires a clear “Apply and save” action.
 
 Applying a template when saved periods already exist never merges periods automatically. The user must explicitly confirm that the template will replace the current periods, or cancel and keep them unchanged.
 
@@ -62,7 +62,7 @@ This stage opens only after settings and the required instructional periods are 
 - **Build manually** is the primary action. It opens the editable timetable grid.
 - **Create automatically** is a secondary action. It fills only empty slots and never changes an assignment made manually by the user. Before it is available, required curriculum data must be complete for every subject in scope: its weekly lesson count and its assigned teacher. If any required data is missing, automatic creation is blocked and the page lists each missing item with a direct route to complete it; it does not produce a partial automatic timetable.
 
-Automatic creation applies its suggestions immediately. It shows an always-visible “Undo last automatic creation” action that reverses the entire most recent automatic-creation batch, including after an explicit save during the current open session. The undo history expires if the user leaves or reloads the page; a concise hint communicates this before the user navigates away.
+Automatic creation applies its suggestions immediately only when it can produce a complete valid result. It checks teacher and room conflicts against every timetable in the selected term, not only the timetable currently open. If it cannot create a valid result, it applies no changes and explains the blocking constraints. A successful automatic batch shows an always-visible “Undo last automatic creation” action that reverses the entire batch, including after an explicit save during the current open session. The undo history expires if the user leaves or reloads the page; a concise hint communicates this before the user navigates away.
 
 A timetable does not need every instructional slot filled to reach validation or publishing; validation determines whether its current contents contain blocking issues. The progress rail still summarizes assignment coverage as a count of assigned versus available instructional slots, but does not present partial coverage as an error by itself.
 
@@ -72,7 +72,7 @@ The validation stage becomes actionable once a timetable draft exists. It groups
 
 ### 5. Publishing
 
-Publishing is unavailable until all preceding stages are complete and validation has no blocking errors. The publish area shows a concise final checklist before the confirmation action. A successful publish changes the workspace to a published state and makes subsequent edits clearly draft changes that require validation again before a later publish.
+Publishing is unavailable until all preceding stages are complete and validation has no blocking errors. The publish area shows a concise final checklist before the confirmation action. A successful publish changes the workspace to a published state. Before the first subsequent edit, the page warns that continuing will unpublish the timetable; confirming the edit unpublishes it immediately, changes it to a draft, and requires validation and publishing again.
 
 Changing saved settings or periods after timetable construction warns the user when it affects existing timetable slots. The affected timetable remains a draft that requires validation again; a destructive change cannot silently remove or invalidate slots.
 
@@ -130,7 +130,10 @@ The page owns data fetching and navigation decisions. A single derived creation-
 11. Reopening a scope with a draft resumes its single existing draft.
 12. Manual building is the primary construction action; automatic creation fills only empty slots and preserves manual assignments.
 13. The user can undo the most recent automatic-creation batch after saving while the page remains open, and receives a clear notice that the option expires on leaving or reloading the page.
+14. Automatic creation checks teacher and room conflicts across all timetables in the selected term. If no complete valid result is possible, it changes nothing and explains why.
+15. Any timetable editor can manage period templates.
+16. Editing a published timetable requires confirmation, unpublishes it immediately, and turns it into a draft.
 
 ## Verification Plan
 
-Add focused tests for creation-state derivation, stage gating, publish eligibility, unsaved-change navigation protection, automatic creation's empty-slot-only behavior, automatic-creation prerequisites, and session-scoped undo. Add component tests for the guidance card, progress rail, template preview, leave dialog, missing-data guidance, and automatic-creation undo hint. Manually verify the responsive layout at mobile, tablet, and desktop sizes and verify keyboard navigation, focus restoration, RTL ordering, and reduced-motion behavior.
+Add focused tests for creation-state derivation, stage gating, publish eligibility, unpublish-on-edit confirmation, unsaved-change navigation protection, template permissions, automatic creation's empty-slot-only behavior, term-wide teacher and room conflicts, automatic-creation prerequisites, no-change behavior after unsuccessful generation, and session-scoped undo. Add component tests for the guidance card, progress rail, template preview, leave dialog, missing-data guidance, automatic-generation failure, and automatic-creation undo hint. Manually verify the responsive layout at mobile, tablet, and desktop sizes and verify keyboard navigation, focus restoration, RTL ordering, and reduced-motion behavior.
