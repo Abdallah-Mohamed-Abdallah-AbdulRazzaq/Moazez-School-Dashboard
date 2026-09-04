@@ -60,7 +60,7 @@ Saving a template creates editable periods. The user can then add, edit, remove,
 This stage opens only after settings and the required instructional periods are saved. It offers two ways to create the timetable:
 
 - **Build manually** is the primary action. It opens the editable timetable grid.
-- **Create automatically** is a secondary action. It fills only empty slots and never changes an assignment made manually by the user.
+- **Create automatically** is a secondary action. It fills only empty slots and never changes an assignment made manually by the user. Before it is available, required curriculum data must be complete for every subject in scope: its weekly lesson count and its assigned teacher. If any required data is missing, automatic creation is blocked and the page lists each missing item with a direct route to complete it; it does not produce a partial automatic timetable.
 
 Automatic creation applies its suggestions immediately. It shows an always-visible “Undo last automatic creation” action that reverses the entire most recent automatic-creation batch, including after an explicit save during the current open session. The undo history expires if the user leaves or reloads the page; a concise hint communicates this before the user navigates away.
 
@@ -133,4 +133,4 @@ The page owns data fetching and navigation decisions. A single derived creation-
 
 ## Verification Plan
 
-Add focused tests for creation-state derivation, stage gating, publish eligibility, unsaved-change navigation protection, automatic creation's empty-slot-only behavior, and session-scoped undo. Add component tests for the guidance card, progress rail, template preview, leave dialog, and automatic-creation undo hint. Manually verify the responsive layout at mobile, tablet, and desktop sizes and verify keyboard navigation, focus restoration, RTL ordering, and reduced-motion behavior.
+Add focused tests for creation-state derivation, stage gating, publish eligibility, unsaved-change navigation protection, automatic creation's empty-slot-only behavior, automatic-creation prerequisites, and session-scoped undo. Add component tests for the guidance card, progress rail, template preview, leave dialog, missing-data guidance, and automatic-creation undo hint. Manually verify the responsive layout at mobile, tablet, and desktop sizes and verify keyboard navigation, focus restoration, RTL ordering, and reduced-motion behavior.
