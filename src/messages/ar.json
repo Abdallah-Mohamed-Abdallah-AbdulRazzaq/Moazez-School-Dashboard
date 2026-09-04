@@ -6108,6 +6108,32 @@
         "allSections": "كل الشعب",
         "selectClassroom": "اختر الفصل"
       },
+      "creationProgress": {
+        "navigationLabel": "تقدم إنشاء الجدول الدراسي",
+        "checking": "جارٍ التحقق من التقدم",
+        "steps": {
+          "scope": "اختيار النطاق",
+          "configuration": "إعداد الجدول",
+          "periods": "إضافة الحصص",
+          "schedule": "بناء الجدول",
+          "validation": "المراجعة والتحقق",
+          "publish": "النشر"
+        },
+        "status": {
+          "complete": "مكتمل",
+          "current": "الخطوة الحالية",
+          "blocked": "محظورة",
+          "published": "منشور"
+        },
+        "prerequisites": {
+          "selectClassroom": "اختر فصلًا أولاً",
+          "configureTimetable": "أعِد الجدول أولاً",
+          "addInstructionalPeriod": "أضف حصة تعليمية أولاً",
+          "saveSchedule": "احفظ الجدول أولاً",
+          "resolveReviewIssues": "عالج مشكلات التحقق والتعارضات أولاً",
+          "publicationNotReady": "الجدول غير جاهز للنشر"
+        }
+      },
       "grid": {
         "period": "الحصة",
         "day": "اليوم",
