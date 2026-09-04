@@ -6126,7 +6126,6 @@
           "published": "منشور"
         },
         "prerequisites": {
-          "selectClassroom": "اختر فصلًا أولاً",
           "configureTimetable": "أعِد الجدول أولاً",
           "addInstructionalPeriod": "أضف حصة تعليمية أولاً",
           "saveSchedule": "احفظ الجدول أولاً",

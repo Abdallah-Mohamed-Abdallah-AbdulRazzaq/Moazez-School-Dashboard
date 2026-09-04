@@ -893,7 +893,6 @@ export default function TimetableView({
     () =>
       resolveTimetableCreationProgress({
         isLoading: isLoading || timetableLoading,
-        selectedClassroomId,
         resolvedConfig,
         entries: timetableEntries,
         isDirty,
@@ -909,7 +908,6 @@ export default function TimetableView({
       isLoading,
       publication,
       resolvedConfig,
-      selectedClassroomId,
       timetableEntries,
       timetableLoading,
       validationSummary,
@@ -934,7 +932,6 @@ export default function TimetableView({
       published: t("creationProgress.status.published"),
     },
     prerequisites: {
-      selectClassroom: t("creationProgress.prerequisites.selectClassroom"),
       configureTimetable: t(
         "creationProgress.prerequisites.configureTimetable",
       ),

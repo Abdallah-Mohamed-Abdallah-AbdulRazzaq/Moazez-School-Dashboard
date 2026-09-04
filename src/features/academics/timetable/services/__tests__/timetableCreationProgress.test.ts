@@ -18,19 +18,16 @@ describe("resolveTimetableCreationProgress", () => {
     expect(progress.state).toBe("checking");
   });
 
-  it("requires a classroom before configuration can begin", () => {
-    const progress = resolveTimetableCreationProgress({
-      ...readyToPublishInput(),
-      selectedClassroomId: "",
-    });
+  it("treats the active term as a valid timetable scope", () => {
+    const progress = resolveTimetableCreationProgress(readyToPublishInput());
 
     expect(step(progress, "scope")).toMatchObject({
-      status: "current",
+      status: "complete",
       actionable: true,
     });
     expect(step(progress, "configuration")).toMatchObject({
-      status: "blocked",
-      prerequisiteKey: "selectClassroom",
+      status: "complete",
+      actionable: true,
     });
   });
 
@@ -125,7 +122,6 @@ describe("resolveTimetableCreationProgress", () => {
 function readyToPublishInput() {
   return {
     isLoading: false,
-    selectedClassroomId: "classroom-1",
     resolvedConfig: resolvedConfig(),
     entries: [entry()],
     isDirty: false,

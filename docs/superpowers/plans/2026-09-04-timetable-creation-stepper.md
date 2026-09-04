@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an accessible, interactive six-step progress bar that guides users from selecting a classroom scope through timetable publication using the selected scope's real saved state.
+**Goal:** Add an accessible, interactive six-step progress bar that guides users from selecting a timetable scope through publication using the selected scope's real saved state.
 
 **Architecture:** A pure resolver converts current timetable data into typed creation-step states without persistence or duplicate validation. A presentational stepper renders those states and reports an action identifier; `TimetableView` routes each action to an existing control.
 
@@ -68,7 +68,7 @@ describe("resolveTimetableCreationProgress", () => {
 });
 ```
 
-Use fixture factories that produce valid imported types. Cover: no classroom, no resolved config, config with no active day, no instructional period, no saved entry, a `temp-` entry, dirty entries, validation blocking reasons, conflicts, ready-but-unpublished data, published data, and read-only data.
+Use fixture factories that produce valid imported types. Cover: the default term scope, no resolved config, config with no active day, no instructional period, no saved entry, a `temp-` entry, dirty entries, validation blocking reasons, conflicts, ready-but-unpublished data, published data, and read-only data.
 
 - [ ] **Step 2: Run the focused test to verify it fails**
 
@@ -210,13 +210,13 @@ Assert that `scope`, `configuration`, `periods`, `schedule`, `validation`, and `
 
 - [ ] **Step 2: Add matching locale data**
 
-Add `academics.timetable.creationProgress` with `navigationLabel`, `checking`, six `steps`, four `status` labels, and these prerequisites in both locale files: `selectClassroom`, `configureTimetable`, `addInstructionalPeriod`, `saveSchedule`, `resolveReviewIssues`, and `publicationNotReady`. Translate all Arabic values; preserve matching object shape. When the backend supplies a publication blocking message, display it instead of the fallback key.
+Add `academics.timetable.creationProgress` with `navigationLabel`, `checking`, six `steps`, four `status` labels, and these prerequisites in both locale files: `configureTimetable`, `addInstructionalPeriod`, `saveSchedule`, `resolveReviewIssues`, and `publicationNotReady`. Translate all Arabic values; preserve matching object shape. When the backend supplies a publication blocking message, display it instead of the fallback key.
 
 - [ ] **Step 3: Wire existing destinations in TimetableView**
 
 Import the resolver/component and destructure `publication` from `useTimetableData`. Create refs for filter scope, configuration button, periods button, timetable grid, validation button/panel trigger, and publish button. Give non-control destinations `tabIndex={-1}`.
 
-Memoize resolver input with `isLoading || timetableLoading`, selected classroom, `resolvedConfig`, `periods`, `timetableEntries`, `isDirty`, `validationSummary`, `backendConflicts`, `publication`, and `!canWriteTimetable`. Render the stepper after `FilterBar` and before the target/action bars.
+Memoize resolver input with `isLoading || timetableLoading`, `resolvedConfig`, `periods`, `timetableEntries`, `isDirty`, `validationSummary`, `backendConflicts`, `publication`, and `!canWriteTimetable`. Render the stepper after `FilterBar` and before the target/action bars.
 
 Route actions exactly:
 
@@ -265,4 +265,3 @@ Only stage the listed files; do not stage unrelated workspace changes.
 - **Spec coverage:** Task 1 covers scope resets, effective config, unsaved/saved entries, validation, conflicts, readiness, publication, read-only, and loading. Task 2 covers desktop/mobile UX, accessibility, and interactive states. Task 3 covers localization and routing to every existing control.
 - **Placeholder scan:** No implementation or test step is deferred.
 - **Type consistency:** Tasks 2 and 3 consume the action union and progress output defined by Task 1.
-

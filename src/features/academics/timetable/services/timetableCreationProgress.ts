@@ -34,7 +34,6 @@ export interface TimetableCreationProgress {
 }
 
 export type TimetableCreationPrerequisite =
-  | "selectClassroom"
   | "configureTimetable"
   | "addInstructionalPeriod"
   | "saveSchedule"
@@ -43,7 +42,6 @@ export type TimetableCreationPrerequisite =
 
 export interface TimetableCreationProgressInput {
   isLoading: boolean;
-  selectedClassroomId: string;
   resolvedConfig: ResolvedTimetableConfig | null;
   entries: TimetableEntry[];
   isDirty: boolean;
@@ -55,7 +53,6 @@ export interface TimetableCreationProgressInput {
 
 export function resolveTimetableCreationProgress({
   isLoading,
-  selectedClassroomId,
   resolvedConfig,
   entries,
   isDirty,
@@ -68,7 +65,6 @@ export function resolveTimetableCreationProgress({
     return { state: "checking", steps: [] };
   }
 
-  const hasClassroom = Boolean(selectedClassroomId);
   const hasConfiguration = hasActiveDays(resolvedConfig);
   const hasPeriods = hasInstructionalPeriod(resolvedConfig);
   const hasSchedule = hasSavedEntries(entries);
@@ -88,12 +84,11 @@ export function resolveTimetableCreationProgress({
   return {
     state: "ready",
     steps: [
-      creationStep("scope", hasClassroom ? "complete" : "current", isReadOnly),
+      creationStep("scope", "complete", isReadOnly),
       creationStep(
         "configuration",
-        stepStatus(hasClassroom, hasConfiguration),
+        hasConfiguration ? "complete" : "current",
         isReadOnly,
-        "selectClassroom",
       ),
       creationStep(
         "periods",

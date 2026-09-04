@@ -25,7 +25,6 @@ const copy = {
     published: "Published",
   },
   prerequisites: {
-    selectClassroom: "Select a classroom first",
     configureTimetable: "Configure the timetable first",
     addInstructionalPeriod: "Add an instructional period first",
     saveSchedule: "Save the schedule first",

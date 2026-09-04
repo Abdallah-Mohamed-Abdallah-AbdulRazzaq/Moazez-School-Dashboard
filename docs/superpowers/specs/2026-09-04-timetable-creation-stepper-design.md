@@ -20,10 +20,10 @@ While the selection's configuration, entries, validation, conflicts, or publicat
 
 ## Steps
 
-1. **Select scope** — complete when a classroom is selected. Activating the step focuses the existing scope selectors.
-2. **Configure timetable** — complete when the selected scope has a valid effective timetable configuration with active days. The configuration may be inherited by the selected classroom. Activating the step opens the existing configuration dialog.
+1. **Select scope** — complete for the active term by default; grade, section, and classroom filters select progressively narrower valid scopes. Activating the step focuses the existing scope selectors.
+2. **Configure timetable** — complete when the selected scope has a valid effective timetable configuration with active days. The configuration may be scoped to the term, grade, section, or classroom. Activating the step opens the existing configuration dialog.
 3. **Add periods** — complete when the configuration has at least one valid instructional period. Activating the step opens the existing periods dialog.
-4. **Build schedule** — complete when the selected classroom has saved timetable entries. Unsaved grid edits keep this step in progress and prevent the review step from becoming actionable. Activating the step focuses the grid and its existing generation and editing controls.
+4. **Build schedule** — complete when the selected scope has saved timetable entries. Unsaved grid edits keep this step in progress and prevent the review step from becoming actionable. Activating the step focuses the grid and its existing generation and editing controls; automatic generation additionally requires a selected classroom.
 5. **Review & validate** — complete when the saved schedule has no blocking validation failures or conflicts. Warnings are shown but do not prevent completion. Activating the step focuses the existing validation panel.
 6. **Publish** — complete when the timetable is published. It becomes actionable only when the backend publication-readiness response permits publication; the resolver displays the existing blocking reason otherwise. Activating the step focuses the existing publication control.
 
@@ -54,7 +54,7 @@ No API or backend contract changes are required.
 
 ## Errors and edge cases
 
-- Missing academic context or scope leaves only **Select scope** actionable.
+- Missing or invalid academic context shows the neutral checking state until the current scope can be resolved.
 - Missing configuration, active days, or instructional periods blocks dependent steps with a specific message.
 - Unsaved grid edits keep **Build schedule** in progress and block **Review & validate** and **Publish** until saved.
 - Validation errors or conflicts keep **Review & validate** incomplete and route the user to the existing validation surface.
