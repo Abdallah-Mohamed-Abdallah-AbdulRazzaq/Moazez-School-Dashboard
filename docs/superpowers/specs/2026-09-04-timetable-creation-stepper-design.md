@@ -16,6 +16,8 @@ The stepper always represents the saved state for the current selection. Changin
 
 The resolver consumes existing page data only: selected scope, effective resolved timetable configuration, periods, timetable entries, dirty state, validation result, publication readiness, and publication state. It does not persist new workflow state or create a second source of truth.
 
+While the selection's configuration, entries, validation, conflicts, or publication status are loading or refreshing, the stepper displays a neutral **Checking progress** state. It must not retain status or prerequisite text from the prior scope.
+
 ## Steps
 
 1. **Select scope** — complete when a classroom is selected. Activating the step focuses the existing scope selectors.
@@ -40,11 +42,13 @@ On narrow screens, preserve the same ordering in a horizontally scrollable label
 
 Use the existing UI components and Lucide icon set, existing primary color tokens, visible focus styles, 150–300 ms color transitions, and reduced-motion-safe styling.
 
+All step labels, status descriptions, prerequisites, loading text, and accessible announcements are added to the existing `academics.timetable` translation namespace in both Arabic and English.
+
 ## Component boundaries
 
 - `timetableCreationProgress` resolver: a pure module that maps current timetable data to typed step statuses, labels, prerequisite text, and action identifiers.
 - `TimetableCreationStepper`: presentational and accessible component that renders the resolved steps and emits the selected action identifier.
-- `TimetableView`: owns action routing to existing UI controls and passes current state into the resolver/component.
+- `TimetableView`: owns action routing to existing UI controls and passes current state into the resolver/component. It provides stable element refs or IDs for scope selection, configuration, periods, grid, validation, and publish destinations so activating a step can reliably focus or open the appropriate existing control.
 
 No API or backend contract changes are required.
 
