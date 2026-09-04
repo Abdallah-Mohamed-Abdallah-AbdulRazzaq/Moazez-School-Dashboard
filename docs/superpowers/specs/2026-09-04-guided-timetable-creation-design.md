@@ -51,11 +51,13 @@ The empty state leads with “Use a period template” and offers “Add manuall
 
 Templates are displayed as selectable cards containing a name, period count, break count, and a compact time-range preview. The product supports more than one template; the exact available templates can vary by school configuration. Selecting a template opens a review view before any data is applied. The review shows every period and break, allows editing before save, and requires a clear “Apply and save” action.
 
+Applying a template when saved periods already exist never merges periods automatically. The user must explicitly confirm that the template will replace the current periods, or cancel and keep them unchanged.
+
 Saving a template creates editable periods. The user can then add, edit, remove, or reorder periods. At least one instructional period is required before timetable construction becomes available.
 
 ### 3. Timetable Construction
 
-This stage opens only after settings and the required instructional periods are saved. The user builds the timetable in the normal grid experience. The progress rail summarizes completion as a count of assigned versus required instructional slots rather than claiming success prematurely.
+This stage opens only after settings and the required instructional periods are saved. The user builds the timetable in the normal grid experience. A timetable does not need every instructional slot filled to reach validation or publishing; validation determines whether its current contents contain blocking issues. The progress rail still summarizes assignment coverage as a count of assigned versus available instructional slots, but does not present partial coverage as an error by itself.
 
 ### 4. Validation
 
@@ -64,6 +66,8 @@ The validation stage becomes actionable once a timetable draft exists. It groups
 ### 5. Publishing
 
 Publishing is unavailable until all preceding stages are complete and validation has no blocking errors. The publish area shows a concise final checklist before the confirmation action. A successful publish changes the workspace to a published state and makes subsequent edits clearly draft changes that require validation again before a later publish.
+
+Changing saved settings or periods after timetable construction warns the user when it affects existing timetable slots. The affected timetable remains a draft that requires validation again; a destructive change cannot silently remove or invalidate slots.
 
 ## Saving and Navigation
 
@@ -82,7 +86,7 @@ The dialog must be keyboard accessible, keep focus inside while open, and restor
 
 - Loading: show the selected scope and a compact loading state; do not display a false “missing timetable” message before data resolves.
 - No timetable: show the state-based starting card and settings as the sole primary action.
-- Partial draft: derive the next action from saved data, not from a local session flag.
+- Partial draft: derive the next action from saved data, not from a local session flag. There is exactly one draft per academic year, term, and timetable scope; reopening that scope resumes its existing draft rather than creating a competing one.
 - Save failure: retain the user's unsaved entries, expose the failure near the relevant save action, and keep the stage incomplete.
 - Validation failure: show error count, severity, plain-language explanation, and a direct repair route.
 - Permission-limited user: show the stage state and reason, but disable mutation and publishing actions with an explanation.
@@ -111,9 +115,12 @@ The page owns data fetching and navigation decisions. A single derived creation-
 3. A stage that depends on unfinished work is visibly blocked and explains why.
 4. The user can select, preview, edit, and explicitly save one of multiple period templates.
 5. Leaving, changing scope, or navigating away with unsaved edits requires a choice to continue or discard edits.
-6. No user can publish while settings, periods, construction, or validation requirements are incomplete.
+6. No user can publish while settings or periods are incomplete, or while validation reports blocking errors; unfilled instructional slots alone do not prevent publishing.
 7. Every validation issue navigates the user to a precise place to repair it.
 8. The flow works in Arabic RTL and English LTR and is keyboard accessible.
+9. Applying a template over existing periods requires confirmation and replaces them only after explicit approval.
+10. A setting or period change that affects existing slots warns the user and returns the timetable to a draft that must be validated again.
+11. Reopening a scope with a draft resumes its single existing draft.
 
 ## Verification Plan
 
