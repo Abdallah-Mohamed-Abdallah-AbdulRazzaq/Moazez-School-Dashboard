@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { usePathname, useRouter } from "next/navigation";
 import { AlertTriangle, Link2, RefreshCcw, Send } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
@@ -32,6 +33,8 @@ export default function HomeworkGradeSyncPanel({
   isGraded,
 }: HomeworkGradeSyncPanelProps) {
   const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("academics.homework.gradeSync");
   const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const { hasPermission } = usePermissions();
@@ -59,6 +62,7 @@ export default function HomeworkGradeSyncPanel({
   );
   const [isLinking, setIsLinking] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
     if (!canViewStatus) {
@@ -71,7 +75,11 @@ export default function HomeworkGradeSyncPanel({
       setStatus(nextStatus);
       setGradeAssessmentId(nextStatus.gradeAssessment?.id ?? "");
     } catch (error) {
-      showError(t("errors.load", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      showError(
+        t("errors.load", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +108,9 @@ export default function HomeworkGradeSyncPanel({
       );
     } catch (error) {
       showError(
-        t("errors.loadAssessments", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
+        t("errors.loadAssessments", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
       );
     } finally {
       setIsLoadingAssessments(false);
@@ -140,7 +150,11 @@ export default function HomeworkGradeSyncPanel({
       setStatus(nextStatus);
       showSuccess(t("messages.linked"));
     } catch (error) {
-      showError(t("errors.link", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      showError(
+        t("errors.link", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
+      );
     } finally {
       setIsLinking(false);
     }
@@ -152,9 +166,12 @@ export default function HomeworkGradeSyncPanel({
     try {
       const nextStatus = await syncHomeworkGrades(homeworkId);
       setStatus(nextStatus);
+      setSyncError(null);
       showSuccess(t("messages.synced"));
     } catch (error) {
-      showError(t("errors.sync", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      const message = getHomeworkErrorMessage(error, tHomeworkError);
+      setSyncError(message);
+      showError(t("errors.sync", { message }));
     } finally {
       setIsSyncing(false);
     }
@@ -194,6 +211,9 @@ export default function HomeworkGradeSyncPanel({
             </h3>
             <p className="mt-1 text-sm text-gray-500">
               {t("link.description")}
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              {t("link.eligibility")}
             </p>
             <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <Select
@@ -293,22 +313,43 @@ export default function HomeworkGradeSyncPanel({
               {t("sync.linkRequired")}
             </p>
           )}
+          {syncError && (
+            <section
+              className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3"
+              role="alert"
+            >
+              <p className="text-sm font-medium text-red-800">{syncError}</p>
+              <p className="mt-1 text-sm text-red-700">{t("sync.recovery")}</p>
+              <Button
+                className="mt-3"
+                size="sm"
+                variant="secondary"
+                onClick={() => router.push(`${pathname}?tab=submissions`)}
+              >
+                {t("actions.reviewSubmissions")}
+              </Button>
+            </section>
+          )}
           <div className="mt-4 grid gap-3 sm:grid-cols-4">
             <Metric
               label={t("summary.total")}
               value={status?.syncSummary?.total}
+              isLoading={isLoading}
             />
             <Metric
               label={t("summary.synced")}
               value={status?.syncSummary?.synced}
+              isLoading={isLoading}
             />
             <Metric
               label={t("summary.pending")}
               value={status?.syncSummary?.pending}
+              isLoading={isLoading}
             />
             <Metric
               label={t("summary.failed")}
               value={status?.syncSummary?.failed}
+              isLoading={isLoading}
             />
           </div>
           {canViewStatus && lastSyncedAt && (
@@ -392,15 +433,21 @@ function linkedAssessmentOption(
 function Metric({
   label,
   value,
+  isLoading,
 }: {
   label: string;
   value: number | undefined;
+  isLoading: boolean;
 }) {
   return (
     <div className="rounded-lg border border-border bg-gray-50 p-3">
       <div className="text-xs font-medium uppercase text-gray-500">{label}</div>
       <div className="mt-1 text-xl font-semibold text-gray-900">
-        {value ?? 0}
+        {isLoading ? (
+          <span className="animate-pulse text-gray-400">...</span>
+        ) : (
+          value ?? 0
+        )}
       </div>
     </div>
   );

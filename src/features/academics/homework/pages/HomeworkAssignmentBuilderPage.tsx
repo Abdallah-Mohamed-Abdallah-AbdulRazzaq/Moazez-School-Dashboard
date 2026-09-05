@@ -41,8 +41,10 @@ import {
   fetchHomeworkAssignment,
   listHomeworkAttachments,
   listHomeworkQuestions,
+  listHomeworkTargets,
   publishHomeworkAssignment,
   reorderHomeworkQuestion,
+  resolveHomeworkTargets,
   updateHomeworkAssignment,
   updateHomeworkQuestion,
 } from "@/features/academics/homework/services/homeworkService";
@@ -55,12 +57,18 @@ const HOMEWORK_QUESTION_TYPES = [
   "SHORT_ANSWER",
   "ESSAY",
 ] as const;
-import type { HomeworkAssignmentUiModel } from "@/features/academics/homework/services/homeworkApi.types";
+import type {
+  HomeworkAssignmentUiModel,
+  HomeworkTargetUiModel,
+} from "@/features/academics/homework/services/homeworkApi.types";
 import {
   mapBuilderAssignmentToHomeworkUpdate,
   mapHomeworkUiToBuilderAssignment,
 } from "@/features/academics/homework/services/homeworkMappers";
-import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
+import {
+  getHomeworkApiValidationErrors,
+  getHomeworkErrorMessage,
+} from "@/features/academics/homework/services/homeworkErrors";
 import {
   validateHomeworkAssignment,
   validateHomeworkQuestion,
@@ -69,6 +77,7 @@ import {
   homeworkLifecycle,
   type HomeworkLifecycleAction,
 } from "@/features/academics/homework/utils/homeworkLifecycle";
+import { getHomeworkPublishReadiness } from "@/features/academics/homework/utils/homeworkPublishReadiness";
 import HomeworkGradeSyncPanel from "@/features/academics/homework/components/HomeworkGradeSyncPanel";
 import HomeworkSubmissionReviewPanel from "@/features/academics/homework/components/HomeworkSubmissionReviewPanel";
 import HomeworkAssignmentDetailsCard from "@/features/academics/homework/components/HomeworkAssignmentDetailsCard";
@@ -117,6 +126,9 @@ export default function HomeworkAssignmentBuilderPage({
     useState<Assignment | null>(null);
   const [questions, setQuestions] = useState<AssignmentQuestion[]>([]);
   const [attachments, setAttachments] = useState<AssignmentAttachment[]>([]);
+  const [publishTargets, setPublishTargets] = useState<HomeworkTargetUiModel[]>(
+    [],
+  );
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
     null,
   );
@@ -134,6 +146,7 @@ export default function HomeworkAssignmentBuilderPage({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isAssignmentSaving, setIsAssignmentSaving] = useState(false);
+  const [isLifecyclePending, setIsLifecyclePending] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
     HomeworkLifecycleAction | "reset" | "deleteQuestion" | null
   >(null);
@@ -153,6 +166,7 @@ export default function HomeworkAssignmentBuilderPage({
       nextHomework: HomeworkAssignmentUiModel,
       nextQuestions: AssignmentQuestion[],
       nextAttachments: AssignmentAttachment[],
+      nextPublishTargets: HomeworkTargetUiModel[],
     ) => {
       const nextAssignment = mapHomeworkUiToBuilderAssignment(nextHomework);
       setHomework(nextHomework);
@@ -170,6 +184,7 @@ export default function HomeworkAssignmentBuilderPage({
         ),
       );
       setAttachments(nextAttachments);
+      setPublishTargets(nextPublishTargets);
       setSelectedQuestionId((current) =>
         current && nextQuestions.some((question) => question.id === current)
           ? current
@@ -180,12 +195,19 @@ export default function HomeworkAssignmentBuilderPage({
   );
 
   const reloadHomework = useCallback(async () => {
-    const [nextHomework, nextQuestions, nextAttachments] = await Promise.all([
-      fetchHomeworkAssignment(homeworkId),
-      listHomeworkQuestions(homeworkId),
-      listHomeworkAttachments(homeworkId),
-    ]);
-    applyReloadedHomework(nextHomework, nextQuestions, nextAttachments);
+    const [nextHomework, nextQuestions, nextAttachments, nextPublishTargets] =
+      await Promise.all([
+        fetchHomeworkAssignment(homeworkId),
+        listHomeworkQuestions(homeworkId),
+        listHomeworkAttachments(homeworkId),
+        listHomeworkTargets(homeworkId),
+      ]);
+    applyReloadedHomework(
+      nextHomework,
+      nextQuestions,
+      nextAttachments,
+      nextPublishTargets,
+    );
   }, [applyReloadedHomework, homeworkId]);
 
   const refresh = useCallback(async () => {
@@ -276,6 +298,9 @@ export default function HomeworkAssignmentBuilderPage({
     isQuestionDirty ||
     isQuestionOrderDirty ||
     deletedQuestionIds.length > 0;
+
+  const publishReadiness = getHomeworkPublishReadiness(publishTargets);
+  const hasQuestionValidationErrors = Boolean(validationErrors.questions);
 
   const pointsSummary = useMemo(
     () => calculatePointsSummary(assignmentDraft?.maxScore || 0, questions),
@@ -437,6 +462,10 @@ export default function HomeworkAssignmentBuilderPage({
         }
         return;
       }
+      const apiValidationErrors = getHomeworkApiValidationErrors(error, tValidation);
+      if (Object.keys(apiValidationErrors).length > 0) {
+        setValidationErrors(apiValidationErrors);
+      }
       showError(
         tHomework("errors.homeworkSaveFailed", {
           message: getHomeworkErrorMessage(error, tHomeworkError),
@@ -581,7 +610,20 @@ export default function HomeworkAssignmentBuilderPage({
       !lifecycle?.actions.includes(confirmAction)
     )
       return;
+    setIsLifecyclePending(true);
     try {
+      if (confirmAction === "publish") {
+        const resolvedHomework = await resolveHomeworkTargets(homeworkId);
+        const resolvedTargets = await listHomeworkTargets(homeworkId);
+        const readiness = getHomeworkPublishReadiness(resolvedTargets);
+        setHomework(resolvedHomework);
+        setAssignmentDraft(mapHomeworkUiToBuilderAssignment(resolvedHomework));
+        setPublishTargets(resolvedTargets);
+        if (!readiness.isReady) {
+          showError(tHomeworkError(readiness.errorKey));
+          return;
+        }
+      }
       const nextHomework =
         confirmAction === "publish"
           ? await publishHomeworkAssignment(homeworkId)
@@ -593,12 +635,17 @@ export default function HomeworkAssignmentBuilderPage({
       setLastSavedAssignment(mapHomeworkUiToBuilderAssignment(nextHomework));
       showSuccess(tHomework(`messages.${confirmAction}Completed`));
     } catch (error) {
+      const apiValidationErrors = getHomeworkApiValidationErrors(error, tValidation);
+      if (Object.keys(apiValidationErrors).length > 0) {
+        setValidationErrors(apiValidationErrors);
+      }
       showError(
         tHomework("errors.lifecycleFailed", {
           message: getHomeworkErrorMessage(error, tHomeworkError),
         }),
       );
     } finally {
+      setIsLifecyclePending(false);
       setConfirmAction(null);
     }
   };
@@ -659,63 +706,113 @@ export default function HomeworkAssignmentBuilderPage({
           {activeTab === "builder" &&
             (lifecycle?.isEditable ||
               (canRunLifecycleAction && lifecycleActions.length > 0)) && (
-              <div className="flex flex-wrap gap-2">
-                {lifecycle?.isEditable && (
-                  <>
+              <div className="flex flex-col items-start gap-2 lg:items-end">
+                <div className="flex flex-wrap gap-2">
+                  {lifecycle?.isEditable && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={!isDirty || isAssignmentSaving || isLifecyclePending}
+                        onClick={() => void handleSaveAssignment()}
+                        leftIcon={<Save className="h-4 w-4" />}
+                      >
+                        {tHomework("actions.save")}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={!isDirty || isAssignmentSaving || isLifecyclePending}
+                        onClick={() => setConfirmAction("reset")}
+                        leftIcon={<RotateCcw className="h-4 w-4" />}
+                      >
+                        {tHomework("actions.reset")}
+                      </Button>
+                    </>
+                  )}
+                  {lifecycleActions.includes("publish") && (
+                    <Button
+                      size="sm"
+                      disabled={isDirty || isAssignmentSaving || isLifecyclePending}
+                      title={
+                        isDirty
+                          ? tHomework("states.saveBeforePublish")
+                          : undefined
+                      }
+                      onClick={() => setConfirmAction("publish")}
+                      leftIcon={<Send className="h-4 w-4" />}
+                    >
+                      {tHomework("actions.publish")}
+                    </Button>
+                  )}
+                  {lifecycleActions.includes("close") && (
                     <Button
                       variant="secondary"
                       size="sm"
-                      disabled={!isDirty || isAssignmentSaving}
-                      onClick={() => void handleSaveAssignment()}
-                      leftIcon={<Save className="h-4 w-4" />}
+                      disabled={isLifecyclePending}
+                      onClick={() => setConfirmAction("close")}
+                      leftIcon={<CircleStop className="h-4 w-4" />}
                     >
-                      {tHomework("actions.save")}
+                      {tHomework("actions.close")}
                     </Button>
+                  )}
+                  {lifecycleActions.includes("cancel") && (
                     <Button
-                      variant="secondary"
+                      variant="danger"
                       size="sm"
-                      disabled={!isDirty || isAssignmentSaving}
-                      onClick={() => setConfirmAction("reset")}
-                      leftIcon={<RotateCcw className="h-4 w-4" />}
+                      disabled={isLifecyclePending}
+                      onClick={() => setConfirmAction("cancel")}
+                      leftIcon={<Ban className="h-4 w-4" />}
                     >
-                      {tHomework("actions.reset")}
+                      {tHomework("actions.cancel")}
                     </Button>
-                  </>
-                )}
+                  )}
+                </div>
                 {lifecycleActions.includes("publish") && (
-                  <Button
-                    size="sm"
-                    disabled={isDirty || isAssignmentSaving}
-                    title={
-                      isDirty
-                        ? tHomework("states.saveBeforePublish")
-                        : undefined
-                    }
-                    onClick={() => setConfirmAction("publish")}
-                    leftIcon={<Send className="h-4 w-4" />}
-                  >
-                    {tHomework("actions.publish")}
-                  </Button>
-                )}
-                {lifecycleActions.includes("close") && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setConfirmAction("close")}
-                    leftIcon={<CircleStop className="h-4 w-4" />}
-                  >
-                    {tHomework("actions.close")}
-                  </Button>
-                )}
-                {lifecycleActions.includes("cancel") && (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => setConfirmAction("cancel")}
-                    leftIcon={<Ban className="h-4 w-4" />}
-                  >
-                    {tHomework("actions.cancel")}
-                  </Button>
+                  <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                    <p className="text-xs font-semibold text-gray-900">
+                      {tHomework("publishReadiness.title")}
+                    </p>
+                    <ul className="mt-1.5 space-y-1 text-xs text-gray-600">
+                      {[
+                        {
+                          isReady: !isDirty,
+                          label: tHomework(
+                            isDirty
+                              ? "publishReadiness.unsavedChanges"
+                              : "publishReadiness.savedChanges",
+                          ),
+                        },
+                        {
+                          isReady: !hasQuestionValidationErrors,
+                          label: tHomework(
+                            hasQuestionValidationErrors
+                              ? "publishReadiness.invalidQuestions"
+                              : "publishReadiness.validQuestions",
+                          ),
+                        },
+                        {
+                          isReady: publishReadiness.isReady,
+                          label: tHomework(
+                            publishReadiness.isReady
+                              ? "publishReadiness.eligibleTargets"
+                              : "publishReadiness.noEligibleTargets",
+                            { count: publishTargets.length },
+                          ),
+                        },
+                      ].map(({ isReady, label }) => (
+                        <li key={label} className="flex items-center gap-1.5">
+                          <CheckCircle2
+                            className={`h-3.5 w-3.5 ${
+                              isReady ? "text-green-600" : "text-amber-500"
+                            }`}
+                            aria-hidden="true"
+                          />
+                          <span>{label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             )}
@@ -886,6 +983,7 @@ export default function HomeworkAssignmentBuilderPage({
             ? "danger"
             : "warning"
         }
+        loading={isLifecyclePending}
       />
     </div>
   );

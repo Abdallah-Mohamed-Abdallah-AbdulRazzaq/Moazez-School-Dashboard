@@ -5,6 +5,7 @@ import {
   fetchHomeworkAssignment,
   listHomeworkAttachments,
   listHomeworkQuestions,
+  listHomeworkTargets,
   reorderHomeworkQuestion,
   updateHomeworkAssignment,
   updateHomeworkQuestion,
@@ -131,6 +132,7 @@ vi.mock("../../services/homeworkService", () => ({
   fetchHomeworkAssignment: vi.fn(),
   listHomeworkQuestions: vi.fn(),
   listHomeworkAttachments: vi.fn(),
+  listHomeworkTargets: vi.fn(),
   updateHomeworkAssignment: vi.fn(),
   createHomeworkQuestion: vi.fn(),
   updateHomeworkQuestion: vi.fn(),
@@ -183,6 +185,14 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     vi.mocked(fetchHomeworkAssignment).mockResolvedValue(homework());
     vi.mocked(listHomeworkQuestions).mockResolvedValue([]);
     vi.mocked(listHomeworkAttachments).mockResolvedValue([]);
+    vi.mocked(listHomeworkTargets).mockResolvedValue([
+      {
+        targetId: "target-1",
+        studentId: "student-1",
+        studentName: "Student One",
+        status: "assigned",
+      },
+    ]);
     vi.mocked(updateHomeworkAssignment).mockResolvedValue(homework());
   });
 
@@ -207,6 +217,20 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
       totalMarks: null,
       estimatedMinutes: undefined,
     });
+  });
+
+  it("shows whether the homework is ready to publish", async () => {
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+
+    await screen.findByText("publishReadiness.title");
+    expect(screen.getByText("publishReadiness.savedChanges")).toBeInTheDocument();
+    expect(screen.getByText("publishReadiness.validQuestions")).toBeInTheDocument();
+    expect(screen.getByText("publishReadiness.eligibleTargets")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("clear-title"));
+
+    await screen.findByText("publishReadiness.unsavedChanges");
+    expect(screen.getByText("publishReadiness.validQuestions")).toBeInTheDocument();
   });
 
   it("reloads authoritative builder state after a later question mutation fails", async () => {

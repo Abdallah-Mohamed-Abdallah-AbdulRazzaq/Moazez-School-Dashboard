@@ -39,7 +39,10 @@ import type {
 } from "@/features/students-guardians/students/types";
 import { createHomeworkAssignment } from "@/features/academics/homework/services/homeworkService";
 import type { CreateHomeworkAssignmentRequest } from "@/features/academics/homework/services/homeworkApi.types";
-import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
+import {
+  getHomeworkApiValidationErrors,
+  getHomeworkErrorMessage,
+} from "@/features/academics/homework/services/homeworkErrors";
 import { validateHomeworkAssignmentContract } from "@/features/academics/homework/utils/homeworkValidation";
 import type { ValidationErrors } from "@/features/academics/curriculum/types/types";
 import type { SelectOption } from "@/components/ui/input/Select";
@@ -545,6 +548,10 @@ export default function CreateHomeworkPage() {
         `/${locale}/academics/homework/${created.id}?${params.toString()}`,
       );
     } catch (error) {
+      const apiValidationErrors = getHomeworkApiValidationErrors(error, tValidation);
+      if (Object.keys(apiValidationErrors).length > 0) {
+        setAssignmentErrors(apiValidationErrors);
+      }
       showError(t("errors.createFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setIsSubmitting(false);

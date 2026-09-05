@@ -5626,6 +5626,7 @@
         "actions": {
           "newHomework": "New homework",
           "apply": "Apply",
+          "reset": "Reset filters",
           "menu": "Homework actions",
           "submissions": "Submissions",
           "gradeSync": "Grade sync",
@@ -5638,13 +5639,22 @@
         "filters": {
           "searchPlaceholder": "Search homework",
           "allStatuses": "All statuses",
-          "allModes": "All modes"
+          "allModes": "All modes",
+          "classroom": "Classroom",
+          "allClassrooms": "All classrooms",
+          "teacher": "Teacher",
+          "allTeachers": "All teachers",
+          "teacherAllocation": "Teacher allocation",
+          "allTeacherAllocations": "All teacher allocations",
+          "dueFrom": "Due from",
+          "dueTo": "Due to"
         },
         "table": {
           "title": "Title",
           "status": "Status",
           "context": "Context",
           "due": "Due",
+          "createdAt": "Created at",
           "content": "Content"
         },
         "statuses": {
@@ -5670,6 +5680,7 @@
         },
         "errors": {
           "loadFailed": "Failed to load homework: {message}",
+          "filtersLoadFailed": "Failed to load homework filters: {message}",
           "lifecycleFailed": "Homework action failed: {message}"
         }
       },
@@ -5798,6 +5809,15 @@
           "saved": "Saved",
           "saveBeforePublish": "Save or reset your changes before publishing."
         },
+        "publishReadiness": {
+          "title": "Ready to publish",
+          "savedChanges": "Changes are saved",
+          "unsavedChanges": "Save or reset your changes",
+          "validQuestions": "Questions are valid",
+          "invalidQuestions": "Fix question validation errors",
+          "eligibleTargets": "{count} eligible target(s) ready",
+          "noEligibleTargets": "Eligible targets will be checked before publishing"
+        },
         "statuses": {
           "draft": "Draft",
           "published": "Published",
@@ -5853,7 +5873,7 @@
           "viewStudents": "View students list",
           "saveAnswer": "Save answer",
           "saveAll": "Save all reviews",
-          "saveSubmission": "Save submission review",
+          "saveSubmission": "Finalize review",
           "syncSubmission": "Sync submission",
           "saveChanges": "Save changes",
           "discardChanges": "Discard changes",
@@ -5912,7 +5932,8 @@
         },
         "submissionReview": {
           "title": "Whole submission review",
-          "description": "Save the overall score and reviewer note for this submission.",
+          "description": "Finalize the overall score and reviewer note for this submission.",
+          "finalizationWarning": "Finalizing locks this submission and its answer reviews.",
           "awardedMarks": "Awarded marks",
           "reviewNote": "Review note",
           "reviewNoteLimit": "{count}/{max} characters"
@@ -5993,11 +6014,13 @@
         "actions": {
           "refresh": "Refresh",
           "link": "Link assessment",
-          "syncAll": "Sync all reviewed"
+          "syncAll": "Sync all reviewed",
+          "reviewSubmissions": "Review submissions"
         },
         "link": {
           "title": "Linked assessment",
           "description": "Enter the grade assessment id that should receive synced homework scores.",
+          "eligibility": "Only unlocked, score-only Assignment assessments that are published or approved and match this homework's subject and class are available.",
           "assessmentId": "Grade assessment",
           "placeholder": "Select an assessment",
           "searchPlaceholder": "Search assessments",
@@ -6019,7 +6042,8 @@
         "sync": {
           "title": "Sync reviewed submissions",
           "description": "Run sync after submissions have been reviewed. Re-running should be idempotent.",
-          "linkRequired": "Link a grade assessment before syncing reviewed submissions."
+          "linkRequired": "Link a grade assessment before syncing reviewed submissions.",
+          "recovery": "Review the affected submissions and linked assessment, then try syncing again."
         },
         "summary": {
           "total": "Total",

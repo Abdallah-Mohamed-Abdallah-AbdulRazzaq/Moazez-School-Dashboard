@@ -95,7 +95,7 @@ describe("homework grade-sync candidates", () => {
     }
   });
 
-  it("keeps compatible draft and published assignments, rejects mismatches, and deduplicates", async () => {
+  it("keeps only syncable published assignments, rejects mismatches, and deduplicates", async () => {
     vi.mocked(fetchStructureTree).mockResolvedValue(structure);
     vi.mocked(fetchAssessments)
       .mockResolvedValueOnce([
@@ -104,6 +104,7 @@ describe("homework grade-sync candidates", () => {
       ])
       .mockResolvedValueOnce([
         assessment({ id: "published-stage", scopeType: "stage", scopeId: "stage-1", stageId: "stage-1", approvalStatus: "published" }),
+        assessment({ id: "approved-stage", scopeType: "stage", scopeId: "stage-1", stageId: "stage-1", approvalStatus: "approved" }),
         assessment({ id: "locked", scopeType: "stage", scopeId: "stage-1", isLocked: true }),
       ])
       .mockResolvedValueOnce([
@@ -116,14 +117,15 @@ describe("homework grade-sync candidates", () => {
       .mockResolvedValueOnce([
         assessment({ id: "classroom", approvalStatus: "published" }),
         assessment({ id: "classroom", approvalStatus: "published" }),
+        assessment({ id: "question-based", approvalStatus: "published", deliveryMode: "QUESTION_BASED" }),
         assessment({ id: "wrong-year", academicYearId: "year-2" }),
       ]);
 
     const result = await discoverHomeworkGradeSyncCandidates(homework);
 
     expect(result.map(({ id }) => id)).toEqual([
-      "draft-school",
       "published-stage",
+      "approved-stage",
       "classroom",
     ]);
   });

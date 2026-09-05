@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import HomeworkGradeSyncPanel from "../HomeworkGradeSyncPanel";
 import {
@@ -9,6 +9,7 @@ import {
 import { discoverHomeworkGradeSyncCandidates } from "../../services/homeworkGradeSyncCandidates";
 
 const permissions = vi.hoisted(() => new Set<string>());
+const push = vi.hoisted(() => vi.fn());
 const showError = vi.fn();
 const showSuccess = vi.fn();
 const translate = (key: string) => key;
@@ -16,6 +17,11 @@ const translate = (key: string) => key;
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: () => translate,
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/en/academics/homework/homework-1",
+  useRouter: () => ({ push }),
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
@@ -131,14 +137,16 @@ describe("HomeworkGradeSyncPanel endpoint permissions and lifecycle", () => {
     expect(discoverHomeworkGradeSyncCandidates).not.toHaveBeenCalled();
   });
 
-  it("discovers assessments only with grades.assessments.view and blocks links for cancelled work", async () => {
+  it.each(["cancelled", "archived"] as const)(
+    "discovers assessments only with grades.assessments.view and blocks links for %s work",
+    async (status) => {
     permissions.add("homework.assignments.manage");
     permissions.add("grades.assessments.manage");
     permissions.add("grades.assessments.view");
     render(
       <HomeworkGradeSyncPanel
         homeworkId="homework-1"
-        homework={homework("cancelled")}
+        homework={homework(status)}
         isGraded
       />,
     );
@@ -147,7 +155,8 @@ describe("HomeworkGradeSyncPanel endpoint permissions and lifecycle", () => {
     expect(screen.getByLabelText("link.assessmentId")).toBeDisabled();
     expect(screen.queryByRole("button", { name: "actions.link" })).not.toBeInTheDocument();
     expect(linkHomeworkGradeSync).not.toHaveBeenCalled();
-  });
+    },
+  );
 
   it("shows a linked assessment read-only and labels pending submissions correctly", async () => {
     permissions.add("homework.assignments.view");
@@ -183,5 +192,135 @@ describe("HomeworkGradeSyncPanel endpoint permissions and lifecycle", () => {
 
     expect(await screen.findByText("summary.lastSynced")).toBeInTheDocument();
     expect(screen.getByText("sync.linkRequired")).toBeInTheDocument();
+  });
+
+  it("explains which assessments can be linked", async () => {
+    permissions.add("grades.assessments.view");
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    expect(await screen.findByText("link.eligibility")).toBeInTheDocument();
+  });
+
+  it("shows placeholders instead of zeroes while sync status is loading", async () => {
+    permissions.add("homework.assignments.view");
+    permissions.add("grades.items.view");
+    vi.mocked(getHomeworkGradeSyncStatus).mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getAllByText("...")).toHaveLength(4);
+  });
+
+  it("links a selected compatible assessment and reflects the linked status", async () => {
+    permissions.add("homework.assignments.view");
+    permissions.add("grades.items.view");
+    permissions.add("homework.assignments.manage");
+    permissions.add("grades.assessments.manage");
+    permissions.add("grades.assessments.view");
+    vi.mocked(linkHomeworkGradeSync).mockResolvedValue({
+      homeworkId: "homework-1",
+      linked: true,
+      gradeAssessment: { id: "assessment-1", title: "Assignment" },
+      warnings: [],
+    });
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    const select = await screen.findByLabelText("link.assessmentId");
+    fireEvent.change(select, { target: { value: "assessment-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "actions.link" }));
+
+    await waitFor(() =>
+      expect(linkHomeworkGradeSync).toHaveBeenCalledWith(
+        "homework-1",
+        "assessment-1",
+      ),
+    );
+    expect(await screen.findByText("link.alreadyLinked")).toBeInTheDocument();
+    expect(showSuccess).toHaveBeenCalledWith("messages.linked");
+  });
+
+  it("keeps grade sync unavailable while the visible status has no link", async () => {
+    permissions.add("homework.assignments.view");
+    permissions.add("grades.items.view");
+    permissions.add("homework.assignments.manage");
+    permissions.add("grades.items.manage");
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    expect(await screen.findByRole("button", { name: "actions.syncAll" })).toBeDisabled();
+  });
+
+  it("reports a link failure without changing the displayed status", async () => {
+    permissions.add("homework.assignments.view");
+    permissions.add("grades.items.view");
+    permissions.add("homework.assignments.manage");
+    permissions.add("grades.assessments.manage");
+    permissions.add("grades.assessments.view");
+    vi.mocked(linkHomeworkGradeSync).mockRejectedValue(new Error("Link failed"));
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    const select = await screen.findByLabelText("link.assessmentId");
+    fireEvent.change(select, { target: { value: "assessment-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "actions.link" }));
+    await waitFor(() => expect(showError).toHaveBeenCalledWith("errors.link"));
+    expect(screen.queryByText("link.alreadyLinked")).not.toBeInTheDocument();
+  });
+
+  it("reports a sync failure without changing the linked status", async () => {
+    permissions.add("homework.assignments.view");
+    permissions.add("grades.items.view");
+    permissions.add("homework.assignments.manage");
+    permissions.add("grades.items.manage");
+    vi.mocked(getHomeworkGradeSyncStatus).mockResolvedValue({
+      homeworkId: "homework-1",
+      linked: true,
+      gradeAssessment: { id: "assessment-1", title: "Assignment" },
+      warnings: [],
+    });
+    vi.mocked(syncHomeworkGrades).mockRejectedValue(new Error("Sync failed"));
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "actions.syncAll" }));
+    await waitFor(() => expect(showError).toHaveBeenCalledWith("errors.sync"));
+    expect(screen.getByRole("alert")).toHaveTextContent("generic");
+    expect(screen.getByRole("alert")).toHaveTextContent("sync.recovery");
+    fireEvent.click(screen.getByRole("button", { name: "actions.reviewSubmissions" }));
+    expect(push).toHaveBeenCalledWith("/en/academics/homework/homework-1?tab=submissions");
+    expect(screen.getByText("link.alreadyLinked")).toBeInTheDocument();
+  });
+
+  it("reports a grade sync status load failure", async () => {
+    permissions.add("homework.assignments.view");
+    permissions.add("grades.items.view");
+    vi.mocked(getHomeworkGradeSyncStatus).mockRejectedValue(
+      new Error("Status unavailable"),
+    );
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    await waitFor(() => expect(showError).toHaveBeenCalledWith("errors.load"));
+  });
+
+  it("reports an assessment discovery failure", async () => {
+    permissions.add("grades.assessments.view");
+    vi.mocked(discoverHomeworkGradeSyncCandidates).mockRejectedValue(
+      new Error("Candidates unavailable"),
+    );
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledWith("errors.loadAssessments"),
+    );
   });
 });

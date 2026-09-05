@@ -212,6 +212,22 @@ describe("HomeworkSubmissionReviewPanel backend workflow", () => {
     );
   });
 
+  it("explains that finalizing a review locks the submission", async () => {
+    arrange();
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+      />,
+    );
+
+    expect(
+      await screen.findByText("submissionReview.finalizationWarning"),
+    ).toBeInTheDocument();
+  });
+
   it("shows required-answer progress and opens the mobile queue as a dialog", async () => {
     arrange();
     render(
