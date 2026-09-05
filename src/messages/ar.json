@@ -6109,6 +6109,31 @@
         "allSections": "كل الشعب",
         "selectClassroom": "اختر الفصل"
       },
+      "creationProgress": {
+        "navigationLabel": "تقدم إنشاء الجدول الدراسي",
+        "checking": "جارٍ التحقق من التقدم",
+        "steps": {
+          "scope": "اختيار النطاق",
+          "configuration": "إعداد الجدول",
+          "periods": "إضافة الحصص",
+          "schedule": "بناء الجدول",
+          "validation": "المراجعة والتحقق",
+          "publish": "النشر"
+        },
+        "status": {
+          "complete": "مكتمل",
+          "current": "الخطوة الحالية",
+          "blocked": "محظورة",
+          "published": "منشور"
+        },
+        "prerequisites": {
+          "configureTimetable": "أعِد الجدول أولاً",
+          "addInstructionalPeriod": "أضف حصة تعليمية أولاً",
+          "saveSchedule": "احفظ الجدول أولاً",
+          "resolveReviewIssues": "عالج مشكلات التحقق والتعارضات أولاً",
+          "publicationNotReady": "الجدول غير جاهز للنشر"
+        }
+      },
       "grid": {
         "period": "الحصة",
         "day": "اليوم",
@@ -6458,12 +6483,17 @@
         "weekStartDay": "بداية الأسبوع",
         "activeDays": "الأيام النشطة",
         "periodsSection": "الحصص",
+        "periodsAdded": "تمت إضافة {count} حصص",
+        "newPeriod": "حصة جديدة",
+        "savedPeriods": "الحصص المضافة",
         "saveBeforePeriods": "احفظ الإعدادات قبل إدارة الحصص.",
         "periodIndex": "الترتيب",
         "periodLabel": "التسمية",
         "periodType": "النوع",
         "instructional": "تعليمية",
         "addPeriod": "إضافة حصة",
+        "addNextPeriod": "إضافة الحصة التالية",
+        "periodAdded": "تمت إضافة الحصة. يمكنك إضافة الحصة التالية.",
         "updatePeriod": "تحديث الحصة",
         "cancelEdit": "إلغاء التعديل",
         "noPeriods": "لا توجد حصص بعد.",

@@ -6353,6 +6353,31 @@
         "allSections": "All Sections",
         "selectClassroom": "Select Classroom"
       },
+      "creationProgress": {
+        "navigationLabel": "Timetable creation progress",
+        "checking": "Checking progress",
+        "steps": {
+          "scope": "Select scope",
+          "configuration": "Configure timetable",
+          "periods": "Add periods",
+          "schedule": "Build schedule",
+          "validation": "Review and validate",
+          "publish": "Publish"
+        },
+        "status": {
+          "complete": "Complete",
+          "current": "Current step",
+          "blocked": "Blocked",
+          "published": "Published"
+        },
+        "prerequisites": {
+          "configureTimetable": "Configure the timetable first",
+          "addInstructionalPeriod": "Add an instructional period first",
+          "saveSchedule": "Save the schedule first",
+          "resolveReviewIssues": "Resolve validation issues and conflicts first",
+          "publicationNotReady": "This timetable is not ready to publish"
+        }
+      },
       "grid": {
         "period": "Period",
         "day": "Day",
@@ -6702,12 +6727,17 @@
         "weekStartDay": "Week start day",
         "activeDays": "Active days",
         "periodsSection": "Periods",
+        "periodsAdded": "{count} periods added",
+        "newPeriod": "New period",
+        "savedPeriods": "Saved periods",
         "saveBeforePeriods": "Save config before managing periods.",
         "periodIndex": "Index",
         "periodLabel": "Label",
         "periodType": "Type",
         "instructional": "Instructional",
         "addPeriod": "Add period",
+        "addNextPeriod": "Add next period",
+        "periodAdded": "Period added. Ready for the next one.",
         "updatePeriod": "Update period",
         "cancelEdit": "Cancel edit",
         "noPeriods": "No periods yet.",

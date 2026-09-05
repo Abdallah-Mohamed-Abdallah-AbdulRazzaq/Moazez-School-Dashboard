@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import FilterBar from "./FilterBar";
 import TimetableGrid from "./TimetableGrid";
+import TimetableCreationStepper from "./TimetableCreationStepper";
 import ValidationPanel from "./ValidationPanel";
 import EditSlotDialog from "./EditSlotDialog";
 import GenerateDialog from "./GenerateDialog";
@@ -38,6 +39,10 @@ import {
 import { subjectOptionsForGradeAllocations } from "@/features/academics/timetable/services/timetableSlotEditing";
 import { hasBlockingValidation } from "@/features/academics/timetable/services/timetableValidationSummary";
 import { createTimetablePublishFingerprint } from "@/features/academics/timetable/services/timetablePublishFingerprint";
+import {
+  resolveTimetableCreationProgress,
+  type TimetableCreationAction,
+} from "@/features/academics/timetable/services/timetableCreationProgress";
 import {
   getDefaultRoomSuggestion as getSuggestedDefaultRoom,
   getRoomSource as resolveRoomSource,
@@ -146,6 +151,8 @@ export default function TimetableView({
   const [isUnpublishing, setIsUnpublishing] = useState(false);
   const [printTimestamp] = useState("");
   const printMatrixRef = useRef<HTMLDivElement | null>(null);
+  const scopeRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const printTimetable = usePrint({
     contentRef: printMatrixRef,
     title: t("title"),
@@ -258,6 +265,7 @@ export default function TimetableView({
     timetableLoading,
     isSaving,
     isPublished,
+    publication,
     conflicts: backendConflicts,
     validationSummary,
     reloadConfigs,
@@ -881,6 +889,86 @@ export default function TimetableView({
     ? t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`)
     : "";
 
+  const creationProgress = useMemo(
+    () =>
+      resolveTimetableCreationProgress({
+        isLoading: isLoading || timetableLoading,
+        resolvedConfig,
+        entries: timetableEntries,
+        isDirty,
+        validationSummary,
+        conflicts: backendConflicts,
+        publication,
+        isReadOnly: !canWriteTimetable,
+      }),
+    [
+      backendConflicts,
+      canWriteTimetable,
+      isDirty,
+      isLoading,
+      publication,
+      resolvedConfig,
+      timetableEntries,
+      timetableLoading,
+      validationSummary,
+    ],
+  );
+
+  const creationProgressCopy = {
+    navigationLabel: t("creationProgress.navigationLabel"),
+    checking: t("creationProgress.checking"),
+    steps: {
+      scope: t("creationProgress.steps.scope"),
+      configuration: t("creationProgress.steps.configuration"),
+      periods: t("creationProgress.steps.periods"),
+      schedule: t("creationProgress.steps.schedule"),
+      validation: t("creationProgress.steps.validation"),
+      publish: t("creationProgress.steps.publish"),
+    },
+    status: {
+      complete: t("creationProgress.status.complete"),
+      current: t("creationProgress.status.current"),
+      blocked: t("creationProgress.status.blocked"),
+      published: t("creationProgress.status.published"),
+    },
+    prerequisites: {
+      configureTimetable: t(
+        "creationProgress.prerequisites.configureTimetable",
+      ),
+      addInstructionalPeriod: t(
+        "creationProgress.prerequisites.addInstructionalPeriod",
+      ),
+      saveSchedule: t("creationProgress.prerequisites.saveSchedule"),
+      resolveReviewIssues: t(
+        "creationProgress.prerequisites.resolveReviewIssues",
+      ),
+      publicationNotReady: t(
+        "creationProgress.prerequisites.publicationNotReady",
+      ),
+    },
+  };
+
+  const focusDestination = (destination: HTMLDivElement | null) => {
+    if (!destination) return;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    destination.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "start",
+    });
+    destination.focus();
+  };
+
+  const openCreationStep = (action: TimetableCreationAction) => {
+    if (action === "scope") return focusDestination(scopeRef.current);
+    if (action === "configuration") return setConfigDialogOpen(true);
+    if (action === "periods") return setPeriodsDialogOpen(true);
+    if (action === "schedule") return focusDestination(gridRef.current);
+    if (action === "validation") return void handleValidationOpen();
+    void handlePublish();
+  };
+
   const handleExport = (format: AcademicsExportFormat) => {
     if (!hasTimetableScope || !resolvedConfig) return;
 
@@ -971,7 +1059,8 @@ export default function TimetableView({
   };
 
   const schoolName = brandingProfile?.schoolName.trim() || tRoot("school_name");
-  const printLogoUrl = "/images/logo/moazzez_logo.svg";
+  const printLogoUrl =
+    brandingProfile?.logoUrl.trim() || "/images/logo/moazzez_logo.svg";
 
   const selectedPrintTarget = (() => {
     if (selectedClassroom) {
@@ -1261,7 +1350,7 @@ export default function TimetableView({
         }
       `}</style>
       {/* Filter Bar */}
-      <div className="print:hidden">
+      <div ref={scopeRef} tabIndex={-1} className="print:hidden">
         <FilterBar
           stages={stages}
           grades={grades}
@@ -1278,6 +1367,12 @@ export default function TimetableView({
           locale={locale}
         />
       </div>
+
+      <TimetableCreationStepper
+        progress={creationProgress}
+        copy={creationProgressCopy}
+        onAction={openCreationStep}
+      />
 
       {hasTimetableScope && (
         <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3">
@@ -1591,7 +1686,11 @@ export default function TimetableView({
       )}
 
       {/* Grid */}
-      <div className="flex-1 min-h-full overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0">
+      <div
+        ref={gridRef}
+        tabIndex={-1}
+        className="flex-1 min-h-full overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0"
+      >
         {!hasTimetableScope ? (
           <AcademicModuleEmptyState
             icon={AlertCircle}
@@ -1625,7 +1724,7 @@ export default function TimetableView({
             }
             ctaDisabled={!canEditTimetable}
             onCtaClick={
-              canManageTimetable ? () => setConfigDialogOpen(true) : undefined
+              canManageTimetable ? () => setPeriodsDialogOpen(true) : undefined
             }
             className="h-full"
           />
