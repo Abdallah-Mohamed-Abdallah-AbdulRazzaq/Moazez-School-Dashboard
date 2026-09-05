@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertCircle,
@@ -146,24 +146,39 @@ export default function TimetableConfigDialog({
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isSavingPeriod, setIsSavingPeriod] = useState(false);
   const [deletingPeriodId, setDeletingPeriodId] = useState<string | null>(null);
+  const [periodStatus, setPeriodStatus] = useState("");
+  const periodLabelInputRef = useRef<HTMLInputElement>(null);
+  const initializedPeriodSessionRef = useRef<string | null>(null);
+  const periodSessionKey = [
+    config?.id ?? "new",
+    selectedGradeId,
+    selectedSectionId,
+    selectedClassroomId,
+  ].join(":");
 
   useEffect(() => {
     if (!open) {
+      initializedPeriodSessionRef.current = null;
       return;
     }
+    if (initializedPeriodSessionRef.current === periodSessionKey) {
+      return;
+    }
+    initializedPeriodSessionRef.current = periodSessionKey;
     void Promise.resolve().then(() => {
       setName(config?.name ?? t("config.defaultName"));
       setWeekStartDay(config?.weekStartDay ?? 0);
       setActiveDays(config?.activeDays ?? [0, 1, 2, 3, 4]);
       setPeriodForm(emptyPeriodForm(nextPeriodIndex(periods)));
       setEditingPeriodId(null);
+      setPeriodStatus("");
       setFormErrors([]);
       setFieldErrors({});
     });
   }, [
     config,
     open,
-    periods,
+    periodSessionKey,
     selectedClassroomId,
     selectedGradeId,
     selectedSectionId,
@@ -194,6 +209,7 @@ export default function TimetableConfigDialog({
   const resetPeriodForm = () => {
     setPeriodForm(emptyPeriodForm(nextPeriodIndex(periods)));
     setEditingPeriodId(null);
+    setPeriodStatus("");
   };
 
   const applyErrors = (nextErrors: TimetableFormErrors) => {
@@ -271,15 +287,23 @@ export default function TimetableConfigDialog({
       if (editingPeriodId) {
         await updateTimetablePeriodDto(editingPeriodId, periodPayload());
       } else {
-        await createTimetablePeriodDto({
+        const createdPeriod = await createTimetablePeriodDto({
           timetableConfigId: config.id,
           ...periodPayload(),
         });
+        await onSaved();
+        setPeriodForm({
+          ...periodForm,
+          index: createdPeriod.index + 1,
+          label: "",
+        });
+        setPeriodStatus(t("config.periodAdded"));
+        periodLabelInputRef.current?.focus();
+        clearErrors();
+        return;
       }
       await onSaved();
-      if (editingPeriodId) {
-        resetPeriodForm();
-      }
+      resetPeriodForm();
       clearErrors();
     } catch (error) {
       applyErrors(
@@ -300,6 +324,7 @@ export default function TimetableConfigDialog({
     }
 
     setEditingPeriodId(period.id);
+    setPeriodStatus("");
     setPeriodForm({
       id: period.id,
       index: period.index,
@@ -528,10 +553,17 @@ export default function TimetableConfigDialog({
         </section>}
 
         {!isConfigMode && <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">
-              {t("config.periodsSection")}
-            </h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {t("config.periodsSection")}
+              </h3>
+              {config && (
+                <p className="mt-1 text-xs text-gray-500">
+                  {t("config.periodsAdded", { count: sortedPeriods.length })}
+                </p>
+              )}
+            </div>
             {!config && (
               <span className="text-xs text-amber-700">
                 {t("config.saveBeforePeriods")}
@@ -541,7 +573,13 @@ export default function TimetableConfigDialog({
 
           {config && !readOnly && (
             <>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+              <section className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <h4 className="text-sm font-semibold text-gray-900">
+                  {editingPeriodId
+                    ? t("config.updatePeriod")
+                    : t("config.newPeriod")}
+                </h4>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
                 <label className="text-sm font-medium text-gray-700">
                   {t("config.periodIndex")}
                   <input
@@ -561,6 +599,7 @@ export default function TimetableConfigDialog({
                 <label className="text-sm font-medium text-gray-700 md:col-span-2">
                   {t("config.periodLabel")}
                   <input
+                    ref={periodLabelInputRef}
                     value={periodForm.label}
                     onChange={(event) =>
                       setPeriodForm({
@@ -602,72 +641,88 @@ export default function TimetableConfigDialog({
                   />
                   <FieldError errors={fieldErrors} field="endTime" />
                 </label>
-                <Select
-                  label={t("config.periodType")}
-                  value={periodForm.type}
-                  onChange={(value) =>
-                    setPeriodForm({
-                      ...periodForm,
-                      type: value as PeriodType,
-                      isInstructional: value === "CLASS",
-                    })
-                  }
-                  options={[
-                    { value: "CLASS", label: t("editSlot.class") },
-                    { value: "BREAK", label: t("editSlot.break") },
-                    {
-                      value: "ASSEMBLY",
-                      label: t("config.periodTypes.assembly"),
-                    },
-                    {
-                      value: "ACTIVITY",
-                      label: t("config.periodTypes.activity"),
-                    },
-                  ]}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={periodForm.isInstructional}
-                    onChange={(event) =>
+                <div className="space-y-2">
+                  <Select
+                    label={t("config.periodType")}
+                    value={periodForm.type}
+                    onChange={(value) =>
                       setPeriodForm({
                         ...periodForm,
-                        isInstructional: event.target.checked,
+                        type: value as PeriodType,
+                        isInstructional: value === "CLASS",
                       })
                     }
+                    options={[
+                      { value: "CLASS", label: t("editSlot.class") },
+                      { value: "BREAK", label: t("editSlot.break") },
+                      {
+                        value: "ASSEMBLY",
+                        label: t("config.periodTypes.assembly"),
+                      },
+                      {
+                        value: "ACTIVITY",
+                        label: t("config.periodTypes.activity"),
+                      },
+                    ]}
                   />
-                  {t("config.instructional")}
-                </label>
-                <Button
-                  onClick={savePeriod}
-                  loading={isSavingPeriod}
-                  variant="secondary"
-                  leftIcon={<Plus className="h-4 w-4" />}
-                >
-                  {editingPeriodId
-                    ? t("config.updatePeriod")
-                    : t("config.addPeriod")}
-                </Button>
-                {editingPeriodId && (
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={periodForm.isInstructional}
+                      onChange={(event) =>
+                        setPeriodForm({
+                          ...periodForm,
+                          isInstructional: event.target.checked,
+                        })
+                      }
+                    />
+                    {t("config.instructional")}
+                  </label>
+                </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
                   <Button
-                    onClick={resetPeriodForm}
-                    variant="ghost"
-                    leftIcon={<X className="h-4 w-4" />}
+                    onClick={savePeriod}
+                    loading={isSavingPeriod}
+                    variant="primary"
+                    leftIcon={<Plus className="h-4 w-4" />}
                   >
-                    {t("config.cancelEdit")}
+                    {editingPeriodId
+                      ? t("config.updatePeriod")
+                      : t("config.addNextPeriod")}
                   </Button>
+                  {editingPeriodId && (
+                    <Button
+                      onClick={resetPeriodForm}
+                      variant="secondary"
+                      leftIcon={<X className="h-4 w-4" />}
+                    >
+                      {t("config.cancelEdit")}
+                    </Button>
+                  )}
+                </div>
+                {periodStatus && (
+                  <p
+                    aria-live="polite"
+                    role="status"
+                    className="text-sm text-emerald-700"
+                  >
+                    {periodStatus}
+                  </p>
                 )}
-              </div>
+              </section>
 
-              <div className="max-h-72 overflow-auto rounded-lg border border-gray-200">
-                {sortedPeriods.length === 0 ? (
-                  <div className="p-4 text-sm text-gray-500">
-                    {t("config.noPeriods")}
-                  </div>
-                ) : (
-                  sortedPeriods.map((period) => {
+              <section className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-900">
+                  {t("config.savedPeriods")}
+                </h4>
+                <div className="max-h-72 overflow-auto rounded-lg border border-gray-200">
+                  {sortedPeriods.length === 0 ? (
+                    <div className="p-4 text-sm text-gray-500">
+                      {t("config.noPeriods")}
+                    </div>
+                  ) : (
+                    sortedPeriods.map((period) => {
                     const PeriodTypeIcon = periodTypeIcon(period.type);
 
                     return (
@@ -718,19 +773,24 @@ export default function TimetableConfigDialog({
                         </div>
                       </div>
                     );
-                  })
-                )}
-              </div>
+                    })
+                  )}
+                </div>
+              </section>
             </>
           )}
           {config && readOnly && (
-            <div className="max-h-72 overflow-auto rounded-lg border border-gray-200">
-              {sortedPeriods.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500">
-                  {t("config.noPeriods")}
-                </div>
-              ) : (
-                sortedPeriods.map((period) => {
+            <section className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-900">
+                {t("config.savedPeriods")}
+              </h4>
+              <div className="max-h-72 overflow-auto rounded-lg border border-gray-200">
+                {sortedPeriods.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500">
+                    {t("config.noPeriods")}
+                  </div>
+                ) : (
+                  sortedPeriods.map((period) => {
                   const PeriodTypeIcon = periodTypeIcon(period.type);
 
                   return (
@@ -761,9 +821,10 @@ export default function TimetableConfigDialog({
                       </div>
                     </div>
                   );
-                })
-              )}
-            </div>
+                  })
+                )}
+              </div>
+            </section>
           )}
         </section>}
       </div>
