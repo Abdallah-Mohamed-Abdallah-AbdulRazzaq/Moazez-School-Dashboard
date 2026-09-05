@@ -161,16 +161,16 @@ describe("subjectOptionsForGradeAllocations", () => {
     ).toEqual(["subject-math"]);
   });
 
-  it("keeps the current entry subject visible when it is no longer allocated", () => {
+  it("excludes subjects with zero weekly hours", () => {
     expect(
       subjectOptionsForGradeAllocations({
         subjects,
         subjectAllocations: [
           { gradeId: "grade-1", subjectId: "subject-math", weeklyHours: 5 },
+          { gradeId: "grade-1", subjectId: "subject-science", weeklyHours: 0 },
         ],
         gradeId: "grade-1",
-        currentSubjectId: "subject-science",
       }).map((subject) => subject.id),
-    ).toEqual(["subject-math", "subject-science"]);
+    ).toEqual(["subject-math"]);
   });
 });
