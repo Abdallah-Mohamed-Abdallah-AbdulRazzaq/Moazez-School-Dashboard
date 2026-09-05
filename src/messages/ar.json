@@ -1274,7 +1274,9 @@
       "completed": "مكتمل",
       "cancelled": "ملغي",
       "rescheduled": "معاد جدولته",
-      "failed": "راسب"
+      "failed": "راسب",
+      "active": "نشط",
+      "withdrawn": "منسحب"
     },
     "source": {
       "in_app": "داخل التطبيق",
@@ -2370,6 +2372,16 @@
       "no_match": "لا توجد تسجيلات تطابق التصفية",
       "no_enrollments": "لم يتم العثور على تسجيلات",
       "load_error": "تعذر تحميل التسجيلات.",
+      "errors": {
+        "placement_conflict": "لا يمكن إتمام الإجراء على هذا التوزيع. اختر فصلًا أو شعبة مختلفة وتأكد من توفر مقعد.",
+        "inactive_academic_year": "السنة الدراسية المحددة غير نشطة.",
+        "no_active_enrollment": "لا يوجد قيد نشط لهذا الطالب لإتمام الإجراء.",
+        "unauthorized": "انتهت الجلسة. سجّل الدخول مرة أخرى.",
+        "permission_denied": "ليست لديك صلاحية تنفيذ هذا الإجراء.",
+        "not_found": "لم يتم العثور على سجل القيد المطلوب.",
+        "validation_failed": "راجع بيانات القيد ثم أعد المحاولة.",
+        "generic": "تعذر إتمام إجراء القيد. حاول مرة أخرى."
+      },
       "context": {
         "loading": "جارٍ تحميل السياق الأكاديمي...",
         "scope_help": "تُصفّي السنة الدراسية هذه القائمة، بينما يحدد الفصل الدراسي الصفوف والفصول المتاحة للتوزيع.",
@@ -2402,10 +2414,11 @@
       "promote_waitlist": "ترقية قائمة الانتظار",
       "waitlist_summary": "سيتم فحص {count} من إدخالات قائمة الانتظار النشطة بحثًا عن مقاعد متاحة.",
       "actions": {
+        "title": "الإجراءات",
+        "details": "التفاصيل",
         "new_enrollment": "تسجيل جديد",
         "retry": "إعادة المحاولة",
         "save": "حفظ",
-        "edit_placement": "تعديل التوزيع",
         "transfer": "نقل",
         "promote": "ترقية",
         "withdraw": "انسحاب"
@@ -2419,8 +2432,8 @@
       "dialogs": {
         "placement": {
           "new_title": "تسجيل جديد",
-          "edit_title": "تعديل التوزيع",
           "student": "الطالب",
+          "stage": "المرحلة",
           "academic_context": "السياق الأكاديمي",
           "academic_year": "السنة الدراسية",
           "term": "الفصل الدراسي",
@@ -2428,9 +2441,9 @@
           "section": "الشعبة",
           "classroom": "الفصل",
           "enrollment_date": "تاريخ التسجيل",
-          "save_error": "تعذر حفظ التسجيل.",
           "validation": {
             "student_required": "اختر طالبًا.",
+            "stage_required": "اختر مرحلة.",
             "grade_required": "اختر صفًا.",
             "section_required": "اختر شُعبة.",
             "classroom_required": "اختر فصلًا.",
@@ -2444,12 +2457,13 @@
             "promote": "ترقية التسجيل"
           },
           "target_section": "الشعبة المستهدفة",
+          "target_stage": "المرحلة المستهدفة",
+          "target_grade": "الصف المستهدف",
           "target_classroom": "الفصل المستهدف",
           "target_academic_year": "السنة الدراسية المستهدفة",
           "effective_date": "تاريخ السريان",
           "reason": "السبب",
-          "notes_optional": "ملاحظات (اختياري)",
-          "action_error": "تعذر إكمال إجراء التسجيل."
+          "notes_optional": "ملاحظات (اختياري)"
         }
       },
       "details": {
@@ -2460,7 +2474,9 @@
         "overview": "نظرة عامة",
         "current_enrollment": "التسجيل الحالي",
         "history": "السجل",
+        "history_order": "الأحدث أولًا",
         "no_active_enrollment": "لا يوجد تسجيل نشط",
+        "withdrawn_lifecycle_help": "هذا الطالب منسحب. أعد قيده أولًا قبل تنفيذ نقل أو ترقية أو انسحاب جديد.",
         "no_history": "لا يوجد سجل للتسجيلات",
         "fields": {
           "status": "الحالة",
