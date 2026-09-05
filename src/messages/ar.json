@@ -5627,6 +5627,7 @@
         "actions": {
           "newHomework": "واجب جديد",
           "apply": "تطبيق",
+          "reset": "إعادة تعيين عوامل التصفية",
           "menu": "إجراءات الواجب",
           "submissions": "التسليمات",
           "gradeSync": "مزامنة الدرجات",
@@ -5639,13 +5640,22 @@
         "filters": {
           "searchPlaceholder": "ابحث في الواجبات",
           "allStatuses": "كل الحالات",
-          "allModes": "كل الأنواع"
+          "allModes": "كل الأنواع",
+          "classroom": "الفصل",
+          "allClassrooms": "كل الفصول",
+          "teacher": "المعلم",
+          "allTeachers": "كل المعلمين",
+          "teacherAllocation": "توزيع المعلم",
+          "allTeacherAllocations": "كل توزيعات المعلمين",
+          "dueFrom": "موعد التسليم من",
+          "dueTo": "موعد التسليم إلى"
         },
         "table": {
           "title": "العنوان",
           "status": "الحالة",
           "context": "السياق",
           "due": "موعد التسليم",
+          "createdAt": "تاريخ الإنشاء",
           "content": "المحتوى"
         },
         "statuses": {
@@ -5671,6 +5681,7 @@
         },
         "errors": {
           "loadFailed": "فشل تحميل الواجبات: {message}",
+          "filtersLoadFailed": "فشل تحميل عوامل تصفية الواجبات: {message}",
           "lifecycleFailed": "فشل إجراء الواجب: {message}"
         }
       },
@@ -5799,6 +5810,15 @@
           "saved": "تم الحفظ",
           "saveBeforePublish": "احفظ التغييرات أو أعد تعيينها قبل النشر."
         },
+        "publishReadiness": {
+          "title": "جاهز للنشر",
+          "savedChanges": "تم حفظ التغييرات",
+          "unsavedChanges": "احفظ التغييرات أو أعد تعيينها",
+          "validQuestions": "الأسئلة صالحة",
+          "invalidQuestions": "أصلح أخطاء التحقق في الأسئلة",
+          "eligibleTargets": "{count} طالب/طلاب مؤهلون جاهزون",
+          "noEligibleTargets": "سيتم التحقق من الأهداف المؤهلة قبل النشر"
+        },
         "statuses": {
           "draft": "مسودة",
           "published": "منشور",
@@ -5854,7 +5874,7 @@
           "viewStudents": "عرض قائمة الطلاب",
           "saveAnswer": "حفظ الإجابة",
           "saveAll": "حفظ كل المراجعات",
-          "saveSubmission": "حفظ مراجعة التسليم",
+          "saveSubmission": "إنهاء المراجعة",
           "syncSubmission": "مزامنة التسليم",
           "saveChanges": "حفظ التغييرات",
           "discardChanges": "تجاهل التغييرات",
@@ -5913,7 +5933,8 @@
         },
         "submissionReview": {
           "title": "مراجعة التسليم بالكامل",
-          "description": "احفظ الدرجة الإجمالية وملاحظة المراجع لهذا التسليم.",
+          "description": "اعتمد الدرجة الإجمالية وملاحظة المراجع لهذا التسليم.",
+          "finalizationWarning": "سيؤدي إنهاء المراجعة إلى قفل هذا التسليم ومراجعات إجاباته.",
           "awardedMarks": "الدرجة الممنوحة",
           "reviewNote": "ملاحظة المراجعة",
           "reviewNoteLimit": "{count}/{max} حرف"
@@ -5994,11 +6015,13 @@
         "actions": {
           "refresh": "تحديث",
           "link": "ربط التقييم",
-          "syncAll": "مزامنة كل المراجَع"
+          "syncAll": "مزامنة كل المراجَع",
+          "reviewSubmissions": "مراجعة التسليمات"
         },
         "link": {
           "title": "التقييم المرتبط",
           "description": "أدخل معرّف تقييم الدرجات الذي ستتم مزامنة درجات الواجب إليه.",
+          "eligibility": "تظهر فقط تقييمات الواجب غير المقفلة والمعتمدة على الدرجات والمنشورة أو المعتمدة، والمتطابقة مع مادة وفصل هذا الواجب.",
           "assessmentId": "تقييم الدرجات",
           "placeholder": "اختر تقييمًا",
           "searchPlaceholder": "ابحث في التقييمات",
@@ -6020,7 +6043,8 @@
         "sync": {
           "title": "مزامنة التسليمات المراجعة",
           "description": "شغّل المزامنة بعد مراجعة التسليمات. إعادة التشغيل يجب ألا تنشئ عناصر مكررة.",
-          "linkRequired": "اربط تقييم درجات قبل مزامنة التسليمات المراجعة."
+          "linkRequired": "اربط تقييم درجات قبل مزامنة التسليمات المراجعة.",
+          "recovery": "راجع التسليمات المتأثرة والتقييم المرتبط، ثم حاول المزامنة مرة أخرى."
         },
         "summary": {
           "total": "الإجمالي",

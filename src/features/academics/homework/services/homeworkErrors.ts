@@ -1,3 +1,5 @@
+import type { ValidationErrors } from "@/features/academics/curriculum/types/types";
+
 const HOMEWORK_ERROR_KEYS: Record<string, string> = {
   "homework.assignment.not_found": "notFound",
   "homework.assignment.not_mutable": "notMutable",
@@ -83,6 +85,29 @@ type HomeworkErrorTranslator = (
   values?: Record<string, string | number>,
 ) => string;
 
+type AssignmentValidationField = Exclude<keyof ValidationErrors, "questions" | "general">;
+
+const ASSIGNMENT_VALIDATION_FIELDS: Record<string, AssignmentValidationField> = {
+  title: "titleEn",
+  description: "descriptionEn",
+  totalMarks: "maxScore",
+  estimatedMinutes: "expectedTimeMinutes",
+  dueAt: "dueDate",
+  publishAt: "dueDate",
+};
+
+const ASSIGNMENT_VALIDATION_MESSAGES: Record<string, string> = {
+  "totalMarks.required_when_graded": "assignmentMarksRequired",
+  "totalMarks.min": "assignmentMarksMin",
+  "totalMarks.invalid": "assignmentMarksMin",
+  "estimatedMinutes.min": "assignmentMinutesMin",
+  "estimatedMinutes.invalid": "assignmentMinutesInteger",
+  "dueAt.must_be_in_future": "assignmentDueAtFuture",
+  "dueAt.must_be_after_publish_at": "assignmentDueAtAfterPublish",
+  "dueAt.invalid": "assignmentDueAtInvalid",
+  "publishAt.invalid": "assignmentPublishAtInvalid",
+};
+
 function homeworkErrorEnvelope(error: unknown) {
   const maybeError = error as MaybeApiError;
   const apiError = maybeError.response?.data?.error;
@@ -110,8 +135,16 @@ function detailedMessageKey(
   }
 }
 
+function validationMessageKey(field: string, reason: string) {
+  return ASSIGNMENT_VALIDATION_MESSAGES[`${field}.${reason}`] ??
+    "validationFailed";
+}
+
 export function mapHomeworkApiError(error: unknown): string {
-  const { code } = homeworkErrorEnvelope(error);
+  const { code, details } = homeworkErrorEnvelope(error);
+  if (code === "not_found" && typeof details?.assessmentId === "string") {
+    return "gradeSyncInvalidAssessment";
+  }
   if (code && HOMEWORK_ERROR_KEYS[code]) {
     return HOMEWORK_ERROR_KEYS[code];
   }
@@ -125,4 +158,25 @@ export function getHomeworkErrorMessage(
   const envelope = homeworkErrorEnvelope(error);
   const key = mapHomeworkApiError(error);
   return t(detailedMessageKey(key, envelope.details));
+}
+
+export function getHomeworkApiValidationErrors(
+  error: unknown,
+  t: HomeworkErrorTranslator,
+): ValidationErrors {
+  const { code, details } = homeworkErrorEnvelope(error);
+  if (
+    code !== "homework.assignment.validation_failed" &&
+    code !== "homework.assignment.due_date_invalid"
+  ) {
+    return {};
+  }
+
+  const field = String(details?.field ?? "");
+  const formField = ASSIGNMENT_VALIDATION_FIELDS[field];
+  if (!formField) return {};
+
+  return {
+    [formField]: t(validationMessageKey(field, String(details?.reason ?? ""))),
+  };
 }

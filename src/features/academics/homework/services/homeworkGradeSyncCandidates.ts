@@ -7,6 +7,7 @@ import type {
   Assessment,
   ExamScopeType,
 } from "@/features/grades/shared/types";
+import { isGradeEntryAvailable } from "@/features/grades/shared/utils/assessmentWorkflow";
 import type { HomeworkAssignmentUiModel } from "./homeworkApi.types";
 
 export interface HomeworkGradeSyncScope {
@@ -74,7 +75,7 @@ function isCompatibleAssessment(
 ): boolean {
   return (
     assessment.type === "ASSIGNMENT" &&
-    !assessment.isLocked &&
+    isGradeEntryAvailable(assessment) &&
     (!assessment.academicYearId ||
       assessment.academicYearId === homework.academicYearId) &&
     assessment.termId === homework.termId &&

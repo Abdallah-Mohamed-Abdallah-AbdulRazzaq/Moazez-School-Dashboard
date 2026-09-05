@@ -1572,6 +1572,9 @@ export default function HomeworkSubmissionReviewPanel({
                         <p className="text-xs text-gray-500">
                           {t("submissionReview.description")}
                         </p>
+                        <p className="text-xs text-amber-700" role="note">
+                          {t("submissionReview.finalizationWarning")}
+                        </p>
                       </div>
                       <div className="flex flex-col gap-3">
                         <Input

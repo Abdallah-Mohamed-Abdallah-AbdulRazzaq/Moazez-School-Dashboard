@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getHomeworkApiValidationErrors,
   getHomeworkErrorMessage,
   mapHomeworkApiError,
 } from "@/features/academics/homework/services/homeworkErrors";
@@ -42,21 +43,55 @@ describe("homeworkErrors", () => {
     expect(mapHomeworkApiError(new Error("Network failed"))).toBe("generic");
   });
 
+  it("maps backend assignment validation details to their form fields", () => {
+    expect(
+      getHomeworkApiValidationErrors(
+        {
+          response: {
+            data: {
+              error: {
+                code: "homework.assignment.validation_failed",
+                details: {
+                  field: "totalMarks",
+                  reason: "required_when_graded",
+                },
+              },
+            },
+          },
+        },
+        (key) => key,
+      ),
+    ).toEqual({ maxScore: "assignmentMarksRequired" });
+  });
+
+  it("maps due-date validation reasons to the due-date field", () => {
+    expect(
+      getHomeworkApiValidationErrors(
+        {
+          code: "homework.assignment.due_date_invalid",
+          details: { field: "dueAt", reason: "must_be_in_future" },
+        },
+        (key) => key,
+      ),
+    ).toEqual({ dueDate: "assignmentDueAtFuture" });
+  });
+
   it.each([
-    ["homework.question.invalid_type_payload", "questionInvalidTypePayload"],
-    ["homework.question.invalid_options", "questionInvalidOptions"],
-    ["homework.question.invalid_reorder", "questionInvalidReorder"],
-    ["homework.question.read_only", "questionReadOnly"],
-    ["homework.assignment.invalid_question_structure", "invalidQuestionStructure"],
-    ["homework.question.not_found", "questionNotFound"],
-    ["homework.question.option_not_found", "questionOptionNotFound"],
-    ["homework.attachment.file_not_found", "attachmentFileNotFound"],
-    ["homework.submission.not_reviewable", "submissionNotReviewable"],
-    ["homework.answer.invalid_option", "answerInvalidOption"],
-    ["homework.answer_review.exceeds_question_points", "answerReviewExceedsQuestionPoints"],
-    ["homework.grade_sync.assessment_locked", "gradeSyncAssessmentLocked"],
-  ])("maps %s to %s", (code, key) => {
-    expect(mapHomeworkApiError({ code })).toBe(key);
+    ["homework.question.invalid_type_payload", undefined, "questionInvalidTypePayload"],
+    ["homework.question.invalid_options", undefined, "questionInvalidOptions"],
+    ["homework.question.invalid_reorder", undefined, "questionInvalidReorder"],
+    ["homework.question.read_only", undefined, "questionReadOnly"],
+    ["homework.assignment.invalid_question_structure", undefined, "invalidQuestionStructure"],
+    ["homework.question.not_found", undefined, "questionNotFound"],
+    ["homework.question.option_not_found", undefined, "questionOptionNotFound"],
+    ["homework.attachment.file_not_found", undefined, "attachmentFileNotFound"],
+    ["homework.submission.not_reviewable", undefined, "submissionNotReviewable"],
+    ["homework.answer.invalid_option", undefined, "answerInvalidOption"],
+    ["homework.answer_review.exceeds_question_points", undefined, "answerReviewExceedsQuestionPoints"],
+    ["homework.grade_sync.assessment_locked", undefined, "gradeSyncAssessmentLocked"],
+    ["not_found", { assessmentId: "assessment-1" }, "gradeSyncInvalidAssessment"],
+  ])("maps %s to %s", (code, details, key) => {
+    expect(mapHomeworkApiError({ code, details })).toBe(key);
   });
 
   it("explains true false publish validation errors from backend details", () => {

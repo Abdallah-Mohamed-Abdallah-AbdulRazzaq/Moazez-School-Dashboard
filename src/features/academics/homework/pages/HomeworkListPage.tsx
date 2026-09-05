@@ -12,10 +12,12 @@ import {
   Search,
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import DatePicker from "@/components/ui/input/DatePicker";
 import Input from "@/components/ui/input/Input";
-import Select from "@/components/ui/input/Select";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
 import { AccessDenied } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { listHomeworkAssignments } from "@/features/academics/homework/services/homeworkService";
 import type {
@@ -36,10 +38,85 @@ import {
   type HomeworkLifecycleAction,
 } from "@/features/academics/homework/utils/homeworkLifecycle";
 import { DataTable, type Column } from "@/components/ui/data-table";
+import {
+  fetchStructureTree,
+  type StructureTree,
+} from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  fetchSubjects,
+  type Subject,
+} from "@/features/academics/subjects/services/subjectsService";
+import {
+  fetchTeacherAllocations,
+  fetchTeachers,
+  type Teacher,
+  type TeacherAllocation,
+} from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import {
+  buildHomeworkListFilters,
+  resetHomeworkListFilterParams,
+  updateHomeworkListFilterParams,
+  type HomeworkListFilterValues,
+} from "@/features/academics/homework/utils/homeworkListFilters";
+import { formatDateTime } from "@/utils/formatters/dateTime";
 
 type HomeworkAssignmentTableRow = HomeworkAssignmentUiModel & {
   [key: string]: unknown;
 };
+
+interface HomeworkFilterSources {
+  classrooms: StructureTree["classrooms"];
+  teachers: Teacher[];
+  subjects: Subject[];
+  allocations: TeacherAllocation[];
+}
+
+const emptyHomeworkFilterSources: HomeworkFilterSources = {
+  classrooms: [],
+  teachers: [],
+  subjects: [],
+  allocations: [],
+};
+
+const emptyHomeworkFilterValues: HomeworkListFilterValues = {
+  search: "",
+  status: "",
+  mode: "",
+  classroomId: "",
+  teacherUserId: "",
+  teacherSubjectAllocationId: "",
+  dueFrom: "",
+  dueTo: "",
+};
+
+const HOMEWORK_SEARCH_DEBOUNCE_MS = 350;
+
+function formatFilterDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getFilterDate(value: string) {
+  return value ? new Date(`${value}T00:00:00`) : null;
+}
+
+function localizedName(
+  locale: string,
+  entity?: { nameAr?: string; nameEn?: string; name?: string } | null,
+) {
+  if (!entity) return "";
+  return locale === "ar"
+    ? entity.nameAr || entity.nameEn || entity.name || ""
+    : entity.nameEn || entity.nameAr || entity.name || "";
+}
+
+function teacherName(locale: string, teacher?: Teacher) {
+  return locale === "ar"
+    ? teacher?.nameAr || teacher?.nameEn || ""
+    : teacher?.nameEn || teacher?.nameAr || "";
+}
 
 function statusClass(status: HomeworkAssignmentUiModel["status"]) {
   if (status === "published") return "bg-green-100 text-green-700";
@@ -72,11 +149,26 @@ export default function HomeworkListPage() {
     hasPermission("grades.items.view");
   const [items, setItems] = useState<HomeworkAssignmentUiModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [status, setStatus] = useState(
-    searchParams.get("homeworkStatus") || "",
+  const [filterValues, setFilterValues] = useState<HomeworkListFilterValues>(
+    () => ({
+      search: searchParams.get("search") || "",
+      status: searchParams.get("homeworkStatus") || "",
+      mode: searchParams.get("mode") || "",
+      classroomId: searchParams.get("classroom") || "",
+      teacherUserId: searchParams.get("teacher") || "",
+      teacherSubjectAllocationId: searchParams.get("allocation") || "",
+      dueFrom: searchParams.get("dueFrom") || "",
+      dueTo: searchParams.get("dueTo") || "",
+    }),
   );
-  const [mode, setMode] = useState(searchParams.get("mode") || "");
+  const debouncedSearch = useDebounce(
+    filterValues.search,
+    HOMEWORK_SEARCH_DEBOUNCE_MS,
+  );
+  const [filterSources, setFilterSources] = useState<HomeworkFilterSources>(
+    emptyHomeworkFilterSources,
+  );
+  const [isLoadingFilterSources, setIsLoadingFilterSources] = useState(false);
   const [meta, setMeta] = useState({
     page: 1,
     limit: 25,
@@ -102,6 +194,7 @@ export default function HomeworkListPage() {
       { value: "published", label: t("statuses.published") },
       { value: "closed", label: t("statuses.closed") },
       { value: "cancelled", label: t("statuses.cancelled") },
+      { value: "archived", label: t("statuses.archived") },
     ],
     [t],
   );
@@ -119,17 +212,90 @@ export default function HomeworkListPage() {
     [t],
   );
 
+  const classroomOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: "", label: t("filters.allClassrooms") },
+      ...filterSources.classrooms.map((classroom) => ({
+        value: classroom.id,
+        label: localizedName(locale, classroom) || classroom.id,
+      })),
+    ],
+    [filterSources.classrooms, locale, t],
+  );
+
+  const teacherOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: "", label: t("filters.allTeachers") },
+      ...filterSources.teachers.map((teacher) => ({
+        value: teacher.id,
+        label: teacherName(locale, teacher) || teacher.id,
+      })),
+    ],
+    [filterSources.teachers, locale, t],
+  );
+
+  const allocationOptions = useMemo<SelectOption[]>(() => {
+    const classroomNames = new Map(
+      filterSources.classrooms.map((classroom) => [
+        classroom.id,
+        localizedName(locale, classroom),
+      ]),
+    );
+    const teacherNames = new Map(
+      filterSources.teachers.map((teacher) => [teacher.id, teacherName(locale, teacher)]),
+    );
+    const subjectNames = new Map(
+      filterSources.subjects.map((subject) => [
+        subject.id,
+        localizedName(locale, subject),
+      ]),
+    );
+
+    return [
+      { value: "", label: t("filters.allTeacherAllocations") },
+      ...filterSources.allocations
+        .filter((allocation) =>
+          filterValues.classroomId
+            ? allocation.classroomId === filterValues.classroomId
+            : true,
+        )
+        .filter((allocation) =>
+          filterValues.teacherUserId
+            ? allocation.teacherId === filterValues.teacherUserId
+            : true,
+        )
+        .map((allocation) => {
+          const label = [
+            allocation.teacherId ? teacherNames.get(allocation.teacherId) : "",
+            subjectNames.get(allocation.subjectId),
+            allocation.classroomId
+              ? classroomNames.get(allocation.classroomId)
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
+
+          return {
+            value: allocation.id,
+            label: label || allocation.id,
+            searchText: `${label} ${allocation.id}`,
+          };
+        }),
+    ];
+  }, [
+    filterSources.allocations,
+    filterSources.classrooms,
+    filterSources.subjects,
+    filterSources.teachers,
+    locale,
+    t,
+    filterValues.classroomId,
+    filterValues.teacherUserId,
+  ]);
+
   const filters = useMemo<HomeworkAssignmentListFilters>(
-    () => ({
-      academicYearId: academicYearId || undefined,
-      termId: termId || undefined,
-      search: search.trim() || undefined,
-      status: status || undefined,
-      mode: mode || undefined,
-      page: Number(searchParams.get("page") || "1"),
-      limit: Number(searchParams.get("limit") || "25"),
-    }),
-    [academicYearId, mode, search, searchParams, status, termId],
+    () => buildHomeworkListFilters({ academicYearId, termId, searchParams }),
+    [academicYearId, searchParams, termId],
   );
 
   const openHomeworkTab = useCallback(
@@ -148,7 +314,6 @@ export default function HomeworkListPage() {
       {
         key: "title",
         label: t("table.title"),
-        sortable: false,
         render: (_, item) => (
           <>
             <div className="font-medium text-gray-900">
@@ -163,7 +328,6 @@ export default function HomeworkListPage() {
       {
         key: "status",
         label: t("table.status"),
-        sortable: false,
         render: (_, item) => (
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(item.status)}`}
@@ -173,9 +337,8 @@ export default function HomeworkListPage() {
         ),
       },
       {
-        key: "context",
+        key: "classroomName",
         label: t("table.context"),
-        sortable: false,
         render: (_, item) => (
           <div className="text-gray-600">
             <div>{item.classroomName || t("allAssignedTargets")}</div>
@@ -186,13 +349,23 @@ export default function HomeworkListPage() {
         ),
       },
       {
-        key: "due",
+        key: "dueAt",
         label: t("table.due"),
-        sortable: false,
         render: (_, item) => (
           <div className="text-gray-600">
             {item.dueAt
               ? new Date(item.dueAt).toLocaleString(locale)
+              : t("notSet")}
+          </div>
+        ),
+      },
+      {
+        key: "createdAt",
+        label: t("table.createdAt"),
+        render: (_, item) => (
+          <div className="text-gray-600">
+            {item.createdAt
+              ? formatDateTime(item.createdAt, locale)
               : t("notSet")}
           </div>
         ),
@@ -302,17 +475,88 @@ export default function HomeworkListPage() {
     void load();
   }, [canView, filters, isInitializing, showError, t, tHomeworkError]);
 
-  const pushWithFilters = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (search.trim()) params.set("search", search.trim());
-    else params.delete("search");
-    if (status) params.set("homeworkStatus", status);
-    else params.delete("homeworkStatus");
-    if (mode) params.set("mode", mode);
-    else params.delete("mode");
-    params.delete("page");
-    router.push(`/${locale}/academics/homework?${params.toString()}`);
-  };
+  useEffect(() => {
+    if (!canView || !academicYearId || !termId || isInitializing) {
+      void Promise.resolve().then(() => {
+        setFilterSources(emptyHomeworkFilterSources);
+      });
+      return;
+    }
+
+    let isActive = true;
+    const loadFilterSources = async () => {
+      setIsLoadingFilterSources(true);
+      try {
+        const [structure, teachers, subjects, allocations] = await Promise.all([
+          fetchStructureTree(academicYearId, termId),
+          fetchTeachers(),
+          fetchSubjects(),
+          fetchTeacherAllocations(termId),
+        ]);
+        if (!isActive) return;
+        setFilterSources({
+          classrooms: structure.classrooms,
+          teachers,
+          subjects,
+          allocations,
+        });
+      } catch (error) {
+        if (isActive) {
+          showError(
+            t("errors.filtersLoadFailed", {
+              message: getHomeworkErrorMessage(error, tHomeworkError),
+            }),
+          );
+        }
+      } finally {
+        if (isActive) setIsLoadingFilterSources(false);
+      }
+    };
+
+    void loadFilterSources();
+    return () => {
+      isActive = false;
+    };
+  }, [academicYearId, canView, isInitializing, showError, t, tHomeworkError, termId]);
+
+  const updateFilters = useCallback((updates: Partial<HomeworkListFilterValues>) => {
+    const nextFilters = { ...filterValues, ...updates };
+    setFilterValues(nextFilters);
+
+    if ("search" in updates) return;
+
+    const params = updateHomeworkListFilterParams(
+      new URLSearchParams(searchParams.toString()),
+      { ...nextFilters, search: debouncedSearch },
+    );
+    if (params.toString() !== searchParams.toString()) {
+      router.replace(`/${locale}/academics/homework?${params.toString()}`);
+    }
+  }, [debouncedSearch, filterValues, locale, router, searchParams]);
+
+  useEffect(() => {
+    if (filterValues.search !== debouncedSearch) return;
+
+    const params = updateHomeworkListFilterParams(
+      new URLSearchParams(searchParams.toString()),
+      { ...filterValues, search: debouncedSearch },
+    );
+    if (params.toString() !== searchParams.toString()) {
+      router.replace(`/${locale}/academics/homework?${params.toString()}`);
+    }
+  }, [debouncedSearch, filterValues, locale, router, searchParams]);
+
+  const resetFilters = useCallback(() => {
+    setFilterValues(emptyHomeworkFilterValues);
+    const params = resetHomeworkListFilterParams(
+      new URLSearchParams(searchParams.toString()),
+    );
+    if (params.toString() !== searchParams.toString()) {
+      router.replace(`/${locale}/academics/homework?${params.toString()}`);
+    }
+  }, [locale, router, searchParams]);
+
+  const hasActiveFilters = Object.values(filterValues).some(Boolean);
 
   const runLifecycleAction = async () => {
     if (!lifecycleConfirmation) return;
@@ -380,26 +624,79 @@ export default function HomeworkListPage() {
 
       <div className="space-y-4 p-6">
         <div className="rounded-lg border border-border bg-white p-4">
-          <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto]">
+          <div className="grid gap-3 lg:grid-cols-[1fr_180px_180px_auto]">
             <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              value={filterValues.search}
+              onChange={(event) => updateFilters({ search: event.target.value })}
               placeholder={t("filters.searchPlaceholder")}
               leftIcon={<Search className="h-4 w-4" />}
             />
             <Select
-              value={status}
-              onChange={setStatus}
+              value={filterValues.status}
+              onChange={(status) => updateFilters({ status })}
               options={statusOptions}
             />
-            <Select value={mode} onChange={setMode} options={modeOptions} />
+            <Select
+              value={filterValues.mode}
+              onChange={(mode) => updateFilters({ mode })}
+              options={modeOptions}
+            />
             <Button
               variant="secondary"
-              onClick={pushWithFilters}
+              disabled={!hasActiveFilters}
+              onClick={resetFilters}
               leftIcon={<RefreshCcw className="h-4 w-4" />}
             >
-              {t("actions.apply")}
+              {t("actions.reset")}
             </Button>
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <Select
+              label={t("filters.classroom")}
+              value={filterValues.classroomId}
+              onChange={(classroomId) =>
+                updateFilters({ classroomId, teacherSubjectAllocationId: "" })
+              }
+              options={classroomOptions}
+              disabled={isLoadingFilterSources}
+              searchable
+            />
+            <Select
+              label={t("filters.teacher")}
+              value={filterValues.teacherUserId}
+              onChange={(teacherUserId) =>
+                updateFilters({ teacherUserId, teacherSubjectAllocationId: "" })
+              }
+              options={teacherOptions}
+              disabled={isLoadingFilterSources}
+              searchable
+            />
+            <Select
+              label={t("filters.teacherAllocation")}
+              value={filterValues.teacherSubjectAllocationId}
+              onChange={(teacherSubjectAllocationId) =>
+                updateFilters({ teacherSubjectAllocationId })
+              }
+              options={allocationOptions}
+              disabled={isLoadingFilterSources}
+              searchable
+            />
+            <DatePicker
+              label={t("filters.dueFrom")}
+              value={getFilterDate(filterValues.dueFrom)}
+              onChange={(date) =>
+                updateFilters({ dueFrom: date ? formatFilterDate(date) : "" })
+              }
+              maxDate={getFilterDate(filterValues.dueTo) ?? undefined}
+            />
+            <DatePicker
+              label={t("filters.dueTo")}
+              value={getFilterDate(filterValues.dueTo)}
+              onChange={(date) =>
+                updateFilters({ dueTo: date ? formatFilterDate(date) : "" })
+              }
+              minDate={getFilterDate(filterValues.dueFrom) ?? undefined}
+            />
           </div>
         </div>
 
