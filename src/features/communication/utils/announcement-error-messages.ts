@@ -57,8 +57,7 @@ export function announcementErrorMessage(
   requestError: unknown,
   locale: AnnouncementErrorLocale,
 ): string {
-  const messages = announcementErrorMessages[locale];
-  return messages[announcementErrorKey(requestError)];
+  return announcementErrorMessages[locale][announcementErrorKey(requestError)];
 }
 
 function announcementErrorKey(requestError: unknown): AnnouncementErrorKey {

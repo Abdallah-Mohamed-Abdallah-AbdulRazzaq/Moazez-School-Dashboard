@@ -18,6 +18,8 @@ export interface MatrixRow {
   secondaryLabel?: string;
 }
 
+export type MatrixDensity = "compact" | "comfortable";
+
 interface AllocationMatrixTableProps<
   TRow extends MatrixRow,
   TColumn extends MatrixColumn,
@@ -35,6 +37,7 @@ interface AllocationMatrixTableProps<
   showPagination?: boolean;
   itemsPerPage?: number;
   pageSizeOptions?: number[];
+  density?: MatrixDensity;
 }
 
 export default function AllocationMatrixTable<
@@ -54,6 +57,7 @@ export default function AllocationMatrixTable<
   showPagination = false,
   itemsPerPage = 10,
   pageSizeOptions = [10, 25, 50, 100],
+  density = "comfortable",
 }: AllocationMatrixTableProps<TRow, TColumn>) {
   const locale = useLocale();
   const t = useTranslations("common");
@@ -89,6 +93,9 @@ export default function AllocationMatrixTable<
   const endRow = showPagination
     ? Math.min(currentPage * pageSize, rows.length)
     : rows.length;
+  const isCompact = density === "compact";
+  const rowPadding = isCompact ? "px-3 py-2" : "px-4 py-3";
+  const rowTextSize = isCompact ? "text-xs" : "text-sm";
 
   return (
     <div
@@ -96,7 +103,7 @@ export default function AllocationMatrixTable<
       style={{ fontFamily: "inherit" }}
     >
       <table
-        className="min-w-full border-collapse shadow-sm rounded-lg overflow-hidden"
+        className="min-w-full border-collapse shadow-sm rounded-lg"
         style={{ backgroundColor: "var(--background)", fontFamily: "inherit" }}
       >
         <thead>
@@ -192,7 +199,7 @@ export default function AllocationMatrixTable<
                 <td
                   className={`sticky ${
                     isRTL ? "right-0" : "left-0"
-                  } z-10 px-4 py-3 text-sm shadow-sm`}
+                  } z-10 ${rowPadding} ${rowTextSize} shadow-sm`}
                   style={{
                     backgroundColor: "inherit",
                     borderBottom: "1px solid var(--color-primary-100)",
@@ -230,7 +237,7 @@ export default function AllocationMatrixTable<
                   <td
                     className={`sticky ${
                       isRTL ? "left-0" : "right-0"
-                    } z-10 px-4 py-3 text-sm font-bold text-center shadow-sm`}
+                  } z-10 ${rowPadding} ${rowTextSize} font-bold text-center shadow-sm`}
                     style={{
                       backgroundColor: "var(--color-primary-50)",
                       borderBottom: "2px solid var(--color-primary-200)",

@@ -152,6 +152,32 @@ describe("AllocationMatrixView", () => {
     expect(screen.queryByRole("button", { name: "Science" })).not.toBeInTheDocument();
   });
 
+  it("switches the matrix between compact and comfortable density", () => {
+    renderMatrix();
+
+    const compactViewButton = screen.getByRole("button", {
+      name: /matrix\.density\.compact/i,
+    });
+    const comfortableViewButton = screen.getByRole("button", {
+      name: /matrix\.density\.comfortable/i,
+    });
+
+    expect(compactViewButton).toHaveAttribute("aria-pressed", "true");
+    expect(comfortableViewButton).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(comfortableViewButton);
+
+    expect(compactViewButton).toHaveAttribute("aria-pressed", "false");
+    expect(comfortableViewButton).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("keeps the classroom row header sticky while scrolling across subjects", () => {
+    renderMatrix();
+
+    expect(screen.getByRole("cell", { name: /classroom a/i })).toHaveClass("sticky");
+    expect(screen.getByRole("table")).not.toHaveClass("overflow-hidden");
+  });
+
   it("shows mapped missing subject allocation errors after failed save", async () => {
     const consoleErrorSpy = vi
       .spyOn(console, "error")

@@ -20,9 +20,7 @@ describe("announcementErrorMessage", () => {
     ["internal_error", 500, "The service is temporarily unavailable. Please try again."],
     ["NETWORK_ERROR", 0, "Network error. Check your connection and try again."],
   ])("maps %s (%i) to a recoverable message", (code, status, expected) => {
-    expect(
-      announcementErrorMessage(new ApiError("backend error", status, code), "en"),
-    ).toBe(expected);
+    expect(announcementErrorMessage(new ApiError("backend error", status, code), "en")).toBe(expected);
   });
 
   it("uses localized copy instead of the backend message", () => {
@@ -37,26 +35,20 @@ describe("announcementErrorMessage", () => {
   it.each([
     ["en", "Choose an expiration time in the future."],
     ["ar", "اختر وقت انتهاء في المستقبل."],
-  ] as const)(
-    "maps an expiresAt validation error in %s",
-    (locale, expected) => {
-      expect(
-        announcementErrorMessage(
-          new ApiError(
-            "expiresAt must be in the future",
-            422,
-            "communication.scope.invalid",
-            undefined,
-            {
-              field: "expiresAt",
-              expiresAt: "2026-09-04T21:32:00.000Z",
-            },
-          ),
-          locale,
+  ] as const)("maps an expiresAt validation error in %s", (locale, expected) => {
+    expect(
+      announcementErrorMessage(
+        new ApiError(
+          "expiresAt must be in the future",
+          422,
+          "communication.scope.invalid",
+          undefined,
+          { field: "expiresAt", expiresAt: "2026-09-04T21:32:00.000Z" },
         ),
-      ).toBe(expected);
-    },
-  );
+        locale,
+      ),
+    ).toBe(expected);
+  });
 
   it("falls back safely when the error is not an API error", () => {
     expect(announcementErrorMessage(new Error("unexpected"), "en")).toBe(
