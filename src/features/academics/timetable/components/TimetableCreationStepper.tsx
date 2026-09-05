@@ -47,7 +47,7 @@ export default function TimetableCreationStepper({
       className="border-b border-gray-200 bg-white px-4 py-3 lg:px-6"
     >
       <div className="overflow-x-auto pb-1">
-        <ol className="flex min-w-max items-start gap-2">
+        <ol className="flex min-w-max items-center justify-center gap-2">
           {progress.steps.map((step, index) => {
             const showPrerequisite =
               step.status === "blocked" &&
