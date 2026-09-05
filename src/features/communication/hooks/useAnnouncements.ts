@@ -115,10 +115,6 @@ function unwrapList<T>(response: unknown): CommunicationList<T> {
   return { items: [], total: 0 };
 }
 
-function errorMessageFromUnknown(error: unknown): string {
-  return error instanceof Error ? error.message : "Unable to load announcements.";
-}
-
 function payloadFromValues(
   values: AnnouncementFormValues,
   context: "announcement_create" | "announcement_update",
@@ -183,7 +179,7 @@ export function useAnnouncements() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   const refresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -205,7 +201,7 @@ export function useAnnouncements() {
       setTotal(list.total ?? normalized.length);
     } catch (nextError) {
       if (!mountedRef.current) return;
-      setError(errorMessageFromUnknown(nextError));
+      setError(nextError);
       setAnnouncements([]);
       setTotal(0);
     } finally {
@@ -246,7 +242,7 @@ export function useAnnouncements() {
         await refresh();
         return response;
       } catch (nextError) {
-        setError(errorMessageFromUnknown(nextError));
+        setError(nextError);
         throw nextError;
       } finally {
         if (mountedRef.current) setIsMutating(false);

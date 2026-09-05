@@ -70,7 +70,7 @@ export function useAnnouncementAttachments(
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -80,11 +80,7 @@ export function useAnnouncementAttachments(
       setAttachments(unwrapList<MessageAttachment>(response));
     } catch (nextError) {
       if (!mountedRef.current) return;
-      setError(
-        nextError instanceof Error
-          ? nextError.message
-          : "Unable to load announcement attachments.",
-      );
+      setError(nextError);
       setAttachments([]);
     } finally {
       if (mountedRef.current) setIsLoading(false);
@@ -123,11 +119,7 @@ export function useAnnouncementAttachments(
         }
       } catch (nextError) {
         if (mountedRef.current) {
-          setError(
-            nextError instanceof Error
-              ? nextError.message
-              : "Unable to upload announcement attachment.",
-          );
+          setError(nextError);
         }
         throw nextError;
       } finally {
@@ -139,11 +131,16 @@ export function useAnnouncementAttachments(
 
   const removeAttachment = useCallback(
     async (attachmentId: string) => {
-      await deleteAnnouncementAttachment(announcementId, attachmentId);
-      if (mountedRef.current) {
-        setAttachments((current) =>
-          current.filter((attachment) => attachment.id !== attachmentId),
-        );
+      setError(null);
+      try {
+        await deleteAnnouncementAttachment(announcementId, attachmentId);
+        if (mountedRef.current) {
+          setAttachments((current) =>
+            current.filter((attachment) => attachment.id !== attachmentId),
+          );
+        }
+      } catch (nextError) {
+        if (mountedRef.current) setError(nextError);
       }
     },
     [announcementId],

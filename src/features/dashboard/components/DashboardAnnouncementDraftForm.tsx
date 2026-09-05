@@ -9,6 +9,7 @@ import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
 import { useToast } from "@/components/ui/toast/Toast";
 import { createAnnouncement } from "@/features/communication/api/communication.service";
+import { announcementErrorMessage } from "@/features/communication/utils/announcement-error-messages";
 import ClassroomSelect from "@/features/communication/components/selectors/ClassroomSelect";
 import GradeSelect from "@/features/communication/components/selectors/GradeSelect";
 import SectionSelect from "@/features/communication/components/selectors/SectionSelect";
@@ -99,8 +100,8 @@ export default function DashboardAnnouncementDraftForm({
       showSuccess(labels.draftCreated);
       setDraftValues(DEFAULT_DASHBOARD_ANNOUNCEMENT_DRAFT);
       setValidationError(null);
-    } catch {
-      showError(labels.draftFailed);
+    } catch (nextError) {
+      showError(announcementErrorMessage(nextError, locale));
     } finally {
       setIsSubmitting(false);
     }

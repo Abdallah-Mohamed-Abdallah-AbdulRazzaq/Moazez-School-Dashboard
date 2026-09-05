@@ -7,6 +7,7 @@ import Link from "next/link";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { isApiError } from "@/lib/api-error";
 import AnnouncementFilters from "@/features/communication/components/announcements/AnnouncementFilters";
 import AnnouncementList from "@/features/communication/components/announcements/AnnouncementList";
 import ArchiveAnnouncementDialog from "@/features/communication/components/announcements/ArchiveAnnouncementDialog";
@@ -19,6 +20,7 @@ import {
   useAnnouncements,
 } from "@/features/communication/hooks/useAnnouncements";
 import type { Announcement } from "@/features/communication/types/announcement.types";
+import { announcementErrorMessage } from "@/features/communication/utils/announcement-error-messages";
 
 const labels = {
   en: {
@@ -59,7 +61,6 @@ const labels = {
     cancel: "Cancel",
     publishedDone: "Announcement published.",
     archivedDone: "Announcement archived.",
-    mutationFailed: "Action failed. Please try again.",
   },
   ar: {
     title: "الإعلانات",
@@ -96,7 +97,6 @@ const labels = {
     cancel: "إلغاء",
     publishedDone: "تم نشر الإعلان.",
     archivedDone: "تمت أرشفة الإعلان.",
-    mutationFailed: "فشل الإجراء. حاول مرة أخرى.",
   },
 };
 
@@ -137,8 +137,11 @@ export default function AnnouncementsPage() {
       await action();
       close();
       showSuccess(successMessage);
-    } catch {
-      showError(t.mutationFailed);
+    } catch (nextError) {
+      if (isApiError(nextError) && nextError.status === 409) {
+        void refresh();
+      }
+      showError(announcementErrorMessage(nextError, locale));
     }
   };
 
@@ -195,7 +198,7 @@ export default function AnnouncementsPage() {
       {error ? (
         <CommunicationErrorState
           title={t.errorTitle}
-          message={error}
+          message={announcementErrorMessage(error, locale)}
           action={
             <Button type="button" variant="secondary" onClick={() => void refresh()}>
               {t.retry}
