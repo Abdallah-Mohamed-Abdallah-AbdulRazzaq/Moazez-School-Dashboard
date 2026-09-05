@@ -9,6 +9,8 @@ import AnnouncementEditor from "@/features/communication/components/announcement
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
 import { useAnnouncements } from "@/features/communication/hooks/useAnnouncements";
+import { attachFileToAnnouncement } from "@/features/communication/hooks/useAnnouncementAttachments";
+import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
 import type { Announcement } from "@/features/communication/types/announcement.types";
 import { announcementErrorMessage } from "@/features/communication/utils/announcement-error-messages";
 
@@ -40,6 +42,9 @@ const labels = {
     scheduledAt: "Scheduled at",
     expiresAt: "Expires at",
     saveDraft: "Save Draft",
+    attachments: "Attachments",
+    addAttachments: "Add attachments",
+    removeAttachment: "Remove attachment",
     titleRequired: "Enter a title.",
     bodyRequired: "Enter a body.",
     created: "Announcement draft created.",
@@ -71,6 +76,9 @@ const labels = {
     scheduledAt: "موعد الجدولة",
     expiresAt: "ينتهي في",
     saveDraft: "حفظ المسودة",
+    attachments: "المرفقات",
+    addAttachments: "إضافة مرفقات",
+    removeAttachment: "إزالة المرفق",
     titleRequired: "أدخل عنوانا.",
     bodyRequired: "أدخل محتوى.",
     created: "تم إنشاء مسودة الإعلان.",
@@ -85,10 +93,25 @@ export default function CreateAnnouncementPage() {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const { create, isMutating } = useAnnouncements();
+  const { policy } = useCommunicationPolicy();
 
-  const handleSubmit = async (values: Parameters<typeof create>[0]) => {
+  const handleSubmit = async (
+    values: Parameters<typeof create>[0],
+    attachmentFiles: File[],
+  ) => {
+    let createdAnnouncementId: string | null = null;
+
     try {
       const announcement = (await create(values)) as Announcement | null;
+      createdAnnouncementId = announcement?.id ?? null;
+      if (attachmentFiles.length > 0 && !announcement?.id) {
+        throw new Error("Created announcement did not include an id.");
+      }
+      if (announcement?.id) {
+        await Promise.all(
+          attachmentFiles.map((file) => attachFileToAnnouncement(announcement.id, file)),
+        );
+      }
       showSuccess(t.created);
       router.push(
         announcement?.id
@@ -97,6 +120,9 @@ export default function CreateAnnouncementPage() {
       );
     } catch (nextError) {
       showError(announcementErrorMessage(nextError, locale));
+      if (createdAnnouncementId) {
+        router.push(`/${locale}/communication/announcements/${createdAnnouncementId}`);
+      }
     }
   };
 
@@ -112,7 +138,10 @@ export default function CreateAnnouncementPage() {
       <CommunicationPageHeader title={t.title} description={t.description} />
       <CommunicationTabs />
       <AnnouncementEditor
+        allowAttachments={policy?.allowAttachments !== false}
+        allowedAttachmentMimeTypes={policy?.allowedAttachmentMimeTypes}
         isSubmitting={isMutating}
+        maxAttachmentSizeMb={policy?.maxAttachmentSizeMb}
         onSubmit={handleSubmit}
         labels={{
           title: t.formTitle,
@@ -138,6 +167,9 @@ export default function CreateAnnouncementPage() {
           scheduledAt: t.scheduledAt,
           expiresAt: t.expiresAt,
           saveDraft: t.saveDraft,
+          attachments: t.attachments,
+          addAttachments: t.addAttachments,
+          removeAttachment: t.removeAttachment,
           saveChanges: t.saveDraft,
           titleRequired: t.titleRequired,
           bodyRequired: t.bodyRequired,

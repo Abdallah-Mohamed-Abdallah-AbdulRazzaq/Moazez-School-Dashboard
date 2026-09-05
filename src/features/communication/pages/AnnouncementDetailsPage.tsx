@@ -312,7 +312,14 @@ export default function AnnouncementDetailsPage({
           readOnly={!canEdit}
           isSubmitting={isMutating}
           submitLabel={t.saveChanges}
-          onSubmit={(values) => runMutation(() => update(values), t.updated)}
+          onSubmit={(values, attachmentFiles) =>
+            runMutation(async () => {
+              await update(values);
+              await Promise.all(
+                attachmentFiles.map((file) => attachmentState.attachFile(file)),
+              );
+            }, t.updated)
+          }
           labels={{
             title: t.formTitle,
             body: t.body,
@@ -337,6 +344,9 @@ export default function AnnouncementDetailsPage({
             scheduledAt: t.scheduledAt,
             expiresAt: t.expiresAt,
             saveDraft: t.saveDraft,
+            attachments: t.attachments,
+            addAttachments: t.attachFile,
+            removeAttachment: t.removeAttachment,
             saveChanges: t.saveChanges,
             titleRequired: t.titleRequired,
             bodyRequired: t.bodyRequired,

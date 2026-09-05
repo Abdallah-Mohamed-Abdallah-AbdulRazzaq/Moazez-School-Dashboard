@@ -1,0 +1,1142 @@
+# MOAZEZ Frontend Developer — Working Agreement & Delivery Workflow
+
+## 1. الغرض من هذا التقرير
+
+هذا المستند هو دليل العمل الرسمي لمطور الـFrontend في مشروع **MOAZEZ**.
+
+وظيفته تحديد:
+
+* المستودعات التي يعمل عليها المطور.
+* نقطة البداية الرسمية لكل مشروع.
+* طريقة بدء كل مهمة.
+* قواعد Git وGitHub.
+* طريقة إنشاء الـBranches.
+* متطلبات التحقق قبل التسليم.
+* طريقة Commit وPush.
+* طريقة إنشاء Pull Request.
+* كيفية التعامل مع تعديلات الـReview.
+* النقطة التي تنتهي عندها مسؤولية المطور.
+* الأشياء الممنوعة على المطور تنفيذها.
+* شكل التقرير النهائي الذي يسلمه لمالك المشروع.
+
+الهدف الأساسي:
+
+> جميع التغييرات تمر عبر مسار واضح وقابل للمراجعة، ولا يتم أي تطوير مباشر على `main`، ولا يتم دمج أو نشر أي Source قبل مراجعة مالك المشروع واعتماده.
+
+---
+
+# 2. المستودعات المسؤول عنها المطور
+
+يوجد مستودعان للـFrontend:
+
+## 2.1 Platform Admin
+
+```text
+Repository:
+Abdallah-Mohamed-Abdallah-AbdulRazzaq/Moazez-Platform-Admin
+
+Local Path:
+E:\Moazzez\Platform-Admin
+
+Default Branch:
+main
+```
+
+Baseline المعتمد عند بداية العمل:
+
+```text
+19ca23dec4e4315ef523496ce563a6cff3e4a279
+```
+
+---
+
+## 2.2 School Dashboard
+
+```text
+Repository:
+Abdallah-Mohamed-Abdallah-AbdulRazzaq/Moazez-School-Dashboard
+
+Local Path:
+E:\Moazzez\School-Dashboard
+
+Default Branch:
+main
+```
+
+Baseline المعتمد عند بداية العمل:
+
+```text
+26c21203d94386790c1f9f6289e034d0e87bcce0
+```
+
+هذه الـSHAs هي نقطة البداية الحالية فقط.
+
+بعد دمج أي PR جديد، يصبح أحدث `origin/main` هو الـbaseline الجديد للمهمة التالية.
+
+---
+
+# 3. بيئة العمل المعتمدة
+
+بيئة Node.js المعتمدة:
+
+```text
+Node.js:
+v22.23.1
+
+npm:
+10.9.8
+```
+
+يجب التأكد قبل أي مهمة أن Node المستخدم هو النسخة الصحيحة.
+
+المشروعان تم التحقق منهما بالفعل على جهاز المطور من خلال:
+
+```text
+npm ci
+lint
+tests
+production build
+```
+
+بالإضافة إلى:
+
+```text
+typecheck
+```
+
+في School Dashboard.
+
+الحالة الحالية:
+
+```text
+DEVELOPER_ENVIRONMENT=READY
+
+PLATFORM_ADMIN=PASS
+SCHOOL_DASHBOARD=PASS
+
+BOTH_WORKTREES_CLEAN=YES
+```
+
+---
+
+# 4. GitHub هو المصدر المشترك الرسمي
+
+القاعدة الأساسية:
+
+```text
+GitHub main
+=
+Authoritative Shared Source
+```
+
+لا تعتبر نسخة جهاز المطور هي المصدر الرسمي.
+
+ولا تعتبر نسخة جهاز مالك المشروع هي المصدر الرسمي.
+
+بعد اعتماد ودمج أي Pull Request:
+
+```text
+GitHub main
+```
+
+هو المرجع الذي تعتمد عليه بقية مراحل المشروع.
+
+ممنوع نقل ملفات المشروع بين أجهزة الفريق باستخدام:
+
+* ZIP.
+* USB.
+* Google Drive.
+* نسخ مجلد المشروع.
+* إرسال ملفات Source يدويًا.
+
+Git/GitHub هما وسيلة مشاركة Source الوحيدة.
+
+---
+
+# 5. حماية branch main
+
+`main` محمي في المشروعين.
+
+الحماية الحالية تتطلب:
+
+```text
+Pull Request before merge = REQUIRED
+
+Approving reviews = 1
+
+Dismiss stale approvals after new push = ON
+
+Require conversation resolution = ON
+
+Force / non-fast-forward push = BLOCKED
+
+Branch deletion = BLOCKED
+
+Bypass = NONE
+```
+
+بالتالي:
+
+> لا تعمل مباشرة على `main`.
+
+ولا تحاول تجاوز قواعد GitHub.
+
+---
+
+# 6. بداية كل مهمة جديدة
+
+كل مهمة تبدأ دائمًا من `main`.
+
+قبل إنشاء أي Branch:
+
+1. افتح المستودع الصحيح.
+2. تأكد أن الـworktree نظيف.
+3. انتقل إلى `main`.
+4. اجلب أحدث حالة من GitHub.
+5. قم بتحديث `main` باستخدام Fast-Forward فقط.
+6. أنشئ Feature Branch جديدة من آخر `main`.
+
+المبدأ:
+
+```text
+origin/main
+    ↓
+local main
+    ↓
+new task branch
+```
+
+وليس:
+
+```text
+old feature branch
+    ↓
+new task
+```
+
+ممنوع بناء مهمة جديدة فوق Branch خاصة بمهمة سابقة.
+
+---
+
+# 7. قاعدة تسمية الـBranches
+
+كل مهمة لها Branch مستقلة.
+
+أمثلة:
+
+```text
+feat/student-attendance-ui
+```
+
+```text
+feat/teacher-profile-redesign
+```
+
+```text
+fix/dashboard-navigation
+```
+
+```text
+fix/login-validation
+```
+
+```text
+refactor/communication-message-list
+```
+
+القاعدة:
+
+```text
+<type>/<short-clear-task-name>
+```
+
+الأنواع الأساسية:
+
+```text
+feat/
+fix/
+refactor/
+test/
+chore/
+```
+
+يجب أن يعبر اسم الـBranch عن المهمة فقط.
+
+---
+
+# 8. مهمة واحدة = Branch واحدة = Pull Request واحدة
+
+القاعدة الرسمية:
+
+```text
+ONE TASK
+=
+ONE BRANCH
+=
+ONE PR
+```
+
+لا تجمع تعديلات غير مرتبطة داخل نفس الـBranch.
+
+مثال غير صحيح:
+
+```text
+feat/student-page
++
+fix login
++
+change dashboard colors
++
+update deployment workflow
+```
+
+كل هذه مهام مختلفة ويجب ألا تختلط.
+
+---
+
+# 9. إذا كانت المهمة تخص المشروعين
+
+إذا كانت المهمة تتطلب تعديل:
+
+```text
+Platform Admin
++
+School Dashboard
+```
+
+فلا يتم استخدام Branch واحدة مشتركة.
+
+يتم إنشاء:
+
+```text
+Branch في Platform Admin
++
+Branch في School Dashboard
+```
+
+ثم:
+
+```text
+PR في Platform Admin
++
+PR في School Dashboard
+```
+
+ويتم توضيح أن الـPRs مرتبطان بنفس المهمة.
+
+---
+
+# 10. حدود التعديل
+
+يجب تعديل الملفات المطلوبة للمهمة فقط.
+
+قبل بدء التطوير يجب فهم:
+
+```text
+Authorized Files
+Forbidden / Unrelated Files
+Expected Behavior
+Acceptance Criteria
+```
+
+إذا اكتشفت أثناء العمل أن المهمة تحتاج تعديلًا خارج Scope المتفق عليه:
+
+> توقف وأبلغ مالك المشروع قبل توسيع Scope.
+
+لا تحول المهمة بنفسك إلى Refactor شامل.
+
+---
+
+# 11. التعامل مع Source الموجود
+
+يجب احترام Architecture الحالية للمشروع.
+
+لا يتم:
+
+* إعادة تصميم Architecture بدون طلب.
+* نقل مجلدات كبيرة بدون سبب.
+* إعادة تسمية Interfaces عامة بدون موافقة.
+* تغيير API contracts من طرف واحد.
+* تغيير Authentication logic بدون تنسيق.
+* تغيير Production configuration بدون تصريح.
+* تعديل Deployment workflows باعتبارها جزءًا من Frontend عادي.
+
+أي تغيير له تأثير Cross-System يجب رفعه إلى مالك المشروع أولًا.
+
+---
+
+# 12. قواعد PowerShell الخاصة بمشروع MOAZEZ
+
+عند كتابة أو تشغيل PowerShell خاص بعمليات المشروع، يتم استخدام بوابة واحدة بهذا الشكل:
+
+```powershell
+& {
+    # all executable PowerShell commands here
+}
+```
+
+القاعدة:
+
+```text
+ONE EXECUTION GATE
+=
+ONE POWERSHELL BLOCK
+=
+& { ... }
+```
+
+لا يتم إرسال أو توزيع مجموعة أوامر تنفيذية متفرقة خارج هذا الـblock.
+
+---
+
+# 13. أثناء التطوير
+
+يعمل المطور على Feature Branch فقط.
+
+أثناء العمل يمكنه:
+
+* تشغيل المشروع محليًا.
+* تعديل Source.
+* إضافة أو تعديل Tests.
+* تشغيل lint.
+* تشغيل typecheck.
+* تشغيل unit/component tests.
+* تشغيل production build.
+* استخدام أدوات التطوير المحلية المعتادة.
+
+يجب متابعة:
+
+```text
+git status
+```
+
+للتأكد أن الملفات المعدلة مرتبطة بالمهمة فقط.
+
+---
+
+# 14. Environment Variables
+
+لا يتم Commit لأي Secret أو Production credential.
+
+ممنوع Commit:
+
+```text
+.env
+.env.local
+Production credentials
+API secrets
+GCP credentials
+Private keys
+Service-account credentials
+Personal tokens
+```
+
+متغيرات الـFrontend العامة يتم التعامل معها وفق Configuration المشروع.
+
+وجود كلمة:
+
+```text
+NEXT_PUBLIC_
+```
+
+لا يعني تلقائيًا أن المطور مخول بتغيير Production value.
+
+Production configuration يديرها مالك المشروع / DevOps ما لم يتم التصريح بخلاف ذلك.
+
+---
+
+# 15. قواعد Git أثناء المهمة
+
+مسموح:
+
+```text
+normal commits
+normal push
+fetch
+ff-only pull
+feature branches
+```
+
+ممنوع:
+
+```text
+git push --force
+git push --force-with-lease
+history rewriting
+unrequested rebase
+unrequested amend
+reset that discards work
+direct push to main
+```
+
+إذا حدث تعارض Git غير متوقع:
+
+> لا تحاول إصلاحه باستخدام Force أو Reset عشوائي.
+
+أبلغ مالك المشروع بالحالة أولًا.
+
+---
+
+# 16. Commit Policy
+
+بعد اكتمال جزء منطقي من المهمة، استخدم Commit واضحًا.
+
+أمثلة:
+
+```text
+feat(attendance): add student attendance filters
+```
+
+```text
+fix(auth): preserve login validation state
+```
+
+```text
+refactor(messages): simplify conversation list rendering
+```
+
+يجب أن يشرح الـCommit ما الذي تغير.
+
+تجنب:
+
+```text
+update
+fix
+changes
+final
+test2
+new changes
+```
+
+---
+
+# 17. التحقق المطلوب قبل التسليم
+
+لا يتم Push النهائي للمهمة وتسليمها قبل إجراء Verification مناسب.
+
+## Platform Admin
+
+الحد الأدنى المعتاد:
+
+```text
+npm run lint
+npm run test:run
+npm run build
+```
+
+إذا كانت المهمة صغيرة، يمكن تشغيل Tests ذات الصلة أثناء التطوير، لكن قبل التسليم النهائي يجب تنفيذ التحقق المطلوب حسب المهمة.
+
+---
+
+## School Dashboard
+
+الحد الأدنى المعتاد:
+
+```text
+npm run lint
+npm run typecheck
+npm run test:run
+npm run build
+```
+
+إذا كانت المهمة تؤثر على Area محددة، يجب أيضًا تشغيل Tests المرتبطة بها.
+
+---
+
+# 18. Warnings مقابل Errors
+
+Warnings الموجودة أصلًا في Baseline لا تعتبر تلقائيًا سببًا لإعادة هيكلة المشروع.
+
+لكن:
+
+```text
+NEW ERROR
+=
+BLOCKER
+```
+
+و:
+
+```text
+NEW WARNING CAUSED BY THE TASK
+=
+SHOULD BE INVESTIGATED
+```
+
+لا يتم إخفاء Errors أو تعطيل Rules فقط للحصول على PASS.
+
+---
+
+# 19. بعد نجاح التحقق
+
+قبل Commit/Push النهائي:
+
+تحقق من:
+
+```text
+git status
+```
+
+يجب أن تكون الملفات المعدلة هي الملفات المتوقعة فقط.
+
+بعد ذلك:
+
+```text
+commit
+↓
+normal push of feature branch
+```
+
+ممنوع Push إلى:
+
+```text
+main
+```
+
+---
+
+# 20. إنشاء Pull Request
+
+بعد Push الـFeature Branch:
+
+أنشئ:
+
+```text
+Draft Pull Request
+```
+
+والـBase يجب أن يكون:
+
+```text
+main
+```
+
+والـHead:
+
+```text
+your feature branch
+```
+
+يفضل إنشاء الـDraft PR مبكرًا عندما يصبح التغيير قابلًا للمراجعة.
+
+---
+
+# 21. محتوى Pull Request
+
+الـPR يجب أن يوضح على الأقل:
+
+## Summary
+
+ما الذي تم تغييره؟
+
+## Scope
+
+ما الجزء الذي تخصه المهمة؟
+
+## Changed Files
+
+ما الملفات الرئيسية التي تغيرت؟
+
+## Verification
+
+مثال:
+
+```text
+Lint: PASS
+Typecheck: PASS
+Tests: PASS
+Build: PASS
+```
+
+## Notes
+
+أي Constraints أو Decisions مهمة.
+
+---
+
+# 22. لا تقم بعمل Merge
+
+هذه نقطة مهمة جدًا.
+
+مسؤولية المطور تنتهي عند:
+
+```text
+Implementation complete
++
+Local verification complete
++
+Commit complete
++
+Feature branch pushed
++
+Draft PR created / updated
++
+PR ready for owner review
+```
+
+المطور لا يقوم بدمج الـPR إلى `main`.
+
+حتى إذا:
+
+```text
+CI = PASS
+Tests = PASS
+Review looks good
+```
+
+قرار الدمج مسؤولية مالك المشروع.
+
+---
+
+# 23. عند وصول Review Feedback
+
+إذا طلب مالك المشروع تعديلًا:
+
+لا تنشئ PR جديدة.
+
+ولا تنشئ Branch جديدة لنفس المهمة.
+
+استمر على:
+
+```text
+SAME BRANCH
++
+SAME PR
+```
+
+نفذ التعديل.
+
+ثم:
+
+```text
+verify
+↓
+new normal commit
+↓
+normal push
+↓
+same PR updates automatically
+```
+
+ممنوع Force Push من أجل جعل الـPR "نظيفًا".
+
+وجود أكثر من Commit داخل PR أمر طبيعي.
+
+---
+
+# 24. Approvals القديمة
+
+GitHub مضبوط بحيث إذا تم Push Commit جديد بعد Approval:
+
+```text
+Old Approval
+=
+Dismissed
+```
+
+وبالتالي بعد أي تعديل جديد يجب انتظار مراجعة واعتماد جديد.
+
+لا تحاول تجاوز هذه القاعدة.
+
+---
+
+# 25. Review Conversations
+
+إذا وضع مالك المشروع Review Comment أو طلب تغيير:
+
+يجب:
+
+1. معالجة الملاحظة.
+2. الرد عليها عند الحاجة.
+3. التأكد من حل المشكلة فعليًا.
+
+GitHub يشترط:
+
+```text
+Review conversations resolved
+```
+
+قبل السماح بالMerge.
+
+---
+
+# 26. آخر خطوة تقع ضمن مسؤولية المطور
+
+عندما ترى أن المهمة اكتملت، أرسل لمالك المشروع التقرير التالي:
+
+```text
+==================================================
+MOAZEZ FRONTEND DEVELOPER HANDOFF
+==================================================
+
+REPOSITORY=
+TASK=
+
+BASE_MAIN_SHA=
+BRANCH=
+FEATURE_HEAD_SHA=
+
+PR_NUMBER=
+PR_STATE=DRAFT/READY_FOR_REVIEW
+
+CHANGED_FILE_COUNT=
+CHANGED_FILES=
+
+LINT=
+TYPECHECK=
+TESTS=
+BUILD=
+
+WORKTREE_CLEAN=
+PUSH_TYPE=NORMAL
+FORCE_PUSH=NO
+
+DIRECT_MAIN_PUSH=NO
+MAIN_MERGE_EXECUTED=NO
+
+KNOWN_WARNINGS=
+KNOWN_LIMITATIONS=
+
+DEVELOPER_STATUS=COMPLETE/READY_FOR_OWNER_REVIEW
+==================================================
+```
+
+إذا كان `typecheck` غير موجود في المشروع، استخدم مثلًا:
+
+```text
+TYPECHECK=NOT_DEFINED/NOT_APPLICABLE
+```
+
+ولا تضع `PASS` لشيء لم يتم تشغيله.
+
+---
+
+# 27. ما يحدث بعد هذا التقرير؟
+
+بعد إرسال:
+
+```text
+DEVELOPER_STATUS=COMPLETE/READY_FOR_OWNER_REVIEW
+```
+
+تتوقف مسؤولية المطور مؤقتًا.
+
+مالك المشروع يقوم بعد ذلك بـ:
+
+```text
+Independent review
+↓
+PR review
+↓
+CI verification
+↓
+Request changes OR approve
+↓
+Merge decision
+```
+
+إذا عاد الـPR للمطور:
+
+```text
+REQUEST_CHANGES
+```
+
+فقط عندها يعود المطور لنفس Branch ونفس PR.
+
+---
+
+# 28. أشياء ليست من مسؤولية المطور العادي
+
+لا يقوم المطور من تلقاء نفسه بـ:
+
+```text
+Merge PR to main
+Deploy Production
+Deploy Staging
+GCP changes
+Terraform apply
+Cloud Run changes
+DNS changes
+Production secrets changes
+GitHub production variables changes
+Artifact publishing
+Production workflow dispatch
+Database changes
+Backend changes
+Force push
+Repository history rewrite
+Branch protection changes
+GitHub Ruleset changes
+```
+
+إذا احتاجت المهمة أيًا منها:
+
+```text
+STOP
+→ REPORT TO OWNER
+```
+
+---
+
+# 29. Backend/API changes
+
+إذا اكتشف المطور أن الـFrontend يحتاج تغيير Backend:
+
+لا يقوم بتعديل Backend من تلقاء نفسه.
+
+يرسل إلى مالك المشروع:
+
+```text
+Required backend behavior
+Current frontend expectation
+Expected API contract
+Affected endpoint
+Reason
+Blocking / Non-blocking
+```
+
+ثم يتم التعامل مع Backend من خلال مسار Backend Development الخاص بالمشروع.
+
+---
+
+# 30. Deployment-related changes
+
+إذا كانت المهمة تحتاج تعديل:
+
+```text
+Dockerfile
+.github/workflows/*
+Production environment contract
+Artifact configuration
+Deployment source contract
+```
+
+يجب اعتبارها Sensitive Deployment Surface.
+
+لا يتم تغييرها باعتبارها Frontend task عادية بدون موافقة صريحة.
+
+---
+
+# 31. إذا تغير main أثناء العمل
+
+من الطبيعي أن يقوم شخص آخر بدمج PR أثناء استمرار المهمة.
+
+لا تستخدم تلقائيًا:
+
+```text
+rebase
+force push
+reset
+```
+
+إذا تغير `origin/main` وأصبح هناك تعارض أو احتياج لإعادة مزامنة المهمة:
+
+أبلغ مالك المشروع أولًا إذا كانت الحالة غير واضحة.
+
+يتم اختيار طريقة التحديث حسب حالة الـPR والتغييرات الفعلية.
+
+---
+
+# 32. إذا كان هناك PR موجود لنفس المهمة
+
+لا تنشئ PR ثانية.
+
+القاعدة:
+
+```text
+Existing Task PR
+=
+Update Existing PR
+```
+
+الهدف منع:
+
+* duplicate PRs.
+* divergent branches.
+* confusion أثناء الـReview.
+
+---
+
+# 33. لا تبدأ مهمة جديدة فوق Branch قديمة
+
+بعد انتهاء مهمة وتسليمها:
+
+لا تستخدم Branch المهمة السابقة كأساس للمهمة التالية.
+
+المهمة التالية تبدأ من:
+
+```text
+latest merged main
+```
+
+بعد تحديثه.
+
+---
+
+# 34. العلاقة بين المطور ومالك المشروع
+
+تقسيم المسؤوليات:
+
+```text
+DEVELOPER
+────────────────────
+Understand task
+Create feature branch
+Implement
+Test
+Build
+Commit
+Push branch
+Create/update Draft PR
+Address review feedback
+Deliver final handoff
+```
+
+ثم:
+
+```text
+OWNER
+────────────────────
+Independent verification
+Review PR
+Approve / request changes
+Merge
+Synchronize owner workstation
+Release acceptance
+Coordinate DevOps
+```
+
+ثم:
+
+```text
+DEVOPS
+────────────────────
+Use exact merged main SHA
+Artifact generation
+Deployment
+Production operations
+```
+
+---
+
+# 35. دورة العمل الكاملة
+
+```text
+LATEST GITHUB MAIN
+        ↓
+DEVELOPER SYNC
+        ↓
+CREATE FEATURE BRANCH
+        ↓
+IMPLEMENT TASK
+        ↓
+LOCAL VERIFICATION
+        ↓
+NORMAL COMMIT
+        ↓
+NORMAL PUSH
+        ↓
+DRAFT PR
+        ↓
+DEVELOPER HANDOFF
+        ↓
+OWNER REVIEW
+        ↓
+┌─────────────────────────────┐
+│ Changes required?           │
+└─────────────────────────────┘
+        ↓ YES
+SAME BRANCH + SAME PR
+        ↓
+FIX
+        ↓
+VERIFY
+        ↓
+COMMIT
+        ↓
+PUSH
+        ↓
+OWNER REVIEW AGAIN
+
+        ↓ NO
+
+OWNER APPROVAL
+        ↓
+OWNER MERGE
+        ↓
+GITHUB MAIN = NEW AUTHORITY
+        ↓
+OWNER / DEVOPS WORKFLOW
+```
+
+---
+
+# 36. أهم القواعد المختصرة
+
+احفظ هذه القواعد دائمًا:
+
+```text
+1. Never develop directly on main.
+
+2. Always start a new task from latest main.
+
+3. One task = one branch = one PR.
+
+4. Never force push.
+
+5. Never rewrite Git history without explicit authorization.
+
+6. Never merge your own PR.
+
+7. Never deploy Production.
+
+8. Never commit secrets or production credentials.
+
+9. Run verification before handoff.
+
+10. Review feedback stays in the same branch and same PR.
+
+11. GitHub main is the shared source of truth.
+
+12. Stop and report unexpected scope, Git state, or cross-system dependency.
+
+13. Developer work ends at READY_FOR_OWNER_REVIEW.
+```
+
+---
+
+# 37. Current Developer Readiness
+
+تم الانتهاء من إعداد بيئة المطور والتحقق منها.
+
+```text
+DEVELOPER_ONBOARDING=COMPLETE/PASS
+
+NODE=v22.23.1
+
+GITHUB_PERMISSION=WRITE
+
+PLATFORM_ADMIN_LOCAL_BASELINE=PASS
+
+SCHOOL_DASHBOARD_LOCAL_BASELINE=PASS
+
+DEPENDENCY_INSTALLATION=PASS
+
+LINT=PASS
+
+TYPECHECK_WHERE_SUPPORTED=PASS
+
+TESTS=PASS
+
+PRODUCTION_BUILD=PASS
+
+WORKTREES_CLEAN=YES
+
+MAIN_PROTECTION=ACTIVE
+
+READY_FOR_REAL_FRONTEND_TASKS=YES
+```
+
+من هذه النقطة يمكن بدء أول مهمة Frontend فعلية وفق Workflow هذا المستند.
+
+# END OF MOAZEZ FRONTEND DEVELOPER WORKING AGREEMENT

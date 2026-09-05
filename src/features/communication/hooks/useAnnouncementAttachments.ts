@@ -62,6 +62,18 @@ function mergeAttachment(
   ];
 }
 
+export async function attachFileToAnnouncement(
+  announcementId: string,
+  file: File,
+): Promise<MessageAttachment | null> {
+  const uploadResponse = await uploadFile(file);
+  const fileId = fileIdFromUpload(uploadResponse);
+  if (!fileId) throw new Error("Upload response did not include a file id.");
+
+  const linkResponse = await linkAnnouncementAttachment(announcementId, { fileId });
+  return unwrapItem<MessageAttachment>(linkResponse);
+}
+
 export function useAnnouncementAttachments(
   announcementId: string,
   maxAttachmentSizeMb?: number,
@@ -104,14 +116,7 @@ export function useAnnouncementAttachments(
       setIsUploading(true);
       setError(null);
       try {
-        const uploadResponse = await uploadFile(file);
-        const fileId = fileIdFromUpload(uploadResponse);
-        if (!fileId) throw new Error("Upload response did not include a file id.");
-
-        const linkResponse = await linkAnnouncementAttachment(announcementId, {
-          fileId,
-        });
-        const attachment = unwrapItem<MessageAttachment>(linkResponse);
+        const attachment = await attachFileToAnnouncement(announcementId, file);
         if (mountedRef.current && attachment) {
           setAttachments((current) => mergeAttachment(current, attachment));
         } else {

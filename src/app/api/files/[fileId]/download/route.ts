@@ -4,6 +4,14 @@ interface DownloadRouteContext {
   params: Promise<{ fileId: string }>;
 }
 
+function backendApiBaseUrl() {
+  const apiProxyTarget = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
+  if (apiProxyTarget) return apiProxyTarget;
+
+  const publicApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  return publicApiUrl?.startsWith("http") ? publicApiUrl : undefined;
+}
+
 export async function GET(
   request: NextRequest,
   context: DownloadRouteContext,
@@ -13,7 +21,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  const apiBaseUrl = backendApiBaseUrl();
   if (!apiBaseUrl) {
     return NextResponse.json({ error: "API URL is not configured" }, { status: 500 });
   }
