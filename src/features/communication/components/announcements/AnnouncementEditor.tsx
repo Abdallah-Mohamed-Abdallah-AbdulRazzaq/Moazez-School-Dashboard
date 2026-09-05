@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import AttachmentUploadArea from "@/components/ui/attachment-upload/AttachmentUploadArea";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
@@ -17,6 +18,7 @@ import type {
   CreateAnnouncementStatus,
 } from "@/features/communication/types/announcement.types";
 import type { AnnouncementFormValues } from "@/features/communication/hooks/useAnnouncements";
+import { FILES_UPLOAD_CONSTRAINTS } from "@/features/communication/api/files.service";
 
 export interface AnnouncementEditorLabels {
   title: string;
@@ -43,6 +45,9 @@ export interface AnnouncementEditorLabels {
   expiresAt: string;
   saveDraft: string;
   saveChanges: string;
+  attachments: string;
+  addAttachments: string;
+  removeAttachment: string;
   titleRequired: string;
   bodyRequired: string;
 }
@@ -53,7 +58,13 @@ export interface AnnouncementEditorProps {
   isSubmitting?: boolean;
   readOnly?: boolean;
   submitLabel?: string;
-  onSubmit: (values: AnnouncementFormValues) => Promise<void> | void;
+  allowAttachments?: boolean;
+  maxAttachmentSizeMb?: number;
+  allowedAttachmentMimeTypes?: string[];
+  onSubmit: (
+    values: AnnouncementFormValues,
+    attachmentFiles: File[],
+  ) => Promise<void> | void;
 }
 
 function initialValues(announcement?: Announcement | null): AnnouncementFormValues {
@@ -102,10 +113,26 @@ export default function AnnouncementEditor({
   onSubmit,
   readOnly = false,
   submitLabel,
+  allowAttachments = true,
+  allowedAttachmentMimeTypes,
+  maxAttachmentSizeMb,
 }: AnnouncementEditorProps) {
+  const maxAttachmentSizeBytes = Math.min(
+    maxAttachmentSizeMb
+      ? maxAttachmentSizeMb * 1024 * 1024
+      : FILES_UPLOAD_CONSTRAINTS.maxSizeBytes,
+    FILES_UPLOAD_CONSTRAINTS.maxSizeBytes,
+  );
+  const allowedAnnouncementAttachmentMimeTypes =
+    allowedAttachmentMimeTypes?.length
+      ? FILES_UPLOAD_CONSTRAINTS.allowedMimeTypes.filter((mimeType) =>
+          allowedAttachmentMimeTypes.includes(mimeType),
+        )
+      : FILES_UPLOAD_CONSTRAINTS.allowedMimeTypes;
   const [values, setValues] = useState<AnnouncementFormValues>(() =>
     initialValues(announcement),
   );
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const priorityOptions = useMemo(
     () => [
@@ -167,7 +194,7 @@ export default function AnnouncementEditor({
     }
 
     setError(null);
-    await onSubmit(values);
+    await onSubmit(values, attachmentFiles);
   };
 
   return (
@@ -190,18 +217,37 @@ export default function AnnouncementEditor({
           setValues((current) => ({ ...current, body: event.target.value }))
         }
       />
-      <Select
-        label={labels.status}
-        value={values.status ?? "draft"}
-        disabled={readOnly}
-        options={statusOptions}
-        onChange={(value) =>
-          setValues((current) => ({
-            ...current,
-            status: value as CreateAnnouncementStatus,
-          }))
-        }
-      />
+      {!readOnly && allowAttachments ? (
+        <AttachmentUploadArea
+          allowedMimeTypes={
+            allowedAnnouncementAttachmentMimeTypes
+          }
+          files={attachmentFiles}
+          labels={{
+            title: labels.attachments,
+            addFiles: labels.addAttachments,
+            removeFile: labels.removeAttachment,
+          }}
+          maxSizeBytes={maxAttachmentSizeBytes}
+          onFilesChange={setAttachmentFiles}
+        />
+      ) : null}
+      {!announcement ? (
+        <Select
+          label={labels.status}
+          value={values.status ?? "draft"}
+          disabled={readOnly}
+          options={statusOptions}
+          onChange={(selectedStatus) =>
+            setValues((current) => ({
+              ...current,
+              status: selectedStatus as CreateAnnouncementStatus,
+              scheduledAt:
+                selectedStatus === "draft" ? "" : current.scheduledAt,
+            }))
+          }
+        />
+      ) : null}
       <Select
         label={labels.priority}
         value={values.priority ?? "normal"}
@@ -285,18 +331,20 @@ export default function AnnouncementEditor({
             }
           />
         ) : null}
-        <Input
-          label={labels.scheduledAt}
-          type="datetime-local"
-          value={values.scheduledAt ?? ""}
-          disabled={readOnly || values.status !== "scheduled"}
-          onChange={(event) =>
-            setValues((current) => ({
-              ...current,
-              scheduledAt: event.target.value,
-            }))
-          }
-        />
+        {values.status === "scheduled" ? (
+          <Input
+            label={labels.scheduledAt}
+            type="datetime-local"
+            value={values.scheduledAt ?? ""}
+            disabled={readOnly}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                scheduledAt: event.target.value,
+              }))
+            }
+          />
+        ) : null}
         <Input
           label={labels.expiresAt}
           type="datetime-local"

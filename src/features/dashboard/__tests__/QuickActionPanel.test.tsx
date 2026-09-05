@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import QuickActionPanel from "@/features/dashboard/components/QuickActionPanel";
 import { createAnnouncement } from "@/features/communication/api/communication.service";
+import { ApiError } from "@/lib/api-error";
 
 const toastSpies = vi.hoisted(() => ({
   showError: vi.fn(),
@@ -87,6 +88,25 @@ describe("QuickActionPanel", () => {
 
     expect(screen.getByText("Enter a title.")).toBeInTheDocument();
     expect(mockedCreateAnnouncement).not.toHaveBeenCalled();
+  });
+
+  it("shows a mapped API error when quick-draft creation fails", async () => {
+    const user = userEvent.setup();
+    mockedCreateAnnouncement.mockRejectedValue(
+      new ApiError("File too large", 413, "files.upload.size_exceeded"),
+    );
+
+    render(<QuickActionPanel />);
+
+    await user.type(screen.getByLabelText("Title"), "Term opening");
+    await user.type(screen.getByLabelText("Body"), "Welcome back tomorrow.");
+    await user.click(screen.getByRole("button", { name: /create draft/i }));
+
+    await waitFor(() => {
+      expect(toastSpies.showError).toHaveBeenCalledWith(
+        "The file exceeds the allowed size.",
+      );
+    });
   });
 
   it("shows only quick actions the user can open and hides announcement drafting without manage access", () => {

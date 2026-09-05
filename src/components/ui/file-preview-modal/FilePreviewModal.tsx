@@ -15,6 +15,7 @@ export type PreviewAttachment = {
   size: number;
   type: string;
   url?: string;
+  isLocal?: boolean;
 };
 
 interface FilePreviewModalProps {
@@ -43,6 +44,7 @@ export default function FilePreviewModal({ attachment, isOpen, onClose }: FilePr
       });
       return;
     }
+    if (attachment.isLocal) return;
     let active = true;
     void loadAuthenticatedFileUrl(attachment.id)
       .then((file) => {
@@ -61,12 +63,24 @@ export default function FilePreviewModal({ attachment, isOpen, onClose }: FilePr
     return () => {
       active = false;
     };
-  }, [attachment?.id, attachment?.type]);
+  }, [attachment?.id, attachment?.isLocal, attachment?.type]);
 
   const accessDenied = deniedAttachmentId === attachment?.id;
-  const contentUrl = accessDenied ? null : previewUrl || attachment?.url;
-  const mimeType = previewMimeType || attachment?.type || "";
-  const loading = Boolean(isOpen && attachment?.id && previewAttachmentId !== attachment.id && failedAttachmentId !== attachment.id);
+  const contentUrl = accessDenied
+    ? null
+    : attachment?.isLocal
+      ? attachment.url
+      : previewUrl || attachment?.url;
+  const mimeType = attachment?.isLocal
+    ? attachment.type
+    : previewMimeType || attachment?.type || "";
+  const loading = Boolean(
+    isOpen &&
+      attachment?.id &&
+      !attachment.isLocal &&
+      previewAttachmentId !== attachment.id &&
+      failedAttachmentId !== attachment.id,
+  );
   const openPreview = () => contentUrl && window.open(contentUrl, "_blank", "noopener,noreferrer");
 
   const unavailable = attachment ? (

@@ -5,6 +5,21 @@ import type {
   UploadFileExtraFields,
 } from "@/features/communication/types/communication.types";
 
+export const FILES_UPLOAD_CONSTRAINTS = {
+  maxSizeBytes: 10 * 1024 * 1024,
+  allowedMimeTypes: [
+    "application/pdf",
+    "audio/mp4",
+    "audio/mpeg",
+    "audio/webm",
+    "image/jpeg",
+    "image/png",
+    "text/plain",
+    "video/mp4",
+    "video/webm",
+  ],
+} as const;
+
 export async function uploadFile(
   file: File,
   extraFields?: UploadFileExtraFields,

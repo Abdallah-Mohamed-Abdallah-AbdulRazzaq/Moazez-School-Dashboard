@@ -38,4 +38,27 @@ describe("FilePreviewModal", () => {
     await waitFor(() => expect(screen.getByText("accessDenied")).toBeInTheDocument());
     expect(screen.queryByText("unavailable")).not.toBeInTheDocument();
   });
+
+  it("previews a local file without requesting an authenticated file URL", () => {
+    render(
+      <FilePreviewModal
+        attachment={{
+          id: "local-file-1",
+          name: "notice.png",
+          size: 1024,
+          type: "image/png",
+          url: "blob:notice-preview",
+          isLocal: true,
+        }}
+        isOpen
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "notice.png" })).toHaveAttribute(
+      "src",
+      "blob:notice-preview",
+    );
+    expect(fileCacheMocks.loadAuthenticatedFileUrl).not.toHaveBeenCalled();
+  });
 });

@@ -3,7 +3,10 @@ import { NextRequest } from "next/server";
 import { GET } from "./route";
 
 describe("file download proxy", () => {
-  beforeEach(() => vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.test/api/v1"));
+  beforeEach(() => {
+    vi.stubEnv("API_PROXY_TARGET", "https://api.test/api/v1");
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "/api/backend");
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
