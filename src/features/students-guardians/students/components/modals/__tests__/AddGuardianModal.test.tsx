@@ -159,4 +159,36 @@ describe("AddGuardianModal", () => {
     expect(await screen.findByText("Guardian!2026")).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("confirms when the temporary password is copied", async () => {
+    vi.mocked(studentsService.fetchAllStudents).mockResolvedValue([] as never);
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue({
+      temporaryPassword: "Guardian!2026",
+    });
+
+    render(<AddGuardianModal isOpen onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    await user.type(
+      screen.getByPlaceholderText("full_name_placeholder"),
+      "Mohamed Hassan",
+    );
+    await user.type(
+      screen.getByPlaceholderText("email_placeholder"),
+      "parent@example.com",
+    );
+    await user.click(
+      screen.getByRole("checkbox", { name: "create_account" }),
+    );
+    await user.type(
+      screen.getByLabelText("account_username"),
+      "mohamed.hassan",
+    );
+    await user.click(screen.getByRole("button", { name: "add" }));
+    await user.click(await screen.findByRole("button", { name: "copy_password" }));
+
+    expect(
+      screen.getByRole("button", { name: "password_copied" }),
+    ).toBeInTheDocument();
+  });
 });

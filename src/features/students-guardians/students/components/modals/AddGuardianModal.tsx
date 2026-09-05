@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Copy, Eye, Search, X } from "lucide-react";
+import { AlertCircle, Check, Copy, Eye, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, Input, Modal, Select } from "@/components/ui";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
@@ -93,6 +93,7 @@ export default function AddGuardianModal({
   );
   const [isSearchingStudents, setIsSearchingStudents] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [isPasswordCopied, setIsPasswordCopied] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -188,6 +189,7 @@ export default function AddGuardianModal({
     setStudentSearch("");
     setStudentSearchResults([]);
     setTemporaryPassword("");
+    setIsPasswordCopied(false);
   };
 
   const handleSelectStudent = (student: Student) => {
@@ -242,6 +244,7 @@ export default function AddGuardianModal({
 
   const copyTemporaryPassword = async () => {
     await navigator.clipboard.writeText(temporaryPassword);
+    setIsPasswordCopied(true);
   };
 
   const toggleAccountCreation = () => {
@@ -320,10 +323,18 @@ export default function AddGuardianModal({
                   variant="secondary"
                   size="sm"
                   className="mt-3"
-                  leftIcon={<Copy className="h-4 w-4" />}
+                  leftIcon={
+                    isPasswordCopied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )
+                  }
                   onClick={() => void copyTemporaryPassword()}
                 >
-                  {t("copy_password")}
+                  {isPasswordCopied
+                    ? t("password_copied")
+                    : t("copy_password")}
                 </Button>
               </div>
             </div>
