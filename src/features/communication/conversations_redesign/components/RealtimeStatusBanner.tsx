@@ -1,4 +1,4 @@
-import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import { CONVERSATION_ERROR_LABEL_KEYS } from "@/features/communication/utils/communication-errors";
 
@@ -21,29 +21,18 @@ export default function RealtimeStatusBanner({
   labels: ConversationRedesignLabels;
   onRetry: () => void;
 }) {
-  if (isConnected && !connectionError) return null;
+  if (!connectionError) return null;
 
-  const hasError = Boolean(connectionError);
-  const message = connectionError
-    ? realtimeErrorMessage(connectionError, labels)
-    : labels.realtimeReconnecting;
-  const Icon = hasError ? AlertTriangle : Loader2;
+  const message = realtimeErrorMessage(connectionError, labels);
 
   return (
     <div
-      role={hasError ? "alert" : "status"}
-      aria-live={hasError ? "assertive" : "polite"}
+      role="alert"
+      aria-live="assertive"
       aria-atomic="true"
-      className={`flex shrink-0 flex-wrap items-center justify-start gap-x-3 gap-y-2 border-b px-3 py-2.5 text-sm sm:flex-nowrap sm:justify-center sm:px-4 ${
-        hasError
-          ? "border-rose-200 bg-rose-50 text-rose-800"
-          : "border-amber-200 bg-amber-50 text-amber-900"
-      }`}
+      className="flex shrink-0 flex-wrap items-center justify-start gap-x-3 gap-y-2 border-b border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800 sm:flex-nowrap sm:justify-center sm:px-4"
     >
-      <Icon
-        className={`h-4 w-4 shrink-0 ${hasError ? "" : "motion-safe:animate-spin"}`}
-        aria-hidden="true"
-      />
+      <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span className="min-w-0 flex-1 sm:flex-none">{message}</span>
       <button
         type="button"

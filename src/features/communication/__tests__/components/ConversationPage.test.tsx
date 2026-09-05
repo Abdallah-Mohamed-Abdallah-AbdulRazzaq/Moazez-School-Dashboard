@@ -188,14 +188,14 @@ describe("ConversationPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("retries realtime and conversation loading from the connection banner", () => {
+  it("hides the realtime retry action while live updates reconnect", () => {
     mockRealtimeState.isConnected = false;
 
     render(<ConversationPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
-    expect(mockRealtimeState.retryConnection).toHaveBeenCalledOnce();
-    expect(mockConversationsState.refresh).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByRole("button", { name: "Retry" }),
+    ).not.toBeInTheDocument();
   });
 
   it("offers a retry action when conversation loading fails", () => {
