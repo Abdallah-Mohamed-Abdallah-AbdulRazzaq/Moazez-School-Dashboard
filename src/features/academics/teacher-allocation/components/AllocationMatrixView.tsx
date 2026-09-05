@@ -11,7 +11,11 @@ import { useToast } from "@/components/ui/toast/Toast";
 import FilterBar from "./FilterBar";
 import TeacherSelect from "./TeacherSelect";
 import BulkActionDialog from "./BulkActionDialog";
-import AllocationMatrixTable, { MatrixColumn, MatrixRow } from "../../components/shared/AllocationMatrixTable";
+import AllocationMatrixTable, {
+  type MatrixColumn,
+  type MatrixDensity,
+  type MatrixRow,
+} from "../../components/shared/AllocationMatrixTable";
 import {
   Classroom,
   Grade,
@@ -196,6 +200,8 @@ export default function AllocationMatrixView({
   const [bulkActionSubject, setBulkActionSubject] = useState<Subject | null>(null);
   const [bulkActionTeacher, setBulkActionTeacher] = useState<Teacher | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [matrixDensity, setMatrixDensity] =
+    useState<MatrixDensity>("compact");
 
   useEffect(() => {
     if (previousTeacherAllocationsRef.current === teacherAllocations) {
@@ -860,7 +866,11 @@ export default function AllocationMatrixView({
     return (
       <div
         id={`allocation-cell-${cellKey}`}
-        className={`min-h-[68px] border-2 px-4 py-3 transition-colors ${cellToneClass}`}
+        className={`${
+          matrixDensity === "compact"
+            ? "min-h-[52px] px-3 py-2"
+            : "min-h-[68px] px-4 py-3"
+        } border-2 transition-colors ${cellToneClass}`}
       >
         <TeacherSelect
           teachers={teachers}
@@ -869,7 +879,7 @@ export default function AllocationMatrixView({
           onChange={(newTeacherId) => setAllocation(row.section.id, column.subject.id, newTeacherId, row.classroom.id)}
           disabled={isReadOnly || !isSubjectRegistered}
           teacherLoads={teacherLoads}
-          size="small"
+          size={matrixDensity === "compact" ? "small" : "medium"}
         />
       </div>
     );
@@ -983,6 +993,27 @@ export default function AllocationMatrixView({
             </div>
 
             <div className="flex items-center gap-2">
+              <div
+                className="flex rounded-lg border border-gray-200 bg-white p-1"
+                role="group"
+                aria-label={t("matrix.density.label")}
+              >
+                {(["compact", "comfortable"] as const).map((density) => (
+                  <button
+                    key={density}
+                    type="button"
+                    aria-pressed={matrixDensity === density}
+                    onClick={() => setMatrixDensity(density)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
+                      matrixDensity === density
+                        ? "bg-primary text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {t(`matrix.density.${density}`)}
+                  </button>
+                ))}
+              </div>
               {isDirty && (
                 <div className="flex items-center gap-2 text-sm text-amber-600 mr-2">
                   <AlertCircle className="w-4 h-4" />
@@ -1099,6 +1130,7 @@ export default function AllocationMatrixView({
                 <AllocationMatrixTable
                   rows={matrixRows}
                   columns={matrixColumns}
+                  density={matrixDensity}
                   rowHeaderLabel={t("filters.classroom")}
                   totalColumnLabel={t("matrix.missingCount")}
                   showPagination

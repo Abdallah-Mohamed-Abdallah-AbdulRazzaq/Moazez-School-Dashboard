@@ -6149,6 +6149,11 @@
       "matrix": {
         "title": "Teacher Allocation Matrix",
         "section": "Section",
+        "density": {
+          "label": "Matrix density",
+          "compact": "Compact",
+          "comfortable": "Comfortable"
+        },
         "missingCount": "Missing",
         "selectTeacher": "Select teacher",
         "searchTeacher": "Search teacher...",
