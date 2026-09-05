@@ -7,8 +7,11 @@ import { Button } from "@/components/ui/button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import type { Student } from "@/features/students-guardians/students/types";
-import { createEnrollment, upsertEnrollment, validateEnrollment } from "../api/enrollmentApi";
-import type { EnrollmentRecord } from "../model/enrollment";
+import { createEnrollment, validateEnrollment } from "../api/enrollmentApi";
+import {
+  enrollmentErrorKey,
+  enrollmentValidationErrorKey,
+} from "../model/enrollmentErrorMessages";
 import { studentDisplayName } from "../model/enrollmentMappers";
 import {
   buildEnrollmentPlacementPayload,
@@ -18,6 +21,7 @@ import {
 
 type PlacementField =
   | "studentId"
+  | "stageId"
   | "gradeId"
   | "sectionId"
   | "classroomId"
@@ -25,10 +29,11 @@ type PlacementField =
 
 interface EnrollmentPlacementDialogProps {
   open: boolean;
-  enrollment: EnrollmentRecord | null;
+  initialStudentId?: string;
   students: Student[];
   academicYear: PlacementAcademicContextOption | null;
   term: PlacementAcademicContextOption | null;
+  stages: PlacementOption[];
   grades: PlacementOption[];
   sections: PlacementOption[];
   classrooms: PlacementOption[];
@@ -38,10 +43,11 @@ interface EnrollmentPlacementDialogProps {
 
 export default function EnrollmentPlacementDialog({
   open,
-  enrollment,
+  initialStudentId,
   students,
   academicYear,
   term,
+  stages,
   grades,
   sections,
   classrooms,
@@ -50,15 +56,13 @@ export default function EnrollmentPlacementDialog({
 }: EnrollmentPlacementDialogProps) {
   const t = useTranslations("admissions.enrollment");
   const locale = useLocale();
-  const [studentId, setStudentId] = useState(enrollment?.studentId ?? "");
-  const [gradeId, setGradeId] = useState(enrollment?.gradeId ?? "");
-  const [sectionId, setSectionId] = useState(enrollment?.sectionId ?? "");
-  const [classroomId, setClassroomId] = useState(
-    enrollment?.classroomId ?? "",
-  );
+  const [studentId, setStudentId] = useState(initialStudentId ?? "");
+  const [stageId, setStageId] = useState("");
+  const [gradeId, setGradeId] = useState("");
+  const [sectionId, setSectionId] = useState("");
+  const [classroomId, setClassroomId] = useState("");
   const [enrollmentDate, setEnrollmentDate] = useState(
-    enrollment?.enrollmentDate?.slice(0, 10) ??
-      new Date().toISOString().slice(0, 10),
+    new Date().toISOString().slice(0, 10),
   );
   const [errors, setErrors] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<
@@ -69,6 +73,10 @@ export default function EnrollmentPlacementDialog({
   const shownSections = useMemo(
     () => sections.filter((section) => !gradeId || section.parentId === gradeId),
     [gradeId, sections],
+  );
+  const shownGrades = useMemo(
+    () => grades.filter((grade) => !stageId || grade.parentId === stageId),
+    [grades, stageId],
   );
   const shownClassrooms = useMemo(
     () =>
@@ -89,6 +97,9 @@ export default function EnrollmentPlacementDialog({
     studentId: studentId
       ? undefined
       : t("dialogs.placement.validation.student_required"),
+    stageId: stageId
+      ? undefined
+      : t("dialogs.placement.validation.stage_required"),
     gradeId: gradeId
       ? undefined
       : t("dialogs.placement.validation.grade_required"),
@@ -127,18 +138,20 @@ export default function EnrollmentPlacementDialog({
     try {
       const validation = await validateEnrollment({
         ...payload,
-        enrollmentId: enrollment?.id,
       });
       if (!validation.valid) {
-        setErrors(validation.errors);
+        setErrors(
+          validation.errors.map((code) =>
+            t(`errors.${enrollmentValidationErrorKey(code)}`),
+          ),
+        );
         return;
       }
-      if (enrollment) await upsertEnrollment(payload);
-      else await createEnrollment(payload);
+      await createEnrollment(payload);
       await onSuccess();
       onClose();
-    } catch {
-      setErrors([t("dialogs.placement.save_error")]);
+    } catch (error) {
+      setErrors([t(`errors.${enrollmentErrorKey(error)}`)]);
     } finally {
       setSaving(false);
     }
@@ -157,11 +170,7 @@ export default function EnrollmentPlacementDialog({
     <Modal
       isOpen
       onClose={onClose}
-      title={
-        enrollment
-          ? t("dialogs.placement.edit_title")
-          : t("dialogs.placement.new_title")
-      }
+      title={t("dialogs.placement.new_title")}
       size="lg"
       footer={
         <>
@@ -205,7 +214,6 @@ export default function EnrollmentPlacementDialog({
         <Select
           label={t("dialogs.placement.student")}
           value={studentId}
-          disabled={Boolean(enrollment)}
           required
           error={fieldErrors.studentId}
           onChange={(nextStudentId) => {
@@ -219,8 +227,26 @@ export default function EnrollmentPlacementDialog({
           }))}
         />
         <Select
+          label={t("dialogs.placement.stage")}
+          value={stageId}
+          required
+          error={fieldErrors.stageId}
+          onChange={(nextStageId) => {
+            setStageId(nextStageId);
+            setGradeId("");
+            setSectionId("");
+            setClassroomId("");
+            clearFieldError("stageId");
+          }}
+          options={stages.map((stage) => ({
+            value: stage.id,
+            label: stage.name,
+          }))}
+        />
+        <Select
           label={t("dialogs.placement.grade")}
           value={gradeId}
+          disabled={!stageId}
           required
           error={fieldErrors.gradeId}
           onChange={(nextGradeId) => {
@@ -229,7 +255,7 @@ export default function EnrollmentPlacementDialog({
             setClassroomId("");
             clearFieldError("gradeId");
           }}
-          options={grades.map((grade) => ({
+          options={shownGrades.map((grade) => ({
             value: grade.id,
             label: grade.name,
           }))}
@@ -237,6 +263,7 @@ export default function EnrollmentPlacementDialog({
         <Select
           label={t("dialogs.placement.section")}
           value={sectionId}
+          disabled={!gradeId}
           required
           error={fieldErrors.sectionId}
           onChange={(nextSectionId) => {
@@ -252,6 +279,7 @@ export default function EnrollmentPlacementDialog({
         <Select
           label={t("dialogs.placement.classroom")}
           value={classroomId}
+          disabled={!sectionId}
           required
           error={fieldErrors.classroomId}
           onChange={(nextClassroomId) => {

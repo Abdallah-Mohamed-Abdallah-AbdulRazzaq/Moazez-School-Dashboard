@@ -1,21 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Calendar, CheckCircle, Plus, Search, Users, X } from "lucide-react";
+import { ArrowRightLeft, Calendar, CheckCircle, Eye, GraduationCap, Plus, Search, UserMinus, Users, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Button, DataTable, EmptyState, FilterPanel, Input, Select } from "@/components/ui";
 import { KPICardV2 } from "@/components/ui/kpi-card";
 import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
+import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { useAdmissionsAcademicSelection } from "@/features/admissions/shared/hooks/useAdmissionsAcademicSelection";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchStudentById, fetchStudents } from "@/features/students-guardians/students/services/studentsApiService";
 import type { Student } from "@/features/students-guardians/students/types";
 import { usePermissions } from "@/hooks/usePermissions";
-import { fetchEnrollmentAcademicYears, fetchEnrollments } from "../api/enrollmentApi";
+import { fetchCurrentEnrollment, fetchEnrollmentAcademicYears, fetchEnrollments } from "../api/enrollmentApi";
 import type { AcademicYearDto, EnrollmentDto, EnrollmentStatusDto } from "../api/enrollmentDtos";
 import EnrollmentDetailsDrawer from "../components/EnrollmentDetailsDrawer";
 import EnrollmentPlacementDialog from "../components/EnrollmentPlacementDialog";
 import EnrollmentWorkflowDialog from "../components/EnrollmentWorkflowDialog";
+import { enrollmentErrorKey } from "../model/enrollmentErrorMessages";
 import { mapEnrollment, studentDisplayName } from "../model/enrollmentMappers";
 import type { EnrollmentRecord } from "../model/enrollment";
 
@@ -30,11 +32,11 @@ export default function EnrollmentList() {
   const { hasPermission } = usePermissions();
   const canView = hasPermission("students.enrollments.view"); const canViewStudents = hasPermission("students.records.view"); const canManage = hasPermission("students.enrollments.manage"); const canManageLifecycle = hasPermission("students.lifecycle.manage");
   const [dtos, setDtos] = useState<EnrollmentDto[]>([]); const [students, setStudents] = useState<Student[]>([]); const [studentMap, setStudentMap] = useState<Map<string, Student>>(new Map()); const [academicYears, setAcademicYears] = useState<AcademicYearDto[]>([]);
-  const [grades, setGrades] = useState<Option[]>([]); const [sections, setSections] = useState<Option[]>([]); const [classrooms, setClassrooms] = useState<Option[]>([]);
+  const [stages, setStages] = useState<Option[]>([]); const [grades, setGrades] = useState<Option[]>([]); const [sections, setSections] = useState<Option[]>([]); const [classrooms, setClassrooms] = useState<Option[]>([]);
   const [isLoadingStructure, setIsLoadingStructure] = useState(true);
   const [structureError, setStructureError] = useState("");
   const resolvedStudentIds = useRef(new Set<string>());
-  const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [search, setSearch] = useState(""); const [status, setStatus] = useState<EnrollmentStatusDto | "all">("all"); const [selected, setSelected] = useState<EnrollmentRecord | null>(null); const [placementOpen, setPlacementOpen] = useState(false); const [editing, setEditing] = useState<EnrollmentRecord | null>(null); const [workflow, setWorkflow] = useState<"transfer" | "withdraw" | "promote" | null>(null);
+  const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [workflowError, setWorkflowError] = useState(""); const [search, setSearch] = useState(""); const [status, setStatus] = useState<EnrollmentStatusDto | "all">("all"); const [selected, setSelected] = useState<EnrollmentRecord | null>(null); const [placementOpen, setPlacementOpen] = useState(false); const [placementStudentId, setPlacementStudentId] = useState<string>(); const [workflow, setWorkflow] = useState<"transfer" | "withdraw" | "promote" | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   const load = useCallback(async () => {
@@ -83,12 +85,14 @@ export default function EnrollmentList() {
           locale === "ar"
             ? item.nameAr || item.name || t("details.not_available")
             : item.nameEn || item.name || t("details.not_available");
-        setGrades(tree.grades.map((item) => ({ id: item.id, name: name(item) })));
+        setStages(tree.stages.map((item) => ({ id: item.id, name: name(item) })));
+        setGrades(tree.grades.map((item) => ({ id: item.id, name: name(item), parentId: item.stageId })));
         setSections(tree.sections.map((item) => ({ id: item.id, name: name(item), parentId: item.gradeId })));
         setClassrooms(tree.classrooms.map((item) => ({ id: item.id, name: name(item), parentId: item.sectionId })));
       })
       .catch(() => {
         if (cancelled) return;
+        setStages([]);
         setGrades([]);
         setSections([]);
         setClassrooms([]);
@@ -109,7 +113,7 @@ export default function EnrollmentList() {
   const selectedTerm = academicSelection.terms.find((term) => term.id === termId) ?? null;
   const hasActiveFilters = Boolean(search || status !== "all");
   const placementStructureReady =
-    grades.length > 0 && sections.length > 0 && classrooms.length > 0;
+    stages.length > 0 && grades.length > 0 && sections.length > 0 && classrooms.length > 0;
   const newEnrollmentUnavailableReason = academicSelection.isLoading
     ? t("context.loading")
     : !yearId || !termId
@@ -119,8 +123,8 @@ export default function EnrollmentList() {
         : structureError || (!placementStructureReady ? t("context.structure_missing") : "");
   const resetPlacementContext = () => {
     setSelected(null);
-    setEditing(null);
     setPlacementOpen(false);
+    setStages([]);
     setGrades([]);
     setSections([]);
     setClassrooms([]);
@@ -131,8 +135,40 @@ export default function EnrollmentList() {
     setSearch("");
     setStatus("all");
   };
+  const openWorkflow = async (action: "transfer" | "withdraw" | "promote", enrollment: EnrollmentRecord) => {
+    setWorkflowError("");
+    if (action === "withdraw") {
+      setSelected(enrollment);
+      setWorkflow(action);
+      return;
+    }
+    try {
+      const currentEnrollment = await fetchCurrentEnrollment(enrollment.studentId);
+      if (!currentEnrollment) {
+        setWorkflowError(t("errors.no_active_enrollment"));
+        return;
+      }
+      setSelected(mapEnrollment(currentEnrollment, enrollment.studentName));
+      setWorkflow(action);
+    } catch (caughtError) {
+      setWorkflowError(t(`errors.${enrollmentErrorKey(caughtError)}`));
+    }
+  };
   const columns = [
-    { key: "studentName", label: t("student_name") }, { key: "status", label: t("details.fields.status"), render: (value: unknown) => t(`status.${String(value)}`) }, { key: "academicYear", label: t("academic_year") }, { key: "grade", label: t("grade") }, { key: "section", label: t("section") }, { key: "classroom", label: t("classroom") }, { key: "enrollmentDate", label: t("enrolled_date"), render: (value: unknown) => new Date(String(value)).toLocaleDateString(locale) },
+    { key: "studentName", label: t("student_name") }, { key: "status", label: t("details.fields.status"), render: (value: unknown) => <StatusBadge status={value as EnrollmentStatusDto} colorClassName={value === "completed" ? "bg-blue-100 text-blue-800 border-blue-200" : undefined} /> }, { key: "academicYear", label: t("academic_year") }, { key: "grade", label: t("grade") }, { key: "section", label: t("section") }, { key: "classroom", label: t("classroom") }, { key: "enrollmentDate", label: t("enrolled_date"), render: (value: unknown) => new Date(String(value)).toLocaleDateString(locale) },
+    {
+      key: "actions",
+      label: t("actions.title"),
+      render: (_value: unknown, row: EnrollmentRecord) => (
+        <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
+          <Button type="button" variant="ghost" size="sm" className="p-2" title={t("actions.details")} aria-label={t("actions.details")} onClick={() => setSelected(row)}><Eye className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="sm" className="p-2" title={t("actions.transfer")} aria-label={t("actions.transfer")} disabled={!canManageLifecycle || row.status !== "active"} onClick={() => void openWorkflow("transfer", row)}><ArrowRightLeft className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="sm" className="p-2" title={t("actions.promote")} aria-label={t("actions.promote")} disabled={!canManageLifecycle || row.status !== "active"} onClick={() => void openWorkflow("promote", row)}><GraduationCap className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="sm" className="p-2 text-red-700 hover:bg-red-50 hover:text-red-800" title={t("actions.withdraw")} aria-label={t("actions.withdraw")} disabled={!canManageLifecycle || row.status !== "active"} onClick={() => void openWorkflow("withdraw", row)}><UserMinus className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="sm" className="p-2" title={t("actions.new_enrollment")} aria-label={t("actions.new_enrollment")} disabled={!canManage || row.status !== "withdrawn"} onClick={() => { setSelected(null); setPlacementStudentId(row.studentId); setPlacementOpen(true); }}><Plus className="h-4 w-4" /></Button>
+        </div>
+      ),
+    },
   ];
   if (!canView) return <AdmissionsAccessDenied />;
   return <div className="space-y-6">
@@ -147,7 +183,7 @@ export default function EnrollmentList() {
             disabled={Boolean(newEnrollmentUnavailableReason)}
             aria-describedby={newEnrollmentUnavailableReason ? "new-enrollment-guidance" : undefined}
             title={newEnrollmentUnavailableReason || undefined}
-            onClick={() => { setEditing(null); setPlacementOpen(true); }}
+            onClick={() => { setPlacementStudentId(undefined); setPlacementOpen(true); }}
           >
             {t("actions.new_enrollment")}
           </Button>
@@ -208,6 +244,7 @@ export default function EnrollmentList() {
       toggleTitle={t("filters")}
       toggleAriaLabel={t("filters")}
     />
+    {workflowError && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{workflowError}</p>}
     {error ? (
       <div className="rounded-xl bg-red-50 p-5 text-red-700">{error}<Button type="button" variant="ghost" size="sm" className="ms-3 text-red-700" onClick={() => void load()}>{t("actions.retry")}</Button></div>
     ) : loading ? (
@@ -222,8 +259,8 @@ export default function EnrollmentList() {
     ) : (
       <DataTable columns={columns} data={visible as (EnrollmentRecord & { [key: string]: unknown })[]} onRowClick={setSelected} searchQuery={search} />
     )}
-    <EnrollmentDetailsDrawer enrollment={selected} onClose={() => setSelected(null)} canManage={canManage} canManageLifecycle={canManageLifecycle} onEdit={(item) => { setEditing(item); setPlacementOpen(true); }} onLifecycle={(action, item) => { setSelected(item); setWorkflow(action); }} />
-    <EnrollmentPlacementDialog key={`${editing?.id ?? "new"}-${placementOpen}`} open={placementOpen} enrollment={editing} students={students} academicYear={selectedAcademicYear} term={selectedTerm} grades={grades} sections={sections} classrooms={classrooms} onClose={() => setPlacementOpen(false)} onSuccess={load} />
-    <EnrollmentWorkflowDialog action={workflow} enrollment={selected} sections={sections} classrooms={classrooms} academicYears={academicYears} onClose={() => setWorkflow(null)} onSuccess={load} />
+    <EnrollmentDetailsDrawer enrollment={selected} onClose={() => setSelected(null)} canManage={canManage} canManageLifecycle={canManageLifecycle} onReenroll={(item) => { setSelected(null); setPlacementStudentId(item.studentId); setPlacementOpen(true); }} onLifecycle={(action, item) => void openWorkflow(action, item)} />
+    <EnrollmentPlacementDialog key={`new-${placementStudentId ?? "blank"}-${placementOpen}`} open={placementOpen} initialStudentId={placementStudentId} students={students} academicYear={selectedAcademicYear} term={selectedTerm} stages={stages} grades={grades} sections={sections} classrooms={classrooms} onClose={() => setPlacementOpen(false)} onSuccess={load} />
+    <EnrollmentWorkflowDialog action={workflow} enrollment={selected} stages={stages} grades={grades} sections={sections} classrooms={classrooms} academicYears={academicYears} onClose={() => setWorkflow(null)} onSuccess={load} />
   </div>;
 }

@@ -9,17 +9,20 @@ import {
   InterviewStatus,
   LeadStatus,
 } from "@/features/admissions/types/admissions";
+import type { EnrollmentStatusDto } from "../enrollment/api/enrollmentDtos";
 
 type Status =
   | ApplicationStatus
   | DocumentStatus
   | TestStatus
   | InterviewStatus
-  | LeadStatus;
+  | LeadStatus
+  | EnrollmentStatusDto;
 
 interface StatusBadgeProps {
   status: Status | string;
   size?: "sm" | "md";
+  colorClassName?: string;
 }
 
 interface BadgeConfig {
@@ -95,13 +98,17 @@ const statusBadgeConfig: Record<Status, BadgeConfig> = {
     translationKey: "rescheduled",
   },
   failed: { className: "bg-red-100 text-red-700", translationKey: "failed" },
+
+  // Enrollment statuses
+  active: { className: "bg-emerald-100 text-emerald-800 border-emerald-200", translationKey: "active" },
+  withdrawn: { className: "bg-red-100 text-red-800 border-red-200", translationKey: "withdrawn" },
 };
 
-export default function StatusBadge({ status, size = "sm" }: StatusBadgeProps) {
+export default function StatusBadge({ status, size = "sm", colorClassName }: StatusBadgeProps) {
   const t = useTranslations("admissions.status_badge");
   const badgeConfig = statusBadgeConfig[status as Status];
   const colorClass =
-    badgeConfig?.className || "bg-gray-100 text-gray-700 border-gray-200";
+    colorClassName || badgeConfig?.className || "bg-gray-100 text-gray-700 border-gray-200";
   const sizeClass = size === "sm" ? "text-xs px-2 py-1" : "text-sm px-3 py-1.5";
   const label = badgeConfig ? t(badgeConfig.translationKey) : status || "Unknown";
 

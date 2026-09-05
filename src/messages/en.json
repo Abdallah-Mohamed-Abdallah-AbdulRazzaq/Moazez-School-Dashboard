@@ -1274,7 +1274,9 @@
       "completed": "Completed",
       "cancelled": "Cancelled",
       "rescheduled": "Rescheduled",
-      "failed": "Failed"
+      "failed": "Failed",
+      "active": "Active",
+      "withdrawn": "Withdrawn"
     },
     "source": {
       "in_app": "In App",
@@ -2369,6 +2371,16 @@
       "no_match": "No enrollments match your filters",
       "no_enrollments": "No enrollments found",
       "load_error": "Unable to load enrollments.",
+      "errors": {
+        "placement_conflict": "This placement cannot be used. Choose a different section or classroom and confirm that a seat is available.",
+        "inactive_academic_year": "The selected academic year is not active.",
+        "no_active_enrollment": "This student has no active enrollment for this action.",
+        "unauthorized": "Your session has expired. Please sign in again.",
+        "permission_denied": "You do not have permission to perform this action.",
+        "not_found": "The requested enrollment record could not be found.",
+        "validation_failed": "Review the enrollment details and try again.",
+        "generic": "The enrollment action could not be completed. Please try again."
+      },
       "context": {
         "loading": "Loading the academic context...",
         "scope_help": "The academic year filters this list. The term controls the grades and classrooms available for placement.",
@@ -2402,10 +2414,11 @@
       "promote_waitlist": "Promote Waitlist",
       "waitlist_summary": "{count} active waitlist entries will be checked for available seats.",
       "actions": {
+        "title": "Actions",
+        "details": "Details",
         "new_enrollment": "New enrollment",
         "retry": "Retry",
         "save": "Save",
-        "edit_placement": "Edit placement",
         "transfer": "Transfer",
         "promote": "Promote",
         "withdraw": "Withdraw"
@@ -2419,8 +2432,8 @@
       "dialogs": {
         "placement": {
           "new_title": "New enrollment",
-          "edit_title": "Edit placement",
           "student": "Student",
+          "stage": "Stage",
           "academic_context": "Academic context",
           "academic_year": "Academic year",
           "term": "Term",
@@ -2428,9 +2441,9 @@
           "section": "Section",
           "classroom": "Classroom",
           "enrollment_date": "Enrollment date",
-          "save_error": "The enrollment could not be saved.",
           "validation": {
             "student_required": "Select a student.",
+            "stage_required": "Select a stage.",
             "grade_required": "Select a grade.",
             "section_required": "Select a section.",
             "classroom_required": "Select a classroom.",
@@ -2444,12 +2457,13 @@
             "promote": "Promote enrollment"
           },
           "target_section": "Target section",
+          "target_stage": "Target stage",
+          "target_grade": "Target grade",
           "target_classroom": "Target classroom",
           "target_academic_year": "Target academic year",
           "effective_date": "Effective date",
           "reason": "Reason",
-          "notes_optional": "Notes (optional)",
-          "action_error": "The enrollment action could not be completed."
+          "notes_optional": "Notes (optional)"
         }
       },
       "details": {
@@ -2460,7 +2474,9 @@
         "overview": "Overview",
         "current_enrollment": "Current enrollment",
         "history": "History",
+        "history_order": "Newest first",
         "no_active_enrollment": "No active enrollment",
+        "withdrawn_lifecycle_help": "This student is withdrawn. Re-enroll the student before a new transfer, promotion, or withdrawal action.",
         "no_history": "No enrollment history",
         "fields": {
           "status": "Status",

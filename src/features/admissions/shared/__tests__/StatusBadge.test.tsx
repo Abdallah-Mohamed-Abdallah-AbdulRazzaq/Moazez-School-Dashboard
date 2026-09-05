@@ -36,4 +36,28 @@ describe("StatusBadge", () => {
       "border-gray-200",
     );
   });
+
+  it.each([
+    ["active", "bg-emerald-100", "text-emerald-800"],
+    ["withdrawn", "bg-red-100", "text-red-800"],
+  ] as const)("renders %s enrollment status with its color", (status, background, text) => {
+    render(<StatusBadge status={status} />);
+
+    expect(screen.getByText(status)).toHaveClass(background, text);
+  });
+
+  it("uses a supplied color for an enrollment-specific status", () => {
+    render(
+      <StatusBadge
+        status="completed"
+        colorClassName="bg-blue-100 text-blue-800 border-blue-200"
+      />,
+    );
+
+    expect(screen.getByText("completed")).toHaveClass(
+      "bg-blue-100",
+      "text-blue-800",
+      "border-blue-200",
+    );
+  });
 });

@@ -5,10 +5,10 @@ import { X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import { isApiError } from "@/lib/api-error";
 import type { EnrollmentDto } from "../api/enrollmentDtos";
 import {
   fetchCurrentEnrollment,
-  fetchEnrollment,
   fetchEnrollmentHistory,
 } from "../api/enrollmentApi";
 import type { EnrollmentRecord } from "../model/enrollment";
@@ -18,11 +18,20 @@ interface Props {
   onClose: () => void;
   canManage: boolean;
   canManageLifecycle: boolean;
-  onEdit: (enrollment: EnrollmentRecord) => void;
+  onReenroll: (enrollment: EnrollmentRecord) => void;
   onLifecycle: (
     action: "transfer" | "withdraw" | "promote",
     enrollment: EnrollmentRecord,
   ) => void;
+}
+
+async function loadOptionalData<T>(request: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await request;
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) return fallback;
+    throw error;
+  }
 }
 
 export default function EnrollmentDetailsDrawer({
@@ -30,7 +39,7 @@ export default function EnrollmentDetailsDrawer({
   onClose,
   canManage,
   canManageLifecycle,
-  onEdit,
+  onReenroll,
   onLifecycle,
 }: Props) {
   const t = useTranslations("admissions.enrollment");
@@ -49,7 +58,6 @@ export default function EnrollmentDetailsDrawer({
     withdrawn: t("status.withdrawn"),
   };
   const notAvailable = t("details.not_available");
-  const [detail, setDetail] = useState<EnrollmentDto | null>(null);
   const [current, setCurrent] = useState<EnrollmentDto | null>(null);
   const [history, setHistory] = useState<EnrollmentDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,24 +69,27 @@ export default function EnrollmentDetailsDrawer({
     void Promise.resolve()
       .then(() => {
         if (!active) return undefined;
-        setDetail(null);
         setCurrent(null);
         setHistory([]);
         setError(false);
         setIsLoading(true);
         return Promise.all([
-          fetchEnrollment(enrollment.id),
-          fetchCurrentEnrollment(enrollment.studentId),
-          fetchEnrollmentHistory(enrollment.studentId),
+          loadOptionalData(fetchCurrentEnrollment(enrollment.studentId), null),
+          loadOptionalData(fetchEnrollmentHistory(enrollment.studentId), []),
         ]);
       })
       .then((result) => {
         if (!result) return;
-        const [nextDetail, nextCurrent, nextHistory] = result;
+        const [nextCurrent, nextHistory] = result;
         if (!active) return;
-        setDetail(nextDetail);
         setCurrent(nextCurrent);
-        setHistory(nextHistory);
+        setHistory(
+          [...nextHistory].sort(
+            (first, second) =>
+              new Date(second.enrollmentDate).getTime() -
+              new Date(first.enrollmentDate).getTime(),
+          ),
+        );
         setError(false);
       })
       .catch(() => active && setError(true))
@@ -97,7 +108,8 @@ export default function EnrollmentDetailsDrawer({
   }, [enrollment, onClose]);
 
   if (!enrollment) return null;
-  const shown = detail ?? enrollment;
+  const shown = enrollment;
+  const lifecycleUnavailable = enrollment.status === "withdrawn";
 
   return (
     <div className="fixed inset-0 z-50 bg-black/30" onClick={onClose}>
@@ -109,10 +121,13 @@ export default function EnrollmentDetailsDrawer({
         onClick={(event) => event.stopPropagation()}
         className={`absolute inset-y-0 flex w-full max-w-xl flex-col bg-white shadow-2xl ${locale === "ar" ? "left-0" : "right-0"}`}
       >
-        <header className="flex items-center justify-between border-b border-border p-5">
-          <div>
-            <p className="text-sm text-gray-500">{t("details.title")}</p>
-            <h2 className="text-xl font-bold">{enrollment.studentName}</h2>
+        <header className="flex items-start justify-between border-b border-slate-200 bg-slate-50 p-5">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-600">{t("details.title")}</p>
+            <h2 className="mt-1 truncate text-xl font-bold text-slate-950">{enrollment.studentName}</h2>
+            <span className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${enrollment.status === "active" ? "bg-emerald-100 text-emerald-800" : enrollment.status === "withdrawn" ? "bg-amber-100 text-amber-900" : "bg-slate-200 text-slate-700"}`}>
+              {statusLabels[enrollment.status]}
+            </span>
           </div>
           <Button
             type="button"
@@ -125,7 +140,7 @@ export default function EnrollmentDetailsDrawer({
             <X className="h-5 w-5" />
           </Button>
         </header>
-        <div className="flex-1 space-y-6 overflow-y-auto p-6">
+        <div className="flex-1 space-y-6 overflow-y-auto bg-slate-50/50 p-4 sm:p-6" aria-live="polite">
           {isLoading && (
             <div className="py-10" role="status">
               <PartialLoader />
@@ -138,7 +153,6 @@ export default function EnrollmentDetailsDrawer({
           )}
           {!isLoading && (
             <>
-              <Section title={t("details.overview")} enrollment={shown} fieldLabels={fieldLabels} statusLabels={statusLabels} locale={locale} notAvailable={notAvailable} />
               <Section
                 title={t("details.current_enrollment")}
                 enrollment={current}
@@ -147,10 +161,15 @@ export default function EnrollmentDetailsDrawer({
                 statusLabels={statusLabels}
                 locale={locale}
                 notAvailable={notAvailable}
+                featured
               />
+              <Section title={t("details.overview")} enrollment={shown} fieldLabels={fieldLabels} statusLabels={statusLabels} locale={locale} notAvailable={notAvailable} />
               <section>
-                <h3 className="mb-3 font-semibold">{t("details.history")}</h3>
-                <div className="space-y-3">
+                <div className="mb-3 flex items-end justify-between gap-3">
+                  <h3 className="font-bold text-slate-950">{t("details.history")}</h3>
+                  <p className="text-xs font-medium text-slate-500">{t("details.history_order")}</p>
+                </div>
+                <div className="space-y-3 border-s-2 border-slate-200 ps-4">
                   {history.length ? (
                     history.map((item) => (
                       <Section
@@ -173,45 +192,50 @@ export default function EnrollmentDetailsDrawer({
             </>
           )}
         </div>
-        <footer className="flex flex-wrap gap-2 border-t border-border p-4">
-          {canManage && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => onEdit(enrollment)}
+        <footer className="flex flex-wrap gap-2 border-t border-slate-200 bg-white p-4 shadow-[0_-8px_24px_-18px_rgba(15,23,42,0.45)]">
+          {lifecycleUnavailable && (
+            <p
+              role="status"
+              className="w-full rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
             >
-              {t("actions.edit_placement")}
-            </Button>
+              {t("details.withdrawn_lifecycle_help")}
+            </p>
           )}
-          {canManageLifecycle && (
-            <>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => onLifecycle("transfer", enrollment)}
-              >
-                {t("actions.transfer")}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => onLifecycle("promote", enrollment)}
-              >
-                {t("actions.promote")}
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                size="sm"
-                onClick={() => onLifecycle("withdraw", enrollment)}
-              >
-                {t("actions.withdraw")}
-              </Button>
-            </>
-          )}
+          <Button
+            type="button"
+            size="sm"
+            disabled={!lifecycleUnavailable || !canManage}
+            onClick={() => onReenroll(enrollment)}
+          >
+            {t("actions.new_enrollment")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={lifecycleUnavailable || !canManageLifecycle}
+            onClick={() => onLifecycle("transfer", enrollment)}
+          >
+            {t("actions.transfer")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={lifecycleUnavailable || !canManageLifecycle}
+            onClick={() => onLifecycle("promote", enrollment)}
+          >
+            {t("actions.promote")}
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            disabled={lifecycleUnavailable || !canManageLifecycle}
+            onClick={() => onLifecycle("withdraw", enrollment)}
+          >
+            {t("actions.withdraw")}
+          </Button>
         </footer>
       </aside>
     </div>
@@ -223,6 +247,7 @@ function Section({
   enrollment,
   empty,
   compact,
+  featured,
   fieldLabels,
   statusLabels,
   locale,
@@ -232,6 +257,7 @@ function Section({
   enrollment: EnrollmentDto | EnrollmentRecord | null;
   empty?: string;
   compact?: boolean;
+  featured?: boolean;
   fieldLabels: {
     status: string;
     academicYear: string;
@@ -256,12 +282,14 @@ function Section({
     <section
       className={
         compact
-          ? "rounded-lg border border-border p-3"
-          : "rounded-xl bg-gray-50 p-4"
+          ? "rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          : featured
+            ? "rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-sm"
+          : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       }
     >
-      {title && <h3 className="mb-3 font-semibold">{title}</h3>}
-      <dl className="grid grid-cols-2 gap-3 text-sm">
+      {title && <h3 className="mb-4 text-base font-bold text-slate-950">{title}</h3>}
+      <dl className="grid grid-cols-2 gap-2 text-sm">
         <Field label={fieldLabels.status} value={statusLabels[enrollment.status] ?? enrollment.status} notAvailable={notAvailable} />
         <Field label={fieldLabels.academicYear} value={enrollment.academicYear} notAvailable={notAvailable} />
         <Field label={fieldLabels.grade} value={enrollment.grade} notAvailable={notAvailable} />
@@ -279,9 +307,9 @@ function Section({
 
 function Field({ label, value, notAvailable }: { label: string; value: string; notAvailable: string }) {
   return (
-    <div>
-      <dt className="text-gray-500">{label}</dt>
-      <dd className="font-medium text-gray-900">{value || notAvailable}</dd>
+    <div className="rounded-lg bg-slate-50 p-3">
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1 truncate font-semibold text-slate-900">{value || notAvailable}</dd>
     </div>
   );
 }

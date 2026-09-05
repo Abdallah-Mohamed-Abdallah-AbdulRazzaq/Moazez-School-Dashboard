@@ -12,11 +12,13 @@ vi.mock("next-intl", () => ({
       "dialogs.placement.academic_year": "Academic year",
       "dialogs.placement.term": "Term",
       "dialogs.placement.student": "Student",
+      "dialogs.placement.stage": "Stage",
       "dialogs.placement.grade": "Grade",
       "dialogs.placement.section": "Section",
       "dialogs.placement.classroom": "Classroom",
       "dialogs.placement.enrollment_date": "Enrollment date",
       "dialogs.placement.validation.student_required": "Select a student.",
+      "dialogs.placement.validation.stage_required": "Select a stage.",
       "dialogs.placement.validation.grade_required": "Select a grade.",
       "dialogs.placement.validation.section_required": "Select a section.",
       "dialogs.placement.validation.classroom_required": "Select a classroom.",
@@ -32,7 +34,6 @@ vi.mock("next-intl", () => ({
 
 vi.mock("../../api/enrollmentApi", () => ({
   createEnrollment: vi.fn(),
-  upsertEnrollment: vi.fn(),
   validateEnrollment: vi.fn(),
 }));
 
@@ -46,17 +47,27 @@ const term = {
   name: "Term 1",
 };
 
-function renderDialog() {
+function renderDialog({
+  stages = [],
+  grades = [],
+  sections = [],
+  classrooms = [],
+}: {
+  stages?: { id: string; name: string; parentId?: string }[];
+  grades?: { id: string; name: string; parentId?: string }[];
+  sections?: { id: string; name: string; parentId?: string }[];
+  classrooms?: { id: string; name: string; parentId?: string }[];
+} = {}) {
   render(
     <EnrollmentPlacementDialog
       open
-      enrollment={null}
       students={[]}
       academicYear={academicYear}
       term={term}
-      grades={[]}
-      sections={[]}
-      classrooms={[]}
+      stages={stages}
+      grades={grades}
+      sections={sections}
+      classrooms={classrooms}
       onClose={vi.fn()}
       onSuccess={vi.fn()}
     />,
@@ -78,9 +89,24 @@ describe("EnrollmentPlacementDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(screen.getByText("Select a student.")).toBeInTheDocument();
+    expect(screen.getByText("Select a stage.")).toBeInTheDocument();
     expect(screen.getByText("Select a grade.")).toBeInTheDocument();
     expect(screen.getByText("Select a section.")).toBeInTheDocument();
     expect(screen.getByText("Select a classroom.")).toBeInTheDocument();
     expect(validateEnrollment).not.toHaveBeenCalled();
+  });
+
+  it("requires selecting a stage before the grade", () => {
+    renderDialog({
+      stages: [{ id: "stage-1", name: "Primary" }],
+      grades: [{ id: "grade-1", name: "Grade 1", parentId: "stage-1" }],
+    });
+
+    expect(screen.getByRole("button", { name: "Grade *" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Stage *" }));
+    fireEvent.click(screen.getByRole("button", { name: "Primary" }));
+
+    expect(screen.getByRole("button", { name: "Grade *" })).not.toBeDisabled();
   });
 });
