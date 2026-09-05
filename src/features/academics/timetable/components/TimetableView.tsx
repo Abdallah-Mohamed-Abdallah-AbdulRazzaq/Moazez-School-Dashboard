@@ -766,7 +766,6 @@ export default function TimetableView({
     subjects,
     subjectAllocations,
     gradeId: editingGradeId,
-    currentSubjectId: editingSlot?.entry?.subjectId,
   });
   const displayedClassrooms = useMemo(() => {
     if (selectedClassroom) {

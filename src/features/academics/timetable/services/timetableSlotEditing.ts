@@ -28,14 +28,12 @@ export interface SubjectOptionsForGradeAllocationsParams {
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   gradeId?: string;
-  currentSubjectId?: string | null;
 }
 
 export function subjectOptionsForGradeAllocations({
   subjects,
   subjectAllocations,
   gradeId,
-  currentSubjectId,
 }: SubjectOptionsForGradeAllocationsParams): Subject[] {
   if (!gradeId) {
     return subjects;
@@ -43,14 +41,14 @@ export function subjectOptionsForGradeAllocations({
 
   const allocatedSubjectIds = new Set(
     subjectAllocations
-      .filter((allocation) => allocation.gradeId === gradeId)
+      .filter(
+        (allocation) =>
+          allocation.gradeId === gradeId && allocation.weeklyHours > 0,
+      )
       .map((allocation) => allocation.subjectId),
   );
 
-  return subjects.filter(
-    (subject) =>
-      allocatedSubjectIds.has(subject.id) || subject.id === currentSubjectId,
-  );
+  return subjects.filter((subject) => allocatedSubjectIds.has(subject.id));
 }
 
 export function teacherAllocationOptions({
