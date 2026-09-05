@@ -10,6 +10,7 @@ import CommunicationPageHeader from "@/features/communication/components/layout/
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
 import { useAnnouncements } from "@/features/communication/hooks/useAnnouncements";
 import type { Announcement } from "@/features/communication/types/announcement.types";
+import { announcementErrorMessage } from "@/features/communication/utils/announcement-error-messages";
 
 const labels = {
   en: {
@@ -42,7 +43,6 @@ const labels = {
     titleRequired: "Enter a title.",
     bodyRequired: "Enter a body.",
     created: "Announcement draft created.",
-    failed: "Unable to create announcement.",
   },
   ar: {
     back: "العودة إلى الإعلانات",
@@ -74,7 +74,6 @@ const labels = {
     titleRequired: "أدخل عنوانا.",
     bodyRequired: "أدخل محتوى.",
     created: "تم إنشاء مسودة الإعلان.",
-    failed: "تعذر إنشاء الإعلان.",
   },
 };
 
@@ -96,8 +95,8 @@ export default function CreateAnnouncementPage() {
           ? `/${locale}/communication/announcements/${announcement.id}`
           : `/${locale}/communication/announcements`,
       );
-    } catch {
-      showError(t.failed);
+    } catch (nextError) {
+      showError(announcementErrorMessage(nextError, locale));
     }
   };
 

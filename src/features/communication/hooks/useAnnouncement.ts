@@ -33,10 +33,6 @@ function unwrapItem<T>(response: unknown): T | null {
   return (item ?? response) as T;
 }
 
-function errorMessageFromUnknown(error: unknown): string {
-  return error instanceof Error ? error.message : "Unable to load announcement.";
-}
-
 function payloadFromValues(
   values: AnnouncementFormValues,
 ): UpdateAnnouncementPayload {
@@ -71,7 +67,7 @@ export function useAnnouncement(announcementId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   const refreshAnnouncement = useCallback(async () => {
     const response = await getAnnouncement(announcementId);
@@ -96,7 +92,7 @@ export function useAnnouncement(announcementId: string) {
     try {
       await Promise.all([refreshAnnouncement(), refreshReadSummary()]);
     } catch (nextError) {
-      if (mountedRef.current) setError(errorMessageFromUnknown(nextError));
+      if (mountedRef.current) setError(nextError);
     } finally {
       if (mountedRef.current) {
         setIsLoading(false);
@@ -129,7 +125,7 @@ export function useAnnouncement(announcementId: string) {
         await refresh();
         return response;
       } catch (nextError) {
-        setError(errorMessageFromUnknown(nextError));
+        setError(nextError);
         throw nextError;
       } finally {
         if (mountedRef.current) setIsMutating(false);

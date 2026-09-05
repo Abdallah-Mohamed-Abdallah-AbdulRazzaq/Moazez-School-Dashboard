@@ -6,6 +6,7 @@ import { Archive, ArrowLeft, RefreshCw, Send } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
+import { isApiError } from "@/lib/api-error";
 import AnnouncementEditor from "@/features/communication/components/announcements/AnnouncementEditor";
 import AnnouncementReadSummary from "@/features/communication/components/announcements/AnnouncementReadSummary";
 import ArchiveAnnouncementDialog from "@/features/communication/components/announcements/ArchiveAnnouncementDialog";
@@ -20,6 +21,7 @@ import CommunicationTabs from "@/features/communication/components/layout/Commun
 import { useAnnouncement } from "@/features/communication/hooks/useAnnouncement";
 import { useAnnouncementAttachments } from "@/features/communication/hooks/useAnnouncementAttachments";
 import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
+import { announcementErrorMessage } from "@/features/communication/utils/announcement-error-messages";
 
 interface AnnouncementDetailsPageProps {
   announcementId: string;
@@ -87,7 +89,6 @@ const labels = {
     updated: "Announcement updated.",
     publishedDone: "Announcement published.",
     archivedDone: "Announcement archived.",
-    mutationFailed: "Action failed. Please try again.",
   },
   ar: {
     back: "العودة إلى الإعلانات",
@@ -148,7 +149,6 @@ const labels = {
     updated: "تم تحديث الإعلان.",
     publishedDone: "تم نشر الإعلان.",
     archivedDone: "تمت أرشفة الإعلان.",
-    mutationFailed: "فشل الإجراء. حاول مرة أخرى.",
   },
 };
 
@@ -196,9 +196,9 @@ export default function AnnouncementDetailsPage({
   const [publishOpen, setPublishOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const status = announcement?.status ?? "draft";
-  const canEdit = status === "draft";
-  const canPublish = status === "draft";
-  const canArchive = status !== "archived";
+  const canEdit = status === "draft" || status === "scheduled";
+  const canPublish = status === "draft" || status === "scheduled";
+  const canArchive = status !== "archived" && status !== "cancelled";
   const canCancel = status === "scheduled";
 
   const runMutation = async (
@@ -210,8 +210,12 @@ export default function AnnouncementDetailsPage({
       await action();
       close?.();
       showSuccess(successMessage);
-    } catch {
-      showError(t.mutationFailed);
+    } catch (nextError) {
+      if (isApiError(nextError) && nextError.status === 409) {
+        void refresh();
+        void attachmentState.refresh();
+      }
+      showError(announcementErrorMessage(nextError, locale));
     }
   };
 
@@ -288,7 +292,7 @@ export default function AnnouncementDetailsPage({
       {error ? (
         <CommunicationErrorState
           title={t.errorTitle}
-          message={error}
+          message={announcementErrorMessage(error, locale)}
           action={
             <Button
               type="button"
@@ -353,7 +357,7 @@ export default function AnnouncementDetailsPage({
             <h2 className="text-base font-semibold text-slate-900">
               {t.attachments}
             </h2>
-            {policy?.allowAttachments !== false ? (
+            {canEdit && policy?.allowAttachments !== false ? (
               <AttachmentUploader
                 labels={{
                   attachFile: t.attachFile,
@@ -362,12 +366,20 @@ export default function AnnouncementDetailsPage({
                 }}
                 isUploading={attachmentState.isUploading}
                 maxAttachmentSizeMb={policy?.maxAttachmentSizeMb}
-                onUpload={attachmentState.attachFile}
+                onUpload={async (file) => {
+                  try {
+                    await attachmentState.attachFile(file);
+                  } catch (nextError) {
+                    throw new Error(announcementErrorMessage(nextError, locale));
+                  }
+                }}
               />
             ) : null}
           </div>
           {attachmentState.error ? (
-            <p className="text-sm text-red-600">{attachmentState.error}</p>
+            <p className="text-sm text-red-600">
+              {announcementErrorMessage(attachmentState.error, locale)}
+            </p>
           ) : null}
           <MessageAttachments
             attachments={attachmentState.attachments}
