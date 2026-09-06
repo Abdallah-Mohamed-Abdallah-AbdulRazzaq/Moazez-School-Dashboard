@@ -725,6 +725,12 @@ export default function CreateHomeworkPage() {
                 !availableTimetableDays?.includes(date.getDay())
               }
             />
+            <div
+              className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800"
+              role="note"
+            >
+              {t("helpers.timetablePublicationRequired")}
+            </div>
             {selectedAllocation && selectedTimetableDate && (
               <TimetableSlotSelect
                 {...timetableScope}

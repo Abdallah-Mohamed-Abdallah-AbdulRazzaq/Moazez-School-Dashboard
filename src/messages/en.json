@@ -5715,7 +5715,8 @@
         },
         "helpers": {
           "teacherSubjectAllocation": "Homework will use this allocation for teacher, subject, classroom, year, and term validation.",
-          "scheduleDate": "Only dates with this class's scheduled lesson can be selected."
+          "scheduleDate": "Only dates with this class's scheduled lesson can be selected.",
+          "timetablePublicationRequired": "Only slots from an active, published timetable can be linked. If no slot is available, publish the timetable first."
         },
         "targetModes": {
           "classroom": "Classroom",

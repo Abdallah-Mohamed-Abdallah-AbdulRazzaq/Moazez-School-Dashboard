@@ -219,18 +219,30 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     });
   });
 
-  it("shows whether the homework is ready to publish", async () => {
+  it("shows publication readiness when hovering its indicator", async () => {
     render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
 
-    await screen.findByText("publishReadiness.title");
-    expect(screen.getByText("publishReadiness.savedChanges")).toBeInTheDocument();
-    expect(screen.getByText("publishReadiness.validQuestions")).toBeInTheDocument();
-    expect(screen.getByText("publishReadiness.eligibleTargets")).toBeInTheDocument();
+    const indicator = await screen.findByRole("button", {
+      name: "publishReadiness.title",
+    });
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(indicator);
+
+    const checklist = await screen.findByRole("tooltip");
+    expect(checklist).toHaveTextContent("publishReadiness.savedChanges");
+    expect(checklist).toHaveTextContent("publishReadiness.validQuestions");
+    expect(checklist).toHaveTextContent("publishReadiness.eligibleTargets");
 
     fireEvent.click(screen.getByText("clear-title"));
 
-    await screen.findByText("publishReadiness.unsavedChanges");
-    expect(screen.getByText("publishReadiness.validQuestions")).toBeInTheDocument();
+    expect(checklist).toHaveTextContent("publishReadiness.unsavedChanges");
+    expect(checklist).toHaveTextContent("publishReadiness.validQuestions");
+
+    fireEvent.mouseLeave(indicator);
+    await waitFor(() =>
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument(),
+    );
   });
 
   it("reloads authoritative builder state after a later question mutation fails", async () => {

@@ -8,6 +8,7 @@ import {
   Ban,
   CheckCircle2,
   CircleStop,
+  Info,
   Loader2,
   RotateCcw,
   Save,
@@ -147,6 +148,7 @@ export default function HomeworkAssignmentBuilderPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isAssignmentSaving, setIsAssignmentSaving] = useState(false);
   const [isLifecyclePending, setIsLifecyclePending] = useState(false);
+  const [isPublishReadinessOpen, setIsPublishReadinessOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
     HomeworkLifecycleAction | "reset" | "deleteQuestion" | null
   >(null);
@@ -301,6 +303,8 @@ export default function HomeworkAssignmentBuilderPage({
 
   const publishReadiness = getHomeworkPublishReadiness(publishTargets);
   const hasQuestionValidationErrors = Boolean(validationErrors.questions);
+  const isReadyToPublish =
+    !isDirty && !hasQuestionValidationErrors && publishReadiness.isReady;
 
   const pointsSummary = useMemo(
     () => calculatePointsSummary(assignmentDraft?.maxScore || 0, questions),
@@ -731,19 +735,92 @@ export default function HomeworkAssignmentBuilderPage({
                     </>
                   )}
                   {lifecycleActions.includes("publish") && (
-                    <Button
-                      size="sm"
-                      disabled={isDirty || isAssignmentSaving || isLifecyclePending}
-                      title={
-                        isDirty
-                          ? tHomework("states.saveBeforePublish")
-                          : undefined
-                      }
-                      onClick={() => setConfirmAction("publish")}
-                      leftIcon={<Send className="h-4 w-4" />}
+                    <div
+                      className="relative flex items-center gap-1"
+                      onMouseEnter={() => setIsPublishReadinessOpen(true)}
+                      onMouseLeave={() => setIsPublishReadinessOpen(false)}
                     >
-                      {tHomework("actions.publish")}
-                    </Button>
+                      <Button
+                        size="sm"
+                        disabled={
+                          isDirty || isAssignmentSaving || isLifecyclePending
+                        }
+                        title={
+                          isDirty
+                            ? tHomework("states.saveBeforePublish")
+                            : undefined
+                        }
+                        onClick={() => setConfirmAction("publish")}
+                        leftIcon={<Send className="h-4 w-4" />}
+                      >
+                        {tHomework("actions.publish")}
+                      </Button>
+                      <button
+                        type="button"
+                        aria-label={tHomework("publishReadiness.title")}
+                        aria-controls="homework-publish-readiness"
+                        aria-expanded={isPublishReadinessOpen}
+                        onFocus={() => setIsPublishReadinessOpen(true)}
+                        onBlur={() => setIsPublishReadinessOpen(false)}
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                          isReadyToPublish
+                            ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                            : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                        }`}
+                      >
+                        <Info className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                      {isPublishReadinessOpen && (
+                        <div
+                          id="homework-publish-readiness"
+                          role="tooltip"
+                          className="absolute end-0 top-full z-30 mt-2 w-72 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg"
+                        >
+                          <p className="text-xs font-semibold text-gray-900">
+                            {tHomework("publishReadiness.title")}
+                          </p>
+                          <ul className="mt-1.5 space-y-1 text-xs text-gray-600">
+                            {[
+                              {
+                                isReady: !isDirty,
+                                label: tHomework(
+                                  isDirty
+                                    ? "publishReadiness.unsavedChanges"
+                                    : "publishReadiness.savedChanges",
+                                ),
+                              },
+                              {
+                                isReady: !hasQuestionValidationErrors,
+                                label: tHomework(
+                                  hasQuestionValidationErrors
+                                    ? "publishReadiness.invalidQuestions"
+                                    : "publishReadiness.validQuestions",
+                                ),
+                              },
+                              {
+                                isReady: publishReadiness.isReady,
+                                label: tHomework(
+                                  publishReadiness.isReady
+                                    ? "publishReadiness.eligibleTargets"
+                                    : "publishReadiness.noEligibleTargets",
+                                  { count: publishTargets.length },
+                                ),
+                              },
+                            ].map(({ isReady, label }) => (
+                              <li key={label} className="flex items-center gap-1.5">
+                                <CheckCircle2
+                                  className={`h-3.5 w-3.5 ${
+                                    isReady ? "text-green-600" : "text-amber-500"
+                                  }`}
+                                  aria-hidden="true"
+                                />
+                                <span>{label}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   )}
                   {lifecycleActions.includes("close") && (
                     <Button
@@ -768,52 +845,6 @@ export default function HomeworkAssignmentBuilderPage({
                     </Button>
                   )}
                 </div>
-                {lifecycleActions.includes("publish") && (
-                  <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
-                    <p className="text-xs font-semibold text-gray-900">
-                      {tHomework("publishReadiness.title")}
-                    </p>
-                    <ul className="mt-1.5 space-y-1 text-xs text-gray-600">
-                      {[
-                        {
-                          isReady: !isDirty,
-                          label: tHomework(
-                            isDirty
-                              ? "publishReadiness.unsavedChanges"
-                              : "publishReadiness.savedChanges",
-                          ),
-                        },
-                        {
-                          isReady: !hasQuestionValidationErrors,
-                          label: tHomework(
-                            hasQuestionValidationErrors
-                              ? "publishReadiness.invalidQuestions"
-                              : "publishReadiness.validQuestions",
-                          ),
-                        },
-                        {
-                          isReady: publishReadiness.isReady,
-                          label: tHomework(
-                            publishReadiness.isReady
-                              ? "publishReadiness.eligibleTargets"
-                              : "publishReadiness.noEligibleTargets",
-                            { count: publishTargets.length },
-                          ),
-                        },
-                      ].map(({ isReady, label }) => (
-                        <li key={label} className="flex items-center gap-1.5">
-                          <CheckCircle2
-                            className={`h-3.5 w-3.5 ${
-                              isReady ? "text-green-600" : "text-amber-500"
-                            }`}
-                            aria-hidden="true"
-                          />
-                          <span>{label}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             )}
         </div>

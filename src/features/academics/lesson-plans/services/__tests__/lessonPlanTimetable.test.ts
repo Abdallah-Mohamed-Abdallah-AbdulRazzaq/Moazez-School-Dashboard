@@ -151,7 +151,24 @@ describe("lessonPlanTimetable", () => {
             nameAr: "Grade 1",
             nameEn: "Grade 1",
           },
-          configs: [],
+          configs: [
+            {
+              id: "config-1",
+              name: "Published timetable",
+              scopeType: "classroom",
+              scopeKey: "classroom-1",
+              status: "active",
+              activeDays: [1],
+            },
+            {
+              id: "config-2",
+              name: "Another published timetable",
+              scopeType: "classroom",
+              scopeKey: "classroom-1",
+              status: "active",
+              activeDays: [1],
+            },
+          ],
           periods: [],
           entries: [
             entry("matching"),
@@ -171,5 +188,56 @@ describe("lessonPlanTimetable", () => {
 
     expect(dashboardEntriesForScope(response, scope, 1).map(({ id }) => id))
       .toEqual(["matching", "other-config"]);
+  });
+
+  it("omits slots belonging to a draft timetable configuration", () => {
+    const response: TimetableDashboardAllResponseDto = {
+      termId: "term-1",
+      academicYearId: "year-1",
+      publishedAt: "2026-08-01T08:00:00.000Z",
+      isPublished: true,
+      items: [
+        {
+          classroomId: "classroom-1",
+          classroom: {
+            id: "classroom-1",
+            nameAr: "Classroom 1",
+            nameEn: "Classroom 1",
+          },
+          gradeId: "grade-1",
+          grade: {
+            id: "grade-1",
+            nameAr: "Grade 1",
+            nameEn: "Grade 1",
+          },
+          configs: [
+            {
+              id: "config-1",
+              name: "Draft timetable",
+              scopeType: "classroom",
+              scopeKey: "classroom-1",
+              status: "draft",
+              activeDays: [1],
+            },
+            {
+              id: "config-2",
+              name: "Published timetable",
+              scopeType: "classroom",
+              scopeKey: "classroom-1",
+              status: "active",
+              activeDays: [1],
+            },
+          ],
+          periods: [],
+          entries: [
+            entry("draft-slot"),
+            entry("published-slot", { timetableConfigId: "config-2" }),
+          ],
+        },
+      ],
+    };
+
+    expect(dashboardEntriesForScope(response, scope, 1).map(({ id }) => id))
+      .toEqual(["published-slot"]);
   });
 });
