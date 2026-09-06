@@ -7,6 +7,7 @@ import type { Assessment } from "../types";
 import { getAssessmentTypeLabelKey } from "../services/gradesAssessmentsService";
 import {
   ASSESSMENT_WORKFLOW_STATE_STYLES,
+  getAssessmentEntryUnavailableReason,
   getAssessmentEntryModeKey,
   getAssessmentWorkflowState,
   isGradeEntryAvailable,
@@ -122,6 +123,10 @@ export default function GradesAssessmentsSection({
             const workflowState = getAssessmentWorkflowState(assessment);
             const workflowStyle = ASSESSMENT_WORKFLOW_STATE_STYLES[workflowState];
             const entryModeKey = getAssessmentEntryModeKey(assessment);
+            const bulkEntryUnavailableReason = getAssessmentEntryUnavailableReason(assessment, {
+              isReadOnly,
+              hasRequiredPermission: canManageGradeItems,
+            });
 
             return (
             <div key={assessment.id} className="rounded-lg border px-3 py-3 text-sm" style={{ borderColor: "var(--border-color)" }}>
@@ -186,6 +191,7 @@ export default function GradesAssessmentsSection({
                     isReadOnly ||
                     isBulkLoading
                   }
+                  title={bulkEntryUnavailableReason ? t(`workflow.reasons.${bulkEntryUnavailableReason}`) : undefined}
                   loading={assessmentActionId === assessment.id && assessmentActionType === "bulk" && isBulkLoading}
                   onClick={() => onBulkEntry(assessment)}
                 >
@@ -202,6 +208,11 @@ export default function GradesAssessmentsSection({
                 >
                   {t("actions.delete")}
                 </Button> : null}
+                {canManageGradeItems && bulkEntryUnavailableReason ? (
+                  <span className="basis-full text-xs text-[var(--text-secondary)]">
+                    {t(`workflow.reasons.${bulkEntryUnavailableReason}`)}
+                  </span>
+                ) : null}
               </div>
             </div>
           );
