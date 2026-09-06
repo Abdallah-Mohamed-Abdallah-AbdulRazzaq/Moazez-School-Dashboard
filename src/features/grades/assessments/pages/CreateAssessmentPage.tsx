@@ -264,6 +264,24 @@ export default function CreateAssessmentPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Select
+              label={tDialog("scopeType")}
+              value={draft.scopeType}
+              onChange={handleScopeTypeChange}
+              options={scopeTypes.map((scopeType) => ({
+                value: scopeType,
+                label: tDialog(`types.scopeTypes.${scopeType}`),
+              }))}
+            />
+            <Select
+              label={tDialog("scope")}
+              value={draft.scopeId}
+              onChange={(scopeId) => setDraft((current) => (current ? { ...current, scopeId } : current))}
+              options={availableScopeEntities.map((entity) => ({
+                value: entity.id,
+                label: locale === "ar" ? entity.nameAr : entity.nameEn,
+              }))}
+            />
             {(["stage", "grade", "section", "classroom"] as ExamScopeType[]).map((type) => {
               const parentType: ExamScopeType | undefined = type === "grade" ? "stage" : type === "section" ? "grade" : type === "classroom" ? "section" : undefined;
               const parentId = parentType ? selectedScopeIds[parentType] : undefined;
@@ -285,24 +303,6 @@ export default function CreateAssessmentPage() {
                 />
               );
             })}
-            <Select
-              label={tDialog("scopeType")}
-              value={draft.scopeType}
-              onChange={handleScopeTypeChange}
-              options={scopeTypes.map((scopeType) => ({
-                value: scopeType,
-                label: tDialog(`types.scopeTypes.${scopeType}`),
-              }))}
-            />
-            <Select
-              label={tDialog("scope")}
-              value={draft.scopeId}
-              onChange={(scopeId) => setDraft((current) => (current ? { ...current, scopeId } : current))}
-              options={availableScopeEntities.map((entity) => ({
-                value: entity.id,
-                label: locale === "ar" ? entity.nameAr : entity.nameEn,
-              }))}
-            />
             <Select
               label={tDialog("subject")}
               value={draft.subjectId}
@@ -351,6 +351,7 @@ export default function CreateAssessmentPage() {
               max="100"
               value={String(draft.weight)}
               onChange={(event) => setDraft((current) => (current ? { ...current, weight: Number(event.target.value) } : current))}
+              helperText={tDialog("weightHint")}
               required
             />
             <Input
