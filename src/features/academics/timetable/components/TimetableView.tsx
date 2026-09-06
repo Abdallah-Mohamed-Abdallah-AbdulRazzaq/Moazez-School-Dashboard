@@ -39,6 +39,7 @@ import {
 import { subjectOptionsForGradeAllocations } from "@/features/academics/timetable/services/timetableSlotEditing";
 import { hasBlockingValidation } from "@/features/academics/timetable/services/timetableValidationSummary";
 import { createTimetablePublishFingerprint } from "@/features/academics/timetable/services/timetablePublishFingerprint";
+import { getTimetableConfigSourceName } from "@/features/academics/timetable/services/timetableConfigSource";
 import {
   resolveTimetableCreationProgress,
   type TimetableCreationAction,
@@ -885,7 +886,16 @@ export default function TimetableView({
   );
 
   const configSourceLabel = resolvedConfig
-    ? t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`)
+    ? [
+        t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`),
+        getTimetableConfigSourceName(
+          resolvedConfig.source,
+          { stages, grades, sections, classrooms },
+          locale,
+        ),
+      ]
+        .filter((label): label is string => Boolean(label))
+        .join(": ")
     : "";
 
   const creationProgress = useMemo(
