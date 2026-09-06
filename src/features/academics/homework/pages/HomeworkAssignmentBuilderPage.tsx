@@ -723,9 +723,8 @@ export default function HomeworkAssignmentBuilderPage({
                   className="h-9 cursor-pointer px-2"
                   disabled={!isDirty || isAssignmentSaving || isLifecyclePending}
                   onClick={() => void handleSaveAssignment()}
-                  leftIcon={<Save className="h-4 w-4" />}
                 >
-                  <span className="sr-only">{tHomework("actions.save")}</span>
+                  <Save className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button
                   variant="secondary"
@@ -736,9 +735,8 @@ export default function HomeworkAssignmentBuilderPage({
                   className="h-9 cursor-pointer px-2"
                   disabled={!isDirty || isAssignmentSaving || isLifecyclePending}
                   onClick={() => setConfirmAction("reset")}
-                  leftIcon={<RotateCcw className="h-4 w-4" />}
                 >
-                  <span className="sr-only">{tHomework("actions.reset")}</span>
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </>
             )}
@@ -753,9 +751,8 @@ export default function HomeworkAssignmentBuilderPage({
                 className="h-9 cursor-pointer px-2"
                 disabled={isDirty || isAssignmentSaving || isLifecyclePending}
                 onClick={() => setConfirmAction("publish")}
-                leftIcon={<Send className="h-4 w-4" />}
               >
-                <span className="sr-only">{tHomework("actions.publish")}</span>
+                <Send className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
             {lifecycleActions.includes("publish") && (
@@ -839,9 +836,8 @@ export default function HomeworkAssignmentBuilderPage({
                 className="h-9 cursor-pointer px-2"
                 disabled={isLifecyclePending}
                 onClick={() => setConfirmAction("close")}
-                leftIcon={<CircleStop className="h-4 w-4" />}
               >
-                <span className="sr-only">{tHomework("actions.close")}</span>
+                <CircleStop className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
             {lifecycleActions.includes("cancel") && (
@@ -854,9 +850,8 @@ export default function HomeworkAssignmentBuilderPage({
                 className="h-9 cursor-pointer px-2"
                 disabled={isLifecyclePending}
                 onClick={() => setConfirmAction("cancel")}
-                leftIcon={<Ban className="h-4 w-4" />}
               >
-                <span className="sr-only">{tHomework("actions.cancel")}</span>
+                <Ban className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
           </div>
