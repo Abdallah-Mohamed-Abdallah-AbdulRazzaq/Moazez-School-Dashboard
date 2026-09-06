@@ -671,20 +671,22 @@ export default function HomeworkAssignmentBuilderPage({
   }
 
   const homeworkSidebar = (
-    <aside aria-label={tHomework("details.title")} className="space-y-4">
-      <section className="border-b border-gray-200 pb-4">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="mb-3 text-sm text-gray-500 transition-colors hover:text-gray-900"
-        >
-          {tHomework("actions.backToHomework")}
-        </button>
-        <h2 className="break-words text-base font-semibold text-gray-900">
-          {assignmentDraft.titleEn ||
-            assignmentDraft.titleAr ||
-            tHomework("untitled")}
-        </h2>
+    <aside aria-label={tHomework("details.title")} className="space-y-3">
+      <section className="border-b border-gray-200 pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="min-w-0 break-words text-base font-semibold text-gray-900">
+            {assignmentDraft.titleEn ||
+              assignmentDraft.titleAr ||
+              tHomework("untitled")}
+          </h2>
+          <button
+            type="button"
+            onClick={handleBack}
+            className="shrink-0 text-xs text-gray-500 transition-colors hover:text-gray-900"
+          >
+            {tHomework("actions.backToHomework")}
+          </button>
+        </div>
         <div className="mt-2 flex flex-wrap items-center gap-2" aria-live="polite">
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(homework.status)}`}
@@ -708,58 +710,66 @@ export default function HomeworkAssignmentBuilderPage({
 
       {(lifecycle?.isEditable ||
         (canRunLifecycleAction && lifecycleActions.length > 0)) && (
-        <section className="border-b border-gray-200 pb-4">
-          <div className="grid grid-cols-2 gap-2">
+        <section className="border-b border-gray-200 pb-3">
+          <div className="grid grid-cols-5 gap-1.5">
             {lifecycle?.isEditable && (
               <>
                 <Button
                   variant="secondary"
                   size="sm"
                   fullWidth
+                  aria-label={tHomework("actions.save")}
+                  title={tHomework("actions.save")}
+                  className="h-9 cursor-pointer px-2"
                   disabled={!isDirty || isAssignmentSaving || isLifecyclePending}
                   onClick={() => void handleSaveAssignment()}
                   leftIcon={<Save className="h-4 w-4" />}
                 >
-                  {tHomework("actions.save")}
+                  <span className="sr-only">{tHomework("actions.save")}</span>
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
                   fullWidth
+                  aria-label={tHomework("actions.reset")}
+                  title={tHomework("actions.reset")}
+                  className="h-9 cursor-pointer px-2"
                   disabled={!isDirty || isAssignmentSaving || isLifecyclePending}
                   onClick={() => setConfirmAction("reset")}
                   leftIcon={<RotateCcw className="h-4 w-4" />}
                 >
-                  {tHomework("actions.reset")}
+                  <span className="sr-only">{tHomework("actions.reset")}</span>
                 </Button>
               </>
             )}
             {lifecycleActions.includes("publish") && (
-              <div
-                className="relative flex min-w-0 items-center gap-1"
-                onMouseEnter={() => setIsPublishReadinessOpen(true)}
-                onMouseLeave={() => setIsPublishReadinessOpen(false)}
+              <Button
+                size="sm"
+                fullWidth
+                aria-label={tHomework("actions.publish")}
+                title={
+                  isDirty ? tHomework("states.saveBeforePublish") : tHomework("actions.publish")
+                }
+                className="h-9 cursor-pointer px-2"
+                disabled={isDirty || isAssignmentSaving || isLifecyclePending}
+                onClick={() => setConfirmAction("publish")}
+                leftIcon={<Send className="h-4 w-4" />}
               >
-                <Button
-                  size="sm"
-                  className="min-w-0 flex-1"
-                  disabled={isDirty || isAssignmentSaving || isLifecyclePending}
-                  title={
-                    isDirty ? tHomework("states.saveBeforePublish") : undefined
-                  }
-                  onClick={() => setConfirmAction("publish")}
-                  leftIcon={<Send className="h-4 w-4" />}
-                >
-                  {tHomework("actions.publish")}
-                </Button>
+                <span className="sr-only">{tHomework("actions.publish")}</span>
+              </Button>
+            )}
+            {lifecycleActions.includes("publish") && (
+              <div className="relative">
                 <button
                   type="button"
                   aria-label={tHomework("publishReadiness.title")}
                   aria-controls="homework-publish-readiness"
                   aria-expanded={isPublishReadinessOpen}
+                  onMouseEnter={() => setIsPublishReadinessOpen(true)}
+                  onMouseLeave={() => setIsPublishReadinessOpen(false)}
                   onFocus={() => setIsPublishReadinessOpen(true)}
                   onBlur={() => setIsPublishReadinessOpen(false)}
-                  className={`inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  className={`inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                     isReadyToPublish
                       ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
                       : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
@@ -824,11 +834,14 @@ export default function HomeworkAssignmentBuilderPage({
                 variant="secondary"
                 size="sm"
                 fullWidth
+                aria-label={tHomework("actions.close")}
+                title={tHomework("actions.close")}
+                className="h-9 cursor-pointer px-2"
                 disabled={isLifecyclePending}
                 onClick={() => setConfirmAction("close")}
                 leftIcon={<CircleStop className="h-4 w-4" />}
               >
-                {tHomework("actions.close")}
+                <span className="sr-only">{tHomework("actions.close")}</span>
               </Button>
             )}
             {lifecycleActions.includes("cancel") && (
@@ -836,11 +849,14 @@ export default function HomeworkAssignmentBuilderPage({
                 variant="danger"
                 size="sm"
                 fullWidth
+                aria-label={tHomework("actions.cancel")}
+                title={tHomework("actions.cancel")}
+                className="h-9 cursor-pointer px-2"
                 disabled={isLifecyclePending}
                 onClick={() => setConfirmAction("cancel")}
                 leftIcon={<Ban className="h-4 w-4" />}
               >
-                {tHomework("actions.cancel")}
+                <span className="sr-only">{tHomework("actions.cancel")}</span>
               </Button>
             )}
           </div>
