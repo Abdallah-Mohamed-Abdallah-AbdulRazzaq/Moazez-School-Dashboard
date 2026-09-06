@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import HomeworkAssignmentBuilderPage from "../HomeworkAssignmentBuilderPage";
 import {
@@ -51,6 +52,7 @@ vi.mock("@/features/academics/curriculum/components/DesktopLayout", () => ({
     onMoveQuestion,
     onUpdateAssignment,
     onUpdateQuestion,
+    sidebarDetails,
   }: {
     questions: Array<{ id: string; questionTextEn: string }>;
     selectedQuestion?: Record<string, unknown> & { id: string };
@@ -61,8 +63,10 @@ vi.mock("@/features/academics/curriculum/components/DesktopLayout", () => ({
       questionId: string,
       updates: Record<string, unknown>,
     ) => void;
+    sidebarDetails?: ReactNode;
   }) => (
     <div>
+      {sidebarDetails}
       <span>{`selected:${selectedQuestion?.id ?? "none"}`}</span>
       {questions.map((question) => (
         <span key={question.id}>{question.questionTextEn}</span>
@@ -243,6 +247,30 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     await waitFor(() =>
       expect(screen.queryByRole("tooltip")).not.toBeInTheDocument(),
     );
+  });
+
+  it("keeps builder actions and statuses in the homework details sidebar", async () => {
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+
+    const header = await screen.findByRole("banner");
+    expect(
+      within(header).getByRole("button", { name: "tabs.builder" }),
+    ).toBeInTheDocument();
+    expect(
+      within(header).queryByRole("button", { name: "actions.publish" }),
+    ).not.toBeInTheDocument();
+
+    const sidebar = screen.getByRole("complementary", {
+      name: "details.title",
+    });
+    expect(
+      within(sidebar).getByRole("button", { name: "actions.save" }),
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole("button", { name: "actions.publish" }),
+    ).toBeInTheDocument();
+    expect(within(sidebar).getByText("statuses.draft")).toBeInTheDocument();
+    expect(within(sidebar).getByText("states.saved")).toBeInTheDocument();
   });
 
   it("reloads authoritative builder state after a later question mutation fails", async () => {
