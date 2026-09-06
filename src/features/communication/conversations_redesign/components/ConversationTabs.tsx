@@ -15,11 +15,13 @@ const tabs: Array<{
 export default function ConversationTabs({
   activeTab,
   availableTabs,
+  hasPendingJoinRequests,
   labels,
   onTabChange,
 }: {
   activeTab: DetailTab;
   availableTabs?: DetailTab[];
+  hasPendingJoinRequests: boolean;
   labels: ConversationRedesignLabels;
   onTabChange: (tab: DetailTab) => void;
 }) {
@@ -67,6 +69,11 @@ export default function ConversationTabs({
           }}
           type="button"
           role="tab"
+          aria-label={
+            tab.value === "joinRequests" && hasPendingJoinRequests
+              ? `${labels[tab.labelKey]} — ${labels.pendingJoinRequests}`
+              : undefined
+          }
           aria-selected={activeTab === tab.value}
           tabIndex={activeTab === tab.value ? 0 : -1}
           onClick={() => onTabChange(tab.value)}
@@ -77,7 +84,15 @@ export default function ConversationTabs({
               : "border-transparent text-slate-600 hover:text-primary"
           }`}
         >
-          {labels[tab.labelKey]}
+          <span className="inline-flex items-center">
+            {labels[tab.labelKey]}
+            {tab.value === "joinRequests" && hasPendingJoinRequests ? (
+              <span
+                aria-hidden="true"
+                className="ms-2 h-2 w-2 rounded-full bg-red-500"
+              />
+            ) : null}
+          </span>
         </button>
       ))}
     </nav>

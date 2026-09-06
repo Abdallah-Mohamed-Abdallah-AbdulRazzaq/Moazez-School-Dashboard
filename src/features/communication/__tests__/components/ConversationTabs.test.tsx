@@ -10,6 +10,7 @@ describe("ConversationTabs", () => {
     render(
       <ConversationTabs
         activeTab="messages"
+        hasPendingJoinRequests={false}
         labels={conversationRedesignLabels.en}
         onTabChange={onTabChange}
       />,
@@ -29,6 +30,7 @@ describe("ConversationTabs", () => {
       <ConversationTabs
         activeTab="messages"
         availableTabs={["messages", "joinRequests"]}
+        hasPendingJoinRequests={false}
         labels={conversationRedesignLabels.en}
         onTabChange={onTabChange}
       />,
@@ -41,5 +43,24 @@ describe("ConversationTabs", () => {
 
     fireEvent.keyDown(messagesTab, { key: "ArrowRight" });
     expect(onTabChange).toHaveBeenCalledWith("joinRequests");
+  });
+
+  it("marks the join requests tab when a request is pending review", () => {
+    render(
+      <ConversationTabs
+        activeTab="messages"
+        hasPendingJoinRequests
+        labels={conversationRedesignLabels.en}
+        onTabChange={vi.fn()}
+      />,
+    );
+
+    const joinRequestsTab = screen.getByRole("tab", {
+      name: "Join Requests — Pending join requests",
+    });
+
+    expect(joinRequestsTab.querySelector('[aria-hidden="true"]')).toHaveClass(
+      "bg-red-500",
+    );
   });
 });

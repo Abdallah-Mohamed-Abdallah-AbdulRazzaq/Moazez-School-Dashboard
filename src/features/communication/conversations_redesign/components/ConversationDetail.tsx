@@ -237,11 +237,11 @@ export default function ConversationDetail({
       permissions.canManageInvites &&
       hasPermission("communication.participants.manage"),
   });
+  const canLoadJoinRequests =
+    permissions.canReviewJoinRequests &&
+    hasPermission("communication.participants.manage");
   const joinRequestsState = useConversationJoinRequests(conversationId, {
-    enabled:
-      loadedTabs.joinRequests &&
-      permissions.canReviewJoinRequests &&
-      hasPermission("communication.participants.manage"),
+    enabled: canLoadJoinRequests,
   });
   const canViewPolicy = hasPermission("communication.policies.view");
   const { policy, isLoading: isPolicyLoading } = useCommunicationPolicy({
@@ -570,8 +570,7 @@ export default function ConversationDetail({
     permissions.canManageInvites &&
     hasPermission("communication.participants.manage");
   const canReviewJoinRequests =
-    permissions.canReviewJoinRequests &&
-    hasPermission("communication.participants.manage");
+    canLoadJoinRequests;
   const canCreateJoinRequest =
     permissions.canCreateJoinRequest &&
     hasPermission("communication.conversations.view");
@@ -601,6 +600,9 @@ export default function ConversationDetail({
       ? (["joinRequests"] as const)
       : []),
   ];
+  const hasPendingJoinRequests = joinRequestsState.joinRequests.some(
+    (request) => request.status === "pending",
+  );
 
   // Determine current user's participant status
   const currentUserParticipant = participantsState.participants.find((p) => {
@@ -825,6 +827,7 @@ export default function ConversationDetail({
       <ConversationTabs
         activeTab={activeTab}
         availableTabs={availableTabs}
+        hasPendingJoinRequests={hasPendingJoinRequests}
         labels={labels}
         onTabChange={handleTabChange}
       />
