@@ -12,9 +12,13 @@ import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { ValidationErrors } from "@/features/academics/curriculum/types/types";
+import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import { calculatePointsSummary } from "@/features/academics/curriculum/utils/points";
 import { validateQuestion } from "@/features/academics/curriculum/utils/validation";
-import AssessmentQuestionBuilderHeader from "../components/AssessmentQuestionBuilderHeader";
+import { DEFAULT_NEW_QUESTION } from "@/features/academics/curriculum/libs/constants";
+import AssessmentQuestionBuilderHeader, {
+  type AssessmentWorkflowAction,
+} from "../components/AssessmentQuestionBuilderHeader";
 import AssessmentQuestionDesktopLayout from "../components/AssessmentQuestionDesktopLayout";
 import AssessmentQuestionMobileLayout from "../components/AssessmentQuestionMobileLayout";
 import {
@@ -22,18 +26,24 @@ import {
   AssessmentQuestionsCreationError,
   createAssessmentQuestion,
   createAssessmentWithQuestions,
+  deleteAssessment,
   deleteAssessmentQuestion,
   fetchAssessmentById,
   fetchAssessmentQuestions,
   reorderAssessmentQuestions,
+  approveAssessment,
+  lockAssessment,
+  publishAssessment,
   updateAssessment,
   updateAssessmentQuestion,
 } from "../services/gradesAssessmentsService";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
-import type { Assessment, AssessmentQuestion, AssessmentType } from "../types";
+import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
+import type { Assessment, AssessmentQuestion, AssessmentType, ExamScopeType, ScopeEntityOption, ScopeOption } from "../types";
 import { useGradesRouteYearTerm } from "@/features/grades/hooks/useGradesRouteYearTerm";
 import { canEditAssessmentQuestions } from "../utils/assessmentContract";
 import { distributeQuestionPoints } from "../utils/distributeQuestionPoints";
+import { getEligibleAssessmentSubjects } from "../utils/assessmentSubjects";
 import { mapAssessmentQuestionApiError } from "../utils/assessmentQuestionApiErrors";
 import {
   getPartialQuestionCreationFailure,
@@ -45,6 +55,23 @@ interface AssessmentQuestionsPageProps {
   assessmentId?: string;
   mode?: "create" | "edit";
 }
+
+const emptyScopeEntities: Record<ExamScopeType, ScopeEntityOption[]> = {
+  school: [],
+  stage: [],
+  grade: [],
+  section: [],
+  classroom: [],
+};
+
+const WORKFLOW_SUCCESS_MESSAGE_KEYS: Record<
+  AssessmentWorkflowAction,
+  "messages.assessmentPublished" | "messages.assessmentApproved" | "messages.assessmentLocked"
+> = {
+  publish: "messages.assessmentPublished",
+  approve: "messages.assessmentApproved",
+  lock: "messages.assessmentLocked",
+};
 
 function validateAssessmentDraft(
   assessment: Assessment,
@@ -120,6 +147,7 @@ export default function AssessmentQuestionsPage({
   const {
     academicYearId,
     termId,
+    termName,
     termStatus,
     isInitializing: isLoading,
   } = useGradesRouteYearTerm();
@@ -128,6 +156,16 @@ export default function AssessmentQuestionsPage({
   const [assessmentDraft, setAssessmentDraft] = useState<Assessment | null>(
     null,
   );
+  const [scopeTypes, setScopeTypes] = useState<ExamScopeType[]>([]);
+  const [scopeEntitiesByType, setScopeEntitiesByType] = useState<
+    Record<ExamScopeType, ScopeEntityOption[]>
+  >(emptyScopeEntities);
+  const [allSubjects, setAllSubjects] = useState<
+    Array<Pick<ScopeOption, "id" | "nameAr" | "nameEn">>
+  >([]);
+  const [subjectAllocations, setSubjectAllocations] = useState<
+    SubjectAllocation[]
+  >([]);
   const [lastSavedAssessment, setLastSavedAssessment] =
     useState<Assessment | null>(null);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
@@ -147,6 +185,13 @@ export default function AssessmentQuestionsPage({
   const [confirmDeleteQuestionId, setConfirmDeleteQuestionId] = useState<
     string | null
   >(null);
+  const [workflowActionConfirmation, setWorkflowActionConfirmation] =
+    useState<AssessmentWorkflowAction | null>(null);
+  const [isDeleteAssessmentConfirmationOpen, setIsDeleteAssessmentConfirmationOpen] =
+    useState(false);
+  const [assessmentAction, setAssessmentAction] = useState<
+    AssessmentWorkflowAction | "delete" | null
+  >(null);
   const [tempQuestionCounter, setTempQuestionCounter] = useState(0);
   const scopeTypeParam =
     (searchParams.get("scopeType") as Assessment["scopeType"]) || "school";
@@ -159,6 +204,7 @@ export default function AssessmentQuestionsPage({
     searchParams.get("date") || formatLocalDateOnly(new Date());
   const weightParam = Number(searchParams.get("weight") || "15");
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
+  const expectedTimeMinutesParam = Number(searchParams.get("expectedTimeMinutes") || "");
   const isCreateMode = mode === "create";
   const partialQuestionCreationFailure = useMemo(
     () => isCreateMode ? null : getPartialQuestionCreationFailure(searchParams),
@@ -166,6 +212,9 @@ export default function AssessmentQuestionsPage({
   );
   const canManageAssessments = hasPermission("grades.assessments.manage");
   const canManageQuestions = hasPermission("grades.questions.manage");
+  const canPublishAssessments = hasPermission("grades.assessments.publish");
+  const canApproveAssessments = hasPermission("grades.assessments.approve");
+  const canLockAssessments = hasPermission("grades.assessments.lock");
   const canEditQuestions = isCreateMode
     ? canManageAssessments
     : canManageQuestions;
@@ -175,6 +224,11 @@ export default function AssessmentQuestionsPage({
   const isQuestionReadOnly = isReadOnly || !canEditQuestions;
   const isAssessmentReadOnly = isReadOnly || !canManageAssessments;
   const isTemporaryQuestionId = (questionId: string) => questionId.startsWith("temp-question-");
+
+  const isWorkflowActionPermitted = (workflowAction: AssessmentWorkflowAction) =>
+    (workflowAction === "publish" && canPublishAssessments) ||
+    (workflowAction === "approve" && canApproveAssessments) ||
+    (workflowAction === "lock" && canLockAssessments);
 
   // Question builders are focused flows: they keep year/term in the route
   // and intentionally stay outside the shared grades ContextBar layout.
@@ -207,6 +261,40 @@ export default function AssessmentQuestionsPage({
   }, [academicYearId, assessmentId, showError, tCommon, termId]);
 
   useEffect(() => {
+    if (!academicYearId || !termId) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadAssessmentMetadata = async () => {
+      try {
+        const [filters, allocations] = await Promise.all([
+          fetchGradesFiltersData(academicYearId, termId),
+          fetchSubjectAllocations(termId),
+        ]);
+        if (isCancelled) {
+          return;
+        }
+        setScopeTypes(filters.scopeTypes);
+        setScopeEntitiesByType(filters.scopeEntities);
+        setAllSubjects(filters.subjects);
+        setSubjectAllocations(allocations);
+      } catch {
+        if (!isCancelled) {
+          showError(tCommon("error_loading"));
+        }
+      }
+    };
+
+    void loadAssessmentMetadata();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [academicYearId, showError, tCommon, termId]);
+
+  useEffect(() => {
     if (!isCreateMode || !termId || assessmentDraft) {
       return;
     }
@@ -228,7 +316,10 @@ export default function AssessmentQuestionsPage({
         Number.isFinite(maxScoreParam) && maxScoreParam > 0
           ? maxScoreParam
           : 20,
-      expectedTimeMinutes: undefined,
+      expectedTimeMinutes:
+        Number.isInteger(expectedTimeMinutesParam) && expectedTimeMinutesParam > 0
+          ? expectedTimeMinutesParam
+          : undefined,
       approvalStatus: "draft",
       isLocked: false,
     };
@@ -243,6 +334,7 @@ export default function AssessmentQuestionsPage({
   }, [
     assessmentDraft,
     dateParam,
+    expectedTimeMinutesParam,
     isCreateMode,
     maxScoreParam,
     scopeIdParam,
@@ -347,6 +439,49 @@ export default function AssessmentQuestionsPage({
     [assessmentDraft?.maxScore, questions],
   );
 
+  const eligibleSubjects = useMemo(() => {
+    if (!assessmentDraft) {
+      return [];
+    }
+    return getEligibleAssessmentSubjects(
+      allSubjects,
+      subjectAllocations,
+      scopeEntitiesByType,
+      assessmentDraft.scopeType,
+      assessmentDraft.scopeId,
+    );
+  }, [allSubjects, assessmentDraft, scopeEntitiesByType, subjectAllocations]);
+
+  const updateAssessmentDraft = useCallback(
+    (updates: Partial<Assessment>) => {
+      setAssessmentDraft((current) => {
+        if (!current) {
+          return current;
+        }
+        const nextAssessment = { ...current, ...updates };
+        if (!("scopeType" in updates) && !("scopeId" in updates)) {
+          return nextAssessment;
+        }
+        const nextEligibleSubjects = getEligibleAssessmentSubjects(
+          allSubjects,
+          subjectAllocations,
+          scopeEntitiesByType,
+          nextAssessment.scopeType,
+          nextAssessment.scopeId,
+        );
+        return nextEligibleSubjects.some(
+          (subject) => subject.id === nextAssessment.subjectId,
+        )
+          ? nextAssessment
+          : {
+              ...nextAssessment,
+              subjectId: nextEligibleSubjects[0]?.id || "",
+            };
+      });
+    },
+    [allSubjects, scopeEntitiesByType, subjectAllocations],
+  );
+
   useEffect(() => {
     if (!assessmentDraft) return;
     void Promise.resolve().then(() => {
@@ -379,12 +514,85 @@ export default function AssessmentQuestionsPage({
     return isAssessmentDirty;
   }, [assessmentDraft, isAssessmentDirty, isCreateMode, questions.length]);
 
+  const availableWorkflowAction = useMemo<AssessmentWorkflowAction | null>(() => {
+    if (isCreateMode || termStatus === "closed" || !assessment || assessment.isLocked) {
+      return null;
+    }
+    if (assessment.approvalStatus === "draft" && canPublishAssessments) {
+      return "publish";
+    }
+    if (assessment.approvalStatus === "published" && canApproveAssessments) {
+      return "approve";
+    }
+    if (assessment.approvalStatus === "approved" && canLockAssessments) {
+      return "lock";
+    }
+    return null;
+  }, [
+    assessment,
+    canApproveAssessments,
+    canLockAssessments,
+    canPublishAssessments,
+    isCreateMode,
+    termStatus,
+  ]);
+
   const handleBack = () => {
     const params = searchParams.toString();
     const path = isCreateMode
       ? `/${locale}/grades/assessments/new`
       : `/${locale}/grades/assessments`;
     router.push(params ? `${path}?${params}` : path);
+  };
+
+  const runAssessmentWorkflowAction = (
+    workflowAction: AssessmentWorkflowAction,
+    currentAssessmentId: string,
+  ) => {
+    if (workflowAction === "publish") {
+      return publishAssessment(academicYearId, termId, currentAssessmentId);
+    }
+    if (workflowAction === "approve") {
+      return approveAssessment(academicYearId, termId, currentAssessmentId);
+    }
+    return lockAssessment(academicYearId, termId, currentAssessmentId);
+  };
+
+  const executeAssessmentWorkflowAction = async () => {
+    const workflowAction = workflowActionConfirmation;
+    if (
+      !assessment ||
+      !workflowAction ||
+      !isWorkflowActionPermitted(workflowAction)
+    ) {
+      return;
+    }
+    try {
+      setAssessmentAction(workflowAction);
+      await runAssessmentWorkflowAction(workflowAction, assessment.id);
+      await refresh();
+      showSuccess(tGrades(WORKFLOW_SUCCESS_MESSAGE_KEYS[workflowAction]));
+    } catch (error) {
+      showError(tGrades(`errors.${mapGradesApiError(error)}`));
+    } finally {
+      setAssessmentAction(null);
+      setWorkflowActionConfirmation(null);
+    }
+  };
+
+  const deleteCurrentAssessment = async () => {
+    if (!assessment || !canManageAssessments) return;
+    try {
+      setAssessmentAction("delete");
+      await deleteAssessment(academicYearId, termId, assessment.id);
+      showSuccess(tGrades("messages.assessmentDeleted"));
+      handleBack();
+    } catch (error) {
+      showError(tGrades(`errors.${mapGradesApiError(error)}`));
+    } finally {
+      setAssessmentAction(null);
+      setIsDeleteAssessmentConfirmationOpen(false);
+    }
   };
 
   const dismissPartialQuestionCreationRecovery = () => {
@@ -461,13 +669,13 @@ export default function AssessmentQuestionsPage({
           termId,
           scopeType: assessmentDraft.scopeType,
           scopeId: assessmentDraft.scopeId,
-          subjectId: assessment!.subjectId,
+          subjectId: assessmentDraft.subjectId,
           title: assessmentDraft.title,
           titleAr: assessmentDraft.titleAr,
-            type: assessment!.type,
+          type: assessmentDraft.type,
           deliveryMode: assessment!.deliveryMode,
           date: assessmentDraft.date,
-          weight: assessment!.weight,
+          weight: assessmentDraft.weight,
           maxScore: assessmentDraft.maxScore,
           expectedTimeMinutes: assessmentDraft.expectedTimeMinutes,
         },
@@ -505,26 +713,14 @@ export default function AssessmentQuestionsPage({
       assignmentId: assessmentId || "draft-assessment",
       createdAt: new Date().toISOString(),
       order: questions.length + 1,
-      questionTextAr: "",
-      questionTextEn: "",
-      questionType: "MCQ_SINGLE",
-      points: 1,
-      options: [
-        {
-          id: `opt-${nextIndex}-1`,
-          textAr: "",
-          textEn: "",
-          isCorrect: true,
-          order: 1,
-        },
-        {
-          id: `opt-${nextIndex}-2`,
-          textAr: "",
-          textEn: "",
-          isCorrect: false,
-          order: 2,
-        },
-      ],
+      questionTextAr: DEFAULT_NEW_QUESTION.questionTextAr,
+      questionTextEn: DEFAULT_NEW_QUESTION.questionTextEn,
+      questionType: DEFAULT_NEW_QUESTION.questionType,
+      points: DEFAULT_NEW_QUESTION.points,
+      options: DEFAULT_NEW_QUESTION.options.map((option, index) => ({
+        ...option,
+        id: `opt-${nextIndex}-${index + 1}`,
+      })),
     };
     setQuestions((current) => [...current, nextQuestion]);
     setSelectedQuestionId(tempId);
@@ -746,7 +942,7 @@ export default function AssessmentQuestionsPage({
   }
 
   return (
-    <div className="flex min-h-screen min-w-0 flex-col bg-gray-50">
+    <div className="flex h-[calc(100dvh-89px)] min-h-0 min-w-0 flex-col overflow-hidden bg-gray-50">
       {assessment && (
         <AssessmentQuestionBuilderHeader
           assessment={assessmentDraft || assessment}
@@ -755,12 +951,24 @@ export default function AssessmentQuestionsPage({
           isQuestionDirty={isQuestionDirty}
           isAssignmentSaving={isAssignmentSaving}
           isQuestionSaving={isQuestionSaving}
+          workflowAction={availableWorkflowAction}
+          isWorkflowActionSaving={assessmentAction === availableWorkflowAction}
+          isWorkflowActionDisabled={isAssessmentDirty || isQuestionDirty}
+          canDeleteAssessment={
+            !isCreateMode &&
+            canManageAssessments &&
+            termStatus !== "closed" &&
+            !assessment.isLocked
+          }
+          isDeletingAssessment={assessmentAction === "delete"}
           onBack={handleBack}
           saveLabel={
             isCreateMode ? tGrades("actions.createAssessment") : undefined
           }
           canSaveAssessment={canSaveAssessment && canManageAssessments}
           onSaveAssessment={() => void handleSaveAssessment()}
+          onWorkflowAction={setWorkflowActionConfirmation}
+          onDeleteAssessment={() => setIsDeleteAssessmentConfirmationOpen(true)}
         />
       )}
 
@@ -834,6 +1042,10 @@ export default function AssessmentQuestionsPage({
               )) as AssignmentQuestion | undefined
           }
           assessment={assessmentDraft || assessment}
+          termLabel={termName || termId}
+          scopeTypes={scopeTypes}
+          scopeEntitiesByType={scopeEntitiesByType}
+          subjects={eligibleSubjects}
           isReadOnly={isQuestionReadOnly}
           isAssessmentReadOnly={isAssessmentReadOnly}
           pointsSummary={pointsSummary}
@@ -849,11 +1061,7 @@ export default function AssessmentQuestionsPage({
           onMoveQuestion={(questionId, direction) =>
             void handleMoveQuestion(questionId, direction)
           }
-          onUpdateAssessment={(updates) =>
-            setAssessmentDraft((current) =>
-              current ? { ...current, ...updates } : current,
-            )
-          }
+          onUpdateAssessment={updateAssessmentDraft}
           onAutoDistributePoints={() => void handleAutoDistributePoints()}
           onSaveQuestion={handleSaveQuestion}
         />
@@ -868,6 +1076,10 @@ export default function AssessmentQuestionsPage({
               )) as AssignmentQuestion | undefined
           }
           assessment={assessmentDraft || assessment}
+          termLabel={termName || termId}
+          scopeTypes={scopeTypes}
+          scopeEntitiesByType={scopeEntitiesByType}
+          subjects={eligibleSubjects}
           isReadOnly={isQuestionReadOnly}
           isAssessmentReadOnly={isAssessmentReadOnly}
           pointsSummary={pointsSummary}
@@ -883,11 +1095,7 @@ export default function AssessmentQuestionsPage({
           onMoveQuestion={(questionId, direction) =>
             void handleMoveQuestion(questionId, direction)
           }
-          onUpdateAssessment={(updates) =>
-            setAssessmentDraft((current) =>
-              current ? { ...current, ...updates } : current,
-            )
-          }
+          onUpdateAssessment={updateAssessmentDraft}
           onAutoDistributePoints={() => void handleAutoDistributePoints()}
           onSaveQuestion={handleSaveQuestion}
         />
@@ -907,6 +1115,33 @@ export default function AssessmentQuestionsPage({
         confirmLabel={t("deleteConfirm")}
         cancelLabel={t("deleteCancel")}
         severity="danger"
+      />
+      <ConfirmDialog
+        isOpen={isDeleteAssessmentConfirmationOpen}
+        onClose={() => setIsDeleteAssessmentConfirmationOpen(false)}
+        onConfirm={() => void deleteCurrentAssessment()}
+        title={tGrades("dialogs.deleteAssessment.title")}
+        description={tGrades("dialogs.deleteAssessment.description", {
+          assessment: locale === "ar" ? assessment?.titleAr || "" : assessment?.title || "",
+        })}
+        confirmLabel={tGrades("dialogs.deleteAssessment.confirm")}
+        cancelLabel={tGrades("dialogs.deleteAssessment.cancel")}
+        loading={assessmentAction === "delete"}
+        severity="danger"
+      />
+      <ConfirmDialog
+        isOpen={!!workflowActionConfirmation}
+        onClose={() => setWorkflowActionConfirmation(null)}
+        onConfirm={() => void executeAssessmentWorkflowAction()}
+        title={tGrades(`dialogs.workflow.${workflowActionConfirmation || "publish"}.title`)}
+        description={tGrades(
+          `dialogs.workflow.${workflowActionConfirmation || "publish"}.description`,
+          { assessment: locale === "ar" ? assessment?.titleAr || "" : assessment?.title || "" },
+        )}
+        confirmLabel={tGrades(`actions.${workflowActionConfirmation || "publish"}`)}
+        cancelLabel={tCommon("cancel")}
+        loading={assessmentAction !== null}
+        severity={workflowActionConfirmation === "lock" ? "warning" : "info"}
       />
     </div>
   );

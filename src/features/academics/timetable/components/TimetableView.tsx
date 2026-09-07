@@ -39,6 +39,7 @@ import {
 import { subjectOptionsForGradeAllocations } from "@/features/academics/timetable/services/timetableSlotEditing";
 import { hasBlockingValidation } from "@/features/academics/timetable/services/timetableValidationSummary";
 import { createTimetablePublishFingerprint } from "@/features/academics/timetable/services/timetablePublishFingerprint";
+import { getTimetableConfigSourceName } from "@/features/academics/timetable/services/timetableConfigSource";
 import {
   resolveTimetableCreationProgress,
   type TimetableCreationAction,
@@ -175,7 +176,9 @@ export default function TimetableView({
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [publishWithErrors, setPublishWithErrors] = useState(false);
-  const [publishFingerprint, setPublishFingerprint] = useState<string | null>(null);
+  const [publishFingerprint, setPublishFingerprint] = useState<string | null>(
+    null,
+  );
 
   // We need to fetch dependencies before we can normalize.
   // We can pass a preliminary normalized state to useTimetableData to prevent premature timetable loading.
@@ -309,7 +312,9 @@ export default function TimetableView({
   );
 
   const configGuardEntries = useMemo(() => {
-    const entriesById = new Map(allTermEntries.map((entry) => [entry.id, entry]));
+    const entriesById = new Map(
+      allTermEntries.map((entry) => [entry.id, entry]),
+    );
     timetableEntries.forEach((entry) => entriesById.set(entry.id, entry));
     return [...entriesById.values()];
   }, [allTermEntries, timetableEntries]);
@@ -604,7 +609,10 @@ export default function TimetableView({
   const confirmPublish = async () => {
     if (!hasTimetableScope || !canWriteTimetable) return;
 
-    if (!publishFingerprint || publishFingerprint !== currentPublishFingerprint) {
+    if (
+      !publishFingerprint ||
+      publishFingerprint !== currentPublishFingerprint
+    ) {
       setPublishConfirmOpen(false);
       showToast(t("publish.unsavedChanges"), "error");
       return;
@@ -885,7 +893,16 @@ export default function TimetableView({
   );
 
   const configSourceLabel = resolvedConfig
-    ? t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`)
+    ? [
+        t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`),
+        getTimetableConfigSourceName(
+          resolvedConfig.source,
+          { stages, grades, sections, classrooms },
+          locale,
+        ),
+      ]
+        .filter((label): label is string => Boolean(label))
+        .join(": ")
     : "";
 
   const creationProgress = useMemo(
@@ -1102,9 +1119,7 @@ export default function TimetableView({
   }
 
   if (isLoading) {
-    return (
-      <TimetableLoadingSkeleton />
-    );
+    return <TimetableLoadingSkeleton />;
   }
 
   if (grades.length === 0 && stages.length === 0) {
@@ -1175,7 +1190,7 @@ export default function TimetableView({
 
           .timetable-print-header {
             display: flex !important;
-            align-items: flex-start !important;
+            align-items: center !important;
             justify-content: space-between !important;
             gap: 12px !important;
             margin-bottom: 4px !important;
@@ -1186,11 +1201,17 @@ export default function TimetableView({
           .timetable-print-school {
             max-width: 45% !important;
             text-align: start !important;
+
           }
 
           .timetable-print-logo {
-            width: 64px !important;
-            height: auto !important;
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            max-width: 32px !important;
+            max-height: 32px !important;
+            flex: none !important;
             object-fit: contain !important;
           }
 

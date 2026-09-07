@@ -10,7 +10,7 @@ import Button from "@/components/ui/button/Button";
 import QuestionOutlineItem from "@/features/academics/curriculum/components/QuestionOutlineItem";
 import EmptyQuestionState from "@/features/academics/curriculum/components/EmptyQuestionState";
 import QuestionEditor from "@/features/academics/curriculum/components/QuestionEditor";
-import type { Assessment } from "../types";
+import type { Assessment, ExamScopeType, ScopeEntityOption, ScopeOption } from "../types";
 import AssessmentQuestionSettingsPanel from "./AssessmentQuestionSettingsPanel";
 
 interface AssessmentQuestionMobileLayoutProps {
@@ -18,6 +18,10 @@ interface AssessmentQuestionMobileLayoutProps {
   selectedQuestionId: string | null;
   selectedQuestion: AssignmentQuestion | undefined;
   assessment: Assessment;
+  termLabel: string;
+  scopeTypes: ExamScopeType[];
+  scopeEntitiesByType: Record<ExamScopeType, ScopeEntityOption[]>;
+  subjects: Array<Pick<ScopeOption, "id" | "nameAr" | "nameEn">>;
   isReadOnly: boolean;
   isAssessmentReadOnly: boolean;
   pointsSummary: PointsSummary;
@@ -39,6 +43,10 @@ export default function AssessmentQuestionMobileLayout({
   selectedQuestionId,
   selectedQuestion,
   assessment,
+  termLabel,
+  scopeTypes,
+  scopeEntitiesByType,
+  subjects,
   isReadOnly,
   isAssessmentReadOnly,
   pointsSummary,
@@ -114,6 +122,10 @@ export default function AssessmentQuestionMobileLayout({
           <div className="p-4">
             <AssessmentQuestionSettingsPanel
               assessment={assessment}
+              termLabel={termLabel}
+              scopeTypes={scopeTypes}
+              scopeEntitiesByType={scopeEntitiesByType}
+              subjects={subjects}
               pointsSummary={pointsSummary}
               validationErrors={validationErrors}
               isReadOnly={isAssessmentReadOnly}

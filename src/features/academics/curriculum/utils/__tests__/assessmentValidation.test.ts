@@ -38,6 +38,14 @@ describe("assessment backend validation boundaries", () => {
     }));
   });
 
+  it("rejects HTTP media links before the backend rejects them", () => {
+    expect(validateQuestion(question({
+      questionType: "MEDIA",
+      mediaMode: "LINK",
+      mediaUrl: "http://example.com/media.png",
+    }), t)).toEqual(expect.objectContaining({ media: "invalid_media_url" }));
+  });
+
   it("rejects expected time below one minute", () => {
     const assignment = {
       id: "assessment-1",

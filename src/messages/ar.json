@@ -495,7 +495,7 @@
       "system": "النظام",
       "admin": "المسؤول",
       "teacher": "المعلم",
-    "student": "الطالب",
+      "student": "الطالب",
       "parent": "ولي الأمر",
       "unknown": "غير معروف"
     },
@@ -5457,7 +5457,7 @@
           "SHORT_ANSWER": "إجابة قصيرة",
           "ESSAY": "مقال",
           "FILL_IN_BLANK": "املأ الفراغ",
-          "MATCHING": "مزاوجة",
+          "MATCHING": "توصيل",
           "MEDIA": "وسائط"
         },
         "options": "الاختيارات",
@@ -5481,24 +5481,24 @@
         "accepted_answers_ar_placeholder": "إجابة واحدة في كل سطر",
         "accepted_answers_en_placeholder": "إجابة واحدة في كل سطر",
         "accepted_answers_help": "أدخل إجابة مقبولة واحدة في كل سطر. يتم تجاهل السطور الفارغة.",
-        "matching_pairs": "أزواج المزاوجة",
-        "matching_pairs_help": "أضف زوجين على الأقل من العناصر والمطابقات باللغتين.",
+        "matching_pairs": "أزواج التوصيل",
+        "matching_pairs_help": "أضف زوجين على الأقل من عناصر وقيم التوصيل باللغتين.",
         "matching_prompt_ar": "العنصر (عربي)",
         "matching_prompt_en": "العنصر (إنجليزي)",
-        "matching_answer_ar": "المطابقة (عربي)",
-        "matching_answer_en": "المطابقة (إنجليزي)",
+        "matching_answer_ar": "قيمة التوصيل (عربي)",
+        "matching_answer_en": "قيمة التوصيل (إنجليزي)",
         "add_pair": "إضافة زوج",
         "remove_pair": "حذف الزوج",
         "pair_label": "الزوج {number}",
         "media": "وسائط",
-        "media_hint": "أرفق ملفًا أو أضف رابطًا. يمكن استخدام نص السؤال كتعليمات أو وصف اختياري.",
+        "media_hint": "أضف رابط HTTPS خارجيًا. يمكن استخدام نص السؤال كتعليمات أو وصف اختياري.",
         "media_mode": "مصدر الوسائط",
         "media_mode_link": "رابط",
         "media_mode_file": "ملف",
         "media_title": "عنوان الوسائط",
         "media_title_placeholder": "عنوان اختياري للوسائط",
         "media_url": "رابط الوسائط",
-        "media_link_help": "استخدم رابط http أو https كاملًا.",
+        "media_link_help": "استخدم رابط HTTPS كاملًا.",
         "attach_file": "إرفاق ملف",
         "remove_media": "إزالة الوسائط",
         "media_attached": "تم إرفاق وسائط",
@@ -5716,7 +5716,8 @@
         },
         "helpers": {
           "teacherSubjectAllocation": "سيستخدم الواجب هذا التوزيع للتحقق من المعلم والمادة والفصل والسنة والترم.",
-          "scheduleDate": "يمكن اختيار التواريخ التي تحتوي على حصة مجدولة لهذا الفصل فقط."
+          "scheduleDate": "يمكن اختيار التواريخ التي تحتوي على حصة مجدولة لهذا الفصل فقط.",
+          "timetablePublicationRequired": "يمكن ربط الحصص من جدول دراسي نشط ومنشور فقط. إذا لم تظهر أي حصة، انشر الجدول الدراسي أولًا."
         },
         "targetModes": {
           "classroom": "الفصل",
@@ -5971,7 +5972,10 @@
           "multipleChoice": "اختيار من متعدد (متعدد)",
           "trueFalse": "صح أو خطأ",
           "shortAnswer": "إجابة قصيرة",
-          "essay": "سؤال مقالي"
+          "essay": "سؤال مقالي",
+          "fillInBlank": "املأ الفراغ",
+          "matching": "توصيل",
+          "media": "وسائط"
         },
         "attachments": {
           "title": "المرفقات",
@@ -6468,7 +6472,7 @@
         "scope": {
           "term": "الترم بالكامل",
           "termDesc": "تطبيق على كل الصفوف والشعب",
-          "grade": "صف معين",
+          "grade": "صف",
           "gradeDesc": "تطبيق على صف واحد فقط",
           "section": "شعبة محددة",
           "sectionDesc": "تطبيق على شعبة واحدة فقط",
@@ -7263,7 +7267,21 @@
         "title": "تسليمات التقييم",
         "subtitle": "متابعة تقدم الإجابات وحالة التسليم وجاهزية التصحيح.",
         "detailTitle": "التسليم",
-        "search": "البحث عن الطلاب",
+        "backToAssessments": "العودة إلى التقييمات",
+          "search": "البحث عن الطلاب",
+          "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "الفصل",
+          "allGrades": "كل الصفوف",
+          "allSections": "كل الشعب",
+          "allClassrooms": "كل الفصول",
+          "resetFilters": "إعادة تعيين عوامل التصفية",
+          "filterOptionsUnavailable": "عوامل تصفية النطاق الأكاديمي غير متاحة حاليًا.",
+          "traceId": "معرّف التتبع للدعم: {traceId}",
+          "bulkReviewPartialRecovery": "قد تكون بعض تغييرات التصحيح قد طُبقت. حدّث الصفحة وتحقق قبل إعادة المحاولة.",
+          "bulkReviewRecoveryFailed": "فشل حفظ التصحيح ({saveError}) وفشل تحديث الاسترداد أيضًا ({reloadError}).",
+          "genericReloadFailure": "تعذر تحديث بيانات التسليم.",
+          "finalizeBlockedStatus": "يتاح الإنهاء للتسليمات التي تم إرسالها فقط.",
         "allStatuses": "كل الحالات",
         "loading": "جار تحميل التسليمات...",
         "empty": "لا توجد تسليمات تطابق عوامل التصفية الحالية.",
@@ -7280,10 +7298,65 @@
         "finalize": "إنهاء التصحيح",
         "sync": "مزامنة الدرجة",
         "points": "درجات",
+        "required": "مطلوب",
+        "score": "الدرجة",
+        "requiredProgress": "الإجابات المطلوبة",
+        "assessmentStatus": "حالة التقييم",
+        "deliveryMode": "طريقة التقديم",
+        "startedAt": "بدأ في",
+        "submittedAt": "تم التسليم في",
+        "correctedAt": "تم التصحيح في",
+        "correctionStatus": "حالة التصحيح",
+        "reviewedAt": "تمت المراجعة في",
+        "messages": {
+          "synced": "تمت مزامنة درجة التسليم مع سجل الدرجات."
+        },
+        "assessmentStatuses": {
+          "draft": "مسودة",
+          "published": "منشور",
+          "approved": "معتمد"
+        },
+        "deliveryModes": {
+          "questionBased": "مبني على الأسئلة",
+          "scoreOnly": "درجات فقط"
+        },
+        "correctionStatuses": {
+          "pending": "بانتظار المراجعة",
+          "corrected": "تم التصحيح"
+        },
+        "questionTypes": {
+          "singleChoice": "اختيار من متعدد (إجابة واحدة)",
+          "multipleChoice": "اختيار من متعدد (إجابات متعددة)",
+          "trueFalse": "صح أو خطأ",
+          "shortAnswer": "إجابة قصيرة",
+          "essay": "سؤال مقالي",
+          "fillInBlank": "املأ الفراغ",
+          "matching": "توصيل",
+          "media": "وسائط"
+        },
         "answerPlaceholder": "أدخل إجابة الطالب",
+        "fillInBlankAnswer": "إجابتك",
+        "fillInBlankPlaceholder": "أدخل الكلمة أو العبارة الناقصة",
+        "questionDetailsUnavailable": "تفاصيل السؤال غير متاحة.",
+        "matchingHelp": "طابق كل عبارة مع إجابة واحدة قبل الحفظ.",
+        "matchingPrompt": "العبارة",
+        "matchingAnswer": "الإجابة المطابقة",
+        "selectMatch": "اختر الإجابة المطابقة",
+        "mediaAttachment": "الوسيط المرفق",
+        "openMedia": "فتح {label}",
         "awardedPoints": "الدرجة الممنوحة",
         "reviewComment": "تعليق المصحح",
-        "saveReview": "حفظ التصحيح",
+          "saveReview": "حفظ التصحيح",
+          "saveAllReviews": "حفظ كل التصحيحات",
+          "reviewCommentEn": "تعليق المصحح (الإنجليزية)",
+          "reviewCommentAr": "تعليق المصحح (العربية)",
+          "back": "رجوع",
+          "finalizeBlockedUnsaved": "احفظ أو صحح المراجعات غير المحفوظة قبل الإنهاء.",
+          "finalizeBlockedPending": "يجب تصحيح كل الإجابات قبل الإنهاء.",
+          "discardReviewTitle": "هل تريد تجاهل المراجعات غير المحفوظة؟",
+          "discardReviewDescription": "لم يتم حفظ تغييرات المراجعة الخاصة بك.",
+          "discardReviewConfirm": "تجاهل التغييرات",
+          "reviewValidation": { "required": "الدرجة مطلوبة.", "invalid": "أدخل درجة صالحة.", "out_of_range": "يجب أن تكون الدرجة ضمن النقاط المتاحة.", "too_long": "لا يمكن أن يتجاوز التعليق 2000 حرف." },
         "statuses": {
           "IN_PROGRESS": "قيد التنفيذ",
           "SUBMITTED": "تم التسليم",
@@ -7374,6 +7447,47 @@
         "subtitle": "متابعة أداء الطلاب في التقييمات المختلفة",
         "search": "البحث عن طالب أو فصل",
         "statusFilter": "تصفية حسب حالة الدرجة",
+        "groups": "مجموعات التقييمات",
+        "viewMode": "عرض سجل الدرجات",
+        "views": {
+          "student": "الطلاب",
+          "assessment": "التقييم",
+          "matrix": "المصفوفة"
+        },
+        "studentProgress": "{completed}/{total} مكتمل · متوسط {average}%",
+        "assessment": "التقييم",
+        "assessmentProgress": "الوزن {weight}% · الدرجة الكاملة {maxScore}",
+        "points": "درجة",
+        "grade": "رصد الدرجة",
+        "assessments": "التقييمات",
+        "assessmentFilter": "تصفية التقييمات",
+        "studentListSignals": "{missing} مفقود · {absent} غياب",
+        "emptyStates": {
+          "noAssessmentsTitle": "لا توجد تقييمات لعرضها"
+        },
+        "deliveryHints": {
+          "scoreOnly": "أدخل درجة الطالب يدويًا؛ لا توجد تسليمات لهذا التقييم.",
+          "questionBased": "يمكن مراجعة تسليم الطالب من زر «مراجعة»."
+        },
+        "studentSummary": {
+          "overall": "المتوسط",
+          "completed": "المكتمل",
+          "missing": "المفقود",
+          "absent": "الغياب"
+        },
+        "pagination": {
+          "summary": "عرض {from}–{to} من {total}",
+          "pageSize": "عدد الطلاب في الصفحة",
+          "previous": "السابق",
+          "next": "التالي",
+          "page": "صفحة {page} من {total}"
+        },
+        "summary": {
+          "students": "الطلاب المعروضون",
+          "entered": "الدرجات المُدخلة",
+          "missing": "الدرجات المفقودة",
+          "absent": "درجات الغياب"
+        },
         "statuses": {
           "all": "كل الحالات",
           "entered": "تم الإدخال",
@@ -7390,7 +7504,14 @@
         "absent": "غائب",
         "pending": "قيد الانتظار",
         "missing": "مفقود",
-        "openReview": "مراجعة"
+        "openReview": "مراجعة",
+        "studentCode": "رمز الطالب",
+        "admissionNo": "رقم القبول",
+        "completedWeight": "الوزن المكتمل",
+        "missingCount": "عدد المفقود",
+        "absentCount": "عدد الغياب",
+        "weightedContribution": "الوزن: {value}",
+        "virtualMissing": "مفقود افتراضي"
       },
       "assessmentTypes": {
         "quiz": "اختبار قصير",
@@ -7494,7 +7615,9 @@
           "deliveryMode": "طريقة الإدخال",
           "date": "التاريخ",
           "weight": "الوزن",
+          "weightHint": "نسبة من إجمالي المادة؛ لا يمكن أن تتجاوز أوزان الاختبارات لنفس النطاق والمادة 100٪.",
           "maxScore": "الدرجة النهائية",
+          "expectedTimeMinutes": "الوقت المتوقع (بالدقائق)",
           "approvalStatus": "حالة الاعتماد",
           "locked": "مقفل",
           "scopeType": "نوع النطاق",
@@ -7566,9 +7689,10 @@
       },
       "dialogs": {
         "createAssessment": {
-          "title": "إنشاء اختبار",
-          "description": "أضف اختبارًا جديدًا للنطاق والمادة المحددين.",
-          "scopeType": "نوع النطاق",
+        "title": "إنشاء اختبار",
+        "description": "أضف اختبارًا جديدًا للنطاق والمادة المحددين.",
+        "term": "الفصل الدراسي",
+        "scopeType": "نوع النطاق",
           "scope": "النطاق",
           "subject": "المادة",
           "testMode": "نوع الاختبار",
@@ -7579,6 +7703,7 @@
           "weight": "الوزن",
           "weightHint": "نسبة من إجمالي المادة؛ لا يمكن أن تتجاوز أوزان الاختبارات لنفس النطاق والمادة 100٪.",
           "maxScore": "الدرجة النهائية",
+          "expectedTimeMinutes": "الوقت المتوقع (بالدقائق)",
           "save": "إنشاء",
           "continueToBuilder": "المتابعة إلى منشئ الأسئلة",
           "cancel": "إلغاء",
@@ -7638,8 +7763,8 @@
           "studentAnswer": "إجابة الطالب",
           "referenceAnswer": "الإجابة المرجعية",
           "manualReviewPlaceholder": "يتطلب مراجعة يدوية",
-          "matchingStudentAnswerPlaceholder": "إجابة المزاوجة تحتاج مراجعة يدوية.",
-          "matchingReferencePlaceholder": "راجع أزواج المزاوجة في إعداد السؤال.",
+          "matchingStudentAnswerPlaceholder": "إجابة التوصيل تحتاج مراجعة يدوية.",
+          "matchingReferencePlaceholder": "راجع أزواج التوصيل في إعداد السؤال.",
           "mediaStudentAnswerPlaceholder": "الاستجابة المعتمدة على المرفقات تحتاج مراجعة يدوية.",
           "mediaReferencePlaceholder": "سؤال يعتمد على وسائط مرفقة",
           "trueLabel": "صح",
@@ -7692,6 +7817,7 @@
           "weight": "الوزن",
           "weightHint": "نسبة من إجمالي المادة؛ لا يمكن أن تتجاوز أوزان الاختبارات لنفس النطاق والمادة 100٪.",
           "maxScore": "الدرجة النهائية",
+          "expectedTimeMinutes": "الوقت المتوقع (بالدقائق)",
           "save": "حفظ التعديلات",
           "cancel": "إلغاء",
           "types": {
@@ -7827,8 +7953,8 @@
         "rule_scope_parents_mismatch": "نطاق قاعدة الدرجات لا يطابق التسلسل الأكاديمي.",
         "grading_scale_invalid": "اختر مقياس درجات صالحا.",
         "assessment_date_range_invalid": "أدخل نطاق تاريخ صالحا للتقييم.",
-        "matching_metadata_required": "تتطلب أسئلة المطابقة بيانات الأزواج عند عدم إضافة خيارات.",
-        "matching_structure_required": "أضف خيارات أو بيانات أزواج المطابقة قبل نشر السؤال.",
+        "matching_metadata_required": "تتطلب أسئلة التوصيل بيانات الأزواج عند عدم إضافة خيارات.",
+        "matching_structure_required": "أضف خيارات أو بيانات أزواج التوصيل قبل نشر السؤال.",
         "multiple_choice_selection_required": "اختر خيارا واحدا على الأقل.",
         "pass_mark_out_of_range": "يجب أن تكون درجة النجاح بين 0 و100.",
         "question_payload_incomplete": "أكمل بيانات السؤال المطلوبة.",
@@ -8010,14 +8136,14 @@
     "invalid_points": "يجب أن تكون الدرجات 0 أو أكثر",
     "duplicateAcceptedAnswersAr": "إجابة عربية مقبولة مكررة",
     "duplicateAcceptedAnswersEn": "إجابة إنجليزية مقبولة مكررة",
-    "minMatchingPairs": "أضف زوجين على الأقل للمزاوجة",
-    "matchingPairFieldsRequired": "كل زوج مزاوجة يحتاج عناصر ومطابقات بالعربية والإنجليزية",
-    "matchingPromptArEnMustDiffer": "يجب أن يختلف النص العربي والإنجليزي في عنصر المزاوجة",
-    "matchingAnswerArEnMustDiffer": "يجب أن يختلف النص العربي والإنجليزي في المطابقة",
-    "duplicateMatchingPromptAr": "عنصر مزاوجة عربي مكرر",
-    "duplicateMatchingPromptEn": "عنصر مزاوجة إنجليزي مكرر",
-    "duplicateMatchingAnswerAr": "قيمة مطابقة عربية مكررة",
-    "duplicateMatchingAnswerEn": "قيمة مطابقة إنجليزية مكررة",
+    "minMatchingPairs": "أضف زوجين على الأقل للتوصيل",
+    "matchingPairFieldsRequired": "كل زوج توصيل يحتاج عناصر وقيم توصيل بالعربية والإنجليزية",
+    "matchingPromptArEnMustDiffer": "يجب أن يختلف النص العربي والإنجليزي في عنصر التوصيل",
+    "matchingAnswerArEnMustDiffer": "يجب أن يختلف النص العربي والإنجليزي في قيمة التوصيل",
+    "duplicateMatchingPromptAr": "عنصر توصيل عربي مكرر",
+    "duplicateMatchingPromptEn": "عنصر توصيل إنجليزي مكرر",
+    "duplicateMatchingAnswerAr": "قيمة توصيل عربية مكررة",
+    "duplicateMatchingAnswerEn": "قيمة توصيل إنجليزية مكررة",
     "media_required": "أرفق ملفًا أو أدخل رابط وسائط",
     "invalid_media_url": "أدخل رابط وسائط صالحًا",
     "points_sum_mismatch": "يجب أن يساوي مجموع درجات الأسئلة الدرجة النهائية",
@@ -10371,21 +10497,21 @@
           "back": "العودة إلى الحملات",
           "close": "إغلاق"
         },
-    "recipients": {
-      "title": "معاينة المستلمين",
-      "description": "عاين المستلمين المؤهلين والمتخطين قبل إنشاء دفعة الحملة.",
-      "total_matched": "إجمالي المطابقين",
-      "eligible": "مؤهل",
-      "skipped": "متخطى",
-      "zero_eligible_warning": "لا يوجد مستلمون مؤهلون. راجع أسباب التخطي أو اختر جمهورًا مختلفًا قبل إنشاء الحملة.",
-      "skip_reasons": {
-        "title": "أسباب تخطي المستلمين",
-        "disabled_user": "حساب معطّل",
-        "missing_contact_email": "لا يوجد بريد تواصل",
-        "duplicate_email": "بريد مستلم مكرر",
-        "invalid_email": "عنوان بريد غير صالح",
-        "unknown": "قاعدة أهلية أخرى من الخادم"
-      },
+        "recipients": {
+          "title": "معاينة المستلمين",
+          "description": "عاين المستلمين المؤهلين والمتخطين قبل إنشاء دفعة الحملة.",
+          "total_matched": "إجمالي المطابقين",
+          "eligible": "مؤهل",
+          "skipped": "متخطى",
+          "zero_eligible_warning": "لا يوجد مستلمون مؤهلون. راجع أسباب التخطي أو اختر جمهورًا مختلفًا قبل إنشاء الحملة.",
+          "skip_reasons": {
+            "title": "أسباب تخطي المستلمين",
+            "disabled_user": "حساب معطّل",
+            "missing_contact_email": "لا يوجد بريد تواصل",
+            "duplicate_email": "بريد مستلم مكرر",
+            "invalid_email": "عنوان بريد غير صالح",
+            "unknown": "قاعدة أهلية أخرى من الخادم"
+          },
           "sample_eligible": "عينة المستلمين المؤهلين",
           "sample_skipped": "عينة المستلمين المتخطين",
           "no_eligible": "لا يوجد مستلمون مؤهلون في العينة.",
@@ -11281,6 +11407,7 @@
       "showAdvancedFilters": "عرض المزيد من الفلاتر",
       "hideAdvancedFilters": "إخفاء الفلاتر الإضافية",
       "includeCancelled": "تضمين المهام الملغاة",
+      "filterOptionsUnavailable": "تعذر تحميل فلاتر المهام مؤقتاً، لكن قائمة المهام ما زالت محدّثة.",
       "search": "بحث في المهام",
       "source": "المصدر",
       "targetScope": "نطاق الهدف",
@@ -11296,7 +11423,8 @@
       "messages": {
         "created": "تم إنشاء المهمة بنجاح.",
         "duplicated": "تم نسخ المهمة بنجاح.",
-        "cancelled": "تم إلغاء المهمة بنجاح."
+        "cancelled": "تم إلغاء المهمة بنجاح.",
+        "alreadyCancelled": "تم إلغاء هذه المهمة مسبقاً."
       },
       "table": {
         "task": "المهمة",
@@ -11409,6 +11537,7 @@
       }
     },
     "xp": {
+      "filterOptionsUnavailable": "تعذر تحميل تسميات أهداف السياسة مؤقتاً، لكن قائمة السياسات ما زالت محدّثة.",
       "policiesTitle": "سياسات النقاط",
       "policiesDescription": "إعداد حدود النقاط وفترات التهدئة ونطاقات السياسة الفعالة.",
       "ledgerTitle": "سجل النقاط",
@@ -11425,6 +11554,8 @@
       "updatePolicy": "تحديث السياسة",
       "updatePolicyDescription": "حدّث السياق الدراسي والنطاق والحدود والأسباب والتواريخ وحالة التفعيل لسياسة النقاط.",
       "policyFilters": "فلاتر السياسات",
+      "policyFiltersDescription": "فلترة حسب النطاق أو الحالة أو هدف أكاديمي محدد.",
+      "clearFilters": "مسح الفلاتر",
       "ledgerFilters": "فلاتر السجل",
       "policyScope": "نطاق السياسة",
       "policyCaps": "الحدود والأسباب",
@@ -11477,6 +11608,8 @@
         "granted": "تم تسجيل منح النقاط اليدوي بنجاح."
       },
       "validation": {
+        "invalidCaps": "يجب أن تكون الحدود أعداداً صحيحة تساوي صفراً أو أكثر، ولا يمكن أن يكون الحد الأسبوعي أقل من الحد اليومي.",
+        "policyConflict": "توجد بالفعل سياسة نقاط XP نشطة لهذا النطاق.",
         "academicYearRequired": "اختر العام الأكاديمي أولاً.",
         "termRequired": "اختر الفصل الدراسي أولاً.",
         "studentRequired": "اختر طالباً قبل المتابعة.",
@@ -11556,7 +11689,8 @@
       "stageRequired": "أضف مرحلة واحدة على الأقل.",
       "targetRequired": "اختر هدفاً واحداً على الأقل.",
       "duplicateTarget": "هذا الهدف محدد بالفعل.",
-      "futureDueDateRequired": "اختر تاريخ استحقاق مستقبلياً.",
+      "futureDueDateRequired": "اختر تاريخ الاستحقاق.",
+      "invalidDueDateRange": "نطاق تاريخ الاستحقاق غير صالح.",
       "cancelReasonRequired": "أدخل سبب الإلغاء.",
       "studentRequired": "اختر طالباً.",
       "enrollmentRequired": "اختر تسجيلاً.",
@@ -11917,7 +12051,7 @@
       "school": "المدرسة",
       "stage": "المرحلة",
       "grade": "الصف",
-      "section": "القسم",
+      "section": "الشعبة",
       "classroom": "الفصل",
       "student": "الطالب"
     },
@@ -12033,9 +12167,13 @@
         "allStatuses": "كل الحالات",
         "allTypes": "كل الأنواع",
         "allCatalogStatuses": "كل حالات الكتالوج",
+        "catalogStatusSummary": "حالة الكتالوج (الملخص)",
+        "catalogSummaryOnly": "يؤثر على ملخص الكتالوج فقط.",
         "includeArchived": "تضمين المؤرشفة",
         "includeDeleted": "تضمين المحذوفة",
+        "includeDeletedCatalog": "تضمين عناصر الكتالوج المحذوفة",
         "onlyAvailable": "المتاحة فقط",
+        "onlyAvailableCatalog": "عناصر الكتالوج المتاحة فقط",
         "filtersTitle": "الفلاتر",
         "dateFrom": "تاريخ البدء",
         "dateTo": "تاريخ الانتهاء",
@@ -12055,6 +12193,10 @@
           "descriptionPlaceholderAr": "أدخل وصف المكافأة بالعربية (اختياري)",
           "stockRemaining": "المخزون المتبقي",
           "stockRemainingRequired": "المخزون المتبقي مطلوب للمكافآت محدودة الكمية.",
+          "stockQuantityRequired": "كمية المخزون مطلوبة للمكافآت محدودة الكمية.",
+          "stockRemainingExceedsQuantity": "لا يمكن أن يتجاوز المخزون المتبقي كمية المخزون.",
+          "nonNegativeInteger": "أدخل أرقامًا صحيحة تساوي صفرًا أو أكبر.",
+          "integer": "أدخل رقمًا صحيحًا.",
           "stockRemainingHelp": "الكمية المتاحة حاليًا. اتركها فارغة ليستخدم الخادم كمية المخزون.",
           "academicScope": "النطاق الأكاديمي",
           "academicYear": "العام الأكاديمي",
@@ -12075,6 +12217,9 @@
           "termsLoadFailed": "تعذر تحميل الفصول الدراسية لهذا العام.",
           "contextUnavailable": "اختر عامًا أكاديميًا وفصلًا دراسيًا لعرض كتالوج المكافآت."
         },
+        "filters": {
+          "allAvailability": "كل حالات التوفر"
+        },
         "archive": {
           "title": "أرشفة المكافأة",
           "description": "أرشف هذه المكافأة حتى لا تظهر كخيار نشط في الكتالوج. ستظل السجلات التاريخية متاحة.",
@@ -12083,7 +12228,7 @@
         },
         "publish": {
           "title": "نشر المكافأة",
-          "description": "هل أنت متأكد من نشر هذه المكافأة؟ لن يمكن تعديل المكافآت المنشورة."
+          "description": "هل أنت متأكد من نشر هذه المكافأة؟ سيتم قفل النطاق الأكاديمي ونوع المكافأة بعد النشر."
         },
         "availability": {
           "available": "متاح",
@@ -12129,7 +12274,14 @@
         },
         "filters": {
           "requestedFrom": "من تاريخ",
-          "requestedTo": "إلى تاريخ"
+          "requestedTo": "إلى تاريخ",
+          "allSources": "كل المصادر",
+          "requestState": "حالة الطلب",
+          "allRequests": "كل الطلبات",
+          "openOnly": "الطلبات المفتوحة فقط",
+          "allStudents": "كل الطلاب",
+          "allRewards": "كل المكافآت",
+          "optionsUnavailable": "خيارات فلترة الطلاب والمكافآت غير متاحة مؤقتاً. ما زال بإمكانك استخدام الفلاتر الأخرى."
         },
         "table": {
           "student": "الطالب",
@@ -12226,6 +12378,19 @@
         "rejected": "تم رفض طلب الاستبدال بنجاح.",
         "fulfilled": "تم تنفيذ طلب الاستبدال بنجاح.",
         "cancelled": "تم إلغاء طلب الاستبدال بنجاح."
+      },
+      "errors": {
+        "validation": "تحقق من القيم المدخلة ثم حاول مرة أخرى.",
+        "archived": "هذه المكافأة مؤرشفة ولا يمكن تعديلها أو طلبها.",
+        "notPublished": "انشر هذه المكافأة قبل طلبها.",
+        "outOfStock": "هذه المكافأة غير متاحة لأن مخزونها نفد.",
+        "insufficientXp": "لا يملك الطالب نقاط خبرة كافية لهذه المكافأة.",
+        "duplicateRedemption": "لدى هذا الطالب طلب مفتوح بالفعل لهذه المكافأة.",
+        "invalidTransition": "هذا الإجراء غير متاح لحالة الطلب الحالية.",
+        "notRequested": "يمكن إلغاء طلبات الاستبدال المطلوبة فقط.",
+        "notApproved": "وافق على طلب الاستبدال قبل تنفيذه.",
+        "terminal": "تم تنفيذ طلب الاستبدال أو رفضه أو إلغاؤه بالفعل.",
+        "invalidSource": "مصدر هذا الطلب غير مسموح به."
       },
       "emptyStates": {
         "catalog": "لا توجد مكافآت في الكتالوج حتى الآن.",
@@ -12444,10 +12609,10 @@
       "request_created": "تم إنشاء الطلب",
       "request_escalated": "تم تصعيد الطلب",
       "escalation_recorded": "يتطلب متابعة",
-    "status_changed": "تغيرت الحالة",
-    "initial_status": "الحالة الأولية: {status}",
-    "status_changed_from_to": "من {from} إلى {to}",
-    "note": "ملاحظة الموظف",
+      "status_changed": "تغيرت الحالة",
+      "initial_status": "الحالة الأولية: {status}",
+      "status_changed_from_to": "من {from} إلى {to}",
+      "note": "ملاحظة الموظف",
       "no_events": "لا توجد أحداث زمنية متاحة لهذا الطلب."
     },
     "operations_recipients": {
@@ -13214,7 +13379,7 @@
       "phone_invalid": "أدخل رقم هاتف صحيحًا.",
       "email_invalid": "أدخل عنوان بريد إلكتروني صحيحًا.",
       "work_time_order_invalid": "يجب أن يكون وقت انتهاء الدوام بعد وقت البداية.",
-                   "identity_inconsistent": "حالة حساب هذا المعلم غير متسقة، لذلك تم إيقاف العملية بأمان.",
+      "identity_inconsistent": "حالة حساب هذا المعلم غير متسقة، لذلك تم إيقاف العملية بأمان.",
       "identity_inconsistent_guidance": "تم تحديث أحدث حالة للمعلم. تواصل مع مسؤول النظام أو دعم الخادم لإصلاح سجلات المستخدم والعضوية المرتبطة قبل إعادة المحاولة.",
       "trace_id": "معرّف التتبع للدعم"
     },

@@ -12,6 +12,7 @@ import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebook
 import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import { createAssessment } from "../services/gradesAssessmentsService";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
+import { getEligibleAssessmentSubjects } from "../utils/assessmentSubjects";
 import type { AssessmentDeliveryMode, AssessmentType, CreateAssessmentPayload, ExamScopeType, ScopeEntityOption } from "../../shared/types";
 import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
 import {
@@ -93,29 +94,13 @@ export default function CreateAssessmentPage() {
 
   const subjects = useMemo(() => {
     if (!draft) return [];
-    const selectedEntity = scopeEntitiesByType[draft.scopeType]?.find((entity) => entity.id === draft.scopeId);
-    const gradeId = draft.scopeType === "grade"
-      ? draft.scopeId
-      : draft.scopeType === "section"
-        ? selectedEntity?.parentId
-        : draft.scopeType === "classroom"
-          ? (() => {
-            const sectionId = selectedEntity?.parentId;
-            return scopeEntitiesByType.section?.find((section) => section.id === sectionId)?.parentId;
-          })()
-          : "";
-    const stageId = draft.scopeType === "stage" ? draft.scopeId : "";
-    const gradeIds = gradeId
-      ? new Set([gradeId])
-      : stageId
-        ? new Set(scopeEntitiesByType.grade.filter((grade) => grade.parentId === stageId).map((grade) => grade.id))
-        : null;
-    const allocatedSubjectIds = new Set(
-      subjectAllocations
-        .filter((allocation) => !gradeIds || gradeIds.has(allocation.gradeId))
-        .map((allocation) => allocation.subjectId),
+    return getEligibleAssessmentSubjects(
+      allSubjects,
+      subjectAllocations,
+      scopeEntitiesByType,
+      draft.scopeType,
+      draft.scopeId,
     );
-    return allSubjects.filter((subject) => allocatedSubjectIds.has(subject.id));
   }, [allSubjects, draft, scopeEntitiesByType, subjectAllocations]);
 
   useEffect(() => {
@@ -235,6 +220,9 @@ export default function CreateAssessmentPage() {
       params.set("date", draft.date);
       params.set("weight", String(draft.weight));
       params.set("maxScore", String(draft.maxScore));
+      if (draft.expectedTimeMinutes != null) {
+        params.set("expectedTimeMinutes", String(draft.expectedTimeMinutes));
+      }
       router.push(`/${locale}/grades/assessments/new/questions?${params.toString()}`);
     } catch (error) {
       showError(t(`errors.${mapGradesApiError(error)}`));
@@ -361,6 +349,17 @@ export default function CreateAssessmentPage() {
               value={String(draft.maxScore)}
               onChange={(event) => setDraft((current) => (current ? { ...current, maxScore: Number(event.target.value) } : current))}
               required
+            />
+            <Input
+              label={tDialog("expectedTimeMinutes")}
+              type="number"
+              min="1"
+              step="1"
+              value={draft.expectedTimeMinutes ?? ""}
+              onChange={(event) => setDraft((current) => current ? {
+                ...current,
+                expectedTimeMinutes: event.target.value ? Number(event.target.value) : undefined,
+              } : current)}
             />
           </div>
 

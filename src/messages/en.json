@@ -5491,14 +5491,14 @@
         "remove_pair": "Remove pair",
         "pair_label": "Pair {number}",
         "media": "Media",
-        "media_hint": "Attach a file or paste a link. Question text can be used as optional instructions or caption.",
+        "media_hint": "Add an external HTTPS link. Question text can be used as optional instructions or caption.",
         "media_mode": "Media source",
         "media_mode_link": "Link",
         "media_mode_file": "File",
         "media_title": "Media title",
         "media_title_placeholder": "Optional media title",
         "media_url": "Media URL",
-        "media_link_help": "Use a full http or https link.",
+        "media_link_help": "Use a full HTTPS link.",
         "attach_file": "Attach file",
         "remove_media": "Remove media",
         "media_attached": "Media attached",
@@ -5715,7 +5715,8 @@
         },
         "helpers": {
           "teacherSubjectAllocation": "Homework will use this allocation for teacher, subject, classroom, year, and term validation.",
-          "scheduleDate": "Only dates with this class's scheduled lesson can be selected."
+          "scheduleDate": "Only dates with this class's scheduled lesson can be selected.",
+          "timetablePublicationRequired": "Only slots from an active, published timetable can be linked. If no slot is available, publish the timetable first."
         },
         "targetModes": {
           "classroom": "Classroom",
@@ -5970,7 +5971,10 @@
           "multipleChoice": "Multiple choice",
           "trueFalse": "True / false",
           "shortAnswer": "Short answer",
-          "essay": "Essay"
+          "essay": "Essay",
+          "fillInBlank": "Fill in the blank",
+          "matching": "Matching",
+          "media": "Media"
         },
         "attachments": {
           "title": "Attachments",
@@ -7262,7 +7266,21 @@
         "title": "Assessment submissions",
         "subtitle": "Track answer progress, submission state, and correction readiness.",
         "detailTitle": "Submission",
-        "search": "Search students",
+        "backToAssessments": "Back to assessments",
+          "search": "Search students",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom",
+          "allGrades": "All grades",
+          "allSections": "All sections",
+          "allClassrooms": "All classrooms",
+          "resetFilters": "Reset filters",
+          "filterOptionsUnavailable": "Academic scope filters are currently unavailable.",
+          "traceId": "Support trace ID: {traceId}",
+          "bulkReviewPartialRecovery": "Some review changes may have been applied. Refresh and verify before retrying.",
+          "bulkReviewRecoveryFailed": "Review save failed ({saveError}) and recovery refresh also failed ({reloadError}).",
+          "genericReloadFailure": "The submission could not be refreshed.",
+          "finalizeBlockedStatus": "Finalization is available only for submitted submissions.",
         "allStatuses": "All statuses",
         "loading": "Loading submissions...",
         "empty": "No submissions match the current filters.",
@@ -7279,10 +7297,65 @@
         "finalize": "Finalize review",
         "sync": "Sync grade",
         "points": "points",
+        "required": "Required",
+        "score": "Score",
+        "requiredProgress": "Required answers",
+        "assessmentStatus": "Assessment status",
+        "deliveryMode": "Delivery mode",
+        "startedAt": "Started",
+        "submittedAt": "Submitted",
+        "correctedAt": "Corrected",
+        "correctionStatus": "Correction status",
+        "reviewedAt": "Reviewed at",
+        "messages": {
+          "synced": "The submission grade was synced to the gradebook."
+        },
+        "assessmentStatuses": {
+          "draft": "Draft",
+          "published": "Published",
+          "approved": "Approved"
+        },
+        "deliveryModes": {
+          "questionBased": "Question-based",
+          "scoreOnly": "Score only"
+        },
+        "correctionStatuses": {
+          "pending": "Pending review",
+          "corrected": "Corrected"
+        },
+        "questionTypes": {
+          "singleChoice": "Single choice",
+          "multipleChoice": "Multiple choice",
+          "trueFalse": "True / false",
+          "shortAnswer": "Short answer",
+          "essay": "Essay",
+          "fillInBlank": "Fill in the blank",
+          "matching": "Matching",
+          "media": "Media"
+        },
         "answerPlaceholder": "Enter the student's answer",
+        "fillInBlankAnswer": "Your answer",
+        "fillInBlankPlaceholder": "Enter the missing word or phrase",
+        "questionDetailsUnavailable": "Question details are unavailable.",
+        "matchingHelp": "Match every prompt with one answer before saving.",
+        "matchingPrompt": "Prompt",
+        "matchingAnswer": "Matching answer",
+        "selectMatch": "Select the matching answer",
+        "mediaAttachment": "Attached media",
+        "openMedia": "Open {label}",
         "awardedPoints": "Awarded points",
         "reviewComment": "Reviewer comment",
-        "saveReview": "Save review",
+          "saveReview": "Save review",
+          "saveAllReviews": "Save all reviews",
+          "reviewCommentEn": "Reviewer comment (English)",
+          "reviewCommentAr": "Reviewer comment (Arabic)",
+          "back": "Back",
+          "finalizeBlockedUnsaved": "Save or correct unsaved reviews before finalizing.",
+          "finalizeBlockedPending": "All answers must be corrected before finalizing.",
+          "discardReviewTitle": "Discard unsaved reviews?",
+          "discardReviewDescription": "Your review changes have not been saved.",
+          "discardReviewConfirm": "Discard changes",
+          "reviewValidation": { "required": "A score is required.", "invalid": "Enter a valid score.", "out_of_range": "Score must be within the available points.", "too_long": "This comment cannot exceed 2,000 characters." },
         "statuses": {
           "IN_PROGRESS": "In progress",
           "SUBMITTED": "Submitted",
@@ -7373,6 +7446,47 @@
         "subtitle": "Students by rows, exams by columns",
         "search": "Search students or classrooms",
         "statusFilter": "Filter by grade status",
+        "groups": "Assessment groups",
+        "viewMode": "Gradebook view",
+        "views": {
+          "student": "Students",
+          "assessment": "Assessment",
+          "matrix": "Matrix"
+        },
+        "studentProgress": "{completed}/{total} completed · {average}% average",
+        "assessment": "Assessment",
+        "assessmentProgress": "Weight {weight}% · maximum {maxScore} points",
+        "points": "points",
+        "grade": "Grade",
+        "assessments": "Assessments",
+        "assessmentFilter": "Filter assessments",
+        "studentListSignals": "{missing} missing · {absent} absent",
+        "emptyStates": {
+          "noAssessmentsTitle": "No assessments to display"
+        },
+        "deliveryHints": {
+          "scoreOnly": "Enter this student's score manually; it has no submissions.",
+          "questionBased": "A student submission can be reviewed from the Review button."
+        },
+        "studentSummary": {
+          "overall": "Overall",
+          "completed": "Completed",
+          "missing": "Missing",
+          "absent": "Absent"
+        },
+        "pagination": {
+          "summary": "Showing {from}–{to} of {total}",
+          "pageSize": "Students per page",
+          "previous": "Previous",
+          "next": "Next",
+          "page": "Page {page} of {total}"
+        },
+        "summary": {
+          "students": "Students shown",
+          "entered": "Entered grades",
+          "missing": "Missing grades",
+          "absent": "Absent grades"
+        },
         "statuses": {
           "all": "All statuses",
           "entered": "Entered",
@@ -7416,7 +7530,14 @@
         "absent": "Absent",
         "pending": "Pending",
         "missing": "Missing",
-        "openReview": "Review"
+        "openReview": "Review",
+        "studentCode": "Student code",
+        "admissionNo": "Admission no.",
+        "completedWeight": "Completed weight",
+        "missingCount": "Missing count",
+        "absentCount": "Absent count",
+        "weightedContribution": "Weight: {value}",
+        "virtualMissing": "Virtual missing"
       },
       "assessmentTypes": {
         "quiz": "Quiz",
@@ -7565,9 +7686,10 @@
       },
       "dialogs": {
         "createAssessment": {
-          "title": "Create Exam",
-          "description": "Add a new exam for the selected scope and subject.",
-          "scopeType": "Scope Type",
+        "title": "Create Exam",
+        "description": "Add a new exam for the selected scope and subject.",
+        "term": "Term",
+        "scopeType": "Scope Type",
           "scope": "Scope",
           "subject": "Subject",
           "testMode": "Test Mode",
@@ -7578,6 +7700,7 @@
           "weight": "Weight",
           "weightHint": "Percentage of the subject total; weights for this scope and subject cannot exceed 100%.",
           "maxScore": "Max Score",
+          "expectedTimeMinutes": "Expected time (minutes)",
           "save": "Create",
           "continueToBuilder": "Continue to Question Builder",
           "cancel": "Cancel",
@@ -7620,6 +7743,7 @@
           "weight": "Weight",
           "weightHint": "Percentage of the subject total; weights for this scope and subject cannot exceed 100%.",
           "maxScore": "Max Score",
+          "expectedTimeMinutes": "Expected time (minutes)",
           "save": "Save Changes",
           "cancel": "Cancel",
           "types": {
@@ -11280,6 +11404,7 @@
       "showAdvancedFilters": "Show more filters",
       "hideAdvancedFilters": "Hide more filters",
       "includeCancelled": "Include cancelled tasks",
+      "filterOptionsUnavailable": "Task filters are temporarily unavailable. The task list is still up to date.",
       "search": "Search tasks",
       "source": "Source",
       "targetScope": "Target scope",
@@ -11295,7 +11420,8 @@
       "messages": {
         "created": "Task created successfully.",
         "duplicated": "Task duplicated successfully.",
-        "cancelled": "Task cancelled successfully."
+        "cancelled": "Task cancelled successfully.",
+        "alreadyCancelled": "This task has already been cancelled."
       },
       "table": {
         "task": "Task",
@@ -11408,6 +11534,7 @@
       }
     },
     "xp": {
+      "filterOptionsUnavailable": "Policy target labels are temporarily unavailable. The policy list is still up to date.",
       "policiesTitle": "XP Policies",
       "policiesDescription": "Configure XP limits, cooldowns, and effective policy scopes.",
       "ledgerTitle": "XP Ledger",
@@ -11424,6 +11551,8 @@
       "updatePolicy": "Update policy",
       "updatePolicyDescription": "Update the XP policy academic context, scope, limits, reasons, dates, and active state.",
       "policyFilters": "Policy filters",
+      "policyFiltersDescription": "Filter by scope, activity, or a specific academic target.",
+      "clearFilters": "Clear filters",
       "ledgerFilters": "Ledger filters",
       "policyScope": "Policy scope",
       "policyCaps": "Caps and reasons",
@@ -11476,6 +11605,8 @@
         "granted": "Manual XP grant recorded successfully."
       },
       "validation": {
+        "invalidCaps": "Caps must be whole numbers of zero or greater, and the weekly cap cannot be below the daily cap.",
+        "policyConflict": "An active XP policy already exists for this scope.",
         "academicYearRequired": "Select an academic year first.",
         "termRequired": "Select a term first.",
         "studentRequired": "Select a student before continuing.",
@@ -11555,7 +11686,8 @@
       "stageRequired": "Add at least one stage.",
       "targetRequired": "Select at least one target.",
       "duplicateTarget": "This target is already selected.",
-      "futureDueDateRequired": "Choose a future due date.",
+      "futureDueDateRequired": "Choose a due date.",
+      "invalidDueDateRange": "The due-date range is invalid.",
       "cancelReasonRequired": "Enter a cancellation reason.",
       "studentRequired": "Select a student.",
       "enrollmentRequired": "Select an enrollment.",
@@ -12032,9 +12164,13 @@
         "allStatuses": "All statuses",
         "allTypes": "All types",
         "allCatalogStatuses": "All catalog statuses",
+        "catalogStatusSummary": "Catalog status (summary)",
+        "catalogSummaryOnly": "Affects the catalog summary only.",
         "includeArchived": "Include archived",
         "includeDeleted": "Include deleted",
+        "includeDeletedCatalog": "Include deleted catalog items",
         "onlyAvailable": "Only available",
+        "onlyAvailableCatalog": "Only available catalog items",
         "filtersTitle": "Filters",
         "dateFrom": "Date From",
         "dateTo": "Date To",
@@ -12054,6 +12190,10 @@
           "descriptionPlaceholderAr": "Enter the reward description in Arabic (optional)",
           "stockRemaining": "Stock remaining",
           "stockRemainingRequired": "Stock remaining is required for limited rewards.",
+          "stockQuantityRequired": "Stock quantity is required for limited rewards.",
+          "stockRemainingExceedsQuantity": "Stock remaining cannot exceed stock quantity.",
+          "nonNegativeInteger": "Enter whole numbers that are zero or greater.",
+          "integer": "Enter a whole number.",
           "stockRemainingHelp": "Current available quantity. Leave empty to let the backend use the stock quantity.",
           "academicScope": "Academic scope",
           "academicYear": "Academic year",
@@ -12074,6 +12214,9 @@
           "termsLoadFailed": "Unable to load terms for this academic year.",
           "contextUnavailable": "Select an academic year and term to view the reward catalog."
         },
+        "filters": {
+          "allAvailability": "All availability"
+        },
         "archive": {
           "title": "Archive reward",
           "description": "Archive this reward so it no longer appears as an active catalog option. Existing historical records remain available.",
@@ -12082,7 +12225,7 @@
         },
         "publish": {
           "title": "Publish reward",
-          "description": "Are you sure you want to publish this reward? Published rewards can no longer be edited."
+          "description": "Are you sure you want to publish this reward? Academic scope and reward type will be locked after publishing."
         },
         "availability": {
           "available": "Available",
@@ -12128,7 +12271,14 @@
         },
         "filters": {
           "requestedFrom": "From Date",
-          "requestedTo": "To Date"
+          "requestedTo": "To Date",
+          "allSources": "All sources",
+          "requestState": "Request state",
+          "allRequests": "All requests",
+          "openOnly": "Open requests only",
+          "allStudents": "All students",
+          "allRewards": "All rewards",
+          "optionsUnavailable": "Student and reward filter options are temporarily unavailable. You can still use the other filters."
         },
         "table": {
           "student": "Student",
@@ -12225,6 +12375,19 @@
         "rejected": "Redemption rejected successfully.",
         "fulfilled": "Redemption fulfilled successfully.",
         "cancelled": "Redemption cancelled successfully."
+      },
+      "errors": {
+        "validation": "Check the entered values and try again.",
+        "archived": "This reward is archived and cannot be changed or requested.",
+        "notPublished": "Publish this reward before requesting it.",
+        "outOfStock": "This reward is no longer available because it is out of stock.",
+        "insufficientXp": "The student does not have enough XP for this reward.",
+        "duplicateRedemption": "This student already has an open request for this reward.",
+        "invalidTransition": "This action is not available for the current request state.",
+        "notRequested": "Only requested redemptions can be cancelled.",
+        "notApproved": "Approve this redemption before fulfilling it.",
+        "terminal": "This redemption has already been completed, rejected, or cancelled.",
+        "invalidSource": "This request source is not allowed."
       },
       "emptyStates": {
         "catalog": "No rewards in the catalog yet.",

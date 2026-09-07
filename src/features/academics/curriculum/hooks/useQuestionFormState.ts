@@ -9,6 +9,7 @@ import {
   sanitizeAnswerList,
   sanitizeMatchingPairs,
 } from "@/features/academics/curriculum/utils/validation";
+import { DEFAULT_NEW_QUESTION } from "@/features/academics/curriculum/libs/constants";
 
 interface UseQuestionFormStateOptions {
   question?: AssignmentQuestion | null;
@@ -65,10 +66,10 @@ interface UseQuestionFormStateReturn {
 }
 
 function createDefaultOptions(): QuestionOption[] {
-  return [
-    { id: `opt-${Date.now()}-1`, textAr: "", textEn: "", isCorrect: false, order: 1 },
-    { id: `opt-${Date.now()}-2`, textAr: "", textEn: "", isCorrect: false, order: 2 },
-  ];
+  return DEFAULT_NEW_QUESTION.options.map((option, index) => ({
+    ...option,
+    id: `opt-${Date.now()}-${index + 1}`,
+  }));
 }
 
 function createMatchingPair(order: number): MatchingPair {
@@ -270,11 +271,11 @@ export function useQuestionFormState({
       return;
     }
 
-    setQuestionTextAr("");
-    setQuestionTextEn("");
-    setQuestionType("MCQ_SINGLE");
-    setPoints(1);
-    setOptions([]);
+    setQuestionTextAr(DEFAULT_NEW_QUESTION.questionTextAr);
+    setQuestionTextEn(DEFAULT_NEW_QUESTION.questionTextEn);
+    setQuestionType(DEFAULT_NEW_QUESTION.questionType);
+    setPoints(DEFAULT_NEW_QUESTION.points);
+    setOptions(createDefaultOptions());
     setCorrectAnswer(true);
     setSampleAnswerAr("");
     setSampleAnswerEn("");

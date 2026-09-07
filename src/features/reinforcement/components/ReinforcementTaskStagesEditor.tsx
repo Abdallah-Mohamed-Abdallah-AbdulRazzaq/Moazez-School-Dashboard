@@ -121,6 +121,7 @@ export default function ReinforcementTaskStagesEditor({
                 label={t("tasks.form.stageTitleAr")}
                 value={stage.titleAr}
                 error={errors[index]}
+                maxLength={255}
                 disabled={disabled}
                 dir="rtl"
                 onChange={(event) =>
@@ -132,6 +133,7 @@ export default function ReinforcementTaskStagesEditor({
                 label={t("tasks.form.stageTitleEn")}
                 value={stage.titleEn}
                 error={errors[index]}
+                maxLength={255}
                 disabled={disabled}
                 onChange={(event) =>
                   updateStage(index, { titleEn: event.target.value })
@@ -142,6 +144,7 @@ export default function ReinforcementTaskStagesEditor({
                 label={t("tasks.form.stageDescriptionAr")}
                 value={stage.descriptionAr}
                 disabled={disabled}
+                maxLength={2000}
                 dir="rtl"
                 onChange={(event) =>
                   updateStage(index, { descriptionAr: event.target.value })
@@ -152,6 +155,7 @@ export default function ReinforcementTaskStagesEditor({
                 label={t("tasks.form.stageDescriptionEn")}
                 value={stage.descriptionEn}
                 disabled={disabled}
+                maxLength={2000}
                 onChange={(event) =>
                   updateStage(index, { descriptionEn: event.target.value })
                 }

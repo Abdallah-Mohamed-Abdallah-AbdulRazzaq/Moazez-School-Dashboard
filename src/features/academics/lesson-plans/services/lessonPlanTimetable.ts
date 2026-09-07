@@ -67,11 +67,13 @@ export function dashboardEntriesForScope(
   const classroom = response.items.find(
     (item) => item.classroomId === scope.classroomId,
   );
+  const effectiveTimetableConfigId = classroom?.effectiveConfig?.id;
 
   return (classroom?.entries ?? []).filter(
     (entry) =>
       entry.dayOfWeek === dayOfWeek &&
-      entry.status.toLowerCase() !== "cancelled" &&
+      entry.status.toLowerCase() === "active" &&
+      entry.timetableConfigId === effectiveTimetableConfigId &&
       Boolean(entry.teacherSubjectAllocationId) &&
       entry.teacherSubjectAllocationId === scope.teacherSubjectAllocationId,
   );

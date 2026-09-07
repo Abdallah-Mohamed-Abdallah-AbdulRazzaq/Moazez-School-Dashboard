@@ -16,6 +16,7 @@ export interface FilterConfig {
   type: "select" | "search" | "date";
   options?: { value: string; label: string }[];
   placeholder?: string;
+  searchable?: boolean;
 }
 
 export interface ActiveFilter {
@@ -115,6 +116,7 @@ export default function ReinforcementFilterToolbar({
           value={values[filter.key] || ""}
           onChange={(value) => onChange(filter.key, value)}
           options={filter.options || []}
+          searchable={filter.searchable}
           selectSize="sm"
         />
       );

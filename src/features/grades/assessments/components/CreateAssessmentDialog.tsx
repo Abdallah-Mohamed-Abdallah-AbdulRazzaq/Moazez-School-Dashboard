@@ -72,6 +72,9 @@ export default function CreateAssessmentDialog({
   const [date, setDate] = useState<Date | null>(initialAssessment?.date ? new Date(initialAssessment.date) : new Date());
   const [weight, setWeight] = useState(initialAssessment ? String(initialAssessment.weight) : "15");
   const [maxScore, setMaxScore] = useState(initialAssessment ? String(initialAssessment.maxScore) : "20");
+  const [expectedTimeMinutes, setExpectedTimeMinutes] = useState(
+    initialAssessment?.expectedTimeMinutes ? String(initialAssessment.expectedTimeMinutes) : "",
+  );
 
   const scopeOptions = useMemo(
     () =>
@@ -140,6 +143,11 @@ export default function CreateAssessmentDialog({
       date: formatLocalDateOnly(date),
       weight: Number(weight),
       maxScore: Number(maxScore),
+      expectedTimeMinutes: expectedTimeMinutes
+        ? Number(expectedTimeMinutes)
+        : mode === "edit"
+          ? null
+          : undefined,
     });
   };
 
@@ -237,6 +245,16 @@ export default function CreateAssessmentDialog({
           required
           disabled={isMetadataLocked}
           error={apiError?.field === "maxScore" ? apiError.message : undefined}
+        />
+        <Input
+          label={t("expectedTimeMinutes")}
+          type="number"
+          min="1"
+          step="1"
+          value={expectedTimeMinutes}
+          onChange={(event) => setExpectedTimeMinutes(event.target.value)}
+          disabled={isMetadataLocked}
+          error={apiError?.field === "expectedTimeMinutes" ? apiError.message : undefined}
         />
       </div>
     </Modal>

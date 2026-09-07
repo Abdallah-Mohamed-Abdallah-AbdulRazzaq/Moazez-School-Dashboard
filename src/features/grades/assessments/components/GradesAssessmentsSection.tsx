@@ -12,6 +12,7 @@ import {
   getAssessmentWorkflowState,
   isGradeEntryAvailable,
 } from "../../shared/utils/assessmentWorkflow";
+import { isEditableAssessmentDraft } from "../utils/assessmentContract";
 
 interface GradesAssessmentsSectionProps {
   assessments: Assessment[];
@@ -177,7 +178,7 @@ export default function GradesAssessmentsSection({
                 {canManageAssessments ? <Button
                   variant="secondary"
                   size="sm"
-                  disabled={assessment.isLocked || isReadOnly}
+                  disabled={isReadOnly || !isEditableAssessmentDraft(assessment)}
                   onClick={() => onEdit(assessment)}
                   leftIcon={<Pencil className="h-4 w-4" />}
                 >

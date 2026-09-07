@@ -97,9 +97,21 @@ export interface GradebookStudentRow {
   status?: string;
   scoresByAssessmentId: Record<string, number | null>;
   statusByAssessmentId: Record<string, GradeItemStatus>;
+  cellDetailsByAssessmentId: Record<string, GradebookCellDetails>;
   average: number;
+  completedWeight: number | null;
   completedItems: number;
   totalItems: number;
+  missingCount: number;
+  absentCount: number;
+}
+
+export interface GradebookCellDetails {
+  itemId: string | null;
+  percent: number | null;
+  weightedContribution: number | null;
+  comment: string | null;
+  isVirtualMissing: boolean;
 }
 
 export interface AssessmentTrendPoint {
@@ -119,6 +131,25 @@ export interface GradesPageSummary {
   highestAverage: number;
   lowestAverage: number;
   completionRate: number;
+  passingCount: number;
+  failingCount: number;
+  incompleteCount: number;
+}
+
+export interface GradebookContext {
+  academicYearId?: string;
+  yearId?: string;
+  termId: string;
+  subjectId?: string;
+  scope?: unknown;
+}
+
+export interface GradebookRuleDetails {
+  id: string | null;
+  source?: string;
+  passMark: number | null;
+  gradingScale?: string;
+  rounding?: string;
 }
 
 export interface GradebookResponse {
@@ -126,6 +157,8 @@ export interface GradebookResponse {
   rows: GradebookStudentRow[];
   summary: GradesPageSummary;
   trend: AssessmentTrendPoint[];
+  context: GradebookContext;
+  rule: GradebookRuleDetails | null;
 }
 
 export interface CreateAssessmentPayload {
@@ -144,7 +177,7 @@ export interface CreateAssessmentPayload {
   date: string;
   weight: number;
   maxScore: number;
-  expectedTimeMinutes?: number;
+  expectedTimeMinutes?: number | null;
 }
 
 export interface GradesScopeFilters {
@@ -250,24 +283,13 @@ export interface AssessmentQuestionAnswer {
   questionId: string;
   studentId: string;
   selectedOptionIds?: string[];
+  selectedOptions?: Array<Pick<QuestionOption, "id" | "textAr" | "textEn">>;
   booleanAnswer?: boolean;
   answerText?: string;
+  answerJson?: unknown;
   awardedPoints: number | null;
   correctionStatus: AssessmentCorrectionStatus;
   teacherComment?: string;
-}
-
-export interface AssessmentSubmissionQuestionReview {
-  question: AssessmentQuestion;
-  answer: AssessmentQuestionAnswer | null;
-}
-
-export interface AssessmentSubmissionReview {
-  submission: AssessmentSubmission;
-  assessment: Assessment;
-  studentNameEn: string;
-  studentNameAr: string;
-  questions: AssessmentSubmissionQuestionReview[];
 }
 
 export interface UpdateGradeItemPayload {

@@ -137,6 +137,17 @@ describe("RewardsOverviewPage", () => {
     });
   });
 
+  it("shows localized feedback instead of a dashboard error message", async () => {
+    dashboardMocks.getRewardsOverview.mockRejectedValue(
+      new Error("Internal dashboard error"),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText("common.error")).toBeInTheDocument();
+    expect(screen.queryByText("Internal dashboard error")).not.toBeInTheDocument();
+  });
+
   it("hydrates the academic cascade from an existing studentId URL filter", async () => {
     window.history.replaceState(
       null,
@@ -217,17 +228,17 @@ describe("RewardsOverviewPage", () => {
     );
     await user.click(
       screen.getByRole("checkbox", {
-        name: "rewardsModule.overview.includeDeleted",
+        name: "rewardsModule.overview.includeDeletedCatalog",
       }),
     );
     await user.click(
       screen.getByRole("checkbox", {
-        name: "rewardsModule.overview.onlyAvailable",
+        name: "rewardsModule.overview.onlyAvailableCatalog",
       }),
     );
     await selectOption(
       user,
-      "rewardsModule.catalog.table.status",
+      "rewardsModule.overview.catalogStatusSummary",
       "rewardsModule.status.published",
     );
 
