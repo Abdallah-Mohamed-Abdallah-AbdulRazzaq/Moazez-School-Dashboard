@@ -1,9 +1,11 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import type { Assessment } from "../types";
+
+export type AssessmentWorkflowAction = "publish" | "approve" | "lock";
 
 interface AssessmentQuestionBuilderHeaderProps {
   assessment: Assessment;
@@ -14,8 +16,15 @@ interface AssessmentQuestionBuilderHeaderProps {
   isQuestionSaving: boolean;
   saveLabel?: string;
   canSaveAssessment?: boolean;
+  workflowAction: AssessmentWorkflowAction | null;
+  isWorkflowActionSaving: boolean;
+  isWorkflowActionDisabled: boolean;
+  canDeleteAssessment: boolean;
+  isDeletingAssessment: boolean;
   onBack: () => void;
   onSaveAssessment: () => void;
+  onWorkflowAction: (action: AssessmentWorkflowAction) => void;
+  onDeleteAssessment: () => void;
 }
 
 export default function AssessmentQuestionBuilderHeader({
@@ -27,10 +36,18 @@ export default function AssessmentQuestionBuilderHeader({
   isQuestionSaving,
   saveLabel,
   canSaveAssessment,
+  workflowAction,
+  isWorkflowActionSaving,
+  isWorkflowActionDisabled,
+  canDeleteAssessment,
+  isDeletingAssessment,
   onBack,
   onSaveAssessment,
+  onWorkflowAction,
+  onDeleteAssessment,
 }: AssessmentQuestionBuilderHeaderProps) {
   const t = useTranslations("academics.grades.questions");
+  const tGrades = useTranslations("academics.grades");
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const isDirty = isAssessmentDirty || isQuestionDirty;
@@ -80,7 +97,29 @@ export default function AssessmentQuestionBuilderHeader({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {workflowAction && (
+              <Button
+                onClick={() => onWorkflowAction(workflowAction)}
+                variant="secondary"
+                size="sm"
+                disabled={isWorkflowActionDisabled}
+                loading={isWorkflowActionSaving}
+              >
+                {tGrades(`actions.${workflowAction}`)}
+              </Button>
+            )}
+            {canDeleteAssessment && (
+              <Button
+                onClick={onDeleteAssessment}
+                variant="danger"
+                size="sm"
+                loading={isDeletingAssessment}
+                leftIcon={<Trash2 className="h-4 w-4" />}
+              >
+                {tGrades("actions.delete")}
+              </Button>
+            )}
             {!isReadOnly && (
               <Button
                 onClick={onSaveAssessment}

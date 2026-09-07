@@ -95,7 +95,7 @@ export default function RewardRedemptionDetailsDrawer({
   const canCancel = Boolean(
     redemption &&
       canRequest &&
-      ["requested", "approved"].includes(redemption.status),
+      redemption.status === "requested",
   );
 
   return (

@@ -1,11 +1,9 @@
 "use client";
 
-import { useRef } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowDown, ArrowUp, Link2, Paperclip, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Link2, Plus, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
-import Select from "@/components/ui/input/Select";
 import type {
   AssignmentQuestion,
   MatchingPair,
@@ -58,19 +56,6 @@ function parseTextareaAnswers(value: string) {
   return value.split("\n");
 }
 
-function formatFileSize(size?: number) {
-  if (typeof size !== "number" || Number.isNaN(size)) {
-    return "";
-  }
-  if (size < 1024) {
-    return `${size} B`;
-  }
-  if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`;
-  }
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export default function QuestionTypeSpecificFields({
   questionId,
   questionType,
@@ -81,12 +66,8 @@ export default function QuestionTypeSpecificFields({
   acceptedAnswersAr,
   acceptedAnswersEn,
   matchingPairs,
-  mediaMode,
   mediaTitle,
   mediaUrl,
-  mediaFileName,
-  mediaMimeType,
-  mediaSize,
   setTrueFalseAnswer,
   setSampleAnswerArValue,
   setSampleAnswerEnValue,
@@ -97,15 +78,11 @@ export default function QuestionTypeSpecificFields({
   removeMatchingPair,
   moveMatchingPairUp,
   moveMatchingPairDown,
-  setMediaModeValue,
   setMediaTitleValue,
   setMediaUrlValue,
-  setMediaFileValue,
-  clearMedia,
   validationErrors,
 }: QuestionTypeSpecificFieldsProps) {
   const t = useTranslations("academics.curriculum.questions");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const trueFalseGroupName = `question-true-false-${questionId}`;
   const canRemoveMatchingPair = matchingPairs.length > 2;
 
@@ -330,17 +307,6 @@ export default function QuestionTypeSpecificFields({
           {t("media_hint")}
         </div>
 
-        <Select
-          label={t("media_mode")}
-          value={mediaMode}
-          onChange={(value) => setMediaModeValue(value as "FILE" | "LINK")}
-          options={[
-            { value: "LINK", label: t("media_mode_link") },
-            { value: "FILE", label: t("media_mode_file") },
-          ]}
-          disabled={isReadOnly}
-        />
-
         <Input
           label={t("media_title")}
           value={mediaTitle}
@@ -349,54 +315,19 @@ export default function QuestionTypeSpecificFields({
           placeholder={t("media_title_placeholder")}
         />
 
-        {mediaMode === "LINK" ? (
-          <div className="space-y-2">
-            <Input
-              label={t("media_url")}
-              value={mediaUrl}
-              onChange={(event) => setMediaUrlValue(event.target.value)}
-              disabled={isReadOnly}
-              placeholder="https://"
-            />
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <Link2 className="w-3.5 h-3.5" />
-              <span>{t("media_link_help")}</span>
-            </div>
+        <div className="space-y-2">
+          <Input
+            label={t("media_url")}
+            value={mediaUrl}
+            onChange={(event) => setMediaUrlValue(event.target.value)}
+            disabled={isReadOnly}
+            placeholder="https://"
+          />
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <Link2 className="w-3.5 h-3.5" />
+            <span>{t("media_link_help")}</span>
           </div>
-        ) : (
-          <div className="space-y-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(event) => setMediaFileValue(event.target.files?.[0] || null)}
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                variant="secondary"
-                size="sm"
-                disabled={isReadOnly}
-              >
-                <Paperclip className="w-4 h-4" />
-                {t("attach_file")}
-              </Button>
-              {(mediaFileName || mediaUrl) && !isReadOnly ? (
-                <Button onClick={clearMedia} variant="ghost" size="sm">
-                  {t("remove_media")}
-                </Button>
-              ) : null}
-            </div>
-            {(mediaFileName || mediaUrl) ? (
-              <div className="rounded-lg border border-gray-200 p-3 text-sm">
-                <div className="font-medium text-gray-800">{mediaFileName || mediaTitle || t("media_attached")}</div>
-                <div className="mt-1 text-xs text-gray-500">
-                  {[mediaMimeType, formatFileSize(mediaSize)].filter(Boolean).join(" • ") || t("media_attached")}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
+        </div>
 
         {validationErrors?.media ? <p className="text-xs text-red-600">{validationErrors.media}</p> : null}
       </div>

@@ -304,16 +304,6 @@ export interface BackendGradesOverviewResponse {
 // Submission flow types
 export type BackendSubmissionStatus = "in_progress" | "submitted" | "corrected";
 
-export interface BackendSubmissionResolveResponse {
-  id: string;
-  assessmentId: string;
-  studentId: string;
-  status?: string;
-  submittedAt?: string;
-  totalScore?: number | null;
-  maxScore?: number;
-}
-
 export interface BackendSubmissionAnswerResponse {
   id: string;
   questionId: string;
@@ -332,7 +322,6 @@ export interface BackendSubmissionAnswerResponse {
   }>;
   reviewerCommentAr: string | null;
   reviewedAt: string | null;
-  reviewedById: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -412,7 +401,6 @@ export interface BackendSubmissionDetailResponse {
   startedAt: string;
   submittedAt: string | null;
   correctedAt: string | null;
-  reviewedById: string | null;
   totalScore: number | null;
   maxScore: number | null;
   assessment: BackendSubmissionAssessmentResponse | null;
@@ -435,6 +423,7 @@ export interface BackendSubmissionReviewPayload {
     answerId: string;
     awardedPoints: number;
     reviewerComment?: string | null;
+    reviewerCommentAr?: string | null;
   }>;
 }
 

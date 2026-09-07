@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { mapBackendAssessmentToAssessment, mapBackendColumnToAssessment } from "../gradebookMappers";
+import {
+  mapBackendAssessmentToAssessment,
+  mapBackendColumnToAssessment,
+  mapGradebookResponseToUi,
+} from "../gradebookMappers";
+
 
 describe("gradebook assessment contract mappers", () => {
   it.each([
@@ -80,4 +85,57 @@ describe("gradebook assessment contract mappers", () => {
       }),
     );
   });
+
+  it("preserves gradebook row, cell, summary, context, and rule details", () => {
+    const gradebook = mapGradebookResponseToUi({
+      academicYearId: "year-1",
+      yearId: "legacy-year-1",
+      termId: "term-1",
+      subjectId: "subject-1",
+      scope: { type: "classroom", id: "classroom-1" },
+      rule: { ruleId: "rule-1", source: "scope", passMark: 60, gradingScale: "percentage", rounding: "decimal_1" },
+      columns: [{
+        id: "column-1",
+        assessmentId: "assessment-1",
+        stageId: "stage-1",
+        gradeId: "grade-1",
+        maxScore: 20,
+      }],
+      rows: [{
+        studentId: "student-1",
+        enrollmentId: "enrollment-1",
+        student: { id: "student-1", nameEn: "Ada", nameAr: "آدا", code: "S-1", admissionNo: "A-1" },
+        finalPercent: 75,
+        completedWeight: 30,
+        totalEnteredCount: 1,
+        missingCount: 2,
+        absentCount: 1,
+        cells: [{ assessmentId: "assessment-1", itemId: "item-1", score: 15, status: "entered", percent: 75, weightedContribution: 12, comment: "Good work", isVirtualMissing: true }],
+      }],
+      summary: { studentCount: 1, assessmentCount: 1, averagePercent: 75, passingCount: 1, failingCount: 0, incompleteCount: 0 },
+    });
+
+    expect(gradebook.assessments[0]).toEqual(expect.objectContaining({ stageId: "stage-1", gradeId: "grade-1" }));
+    expect(gradebook.rows[0]).toEqual(expect.objectContaining({
+      enrollmentId: "enrollment-1",
+      studentCode: "S-1",
+      admissionNo: "A-1",
+      completedWeight: 30,
+      missingCount: 2,
+      absentCount: 1,
+      cellDetailsByAssessmentId: {
+        "assessment-1": {
+          itemId: "item-1",
+          percent: 75,
+          weightedContribution: 12,
+          comment: "Good work",
+          isVirtualMissing: true,
+        },
+      },
+    }));
+    expect(gradebook.summary).toEqual(expect.objectContaining({ passingCount: 1, failingCount: 0, incompleteCount: 0 }));
+    expect(gradebook.context).toEqual(expect.objectContaining({ academicYearId: "year-1", yearId: "legacy-year-1", termId: "term-1", subjectId: "subject-1" }));
+    expect(gradebook.rule).toEqual(expect.objectContaining({ id: "rule-1", passMark: 60, rounding: "decimal_1" }));
+  });
+
 });

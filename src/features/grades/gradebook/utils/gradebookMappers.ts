@@ -11,12 +11,10 @@ import type {
   BackendGradesBootstrapResponse,
   BackendNamedEntity,
   BackendAssessmentRosterItem,
-  BackendSubmissionDetailResponse,
 } from "../types/api.types";
 import type {
   Assessment,
   AssessmentRosterItem,
-  AssessmentSubmissionReview,
   AssessmentTrendPoint,
   ExamScopeType,
   GradebookStudentRow,
@@ -71,30 +69,11 @@ const BACKEND_TO_FRONTEND_APPROVAL: Record<BackendApprovalStatus, Assessment["ap
   approved: "approved",
 };
 
-const BACKEND_QUESTION_TYPE_TO_UI: Record<string, AssessmentSubmissionReview["questions"][number]["question"]["questionType"]> = {
-  mcq_single: "MCQ_SINGLE",
-  mcq_multi: "MCQ_MULTI",
-  true_false: "TRUE_FALSE",
-  short_answer: "SHORT_ANSWER",
-  essay: "ESSAY",
-  fill_in_blank: "FILL_IN_BLANK",
-  matching: "MATCHING",
-  media: "MEDIA",
-};
-
 export function fromBackendApprovalStatus(
   status: BackendApprovalStatus | null | undefined,
 ): Assessment["approvalStatus"] {
   if (!status) return "draft";
   return BACKEND_TO_FRONTEND_APPROVAL[status] ?? "draft";
-}
-
-function fromBackendQuestionType(
-  type: string | undefined,
-): AssessmentSubmissionReview["questions"][number]["question"]["questionType"] {
-  if (!type) return "SHORT_ANSWER";
-  return BACKEND_QUESTION_TYPE_TO_UI[type] ??
-    (type.toUpperCase() as AssessmentSubmissionReview["questions"][number]["question"]["questionType"]);
 }
 
 function fromBackendDeliveryMode(
@@ -195,6 +174,8 @@ export function mapBackendColumnToAssessment(column: BackendGradebookColumn): As
     subjectId: column.subjectId ?? column.subject?.id ?? "",
     scopeType: column.scopeType ?? "school",
     scopeId: column.scopeId ?? "",
+    stageId: column.stageId ?? undefined,
+    gradeId: column.gradeId ?? undefined,
     sectionId: column.sectionId ?? undefined,
     classroomId: column.classroomId ?? undefined,
     title: names.nameEn || names.name,
@@ -260,6 +241,7 @@ export function mapBackendRowToStudentRow(
 
   const scoresByAssessmentId: Record<string, number | null> = {};
   const statusByAssessmentId: Record<string, GradeItemStatus> = {};
+  const cellDetailsByAssessmentId: GradebookStudentRow["cellDetailsByAssessmentId"] = {};
 
   const cellsByAssessmentId = new Map<string, BackendGradebookCell>();
   if (row.cells) {
@@ -278,10 +260,24 @@ export function mapBackendRowToStudentRow(
     if (cell) {
       scoresByAssessmentId[assessmentId] = cell.score ?? null;
       statusByAssessmentId[assessmentId] = fromBackendGradeItemStatus(cell.status);
+      cellDetailsByAssessmentId[assessmentId] = {
+        itemId: cell.itemId ?? null,
+        percent: cell.percent ?? null,
+        weightedContribution: cell.weightedContribution ?? null,
+        comment: cell.comment ?? null,
+        isVirtualMissing: cell.isVirtualMissing ?? false,
+      };
       if (cell.status === "entered") completedItems++;
     } else {
       scoresByAssessmentId[assessmentId] = null;
       statusByAssessmentId[assessmentId] = "missing";
+      cellDetailsByAssessmentId[assessmentId] = {
+        itemId: null,
+        percent: null,
+        weightedContribution: null,
+        comment: null,
+        isVirtualMissing: false,
+      };
     }
   }
 
@@ -296,9 +292,13 @@ export function mapBackendRowToStudentRow(
     status: row.status,
     scoresByAssessmentId,
     statusByAssessmentId,
+    cellDetailsByAssessmentId,
     average: row.finalPercent ?? 0,
+    completedWeight: row.completedWeight ?? null,
     completedItems: row.totalEnteredCount ?? completedItems,
     totalItems,
+    missingCount: row.missingCount ?? 0,
+    absentCount: row.absentCount ?? 0,
   };
 }
 
@@ -325,6 +325,9 @@ export function mapGradebookResponseToUi(response: BackendGradebookResponse): Gr
             1000,
         ) / 10
       : 0,
+    passingCount: backendSummary?.passingCount ?? 0,
+    failingCount: backendSummary?.failingCount ?? 0,
+    incompleteCount: backendSummary?.incompleteCount ?? 0,
   };
 
   // Derive trend from columns + rows: for each assessment, compute the class average
@@ -364,7 +367,28 @@ export function mapGradebookResponseToUi(response: BackendGradebookResponse): Gr
     };
   });
 
-  return { assessments, rows, summary, trend };
+  return {
+    assessments,
+    rows,
+    summary,
+    trend,
+    context: {
+      academicYearId: response.academicYearId,
+      yearId: response.yearId,
+      termId: response.termId,
+      subjectId: response.subjectId,
+      scope: response.scope,
+    },
+    rule: response.rule
+      ? {
+        id: response.rule.ruleId ?? null,
+        source: response.rule.source,
+        passMark: response.rule.passMark ?? null,
+        gradingScale: response.rule.gradingScale,
+        rounding: response.rule.rounding,
+      }
+      : null,
+  };
 }
 
 // ── Grade rule mapping ───────────────────────────────────────────────
@@ -401,57 +425,5 @@ export function mapBackendRosterItemToUi(item: BackendAssessmentRosterItem): Ass
     score: item.score ?? null,
     status: fromBackendGradeItemStatus(item.status),
     comment: item.comment ?? undefined,
-  };
-}
-
-// ── Submission detail → AssessmentSubmissionReview ────────────────────
-
-export function mapSubmissionDetailToReview(
-  detail: BackendSubmissionDetailResponse,
-  assessment: Assessment,
-): AssessmentSubmissionReview {
-  return {
-    submission: {
-      id: detail.id,
-      termId: detail.termId,
-      assessmentId: detail.assessmentId,
-      studentId: detail.studentId,
-      status: detail.status as AssessmentSubmissionReview["submission"]["status"],
-      submittedAt: detail.submittedAt ?? undefined,
-      totalScore: detail.totalScore,
-      maxScore: detail.maxScore ?? assessment.maxScore,
-    },
-    assessment,
-    studentNameEn:
-      detail.student?.nameEn ??
-      [detail.student?.firstName, detail.student?.lastName].filter(Boolean).join(" "),
-    studentNameAr: detail.student?.nameAr ?? detail.student?.nameEn ?? "",
-    questions: detail.questions.map((q) => ({
-      question: {
-        id: q.id,
-        assessmentId: detail.assessmentId,
-        assignmentId: "",
-        questionTextAr: q.promptAr ?? "",
-        questionTextEn: q.prompt,
-        questionType: fromBackendQuestionType(q.type),
-        points: q.points,
-        order: q.sortOrder,
-        createdAt: "",
-      },
-      answer: q.answer
-        ? {
-            id: q.answer.id,
-            submissionId: detail.id,
-            assessmentId: detail.assessmentId,
-            questionId: q.answer.questionId,
-            studentId: detail.studentId,
-            selectedOptionIds: q.answer.selectedOptions?.map((option) => option.optionId),
-            answerText: q.answer.answerText ?? undefined,
-            awardedPoints: q.answer.awardedPoints,
-            correctionStatus: (q.answer.correctionStatus ?? "pending") as "pending" | "corrected",
-            teacherComment: q.answer.reviewerComment ?? undefined,
-          }
-        : null,
-      })),
   };
 }

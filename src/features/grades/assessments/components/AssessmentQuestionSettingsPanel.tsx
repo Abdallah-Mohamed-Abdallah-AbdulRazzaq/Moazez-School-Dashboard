@@ -1,17 +1,35 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { AlertCircle, CheckCircle, Settings as SettingsIcon } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
+import Select from "@/components/ui/input/Select";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import Button from "@/components/ui/button/Button";
 import type { ValidationErrors, PointsSummary } from "@/features/academics/curriculum/types/types";
-import type { Assessment } from "../types";
+import type { Assessment, AssessmentType, ExamScopeType, ScopeEntityOption, ScopeOption } from "../types";
 import { formatLocalDateOnly } from "../../shared/utils/dateOnly";
+import { getAssessmentTypeLabelKey } from "../services/gradesAssessmentsService";
+import { getHierarchyOptions, getScopeHierarchyPath } from "../utils/assessmentScopeHierarchy";
+
+const assessmentTypes: AssessmentType[] = [
+  "QUIZ",
+  "MONTH_EXAM",
+  "MIDTERM",
+  "TERM_EXAM",
+  "ASSIGNMENT",
+  "FINAL",
+  "PRACTICAL",
+];
+const hierarchyScopeTypes = ["stage", "grade", "section", "classroom"] as const;
 
 interface AssessmentQuestionSettingsPanelProps {
   assessment: Assessment;
+  termLabel: string;
+  scopeTypes: ExamScopeType[];
+  scopeEntitiesByType: Record<ExamScopeType, ScopeEntityOption[]>;
+  subjects: Array<Pick<ScopeOption, "id" | "nameAr" | "nameEn">>;
   pointsSummary: PointsSummary;
   validationErrors: ValidationErrors;
   isReadOnly: boolean;
@@ -21,14 +39,25 @@ interface AssessmentQuestionSettingsPanelProps {
 
 export default function AssessmentQuestionSettingsPanel({
   assessment,
+  termLabel,
+  scopeTypes,
+  scopeEntitiesByType,
+  subjects,
   pointsSummary,
   validationErrors,
   isReadOnly,
   onUpdate,
   onAutoDistributePoints,
 }: AssessmentQuestionSettingsPanelProps) {
+  const locale = useLocale();
   const t = useTranslations("academics.grades.questions");
+  const tDialog = useTranslations("academics.grades.dialogs.createAssessment");
   const tValidation = useTranslations("validation");
+  const selectedScopeIds = getScopeHierarchyPath(
+    scopeEntitiesByType,
+    assessment.scopeType,
+    assessment.scopeId,
+  );
   const isMetadataLocked =
     isReadOnly || assessment.approvalStatus === "approved" || assessment.approvalStatus === "published";
 
@@ -41,6 +70,89 @@ export default function AssessmentQuestionSettingsPanel({
         </h3>
 
         <div className="space-y-4">
+          <Input label={tDialog("term")} value={termLabel} disabled />
+
+          <Select
+            label={tDialog("scopeType")}
+            value={assessment.scopeType}
+            onChange={(scopeTypeValue) => {
+              const scopeType = scopeTypeValue as ExamScopeType;
+              onUpdate({
+                scopeType,
+                scopeId: scopeEntitiesByType[scopeType][0]?.id || "",
+              });
+            }}
+            options={scopeTypes.map((scopeType) => ({
+              value: scopeType,
+              label: tDialog(`types.scopeTypes.${scopeType}`),
+            }))}
+            disabled={isMetadataLocked}
+          />
+
+          <Select
+            label={tDialog("scope")}
+            value={assessment.scopeId}
+            onChange={(scopeId) => onUpdate({ scopeId })}
+            options={scopeEntitiesByType[assessment.scopeType].map((scope) => ({
+              value: scope.id,
+              label: locale === "ar" ? scope.nameAr : scope.nameEn,
+            }))}
+            disabled={isMetadataLocked}
+          />
+
+          {hierarchyScopeTypes.map((scopeType) => {
+            const options = getHierarchyOptions(
+              scopeEntitiesByType,
+              scopeType,
+              selectedScopeIds,
+            );
+            return (
+              <Select
+                key={scopeType}
+                label={tDialog(`types.scopeTypes.${scopeType}`)}
+                value={selectedScopeIds[scopeType] || ""}
+                onChange={(scopeId) => onUpdate({ scopeType, scopeId })}
+                options={options.map((scope) => ({
+                  value: scope.id,
+                  label: locale === "ar" ? scope.nameAr : scope.nameEn,
+                }))}
+                disabled={isMetadataLocked || options.length === 0}
+              />
+            );
+          })}
+
+          <Select
+            label={tDialog("subject")}
+            value={assessment.subjectId}
+            onChange={(subjectId) => onUpdate({ subjectId })}
+            options={subjects.map((subject) => ({
+              value: subject.id,
+              label: locale === "ar" ? subject.nameAr : subject.nameEn,
+            }))}
+            disabled={isMetadataLocked}
+          />
+
+          <Input
+            label={tDialog("testMode")}
+            value={
+              assessment.deliveryMode === "QUESTION_BASED"
+                ? tDialog("testModes.electronic")
+                : tDialog("testModes.paper")
+            }
+            disabled
+          />
+
+          <Select
+            label={tDialog("type")}
+            value={assessment.type}
+            onChange={(type) => onUpdate({ type: type as AssessmentType })}
+            options={assessmentTypes.map((type) => ({
+              value: type,
+              label: tDialog(`types.${getAssessmentTypeLabelKey(type)}`),
+            }))}
+            disabled={isMetadataLocked}
+          />
+
           <BilingualTextField
             label={t("assessmentTitle")}
             value={{ ar: assessment.titleAr, en: assessment.title }}
@@ -59,6 +171,17 @@ export default function AssessmentQuestionSettingsPanel({
             value={assessment.date ? new Date(assessment.date) : null}
             onChange={(date) => onUpdate({ date: date ? formatLocalDateOnly(date) : assessment.date })}
             disabled={isMetadataLocked}
+          />
+
+          <Input
+            label={tDialog("weight")}
+            type="number"
+            value={assessment.weight}
+            onChange={(event) => onUpdate({ weight: Number(event.target.value) })}
+            disabled={isMetadataLocked}
+            min={1}
+            max={100}
+            required
           />
 
           <Input
@@ -87,7 +210,8 @@ export default function AssessmentQuestionSettingsPanel({
               })
             }
             disabled={isMetadataLocked}
-            min={0}
+            min={1}
+            step={1}
           />
           {validationErrors.expectedTimeMinutes && (
             <div className="mt-1 flex items-center gap-1 text-xs text-red-600">

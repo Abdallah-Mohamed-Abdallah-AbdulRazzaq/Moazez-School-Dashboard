@@ -38,7 +38,7 @@ const config = {
   gradeId: "grade-1",
   sectionId: "section-1",
   classroomId: "classroom-1",
-  status: "draft",
+  status: "active",
   createdAt: "2026-07-31T08:00:00.000Z",
   updatedAt: "2026-07-31T08:00:00.000Z",
 };
@@ -69,7 +69,7 @@ const entry = (overrides: Record<string, unknown> = {}) => ({
   room: null,
   teacherSubjectAllocationId: "allocation-1",
   notes: null,
-  status: "draft",
+  status: "active",
   createdAt: "2026-07-31T08:00:00.000Z",
   updatedAt: "2026-07-31T08:00:00.000Z",
   ...overrides,
@@ -90,6 +90,15 @@ const dashboard = (entries: ReturnType<typeof entry>[]) => ({
       },
       gradeId: "grade-1",
       grade: { id: "grade-1", nameAr: "Grade 1", nameEn: "Grade 1" },
+      effectiveConfig: {
+        id: "config-1",
+        name: "Classroom timetable",
+        scopeType: "classroom",
+        scopeKey: "classroom-1",
+        stageId: null,
+        status: "active",
+        activeDays: [3],
+      },
       configs: [],
       periods: [],
       entries,
@@ -239,7 +248,7 @@ describe("TimetableSlotSelect", () => {
     );
     expect(getConfig).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Timetable slot" }));
-    expect(screen.getAllByText(/Mathematics.*Teacher One/)).toHaveLength(2);
+    expect(screen.getAllByText(/Mathematics.*Teacher One/)).toHaveLength(1);
   });
 
   it("omits cancelled, wrong-day, and non-exact allocation entries", async () => {

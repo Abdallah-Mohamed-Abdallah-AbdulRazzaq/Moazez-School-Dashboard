@@ -20,6 +20,7 @@ import {
   listAssessmentSubmissions,
   reviewSubmissionAnswer,
   reviewSubmissionAnswers,
+  resolveGradeSubmission,
   saveSubmissionAnswer,
   saveSubmissionAnswers,
   submitGradeSubmission,
@@ -97,6 +98,11 @@ describe("grades submission endpoint contracts", () => {
       `/grades/submissions/${SUBMISSION_ID}/answers`,
       { answers: [{ questionId: QUESTION_ID, answerText: "Answer" }] },
     );
+  });
+
+  it("resolves a gradebook student to the canonical submission detail", async () => {
+    await resolveGradeSubmission(ASSESSMENT_ID, { studentId: "123e4567-e89b-42d3-a456-426614174006", enrollmentId: "123e4567-e89b-42d3-a456-426614174005" });
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(`/grades/assessments/${ASSESSMENT_ID}/submissions/resolve`, { studentId: "123e4567-e89b-42d3-a456-426614174006", enrollmentId: "123e4567-e89b-42d3-a456-426614174005" });
   });
 
   it("submits, reviews, finalizes, and syncs a submission", async () => {

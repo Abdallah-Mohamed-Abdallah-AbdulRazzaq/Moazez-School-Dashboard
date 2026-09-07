@@ -6,6 +6,7 @@ import Button from "@/components/ui/button/Button";
 import Modal from "@/components/ui/modal/Modal";
 import TextArea from "@/components/ui/input/TextArea";
 import type { CancelReinforcementTaskPayload, ReinforcementTask } from "../types";
+import { describeReinforcementTaskApiError } from "../utils/reinforcementTaskApiErrors";
 
 interface ReinforcementTaskCancelModalProps {
   task: ReinforcementTask | null;
@@ -45,6 +46,8 @@ export default function ReinforcementTaskCancelModal({
       await onSubmit({
         reason: reason.trim(),
       });
+    } catch (submissionError) {
+      setError(t(describeReinforcementTaskApiError(submissionError).messageKey));
     } finally {
       setSaving(false);
     }
@@ -83,6 +86,7 @@ export default function ReinforcementTaskCancelModal({
             setReason(event.target.value);
             setError("");
           }}
+          maxLength={1000}
         />
       </div>
     </Modal>

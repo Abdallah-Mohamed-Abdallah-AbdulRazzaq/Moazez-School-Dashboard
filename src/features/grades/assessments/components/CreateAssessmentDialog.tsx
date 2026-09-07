@@ -72,6 +72,9 @@ export default function CreateAssessmentDialog({
   const [date, setDate] = useState<Date | null>(initialAssessment?.date ? new Date(initialAssessment.date) : new Date());
   const [weight, setWeight] = useState(initialAssessment ? String(initialAssessment.weight) : "15");
   const [maxScore, setMaxScore] = useState(initialAssessment ? String(initialAssessment.maxScore) : "20");
+  const [expectedTimeMinutes, setExpectedTimeMinutes] = useState(
+    initialAssessment?.expectedTimeMinutes ? String(initialAssessment.expectedTimeMinutes) : "",
+  );
 
   const scopeOptions = useMemo(
     () =>
@@ -140,6 +143,11 @@ export default function CreateAssessmentDialog({
       date: formatLocalDateOnly(date),
       weight: Number(weight),
       maxScore: Number(maxScore),
+      expectedTimeMinutes: expectedTimeMinutes
+        ? Number(expectedTimeMinutes)
+        : mode === "edit"
+          ? null
+          : undefined,
     });
   };
 
@@ -162,19 +170,6 @@ export default function CreateAssessmentDialog({
       }
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {(["stage", "grade", "section", "classroom"] as const).map((hierarchyScopeType) => (
-          <Select
-            key={hierarchyScopeType}
-            label={t(`types.scopeTypes.${hierarchyScopeType}`)}
-            value={selectedScopeIds[hierarchyScopeType] || ""}
-            onChange={(value) => handleHierarchyChange(hierarchyScopeType, value)}
-            options={getHierarchyOptions(scopeEntitiesByType, hierarchyScopeType, selectedScopeIds).map((entity) => ({
-              value: entity.id,
-              label: locale === "ar" ? entity.nameAr : entity.nameEn,
-            }))}
-            disabled={isMetadataLocked || (hierarchyScopeType !== "stage" && !selectedScopeIds[hierarchyScopeType === "grade" ? "stage" : hierarchyScopeType === "section" ? "grade" : "section"])}
-          />
-        ))}
         <Select
           label={t("scopeType")}
           value={scopeType}
@@ -194,6 +189,19 @@ export default function CreateAssessmentDialog({
           disabled={isMetadataLocked}
           error={apiError?.field === "scopeId" ? apiError.message : undefined}
         />
+        {(["stage", "grade", "section", "classroom"] as const).map((hierarchyScopeType) => (
+          <Select
+            key={hierarchyScopeType}
+            label={t(`types.scopeTypes.${hierarchyScopeType}`)}
+            value={selectedScopeIds[hierarchyScopeType] || ""}
+            onChange={(value) => handleHierarchyChange(hierarchyScopeType, value)}
+            options={getHierarchyOptions(scopeEntitiesByType, hierarchyScopeType, selectedScopeIds).map((entity) => ({
+              value: entity.id,
+              label: locale === "ar" ? entity.nameAr : entity.nameEn,
+            }))}
+            disabled={isMetadataLocked || (hierarchyScopeType !== "stage" && !selectedScopeIds[hierarchyScopeType === "grade" ? "stage" : hierarchyScopeType === "section" ? "grade" : "section"])}
+          />
+        ))}
         <Select
           label={t("subject")}
           value={subjectId}
@@ -223,6 +231,7 @@ export default function CreateAssessmentDialog({
           max="100"
           value={weight}
           onChange={(event) => setWeight(event.target.value)}
+          helperText={t("weightHint")}
           required
           disabled={isMetadataLocked}
           error={apiError?.field === "weight" ? apiError.message : undefined}
@@ -236,6 +245,16 @@ export default function CreateAssessmentDialog({
           required
           disabled={isMetadataLocked}
           error={apiError?.field === "maxScore" ? apiError.message : undefined}
+        />
+        <Input
+          label={t("expectedTimeMinutes")}
+          type="number"
+          min="1"
+          step="1"
+          value={expectedTimeMinutes}
+          onChange={(event) => setExpectedTimeMinutes(event.target.value)}
+          disabled={isMetadataLocked}
+          error={apiError?.field === "expectedTimeMinutes" ? apiError.message : undefined}
         />
       </div>
     </Modal>

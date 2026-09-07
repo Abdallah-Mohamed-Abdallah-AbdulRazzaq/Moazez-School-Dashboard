@@ -152,6 +152,12 @@ describe("reinforcement XP payload contracts", () => {
     });
   });
 
+  it("preserves an explicit empty allowed-reason list when clearing a policy", () => {
+    expect(serializePatchXpPolicyPayload({ allowedReasons: [] })).toEqual({
+      allowedReasons: [],
+    });
+  });
+
   it("omits immutable academic and scope fields from XP policy patch payloads", () => {
     expect(
       serializePatchXpPolicyPayload({

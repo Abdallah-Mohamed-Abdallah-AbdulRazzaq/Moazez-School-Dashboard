@@ -10,6 +10,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import ReinforcementTaskForm from "../components/ReinforcementTaskForm";
 import { createReinforcementTask } from "../services/reinforcementTasksService";
+import { describeReinforcementTaskApiError } from "../utils/reinforcementTaskApiErrors";
 import type { CreateReinforcementTaskPayload } from "../types";
 
 function AccessNotice() {
@@ -46,8 +47,7 @@ export default function ReinforcementTaskCreatePage() {
       showSuccess(t("tasks.messages.created"));
       router.push(`/${locale}/reinforcement/tasks/${task.id}`);
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeReinforcementTaskApiError(nextError).messageKey);
       showError(message);
       throw nextError;
     }

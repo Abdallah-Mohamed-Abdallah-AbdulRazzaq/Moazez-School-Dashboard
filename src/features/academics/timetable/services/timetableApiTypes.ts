@@ -88,6 +88,7 @@ export interface TimetableDashboardConfigSummaryDto {
   name: string;
   scopeType: string;
   scopeKey: string;
+  stageId: string | null;
   status: string;
   activeDays: number[];
 }
@@ -105,6 +106,7 @@ export interface TimetableDashboardItemDto {
     nameAr: string;
     nameEn: string;
   };
+  effectiveConfig: TimetableDashboardConfigSummaryDto | null;
   configs: TimetableDashboardConfigSummaryDto[];
   periods: BackendTimetablePeriodDto[];
   entries: BackendTimetableEntryDto[];

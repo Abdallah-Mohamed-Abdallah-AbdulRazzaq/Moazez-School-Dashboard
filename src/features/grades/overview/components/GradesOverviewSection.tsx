@@ -13,6 +13,7 @@ import {
   getAssessmentWorkflowState,
   isGradeEntryAvailable,
 } from "../../shared/utils/assessmentWorkflow";
+import { isEditableAssessmentDraft } from "../../assessments/utils/assessmentContract";
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
@@ -215,7 +216,7 @@ export default function GradesOverviewSection({
                     {canManageAssessments ? <Button
                       variant="secondary"
                       size="sm"
-                      disabled={assessment.isLocked || isReadOnly}
+                      disabled={isReadOnly || !isEditableAssessmentDraft(assessment)}
                       onClick={() => onEdit(assessment)}
                       leftIcon={<Pencil className="h-4 w-4" />}
                     >

@@ -134,6 +134,7 @@ describe("lessonPlanTimetable", () => {
             nameAr: "Grade 1",
             nameEn: "Grade 1",
           },
+          effectiveConfig: null,
           configs: [],
           periods: [],
           entries: [entry("wrong-classroom")],
@@ -151,12 +152,22 @@ describe("lessonPlanTimetable", () => {
             nameAr: "Grade 1",
             nameEn: "Grade 1",
           },
+          effectiveConfig: {
+            id: "config-1",
+            name: "Published timetable",
+            scopeType: "classroom",
+            scopeKey: "classroom-1",
+            stageId: null,
+            status: "active",
+            activeDays: [1],
+          },
           configs: [
             {
               id: "config-1",
               name: "Published timetable",
               scopeType: "classroom",
               scopeKey: "classroom-1",
+              stageId: null,
               status: "active",
               activeDays: [1],
             },
@@ -165,6 +176,7 @@ describe("lessonPlanTimetable", () => {
               name: "Another published timetable",
               scopeType: "classroom",
               scopeKey: "classroom-1",
+              stageId: null,
               status: "active",
               activeDays: [1],
             },
@@ -187,7 +199,7 @@ describe("lessonPlanTimetable", () => {
     };
 
     expect(dashboardEntriesForScope(response, scope, 1).map(({ id }) => id))
-      .toEqual(["matching", "other-config"]);
+      .toEqual(["matching"]);
   });
 
   it("omits slots belonging to a draft timetable configuration", () => {
@@ -210,12 +222,22 @@ describe("lessonPlanTimetable", () => {
             nameAr: "Grade 1",
             nameEn: "Grade 1",
           },
+          effectiveConfig: {
+            id: "config-2",
+            name: "Published timetable",
+            scopeType: "classroom",
+            scopeKey: "classroom-1",
+            stageId: null,
+            status: "active",
+            activeDays: [1],
+          },
           configs: [
             {
               id: "config-1",
               name: "Draft timetable",
               scopeType: "classroom",
               scopeKey: "classroom-1",
+              stageId: null,
               status: "draft",
               activeDays: [1],
             },
@@ -224,6 +246,7 @@ describe("lessonPlanTimetable", () => {
               name: "Published timetable",
               scopeType: "classroom",
               scopeKey: "classroom-1",
+              stageId: null,
               status: "active",
               activeDays: [1],
             },

@@ -36,6 +36,10 @@ import {
   duplicateReinforcementTask,
   listReinforcementTasks,
 } from "../services/reinforcementTasksService";
+import {
+  describeReinforcementTaskApiError,
+  shouldIncludeCancelledTasks,
+} from "../utils/reinforcementTaskApiErrors";
 import type {
   CancelReinforcementTaskPayload,
   DuplicateReinforcementTaskPayload,
@@ -107,6 +111,7 @@ export default function ReinforcementTasksPage() {
   const [total, setTotal] = useState<number | undefined>();
   const [filterOptions, setFilterOptions] = useState<ReinforcementFilterOptions>({});
   const [filterOptionsLoaded, setFilterOptionsLoaded] = useState(false);
+  const [filterOptionsError, setFilterOptionsError] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [tasks, setTasks] = useState<ReinforcementTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +124,7 @@ export default function ReinforcementTasksPage() {
   const canView = hasPermission("reinforcement.tasks.view");
   const canManage = hasPermission("reinforcement.tasks.manage");
   const [debouncedSearch] = useDebounce(search.trim(), 400);
+  const effectiveIncludeCancelled = shouldIncludeCancelledTasks(status, includeCancelled);
 
   const resetFilters = () => {
     ["stageId", "gradeId", "sectionId", "classroomId", "subjectId", "studentId", "enrollmentId"]
@@ -149,7 +155,7 @@ export default function ReinforcementTasksPage() {
       dueTo: dueTo || undefined,
       dueDate: dueDate || undefined,
       search: debouncedSearch || undefined,
-      includeCancelled: includeCancelled || undefined,
+      includeCancelled: effectiveIncludeCancelled || undefined,
       limit: 25,
       offset,
     }),
@@ -168,7 +174,7 @@ export default function ReinforcementTasksPage() {
       dueTo,
       dueDate,
       debouncedSearch,
-      includeCancelled,
+      effectiveIncludeCancelled,
       offset,
     ],
   );
@@ -194,19 +200,29 @@ export default function ReinforcementTasksPage() {
     if (!canView) return;
     setLoading(true);
     setError(null);
+    setFilterOptionsError(false);
     try {
-      const optionsResponse = await getReinforcementFilterOptions({
-        academicYearId: context.academicYearId,
-        termId: context.termId,
-      });
-      const response = await listReinforcementTasks(params);
-      setFilterOptions(optionsResponse);
-      setFilterOptionsLoaded(true);
-      setTasks(response.items);
-      setTotal(response.total);
+      const [filterOptionsResult, tasksResult] = await Promise.allSettled([
+        getReinforcementFilterOptions({
+          academicYearId: context.academicYearId,
+          termId: context.termId,
+        }),
+        listReinforcementTasks(params),
+      ]);
+      if (tasksResult.status === "rejected") throw tasksResult.reason;
+
+      setTasks(tasksResult.value.items);
+      setTotal(tasksResult.value.total);
+      if (filterOptionsResult.status === "fulfilled") {
+        setFilterOptions(filterOptionsResult.value);
+        setFilterOptionsLoaded(true);
+      } else {
+        setFilterOptions({});
+        setFilterOptionsLoaded(false);
+        setFilterOptionsError(true);
+      }
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeReinforcementTaskApiError(nextError).messageKey);
       setError(message);
       setTasks([]);
       showError(message);
@@ -233,8 +249,7 @@ export default function ReinforcementTasksPage() {
       setDuplicateTask(null);
       await refreshTasks();
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeReinforcementTaskApiError(nextError).messageKey);
       showError(message);
       throw nextError;
     }
@@ -248,8 +263,7 @@ export default function ReinforcementTasksPage() {
       setCancelTask(null);
       await refreshTasks();
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeReinforcementTaskApiError(nextError).messageKey);
       showError(message);
       throw nextError;
     }
@@ -332,20 +346,29 @@ export default function ReinforcementTasksPage() {
               setOffset(0);
             }}
           />
+          {filterOptionsError ? (
+            <p className="mt-3 text-sm text-amber-700" role="status">
+              {t("tasks.filterOptionsUnavailable")}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-3 px-4 py-4 md:grid-cols-2 xl:grid-cols-3">
           <Input
             label={t("tasks.search")}
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setOffset(0);
+            }}
           />
           <Select
             label={t("tasks.table.status")}
             value={status}
-            onChange={(value) =>
-              setStatus(value as ReinforcementTaskStatus | "")
-            }
+            onChange={(value) => {
+              setStatus(value as ReinforcementTaskStatus | "");
+              setOffset(0);
+            }}
             options={[
               { value: "", label: t("filters.allStatuses") },
               { value: "not_completed", label: t("status.not_completed") },
@@ -358,7 +381,10 @@ export default function ReinforcementTasksPage() {
           <Select
             label={t("tasks.source")}
             value={source}
-            onChange={setSource}
+            onChange={(value) => {
+              setSource(value);
+              setOffset(0);
+            }}
             options={[
               { value: "", label: t("filters.allSources") },
               ...sourceOptions,
@@ -384,25 +410,37 @@ export default function ReinforcementTasksPage() {
             type="date"
             label={t("tasks.dueFrom")}
             value={dueFrom}
-            onChange={(event) => setDueFrom(event.target.value)}
+            onChange={(event) => {
+              setDueFrom(event.target.value);
+              setOffset(0);
+            }}
           />
           <Input
             type="date"
             label={t("tasks.dueTo")}
             value={dueTo}
-            onChange={(event) => setDueTo(event.target.value)}
+            onChange={(event) => {
+              setDueTo(event.target.value);
+              setOffset(0);
+            }}
           />
           <Input
             type="date"
             label={t("tasks.dueDate")}
             value={dueDate}
-            onChange={(event) => setDueDate(event.target.value)}
+            onChange={(event) => {
+              setDueDate(event.target.value);
+              setOffset(0);
+            }}
           />
           <label className="flex min-h-[70px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
             <input
               type="checkbox"
               checked={includeCancelled}
-              onChange={(event) => setIncludeCancelled(event.target.checked)}
+              onChange={(event) => {
+                setIncludeCancelled(event.target.checked);
+                setOffset(0);
+              }}
               className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
             />
             <span>{t("tasks.includeCancelled")}</span>

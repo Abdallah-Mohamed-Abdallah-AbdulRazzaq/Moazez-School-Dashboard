@@ -5,6 +5,8 @@ export type {
   AssessmentRosterItem,
   AssessmentType,
   ExamScopeType,
+  ScopeEntityOption,
+  ScopeOption,
   BulkGradeItemPayload,
   CreateAssessmentPayload,
   GradeItemStatus,
