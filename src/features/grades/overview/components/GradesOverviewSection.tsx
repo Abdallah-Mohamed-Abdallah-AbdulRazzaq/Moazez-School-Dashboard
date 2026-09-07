@@ -9,6 +9,7 @@ import type { Assessment } from "../types";
 import { getAssessmentTypeLabelKey } from "../../assessments/services/gradesAssessmentsService";
 import {
   ASSESSMENT_WORKFLOW_STATE_STYLES,
+  getAssessmentEntryUnavailableReason,
   getAssessmentEntryModeKey,
   getAssessmentWorkflowState,
   isGradeEntryAvailable,
@@ -176,6 +177,10 @@ export default function GradesOverviewSection({
                 const workflowState = getAssessmentWorkflowState(assessment);
                 const workflowStyle = ASSESSMENT_WORKFLOW_STATE_STYLES[workflowState];
                 const entryModeKey = getAssessmentEntryModeKey(assessment);
+                const bulkEntryUnavailableReason = getAssessmentEntryUnavailableReason(assessment, {
+                  isReadOnly,
+                  hasRequiredPermission: canManageGradeItems,
+                });
 
                 return (
                 <div key={assessment.id} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "var(--border-color)" }}>
@@ -202,7 +207,7 @@ export default function GradesOverviewSection({
                       {assessment.isLocked && <Lock className="h-4 w-4" style={{ color: "var(--warning-text)" }} />}
                     </div>
                   </div>
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {assessment.deliveryMode === "QUESTION_BASED" && canManageQuestions ? (
                       <Button
                         variant="secondary"
@@ -230,12 +235,18 @@ export default function GradesOverviewSection({
                         isReadOnly ||
                         isBulkLoading
                       }
+                      title={bulkEntryUnavailableReason ? t(`workflow.reasons.${bulkEntryUnavailableReason}`) : undefined}
                       loading={assessmentActionId === assessment.id && assessmentActionType === "bulk" && isBulkLoading}
                       onClick={() => onBulkEntry(assessment)}
                     >
                       {t("actions.bulkEntry")}
                     </Button> : null}
                     {renderWorkflowAction(assessment)}
+                    {canManageGradeItems && bulkEntryUnavailableReason ? (
+                      <span className="basis-full text-xs text-[var(--text-secondary)]">
+                        {t(`workflow.reasons.${bulkEntryUnavailableReason}`)}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 );

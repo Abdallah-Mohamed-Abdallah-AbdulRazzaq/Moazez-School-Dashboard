@@ -15,6 +15,7 @@ import {
 import { resolveGradeSubmission } from "../../submissions/services/gradesSubmissionsService";
 import { buildSubmissionDetailHref } from "../../submissions/utils/submissionNavigation";
 import { describeGradesApiError, mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
+import { applyScopedClassroomName, hasClassroomNames } from "../../gradebook/utils/classroomPresentation";
 import {
   approveAssessment,
   bulkUpdateAssessmentGrades,
@@ -54,6 +55,7 @@ import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYe
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import {
+  getAssessmentEntryUnavailableReason,
   isGradeEntryAvailable,
   isSubmissionReviewAvailable,
 } from "../utils/assessmentWorkflow";
@@ -196,6 +198,12 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     () => scopeEntitiesByType[selectedScopeType] || [],
     [scopeEntitiesByType, selectedScopeType],
   );
+  const selectedClassroomName = useMemo(() => {
+    if (selectedScopeType !== "classroom") return undefined;
+    const classroom = scopeEntitiesByType.classroom.find((entity) => entity.id === selectedScopeId);
+    if (!classroom) return undefined;
+    return locale === "ar" ? classroom.nameAr : classroom.nameEn;
+  }, [locale, scopeEntitiesByType.classroom, selectedScopeId, selectedScopeType]);
 
   const subjects = useMemo(() => {
     const gradeId = selectedScopeIds.grade || (selectedScopeType === "grade" ? selectedScopeId : "");
@@ -340,7 +348,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         ...assessment,
         deliveryMode: deliveryModeByAssessmentId.get(assessment.id) ?? assessment.deliveryMode,
       })));
-      setRows(gradebook.rows);
+      setRows(applyScopedClassroomName(gradebook.rows, selectedClassroomName));
       setSummary({
         ...overview.summary,
         passingCount: gradebook.summary.passingCount,
@@ -356,7 +364,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     } finally {
       setIsDataLoading(false);
     }
-  }, [academicYearId, selectedDeliveryMode, selectedScopeId, selectedScopeType, selectedSubjectId, showError, tCommon, termId, view]);
+  }, [academicYearId, selectedClassroomName, selectedDeliveryMode, selectedScopeId, selectedScopeType, selectedSubjectId, showError, tCommon, termId, view]);
 
   useEffect(() => {
     void Promise.resolve().then(refreshGradebook);
@@ -378,9 +386,13 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     }
 
     if (!canManageGradeItems) return;
-    const detail = await fetchGradeItemDetail(academicYearId, termId, assessment.id, row.studentId);
-    setGradeApiError(null);
-    setEditGradeState({ assessment, row, comment: detail?.comment });
+    try {
+      const detail = await fetchGradeItemDetail(academicYearId, termId, assessment.id, row.studentId);
+      setGradeApiError(null);
+      setEditGradeState({ assessment, row, comment: detail?.comment });
+    } catch (error) {
+      showError(t(`errors.${mapGradesApiError(error)}`));
+    }
   }, [academicYearId, canManageGradeItems, canReviewSubmissions, locale, router, searchParams, showError, t, termId]);
 
   const handleSaveAssessment = async (payload: CreateAssessmentPayload) => {
@@ -451,7 +463,10 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       setAssessmentActionType("bulk");
       setIsBulkLoading(true);
       const roster = await fetchAssessmentRoster(academicYearId, termId, assessment.id);
-      setBulkEntryState({ assessment, rows: roster });
+      setBulkEntryState({
+        assessment,
+        rows: applyScopedClassroomName(roster, selectedClassroomName),
+      });
     } catch (error) {
       showError(t(`errors.${mapGradesApiError(error)}`));
     } finally {
@@ -503,6 +518,8 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     if (assessment) setAssessmentWorkflowConfirmation({ assessment, action });
   };
 
+  const shouldShowClassroomColumn = hasClassroomNames(rows);
+
   const gradebookColumns = useMemo<Column<GradebookTableRow>[]>(() => {
     const baseColumns = [
       {
@@ -522,11 +539,13 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           </div>
         ),
       },
-      {
-        key: "classroomName",
-        label: t("table.classroom"),
-        render: (_value: unknown, row: GradebookStudentRow) => row.classroomName || t("table.notAssigned"),
-      },
+      ...(shouldShowClassroomColumn
+        ? [{
+            key: "classroomName",
+            label: t("table.classroom"),
+            render: (_value: unknown, row: GradebookStudentRow) => row.classroomName,
+          }]
+        : []),
     ];
 
     const assessmentColumns = assessments.map((assessment) => ({
@@ -544,17 +563,14 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         const isAssessmentActionAvailable = isQuestionBased
           ? isSubmissionReviewAvailable(assessment)
           : isGradeEntryAvailable(assessment);
-        const isDisabled =
-          isReadOnly ||
-          !hasRequiredPermission ||
-          !isAssessmentActionAvailable;
-        const disabledReason = assessment.isLocked
-          ? t("workflow.reasons.locked")
-          : isReadOnly
-            ? t("workflow.reasons.termClosed")
-            : !hasRequiredPermission
-              ? t("workflow.reasons.permission")
-              : undefined;
+        const unavailableReason = getAssessmentEntryUnavailableReason(assessment, {
+          isReadOnly,
+          hasRequiredPermission,
+        });
+        const isDisabled = !isAssessmentActionAvailable || unavailableReason !== null;
+        const disabledReason = unavailableReason
+          ? t(`workflow.reasons.${unavailableReason}`)
+          : undefined;
         let label = isQuestionBased ? t("table.openReview") : t("table.missing");
         let cellStyle = {
           borderColor: "var(--warning-bg)",
@@ -626,7 +642,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         label: t("table.absentCount"),
       },
     ];
-  }, [assessments, canManageGradeItems, canReviewSubmissions, isReadOnly, locale, openEditGradeDialog, t]);
+  }, [assessments, canManageGradeItems, canReviewSubmissions, isReadOnly, locale, openEditGradeDialog, shouldShowClassroomColumn, t]);
 
   const tableRows: GradebookTableRow[] = rows.map((row) => ({
     ...row,
@@ -1127,6 +1143,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   ]);
 
   const buildGradebookViewExport = useCallback(() => {
+    const includeClassroomName = hasClassroomNames(rows);
     const dynamicColumns = assessments.map((assessment) => ({
       key: `assessment_${assessment.id}`,
       label: getLocalizedAssessmentTitle(assessment),
@@ -1152,7 +1169,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         studentNameAr: row.studentNameAr,
         studentCode: row.studentCode || null,
         admissionNo: row.admissionNo || null,
-        classroomName: row.classroomName || t("table.notAssigned"),
+        ...(includeClassroomName ? { classroomName: row.classroomName } : {}),
         average: formatPercent(row.average),
         completion: `${row.completedItems}/${row.totalItems}`,
         completedWeight: row.completedWeight == null ? null : formatPercent(row.completedWeight),
@@ -1176,7 +1193,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         { key: "studentNameAr", label: t("export.columns.studentNameAr") },
         { key: "studentCode", label: t("table.studentCode") },
         { key: "admissionNo", label: t("table.admissionNo") },
-        { key: "classroomName", label: t("table.classroom") },
+        ...(includeClassroomName ? [{ key: "classroomName", label: t("table.classroom") }] : []),
         ...dynamicColumns,
         { key: "average", label: t("table.average") },
         { key: "completion", label: t("table.completion") },
@@ -1210,7 +1227,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           studentNameAr: row.studentNameAr,
           studentCode: row.studentCode ?? null,
           admissionNo: row.admissionNo ?? null,
-          classroomName: row.classroomName || null,
+          ...(includeClassroomName ? { classroomName: row.classroomName } : {}),
           scoresByAssessmentId: row.scoresByAssessmentId,
           statusByAssessmentId: row.statusByAssessmentId,
           cellDetailsByAssessmentId: row.cellDetailsByAssessmentId,

@@ -261,7 +261,7 @@ export default function CreateAssessmentPage() {
                 label: tDialog(`types.scopeTypes.${scopeType}`),
               }))}
             />
-                        <Select
+            <Select
               label={tDialog("scope")}
               value={draft.scopeId}
               onChange={(scopeId) => setDraft((current) => (current ? { ...current, scopeId } : current))}
