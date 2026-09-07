@@ -515,16 +515,6 @@ export const menuItems: MenuItem[] = [
         icon: FileText,
       },
       {
-        key: "academics-homework",
-        subgroup: "teaching-learning",
-        label_en: "Homework",
-        label_ar: "الواجبات",
-        href_en: "/en/academics/homework",
-        href_ar: "/ar/academics/homework",
-        icon: ClipboardList,
-      },
-
-      {
         key: "academics-calendar",
         subgroup: "teaching-learning",
         label_en: "Academic Calendar",
@@ -596,6 +586,15 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/grades",
         href_ar: "/ar/grades",
         icon: LayoutDashboard,
+      },
+      {
+        key: "academics-homework",
+        subgroup: "assessment-management",
+        label_en: "Homework",
+        label_ar: "الواجبات",
+        href_en: "/en/academics/homework",
+        href_ar: "/ar/academics/homework",
+        icon: ClipboardList,
       },
       {
         key: "grades-assessments",
