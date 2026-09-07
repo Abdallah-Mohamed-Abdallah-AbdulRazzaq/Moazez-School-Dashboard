@@ -7458,7 +7458,8 @@
         "reasons": {
           "termClosed": "This term is closed.",
           "locked": "This assessment is locked.",
-          "permission": "You do not have permission to manage grade items."
+          "permission": "You do not have permission to manage grade items.",
+          "notPublished": "Publish this assessment before entering or reviewing grades."
         }
       },
       "export": {
@@ -7881,6 +7882,11 @@
           "saved": "Question saved successfully",
           "deleted": "Question deleted successfully",
           "pointsUpdated": "Question points updated successfully"
+        },
+        "recovery": {
+          "partialCreationTitle": "Assessment created; a question needs attention",
+          "partialCreationDescription": "The assessment was created, but question {failedQuestionNumber} could not be saved. Review the saved questions, then add that question again.",
+          "dismiss": "Dismiss"
         },
         "saveAssessment": "Save Assessment",
         "readOnly": "Read-only",

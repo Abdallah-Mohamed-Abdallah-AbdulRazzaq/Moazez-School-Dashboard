@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMediaQuery, useTheme } from "@mui/material";
+import { AlertTriangle } from "lucide-react";
+import Button from "@/components/ui/button/Button";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -32,6 +34,11 @@ import type { Assessment, AssessmentQuestion, AssessmentType } from "../types";
 import { useGradesRouteYearTerm } from "@/features/grades/hooks/useGradesRouteYearTerm";
 import { canEditAssessmentQuestions } from "../utils/assessmentContract";
 import { distributeQuestionPoints } from "../utils/distributeQuestionPoints";
+import { mapAssessmentQuestionApiError } from "../utils/assessmentQuestionApiErrors";
+import {
+  getPartialQuestionCreationFailure,
+  PARTIAL_QUESTION_CREATION_RECOVERY,
+} from "../utils/assessmentQuestionRecovery";
 import { formatLocalDateOnly } from "../../shared/utils/dateOnly";
 
 interface AssessmentQuestionsPageProps {
@@ -153,6 +160,10 @@ export default function AssessmentQuestionsPage({
   const weightParam = Number(searchParams.get("weight") || "15");
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
   const isCreateMode = mode === "create";
+  const partialQuestionCreationFailure = useMemo(
+    () => isCreateMode ? null : getPartialQuestionCreationFailure(searchParams),
+    [isCreateMode, searchParams],
+  );
   const canManageAssessments = hasPermission("grades.assessments.manage");
   const canManageQuestions = hasPermission("grades.questions.manage");
   const canEditQuestions = isCreateMode
@@ -376,6 +387,17 @@ export default function AssessmentQuestionsPage({
     router.push(params ? `${path}?${params}` : path);
   };
 
+  const dismissPartialQuestionCreationRecovery = () => {
+    if (!assessmentId) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("recovery");
+    params.delete("failedQuestionNumber");
+    const query = params.toString();
+    const path = `/${locale}/grades/assessments/${assessmentId}/questions`;
+    router.replace(query ? `${path}?${query}` : path);
+  };
+
   const handleSaveAssessment = async () => {
     if (!canManageAssessments) return;
     if (
@@ -455,14 +477,18 @@ export default function AssessmentQuestionsPage({
       setLastSavedAssessment(nextAssessment);
       showSuccess(tCommon("save_success"));
     } catch (error) {
-      showError(
-        tGrades(`errors.${mapGradesApiError(error)}`),
-      );
       if (error instanceof AssessmentQuestionsCreationError) {
-        const params = searchParams.toString();
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("recovery", PARTIAL_QUESTION_CREATION_RECOVERY);
+        params.set(
+          "failedQuestionNumber",
+          String(error.failedQuestionIndex + 1),
+        );
         const path = `/${locale}/grades/assessments/${error.assessmentId}/questions`;
-        router.replace(params ? `${path}?${params}` : path);
+        router.replace(`${path}?${params.toString()}`);
+        return;
       }
+      showError(tGrades(`errors.${mapGradesApiError(error)}`));
     } finally {
       setIsAssignmentSaving(false);
     }
@@ -585,9 +611,15 @@ export default function AssessmentQuestionsPage({
       }
       showSuccess(tCommon("save_success"));
     } catch (error) {
-      showError(
-        tGrades(`errors.${mapGradesApiError(error)}`),
-      );
+      const message = tGrades(`errors.${mapGradesApiError(error)}`);
+      setValidationErrors((current) => ({
+        ...current,
+        questions: {
+          ...(current.questions || {}),
+          [questionDraft.id]: mapAssessmentQuestionApiError(error, message),
+        },
+      }));
+      showError(message);
     } finally {
       setIsQuestionSaving(false);
     }
@@ -730,6 +762,35 @@ export default function AssessmentQuestionsPage({
           canSaveAssessment={canSaveAssessment && canManageAssessments}
           onSaveAssessment={() => void handleSaveAssessment()}
         />
+      )}
+
+      {partialQuestionCreationFailure && (
+        <div
+          className="flex flex-col gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+          role="status"
+        >
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+            <div>
+              <p className="text-sm font-semibold">{t("recovery.partialCreationTitle")}</p>
+              <p className="text-sm text-amber-800">
+                {t("recovery.partialCreationDescription", {
+                  failedQuestionNumber:
+                    partialQuestionCreationFailure.failedQuestionNumber,
+                })}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="self-start text-amber-900 hover:bg-amber-100 sm:self-auto"
+            onClick={dismissPartialQuestionCreationRecovery}
+          >
+            {t("recovery.dismiss")}
+          </Button>
+        </div>
       )}
 
       {!assessment ? (

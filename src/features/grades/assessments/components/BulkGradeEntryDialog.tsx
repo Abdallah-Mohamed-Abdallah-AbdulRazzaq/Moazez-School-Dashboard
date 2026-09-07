@@ -72,6 +72,7 @@ export default function BulkGradeEntryDialog({ isOpen, onClose, onSubmit, assess
   const [bulkStatus, setBulkStatus] = useState<GradeItemStatus>("missing");
   const initialRowsByStudent = useMemo(() => new Map(rows.map((row) => [row.studentId, row])), [rows]);
   const changedRows = editableRows.filter((row) => rowChanged(row, initialRowsByStudent.get(row.studentId)!));
+  const showClassroomColumn = editableRows.some((row) => Boolean(row.classroomName));
   const rowErrors = new Map(editableRows.map((row) => [row.studentId, rowError(row, assessment?.maxScore ?? 0, t)]));
   const hasErrors = [...rowErrors.values()].some(Boolean);
   const batchTooLarge = changedRows.length > MAX_BULK_GRADE_ITEMS;
@@ -131,14 +132,14 @@ export default function BulkGradeEntryDialog({ isOpen, onClose, onSubmit, assess
       <div className="max-h-[60vh] overflow-auto rounded-lg border" style={{ borderColor: "var(--border-color)" }}>
         <table className="min-w-full text-sm">
           <thead className="sticky top-0 z-10" style={{ backgroundColor: "var(--surface-secondary)" }}><tr>
-            <th className="px-3 py-2 text-start font-medium">{t("student")}</th><th className="px-3 py-2 text-start font-medium">{t("classroom")}</th>
+            <th className="px-3 py-2 text-start font-medium">{t("student")}</th>{showClassroomColumn ? <th className="px-3 py-2 text-start font-medium">{t("classroom")}</th> : null}
             <th className="px-3 py-2 text-start font-medium">{t("status")}</th><th className="px-3 py-2 text-start font-medium">{t("score")}</th><th className="px-3 py-2 text-start font-medium">{t("comment")}</th>
           </tr></thead>
           <tbody>{visibleRows.map((row) => {
             const changed = rowChanged(row, initialRowsByStudent.get(row.studentId)!);
             return <tr key={row.studentId} className="border-t" style={{ borderColor: "var(--border-color)", backgroundColor: changed ? "var(--warning-bg)" : undefined }}>
               <td className="px-3 py-3 font-medium">{locale === "ar" ? row.studentNameAr : row.studentNameEn}{changed ? <span className="ms-2 text-xs text-[var(--warning-text)]">{t("changed")}</span> : null}</td>
-              <td className="px-3 py-3 text-[var(--text-secondary)]">{row.classroomName || t("notAssigned")}</td>
+              {showClassroomColumn ? <td className="px-3 py-3 text-[var(--text-secondary)]">{row.classroomName}</td> : null}
               <td className="px-3 py-3 align-top"><Select value={row.status} onChange={(value) => updateRow(row.studentId, "status", value)} options={statusOptions} /></td>
               <td className="px-3 py-3 align-top"><Input type="number" min="0" max={assessment?.maxScore || 100} step="0.01" value={row.score == null ? "" : String(row.score)} onChange={(event) => updateRow(row.studentId, "score", event.target.value)} disabled={row.status !== "entered"} error={rowErrors.get(row.studentId)} /></td>
               <td className="px-3 py-3 align-top"><TextArea value={row.comment || ""} onChange={(event) => updateRow(row.studentId, "comment", event.target.value)} rows={2} maxLength={501} /></td>
