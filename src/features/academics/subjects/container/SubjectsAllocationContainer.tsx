@@ -21,7 +21,7 @@ import SubjectsAllocationView from "../views/SubjectsAllocationView";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
 import { usePermissions } from "@/hooks/usePermissions";
-import { subjectAllocationUiError } from "@/features/academics/subjects/services/subjectAllocationErrors";
+import { subjectAllocationUiError, type CurriculumDependencyDetails } from "@/features/academics/subjects/services/subjectAllocationErrors";
 
 type SubjectsAllocationQueryState = {
   activeTab: "subjects" | "matrix";
@@ -53,6 +53,7 @@ export default function SubjectsAllocationContainer() {
   const [isMatrixLoading, setIsMatrixLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [apiErrorTraceId, setApiErrorTraceId] = useState<string | undefined>();
+  const [dependencyError, setDependencyError] = useState<CurriculumDependencyDetails | null>(null);
   const hasLoadedData = useRef(false);
 
   // UI State
@@ -195,6 +196,7 @@ export default function SubjectsAllocationContainer() {
     );
     setApiError(uiError.message);
     setApiErrorTraceId(uiError.traceId);
+    setDependencyError(uiError.dependency ?? null);
   }, []);
 
   const handleAddSubject = () => {
@@ -253,6 +255,7 @@ export default function SubjectsAllocationContainer() {
       isMatrixLoading={isMatrixLoading}
       apiError={apiError}
       apiErrorTraceId={apiErrorTraceId}
+      dependencyError={dependencyError}
       activeTab={queryState.activeTab}
       showSubjectDialog={showSubjectDialog}
       editingSubject={editingSubject}
@@ -268,6 +271,7 @@ export default function SubjectsAllocationContainer() {
       onRefresh={refreshData}
       onRetry={loadSubjectAllocationData}
       onCloseSubjectDialog={handleCloseSubjectDialog}
+      onCloseDependencyDialog={() => setDependencyError(null)}
     />
   );
 }

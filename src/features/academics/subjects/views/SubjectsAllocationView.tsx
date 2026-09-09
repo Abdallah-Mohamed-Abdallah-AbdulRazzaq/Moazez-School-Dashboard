@@ -22,6 +22,8 @@ import type {
 import SubjectsList from "../components/SubjectsList";
 import AllocationMatrix from "../components/AllocationMatrix";
 import SubjectDialog from "../components/SubjectDialog";
+import CurriculumDependencyDialog from "../components/CurriculumDependencyDialog";
+import type { CurriculumDependencyDetails } from "../services/subjectAllocationErrors";
 
 interface SubjectsAllocationViewProps {
   academicYearId: string;
@@ -37,6 +39,7 @@ interface SubjectsAllocationViewProps {
   isMatrixLoading: boolean;
   apiError: string | null;
   apiErrorTraceId?: string;
+  dependencyError: CurriculumDependencyDetails | null;
   activeTab: "subjects" | "matrix";
   showSubjectDialog: boolean;
   editingSubject: Subject | null;
@@ -52,6 +55,7 @@ interface SubjectsAllocationViewProps {
   onRefresh: () => Promise<void>;
   onRetry: () => Promise<void>;
   onCloseSubjectDialog: () => void;
+  onCloseDependencyDialog: () => void;
 }
 
 export default function SubjectsAllocationView({
@@ -68,6 +72,7 @@ export default function SubjectsAllocationView({
   isMatrixLoading,
   apiError,
   apiErrorTraceId,
+  dependencyError,
   activeTab,
   showSubjectDialog,
   editingSubject,
@@ -83,6 +88,7 @@ export default function SubjectsAllocationView({
   onRefresh,
   onRetry,
   onCloseSubjectDialog,
+  onCloseDependencyDialog,
 }: SubjectsAllocationViewProps) {
   const t = useTranslations("academics.subjects");
   const tEmpty = useTranslations("academics.module_empty_states");
@@ -260,6 +266,14 @@ export default function SubjectsAllocationView({
         onSuccess={onSubjectSuccess}
         subject={editingSubject}
         existingSubjects={subjects}
+      />
+      <CurriculumDependencyDialog
+        dependency={dependencyError}
+        gradeName={grades.find((grade) => grade.id === dependencyError?.gradeId)?.[locale === "ar" ? "nameAr" : "nameEn"]}
+        subjectName={subjects.find((subject) => subject.id === dependencyError?.subjectId)?.[locale === "ar" ? "nameAr" : "nameEn"]}
+        traceId={apiErrorTraceId}
+        locale={locale}
+        onClose={onCloseDependencyDialog}
       />
 
     </div>

@@ -22,6 +22,7 @@ export interface TimetableValidationSummary {
   teacherConflicts: TimetableValidationIssue[];
   classroomConflicts: TimetableValidationIssue[];
   roomConflicts: TimetableValidationIssue[];
+  roomIntegrityIssues: TimetableValidationIssue[];
   missingSubjectAllocationRows: TimetableValidationIssue[];
   conflicts: TimetableValidationIssue[];
 }
@@ -38,6 +39,7 @@ export const emptyValidationSummary = (): TimetableValidationSummary => ({
   teacherConflicts: [],
   classroomConflicts: [],
   roomConflicts: [],
+  roomIntegrityIssues: [],
   missingSubjectAllocationRows: [],
   conflicts: [],
 });
@@ -59,6 +61,7 @@ export function validationSummaryFromResponse(
     teacherConflicts: [],
     classroomConflicts: [],
     roomConflicts: [],
+    roomIntegrityIssues: itemBuckets.roomIntegrityIssues,
     missingSubjectAllocationRows: itemBuckets.missingSubjectAllocationRows,
     conflicts: [],
   };
@@ -128,6 +131,7 @@ export function hasBlockingValidation(summary: TimetableValidationSummary) {
     summary.teacherConflicts.length > 0 ||
     summary.classroomConflicts.length > 0 ||
     summary.roomConflicts.length > 0 ||
+    summary.roomIntegrityIssues.length > 0 ||
     summary.missingSubjectAllocationRows.length > 0 ||
     summary.conflicts.length > 0
   );
@@ -139,6 +143,7 @@ function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
     underScheduledSubjects: [] as TimetableValidationIssue[],
     overScheduledSubjects: [] as TimetableValidationIssue[],
     missingSubjectAllocationRows: [] as TimetableValidationIssue[],
+    roomIntegrityIssues: [] as TimetableValidationIssue[],
   };
 
   for (const item of items) {
@@ -158,6 +163,8 @@ function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
         buckets.overScheduledSubjects.push(issue);
       } else if (issue.code === "missing_subject_allocation_row") {
         buckets.missingSubjectAllocationRows.push(issue);
+      } else if (issue.code === "room_not_found" || issue.code === "room_inactive" || issue.code === "room_capacity_insufficient") {
+        buckets.roomIntegrityIssues.push(issue);
       }
     }
   }

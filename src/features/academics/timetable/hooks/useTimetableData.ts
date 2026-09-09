@@ -228,14 +228,6 @@ const isPublicationActive = (
   publication?.status === "PUBLISHED" ||
   publication?.status === "ACTIVE";
 
-const withConfigStatus = (
-  config: BackendTimetableConfigDto,
-  status: "draft" | "active",
-): BackendTimetableConfigDto => ({
-  ...config,
-  status,
-});
-
 const publishReadinessMessage = (
   publication: PublicationResponse,
   validation: TimetableValidationSummary,
@@ -917,15 +909,7 @@ export function useTimetableData({
         }
 
         await publish(config.id || config.timetableConfigId || "");
-        const publishedPublication = (await getPublication(
-          config.id || config.timetableConfigId || "",
-        )) as PublicationResponse;
-        setPublication(publishedPublication);
-        setConfig((currentConfig) =>
-          currentConfig
-            ? withConfigStatus(currentConfig, "active")
-            : currentConfig,
-        );
+        await loadTimetableForScope();
         return { ok: true };
       } catch (error) {
         const conflict = conflictFromTimetableError(error, periods, {
@@ -957,6 +941,7 @@ export function useTimetableData({
       teacherAllocations,
       termId,
       translateErrorCode,
+      loadTimetableForScope,
     ],
   );
 
@@ -975,15 +960,7 @@ export function useTimetableData({
         gradeId: selectedGradeId || undefined,
         classroomId: selectedClassroomId || undefined,
       });
-      const nextPublication = (await getPublication(
-        config.id || config.timetableConfigId || "",
-      )) as PublicationResponse;
-      setPublication(nextPublication);
-      setConfig((currentConfig) =>
-        currentConfig
-          ? withConfigStatus(currentConfig, "draft")
-          : currentConfig,
-      );
+      await loadTimetableForScope();
       return true;
     } catch (error) {
       const message = timetableErrorMessage(
@@ -1002,6 +979,7 @@ export function useTimetableData({
     selectedGradeId,
     termId,
     translateErrorCode,
+    loadTimetableForScope,
   ]);
 
   useEffect(() => {

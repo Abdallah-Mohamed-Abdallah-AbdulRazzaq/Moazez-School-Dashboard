@@ -91,6 +91,17 @@ describe("timetableValidationSummary", () => {
     ).toBe("Science (2/4)");
   });
 
+  it("retains room validity failures when overlap count is zero", () => {
+    const response = validationSummaryFromResponse({
+      termId: "term-1", academicYearId: "year-1",
+      summary: { classroomsChecked: 1, expectedWeeklySlots: 1, actualScheduledSlots: 1, missingTeacherAllocations: 0, underScheduledSubjects: 0, overScheduledSubjects: 0, teacherConflicts: 0, classroomConflicts: 0, roomConflicts: 0, missingSubjectAllocationRows: 0 },
+      items: [{ classroomId: "class-1", classroom: { id: "class-1", nameAr: "A", nameEn: "A" }, gradeId: "grade-1", grade: { id: "grade-1", nameAr: "G", nameEn: "G" }, subjectId: "subject-1", subject: { id: "subject-1", nameAr: "S", nameEn: "S", code: null, color: null }, expectedWeeklyHours: 1, scheduledWeeklyHours: 1, status: "complete", issues: [{ code: "room_inactive", message: "Room is inactive" }] }],
+    });
+
+    expect(response.roomIntegrityIssues).toHaveLength(1);
+    expect(hasBlockingValidation(response)).toBe(true);
+  });
+
   it("reads conflict lists from common backend response shapes", () => {
     const conflict = {
       code: "room_conflict",
