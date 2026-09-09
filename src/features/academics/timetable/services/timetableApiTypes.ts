@@ -95,6 +95,9 @@ export interface TimetableDashboardConfigSummaryDto {
   scopeType: string;
   scopeKey: string;
   stageId: string | null;
+  gradeId?: string | null;
+  sectionId?: string | null;
+  classroomId?: string | null;
   status: string;
   activeDays: number[];
 }

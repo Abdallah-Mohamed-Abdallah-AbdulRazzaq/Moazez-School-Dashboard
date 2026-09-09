@@ -285,6 +285,7 @@ export default function TimetableView({
     termId,
     academicYearId,
     enabled: canViewTimetable,
+    selectedStageId,
     selectedGradeId,
     selectedSectionId,
     selectedClassroomId,
@@ -1951,7 +1952,7 @@ export default function TimetableView({
           config={config}
           periods={periods}
           entries={configGuardEntries}
-          selectedStageId={normalizedStageId}
+          selectedStageId={selectedStageId}
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
@@ -1973,7 +1974,7 @@ export default function TimetableView({
           config={config}
           periods={periods}
           entries={configGuardEntries}
-          selectedStageId={normalizedStageId}
+          selectedStageId={selectedStageId}
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
