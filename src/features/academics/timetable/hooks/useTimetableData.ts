@@ -20,10 +20,7 @@ import {
   type Teacher,
   type TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import {
-  fetchRooms,
-  type RoomDefaultAssignment,
-} from "@/features/academics/rooms/services/roomsService";
+import { fetchRooms } from "@/features/academics/rooms/services/roomsService";
 import {
   bulkSaveEntries,
   checkConflicts,
@@ -307,7 +304,6 @@ export function useTimetableData({
     TeacherAllocation[]
   >([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [roomDefaults, setRoomDefaults] = useState<RoomDefaultAssignment[]>([]);
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>(
     [],
   );
@@ -401,7 +397,6 @@ export function useTimetableData({
       setTeachers([]);
       setTeacherAllocations([]);
       setRooms([]);
-      setRoomDefaults([]);
       setDependenciesLoading(false);
       dependenciesLoadedKeyRef.current = null;
       dependenciesInFlightKeyRef.current = null;
@@ -469,8 +464,7 @@ export function useTimetableData({
       setSubjectAllocations(subjectAllocsData);
       setTeachers(teachersData);
       setTeacherAllocations(teacherAllocsData);
-      setRooms(roomsData.filter((room) => room.isActive));
-      setRoomDefaults([]);
+      setRooms(roomsData);
 
       dependenciesLoadedKeyRef.current = dependenciesKey;
     } catch (error) {
@@ -1028,7 +1022,6 @@ export function useTimetableData({
     teachers,
     teacherAllocations,
     rooms,
-    roomDefaults,
     timetableEntries,
     setTimetableEntries,
     allTermEntries,

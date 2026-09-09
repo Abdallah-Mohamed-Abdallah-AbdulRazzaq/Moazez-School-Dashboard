@@ -239,9 +239,12 @@ describe("useTimetableData", () => {
       }),
     ]);
     expect(result.current.isPublished).toBe(true);
-    expect(result.current.rooms).toEqual([
-      expect.objectContaining({ id: "room-1", isActive: true }),
-    ]);
+    expect(result.current.rooms).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "room-1", isActive: true }),
+        expect.objectContaining({ id: "room-closed", isActive: false }),
+      ]),
+    );
   });
 
   it("loads a term-wide config when no grade, section, or classroom is selected", async () => {

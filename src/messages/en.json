@@ -6669,6 +6669,11 @@
         },
         "emptyState": "No rooms found. Add your first room.",
         "searchPlaceholder": "Search rooms...",
+        "dependency": {
+          "close": "Close",
+          "operation": "Operation",
+          "traceId": "Trace ID"
+        },
         "defaults": {
           "title": "Default Room Assignments",
           "description": "Define default rooms for sections and classrooms used by timetable editing.",

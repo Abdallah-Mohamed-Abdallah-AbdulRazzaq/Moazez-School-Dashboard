@@ -31,6 +31,8 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import { usePermissions } from "@/hooks/usePermissions";
 import { isApiError } from "@/lib/api-error";
 import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
+import RoomDependencyDialog from "./RoomDependencyDialog";
+import { roomSchedulingUiError, type RoomSchedulingUiError } from "@/features/academics/rooms/services/roomSchedulingErrors";
 
 interface RoomsViewProps {
   schoolId: string;
@@ -114,6 +116,7 @@ export default function RoomsView({
   const [isRoomSaving, setIsRoomSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
+  const [schedulingError, setSchedulingError] = useState<RoomSchedulingUiError | null>(null);
 
   useEffect(() => {
     void Promise.resolve().then(() => setSearchInputValue(queryState.searchQuery));
@@ -171,6 +174,7 @@ export default function RoomsView({
       const loadedRooms = await fetchRooms(schoolId);
       setRooms(loadedRooms);
     } catch (error) {
+      setSchedulingError(roomSchedulingUiError(error));
       console.error("Failed to load rooms:", error);
       const errorMessage = roomApiErrorMessage(error, t("loadError"));
       setLoadError(errorMessage);
@@ -222,6 +226,7 @@ export default function RoomsView({
       await loadRooms();
       setRoomDialogOpen(false);
     } catch (error) {
+      setSchedulingError(roomSchedulingUiError(error));
       console.error("Failed to save room:", error);
       showToast(roomApiErrorMessage(error, tCommon("save_failed")), "error");
     } finally {
@@ -588,6 +593,7 @@ export default function RoomsView({
           severity="danger"
         />
       )}
+      <RoomDependencyDialog error={schedulingError} onClose={() => setSchedulingError(null)} />
 
       <AcademicsGlobalExportModal
         isOpen={showExportModal}
