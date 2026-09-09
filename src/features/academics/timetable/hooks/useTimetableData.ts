@@ -750,21 +750,9 @@ export function useTimetableData({
 
         if (bulkSaveRequest.payload.items.length > 0) {
           assertBulkPayloadSize(bulkSaveRequest.payload.items, "save");
-          const savedEntriesResponse = await bulkSaveEntries(
-            bulkSaveRequest.payload,
-          );
-          const mappedEntries = mapBackendEntriesToUi(
-            listResponseItems(savedEntriesResponse),
-          );
-          setTimetableEntries(mappedEntries.entries);
-          setAllTermEntries(mappedEntries.entries);
-        } else {
-          // All entries were cleared — remove deleted entries from local state
-          const deletedIds = new Set(entriesToDelete.map((e) => e.id));
-          const remainingEntries = entries.filter((e) => !deletedIds.has(e.id));
-          setTimetableEntries(remainingEntries);
-          setAllTermEntries(remainingEntries);
+          await bulkSaveEntries(bulkSaveRequest.payload);
         }
+        await loadTimetableForScope();
 
         return { ok: true };
       } catch (error) {

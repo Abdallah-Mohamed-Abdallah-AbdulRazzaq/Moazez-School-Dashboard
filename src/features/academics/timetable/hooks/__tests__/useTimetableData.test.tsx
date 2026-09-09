@@ -286,6 +286,39 @@ describe("useTimetableData", () => {
     });
   });
 
+  it("reloads authoritative scope entries after bulk save", async () => {
+    const crossScopeEntry: BackendTimetableEntryDto = {
+      ...backendEntry,
+      id: "entry-cross-scope",
+      classroom: {
+        id: "classroom-2",
+        nameAr: "الفصل 2",
+        nameEn: "Classroom 2",
+      },
+    };
+    mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
+    mockedBulkSaveEntries.mockResolvedValueOnce({ items: [backendEntry] });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
+    mockedListEntries.mockReset();
+    mockedListEntries
+      .mockResolvedValueOnce({ items: [backendEntry] })
+      .mockResolvedValueOnce({ items: [backendEntry, crossScopeEntry] });
+
+    await act(async () => {
+      await result.current.saveTimetable(result.current.timetableEntries);
+    });
+
+    expect(result.current.timetableEntries).toEqual([
+      expect.objectContaining({ id: "entry-1" }),
+    ]);
+    expect(result.current.allTermEntries).toEqual([
+      expect.objectContaining({ id: "entry-1" }),
+      expect.objectContaining({ id: "entry-cross-scope" }),
+    ]);
+  });
+
   it("does not delete cleared entries when another slot has a conflict", async () => {
     mockedCheckConflicts.mockResolvedValueOnce({
       conflicts: [{ code: "academics.timetable.entry_conflict" }],
