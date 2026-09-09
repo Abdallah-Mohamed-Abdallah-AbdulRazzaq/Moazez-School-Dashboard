@@ -1978,6 +1978,7 @@ export default function TimetableView({
           onConflictSelect={handleConflictSelect}
           onClose={() => setValidationPanelOpen(false)}
           locale={locale}
+          publicationReasons={publication?.blockingReasons}
         />
       )}
 

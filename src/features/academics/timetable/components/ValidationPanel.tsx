@@ -22,6 +22,8 @@ import type {
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import { formatTimetableTimeRange } from "@/features/academics/timetable/services/timetableTimeFormat";
 import { Button } from "@/components/ui";
+import { classifyPublicationReasons, type PublicationReasonCategory } from "@/features/academics/timetable/services/timetablePublicationReasons";
+import type { TimetablePublishReason } from "@/features/academics/timetable/services/timetableApiTypes";
 
 interface ValidationPanelProps {
   open: boolean;
@@ -34,6 +36,7 @@ interface ValidationPanelProps {
   onConflictSelect: (conflict: TimetableConflictDisplay) => void;
   onClose: () => void;
   locale: string;
+  publicationReasons?: TimetablePublishReason[];
 }
 
 type NamedEntity = {
@@ -69,6 +72,7 @@ export default function ValidationPanel({
   onConflictSelect,
   onClose,
   locale,
+  publicationReasons = [],
 }: ValidationPanelProps) {
   const isRTL = locale === "ar";
   const copy = getCopy(isRTL);
@@ -80,12 +84,13 @@ export default function ValidationPanel({
     validationSummary,
     copy,
   );
+  const publicationGroups = classifyPublicationReasons(publicationReasons);
   const fallbackIssueCount = fallbackSections.reduce(
     (total, section) => total + section.issues.length,
     0,
   );
   const hasIssues =
-    issueItems.length > 0 || conflicts.length > 0 || fallbackIssueCount > 0;
+    issueItems.length > 0 || conflicts.length > 0 || fallbackIssueCount > 0 || publicationGroups.length > 0;
 
   return (
     <Drawer
@@ -203,6 +208,12 @@ export default function ValidationPanel({
 
               {fallbackSections.map((section) => (
                 <FallbackIssueSection key={section.title} section={section} />
+              ))}
+              {publicationGroups.map((group) => (
+                <section key={group.category} className="space-y-2">
+                  <SectionTitle title={publicationCategoryLabel(group.category, locale)} count={group.reasons.length} />
+                  {group.reasons.map((reason) => <div key={`${reason.code}-${reason.message}`} className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><div className="font-medium">{reason.message}</div>{reason.details && <div className="mt-1 text-xs text-red-700">{Object.values(reason.details).filter((value) => typeof value === "string" || typeof value === "number").join(" · ")}</div>}</div>)}
+                </section>
               ))}
             </>
           )}
@@ -583,6 +594,11 @@ function validationSections(
       severity: "error",
     },
     {
+      title: copy.roomIntegrity,
+      issues: validationSummary.roomIntegrityIssues,
+      severity: "error",
+    },
+    {
       title: copy.conflicts,
       issues: validationSummary.conflicts,
       severity: "error",
@@ -602,6 +618,13 @@ function validationIssueCount(
     summary.roomConflicts +
     summary.missingSubjectAllocationRows
   );
+}
+
+function publicationCategoryLabel(category: PublicationReasonCategory, locale: string) {
+  const labels = locale === "ar"
+    ? { configuration: "الإعداد والسياق الأكاديمي", curriculum: "متطلبات المنهج", teachers: "تخصيصات المعلمين", weekly_hours: "اكتمال الساعات الأسبوعية", conflicts: "تعارضات الجدول", rooms: "صلاحية الغرف" }
+    : { configuration: "Configuration and academic context", curriculum: "Curriculum requirements", teachers: "Teacher allocations", weekly_hours: "Weekly-hour completeness", conflicts: "Timetable conflicts", rooms: "Room integrity" };
+  return labels[category];
 }
 
 function localizedName(
@@ -654,6 +677,7 @@ interface ValidationCopy {
   teacherConflicts: string;
   classroomConflicts: string;
   roomConflicts: string;
+  roomIntegrity: string;
   conflicts: string;
   conflictAt: string;
   period: string;
@@ -697,6 +721,7 @@ function getCopy(isRTL: boolean): ValidationCopy {
       teacherConflicts: "تعارضات المعلمين",
       classroomConflicts: "تعارضات الفصول",
       roomConflicts: "تعارضات الغرف",
+      roomIntegrity: "صلاحية الغرف",
       conflicts: "التعارضات",
       conflictAt: "يتعارض في",
       period: "الحصة",
@@ -746,6 +771,7 @@ function getCopy(isRTL: boolean): ValidationCopy {
     teacherConflicts: "Teacher conflicts",
     classroomConflicts: "Classroom conflicts",
     roomConflicts: "Room conflicts",
+    roomIntegrity: "Room integrity",
     conflicts: "Conflicts",
     conflictAt: "conflict at",
     period: "period",
