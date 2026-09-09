@@ -207,6 +207,13 @@ export interface TimetablePersistedConflictDto {
   message: string;
 }
 
+export type TimetablePersistedConflictsResponse =
+  | TimetablePersistedConflictDto[]
+  | {
+      conflicts?: TimetablePersistedConflictDto[];
+      items?: TimetablePersistedConflictDto[];
+    };
+
 export interface TimetableConflictCheckResponse {
   termId: string;
   academicYearId: string;

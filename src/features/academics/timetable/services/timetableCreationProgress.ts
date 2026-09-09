@@ -1,10 +1,8 @@
 import type { PublicationResponse } from "@/features/academics/timetable/services/timetableApiTypes";
+import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import type { TimetableValidationSummary } from "@/features/academics/timetable/services/timetableValidationSummary";
 import type { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
-import type {
-  TimetableConflict,
-  TimetableEntry,
-} from "@/features/academics/timetable/types/timetable";
+import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
 
 export type TimetableCreationAction =
   | "scope"
@@ -46,7 +44,7 @@ export interface TimetableCreationProgressInput {
   entries: TimetableEntry[];
   isDirty: boolean;
   validationSummary: TimetableValidationSummary | null;
-  conflicts: TimetableConflict[];
+  conflicts: TimetableConflictDisplay[];
   publication: PublicationResponse | null;
   isReadOnly: boolean;
 }
@@ -224,7 +222,7 @@ function hasSavedEntries(entries: TimetableEntry[]): boolean {
 
 function hasBlockingReviewIssue(
   validationSummary: TimetableValidationSummary | null,
-  conflicts: TimetableConflict[],
+  conflicts: TimetableConflictDisplay[],
 ): boolean {
   return (
     !validationSummary?.canPublish ||

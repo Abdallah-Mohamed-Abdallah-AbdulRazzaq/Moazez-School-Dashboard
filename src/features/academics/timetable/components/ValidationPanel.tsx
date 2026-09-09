@@ -19,16 +19,18 @@ import type {
   TimetableValidationIssue,
   TimetableValidationItem,
 } from "@/features/academics/timetable/services/timetableApiTypes";
-import type { TimetableConflict } from "@/features/academics/timetable/types/timetable";
-import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
+import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import { formatTimetableTimeRange } from "@/features/academics/timetable/services/timetableTimeFormat";
+import { Button } from "@/components/ui";
 
 interface ValidationPanelProps {
   open: boolean;
   validationSummary: TimetableValidationSummary;
-  conflicts: TimetableConflict[];
-  periods: TimetablePeriod[];
+  conflicts: TimetableConflictDisplay[];
   teachers: NamedEntity[];
   rooms: NamedEntity[];
+  selectedConflict?: TimetableConflictDisplay | null;
+  onConflictSelect: (conflict: TimetableConflictDisplay) => void;
   onClose: () => void;
   locale: string;
 }
@@ -59,9 +61,10 @@ export default function ValidationPanel({
   open,
   validationSummary,
   conflicts,
-  periods,
   teachers,
   rooms,
+  selectedConflict = null,
+  onConflictSelect,
   onClose,
   locale,
 }: ValidationPanelProps) {
@@ -184,11 +187,12 @@ export default function ValidationPanel({
                     <ConflictCard
                       key={`${conflict.code ?? conflict.type}-${conflict.dayKey}-${conflict.periodId ?? conflict.periodIndex}-${index}`}
                       conflict={conflict}
-                      periods={periods}
                       teachers={teachers}
                       rooms={rooms}
                       locale={locale}
                       copy={copy}
+                      isSelected={selectedConflict === conflict}
+                      onSelect={onConflictSelect}
                     />
                   ))}
                 </section>
@@ -428,63 +432,81 @@ function dayLabel(dayKey: string, locale: string): string {
 
 function ConflictCard({
   conflict,
-  periods,
   teachers,
   rooms,
   locale,
   copy,
+  isSelected,
+  onSelect,
 }: {
-  conflict: TimetableConflict;
-  periods: TimetablePeriod[];
+  conflict: TimetableConflictDisplay;
   teachers: NamedEntity[];
   rooms: NamedEntity[];
   locale: string;
   copy: ValidationCopy;
+  isSelected: boolean;
+  onSelect: (conflict: TimetableConflictDisplay) => void;
 }) {
-  const period = conflict.periodId
-    ? periods.find((item) => item.id === conflict.periodId)
-    : periods.find((item) => item.index === conflict.periodIndex);
   const resource =
     conflict.type === "ROOM"
       ? rooms.find((room) => room.id === conflict.resourceId)
       : teachers.find((teacher) => teacher.id === conflict.resourceId);
   const resourceName =
     localizedName(resource ?? null, locale) ||
-    conflict.resourceName ||
     conflict.resourceId ||
     copy.unknownResource;
-  const periodLabel =
-    periodLabelText(period, locale) ||
-    `${copy.period} ${conflict.periodIndex || conflict.periodId || ""}`.trim();
+  const hasScheduleMetadata = Boolean(conflict.dayKey || conflict.periodLabel);
 
   return (
-    <article className="rounded-lg border border-red-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="rounded-full bg-red-50 p-2 text-red-700">
+    <Button
+      type="button"
+      variant="ghost"
+      fullWidth
+      aria-current={isSelected ? "true" : undefined}
+      onClick={() => onSelect(conflict)}
+      className={`items-start justify-start whitespace-normal border bg-white p-4 text-start shadow-sm focus:ring-2 focus:ring-primary-500 ${
+        isSelected ? "border-primary-500" : "border-red-200"
+      }`}
+    >
+      <span className="flex items-start gap-3">
+        <span className="rounded-full bg-red-50 p-2 text-red-700">
           <AlertTriangle className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold text-slate-950">
-              {conflict.type === "ROOM"
-                ? copy.roomConflictTitle
-                : copy.teacherConflictTitle}
-            </h4>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-slate-950">
+              {conflictTitle(conflict.type, copy)}
+            </span>
             <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
               {copy.blocking}
             </span>
-          </div>
-          <p className="mt-1 text-sm text-slate-700">{resourceName}</p>
-          <p className="mt-1 text-xs text-slate-500">
-            {copy.day}: {dayLabel(conflict.dayKey, locale)} · {periodLabel}
-          </p>
-          <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-800">
-            {conflict.type === "ROOM"
-              ? copy.roomConflictMessage
-              : copy.teacherConflictMessage}
-          </p>
+          </span>
+          <span className="mt-1 block text-sm text-slate-700">
+            {resourceName}
+          </span>
+          {hasScheduleMetadata && (
+            <span className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500">
+              {conflict.dayKey && (
+                <span>
+                  {copy.day}: {dayLabel(conflict.dayKey, locale)}
+                </span>
+              )}
+              {conflict.periodLabel && <span>{conflict.periodLabel}</span>}
+              {conflict.startTime && conflict.endTime && (
+                <span dir="ltr">
+                  {formatTimetableTimeRange(
+                    conflict.startTime,
+                    conflict.endTime,
+                  )}
+                </span>
+              )}
+            </span>
+          )}
+          <span className="mt-3 block rounded-md bg-red-50 px-3 py-2 text-xs text-red-800">
+            {conflict.message}
+          </span>
           {conflict.proposedIndexes && conflict.proposedIndexes.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            <span className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
               <span className="font-medium">{copy.affectedItems}</span>
               {conflict.proposedIndexes.map((index) => (
                 <span
@@ -494,35 +516,30 @@ function ConflictCard({
                   #{index + 1}
                 </span>
               ))}
-            </div>
+            </span>
           )}
-          {conflict.sections && conflict.sections.length > 0 && (
-            <div className="mt-3 space-y-1">
-              <span className="text-xs font-medium text-slate-600">
-                {copy.conflictsWith}
-              </span>
-              {conflict.sections.map((section, sIdx) => (
-                <div
-                  key={`${section.sectionId}-${sIdx}`}
-                  className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700"
-                >
-                  <span className="font-medium">
-                    {section.classroomName ?? section.sectionName}
-                  </span>
-                  {section.subjectName && (
-                    <span className="text-slate-500">
-                      {" "}
-                      · {section.subjectName}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </article>
+        </span>
+      </span>
+    </Button>
   );
+}
+
+function conflictTitle(
+  type: TimetableConflictDisplay["type"],
+  copy: ValidationCopy,
+): string {
+  switch (type) {
+    case "ROOM":
+      return copy.roomConflictTitle;
+    case "CLASSROOM":
+      return copy.classroomConflictTitle;
+    case "DUPLICATE":
+      return copy.duplicateConflictTitle;
+    case "UNKNOWN":
+      return copy.unknownConflictTitle;
+    default:
+      return copy.teacherConflictTitle;
+  }
 }
 
 function validationSections(
@@ -606,18 +623,6 @@ function localizedIssueMessage(
   return issue.message || validationIssueText(issue);
 }
 
-function periodLabelText(
-  period: TimetablePeriod | undefined,
-  locale: string,
-): string {
-  if (!period) return "";
-  const name = locale === "ar" ? period.nameAr : period.nameEn;
-  if (period.startTime && period.endTime) {
-    return `${name} (${period.startTime} - ${period.endTime})`;
-  }
-  return name;
-}
-
 interface ValidationCopy {
   title: string;
   subtitle: string;
@@ -650,12 +655,12 @@ interface ValidationCopy {
   blockingConflicts: string;
   teacherConflictTitle: string;
   roomConflictTitle: string;
-  teacherConflictMessage: string;
-  roomConflictMessage: string;
+  classroomConflictTitle: string;
+  duplicateConflictTitle: string;
+  unknownConflictTitle: string;
   blocking: string;
   affectedItems: string;
   unknownResource: string;
-  conflictsWith: string;
   status: Record<ValidationStatus, string>;
 }
 
@@ -694,12 +699,12 @@ function getCopy(isRTL: boolean): ValidationCopy {
       blockingConflicts: "تعارضات مانعة",
       teacherConflictTitle: "تعارض معلم",
       roomConflictTitle: "تعارض غرفة",
-      teacherConflictMessage: "هذا المعلم مجدول في أكثر من فصل في نفس الوقت.",
-      roomConflictMessage: "هذه الغرفة محجوزة لأكثر من فصل في نفس الوقت.",
+      classroomConflictTitle: "تعارض فصل",
+      duplicateConflictTitle: "حصة مكررة",
+      unknownConflictTitle: "تعارض في الجدول",
       blocking: "مانع",
       affectedItems: "العناصر المتأثرة:",
       unknownResource: "مورد غير معروف",
-      conflictsWith: "يتعارض مع:",
       status: {
         complete: "مكتمل",
         under_scheduled: "أقل من المطلوب",
@@ -744,12 +749,12 @@ function getCopy(isRTL: boolean): ValidationCopy {
     blockingConflicts: "Blocking conflicts",
     teacherConflictTitle: "Teacher conflict",
     roomConflictTitle: "Room conflict",
-    teacherConflictMessage: "This teacher is scheduled in more than one classroom at the same time.",
-    roomConflictMessage: "This room is booked for more than one classroom at the same time.",
+    classroomConflictTitle: "Classroom conflict",
+    duplicateConflictTitle: "Duplicate slot",
+    unknownConflictTitle: "Timetable conflict",
     blocking: "Blocking",
     affectedItems: "Affected items:",
     unknownResource: "Unknown resource",
-    conflictsWith: "Conflicts with:",
     status: {
       complete: "Complete",
       under_scheduled: "Under scheduled",

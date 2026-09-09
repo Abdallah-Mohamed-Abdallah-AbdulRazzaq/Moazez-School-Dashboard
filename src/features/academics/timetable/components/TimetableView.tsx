@@ -54,6 +54,7 @@ import { useTimetableData } from "@/features/academics/timetable/hooks/useTimeta
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
 import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
+import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import type {
   Stage,
   Grade,
@@ -145,6 +146,8 @@ export default function TimetableView({
   );
 
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
+  const [selectedConflict, setSelectedConflict] =
+    useState<TimetableConflictDisplay | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [periodsDialogOpen, setPeriodsDialogOpen] = useState(false);
@@ -316,6 +319,10 @@ export default function TimetableView({
         : null,
     [config, periods, timetableEntries],
   );
+
+  useEffect(() => {
+    setSelectedConflict(null);
+  }, [backendConflicts]);
 
   const configGuardEntries = useMemo(() => {
     const entriesById = new Map(
@@ -1885,10 +1892,12 @@ export default function TimetableView({
                       )}
                       <TimetableGrid
                         entries={classroomEntries}
+                        proposalEntries={timetableEntries}
                         subjects={subjects}
                         teachers={teachers}
                         rooms={rooms}
                         conflicts={backendConflicts}
+                        focusedConflict={selectedConflict}
                         onSlotClick={(dayKey, periodIndex) =>
                           handleSlotClick(dayKey, periodIndex, classroom.id)
                         }
@@ -1921,10 +1930,14 @@ export default function TimetableView({
           open={validationPanelOpen}
           validationSummary={validationSummary}
           conflicts={backendConflicts}
-          periods={resolvedConfig?.periods ?? []}
           teachers={teachers}
           rooms={rooms}
-          onClose={() => setValidationPanelOpen(false)}
+          selectedConflict={selectedConflict}
+          onConflictSelect={setSelectedConflict}
+          onClose={() => {
+            setSelectedConflict(null);
+            setValidationPanelOpen(false);
+          }}
           locale={locale}
         />
       )}

@@ -12,6 +12,7 @@ import type {
   TimetableConflictCheckResponse,
   TimetableDashboardAllResponseDto,
   TimetableGenerationResponse,
+  TimetablePersistedConflictsResponse,
   TimetableScopeType,
   TimetableValidationResponse,
   TimetableUnpublishResponse,
@@ -70,7 +71,7 @@ type ValidateParams = {
 };
 
 export type TimetablePreviewResponse = unknown;
-export type TimetableConflictsResponse = unknown;
+export type TimetableConflictsResponse = TimetablePersistedConflictsResponse;
 export type TimetablePublicationResponse = PublicationResponse;
 
 const definedParams = <T extends Record<string, QueryParamValue>>(

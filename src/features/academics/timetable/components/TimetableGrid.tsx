@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
@@ -12,10 +12,8 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import {
-  TimetableEntry,
-  TimetableConflict,
-} from "@/features/academics/timetable/types/timetable";
+import { TimetableEntry } from "@/features/academics/timetable/types/timetable";
+import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import { Subject } from "@/features/academics/subjects/services/subjectsService";
 import { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { Room } from "@/features/academics/timetable/types/timetable";
@@ -24,10 +22,12 @@ import { formatTimetableTimeRange } from "@/features/academics/timetable/service
 
 interface TimetableGridProps {
   entries: TimetableEntry[];
+  proposalEntries?: TimetableEntry[];
   subjects: Subject[];
   teachers: Teacher[];
   rooms: Room[];
-  conflicts: TimetableConflict[];
+  conflicts: TimetableConflictDisplay[];
+  focusedConflict?: TimetableConflictDisplay | null;
   onSlotClick: (dayKey: string, periodIndex: number) => void;
   isHolidayDay: (dayKey: string) => boolean;
   locale: string;
@@ -37,10 +37,12 @@ interface TimetableGridProps {
 
 export default function TimetableGrid({
   entries,
+  proposalEntries = entries,
   subjects,
   teachers,
   rooms,
   conflicts,
+  focusedConflict = null,
   onSlotClick,
   isHolidayDay,
   locale,
@@ -53,6 +55,13 @@ export default function TimetableGrid({
   // Get active days and periods from config
   const activeDays = resolvedConfig.days.filter((d) => d.isActive);
   const periods = resolvedConfig.periods;
+  const proposedEntryIds = useMemo(
+    () =>
+      proposalEntries
+        .filter((entry) => entry.subjectId)
+        .map((entry) => entry.id),
+    [proposalEntries],
+  );
 
   const getEntry = (
     dayKey: string,
@@ -66,15 +75,33 @@ export default function TimetableGrid({
   const hasConflict = (
     dayKey: string,
     period: (typeof periods)[0],
+    entry: TimetableEntry | undefined,
   ): boolean => {
     return conflicts.some(
-      (conflict) =>
-        conflict.dayKey === dayKey &&
-        (conflict.periodId
-          ? conflict.periodId === period.id
-          : conflict.periodIndex === period.index),
+      (conflict) => conflictAffectsSlot(
+        conflict,
+        entry,
+        dayKey,
+        period,
+        proposedEntryIds,
+      ),
     );
   };
+
+  const isFocusedConflict = (
+    dayKey: string,
+    period: (typeof periods)[0],
+    entry: TimetableEntry | undefined,
+  ): boolean =>
+    focusedConflict
+      ? conflictAffectsSlot(
+          focusedConflict,
+          entry,
+          dayKey,
+          period,
+          proposedEntryIds,
+        )
+      : false;
 
   const getSubjectName = (subjectId: string | null): string => {
     if (!subjectId) return "";
@@ -128,7 +155,7 @@ export default function TimetableGrid({
     period: (typeof periods)[0],
   ) => {
     const entry = getEntry(day.key, period.index);
-    const conflict = hasConflict(day.key, period);
+    const conflict = hasConflict(day.key, period, entry);
     const isHoliday = isHolidayDay(day.key);
     const isBreak = entry?.slotType === "BREAK";
     const isInstructionalPeriod = period.isInstructional !== false;
@@ -281,7 +308,12 @@ export default function TimetableGrid({
                     </td>
                     {activeDays.map((day) => {
                       const entry = getEntry(day.key, period.index);
-                      const conflict = hasConflict(day.key, period);
+                      const conflict = hasConflict(day.key, period, entry);
+                      const isFocused = isFocusedConflict(
+                        day.key,
+                        period,
+                        entry,
+                      );
                       const isHoliday = isHolidayDay(day.key);
                       const isBreak = entry?.slotType === "BREAK";
                       const isInstructionalPeriod =
@@ -291,6 +323,7 @@ export default function TimetableGrid({
                       return (
                         <td
                           key={`${day.key}-${period.index}`}
+                          aria-current={isFocused ? "true" : undefined}
                           className={`border-b border-r border-gray-200 p-0 transition-colors relative group ${
                             isHoliday || !isInstructionalPeriod
                               ? "bg-red-50 cursor-not-allowed"
@@ -299,7 +332,11 @@ export default function TimetableGrid({
                             !isReadOnly && !isHoliday && isInstructionalPeriod
                               ? "hover:bg-blue-50/50 cursor-pointer"
                               : ""
-                          } ${isEmpty && !isHoliday ? "border-dashed" : ""}`}
+                          } ${isEmpty && !isHoliday ? "border-dashed" : ""} ${
+                            isFocused
+                              ? "outline-2 outline-offset-[-2px] outline-primary-600"
+                              : ""
+                          }`}
                           onClick={() =>
                             !isReadOnly &&
                             !isHoliday &&
@@ -372,7 +409,12 @@ export default function TimetableGrid({
                 <div className="divide-y divide-gray-100">
                   {periods.map((period) => {
                     const entry = getEntry(day.key, period.index);
-                    const conflict = hasConflict(day.key, period);
+                    const conflict = hasConflict(day.key, period, entry);
+                    const isFocused = isFocusedConflict(
+                      day.key,
+                      period,
+                      entry,
+                    );
                     const isBreak = entry?.slotType === "BREAK";
                     const isInstructionalPeriod =
                       period.isInstructional !== false;
@@ -381,6 +423,7 @@ export default function TimetableGrid({
                     return (
                       <div
                         key={period.index}
+                        aria-current={isFocused ? "true" : undefined}
                         onClick={() =>
                           !isReadOnly &&
                           !isHoliday &&
@@ -395,7 +438,7 @@ export default function TimetableGrid({
                           isHoliday || !isInstructionalPeriod
                             ? "bg-red-50/30"
                             : ""
-                        }`}
+                        } ${isFocused ? "outline-2 outline-offset-[-2px] outline-primary-600" : ""}`}
                       >
                         {/* Period Header */}
                         <div className="flex items-start justify-between mb-2">
@@ -494,5 +537,31 @@ export default function TimetableGrid({
         })}
       </div>
     </>
+  );
+}
+
+function conflictAffectsSlot(
+  conflict: TimetableConflictDisplay,
+  entry: TimetableEntry | undefined,
+  dayKey: string,
+  period: ResolvedTimetableConfig["periods"][number],
+  proposedEntryIds: string[],
+): boolean {
+  if (entry && conflict.entryIds.includes(entry.id)) {
+    return true;
+  }
+  if (
+    entry &&
+    conflict.proposedIndexes.some(
+      (proposedIndex) => proposedEntryIds[proposedIndex] === entry.id,
+    )
+  ) {
+    return true;
+  }
+  return (
+    conflict.dayKey === dayKey &&
+    (conflict.periodId
+      ? conflict.periodId === period.id
+      : conflict.periodIndex === period.index)
   );
 }
