@@ -29,15 +29,42 @@ export interface TimetableConflictPeriod {
   endTime?: string;
 }
 
+export interface TimetableConflictEntryReference {
+  id: string;
+  classroomId?: string;
+  sectionId?: string;
+  dayKey: string;
+  periodIndex: number;
+}
+
+export interface TimetableConflictNormalizationContext {
+  entries?: TimetableConflictEntryReference[];
+  proposedEntries?: TimetableConflictEntryReference[];
+}
+
 export function normalizeTimetableConflicts(
   response: unknown,
   source: TimetableConflictSource,
   periods: TimetableConflictPeriod[],
+  context: TimetableConflictNormalizationContext = {},
 ): TimetableConflictDisplay[] {
   const periodById = new Map(periods.map((period) => [period.id, period]));
 
   return conflictItems(response).map((conflict) =>
-    normalizeConflict(conflict, source, periodById),
+    normalizeConflict(conflict, source, periods, periodById, context),
+  );
+}
+
+export function resolveTimetableConflictTargetEntry(
+  conflict: Pick<TimetableConflictDisplay, "entryIds" | "proposedIndexes">,
+  entries: TimetableConflictEntryReference[],
+  proposedEntries: TimetableConflictEntryReference[] = entries,
+): TimetableConflictEntryReference | undefined {
+  return (
+    entries.find((entry) => conflict.entryIds.includes(entry.id)) ??
+    conflict.proposedIndexes
+      .map((index) => proposedEntries[index])
+      .find((entry): entry is TimetableConflictEntryReference => Boolean(entry))
   );
 }
 
@@ -56,14 +83,27 @@ function conflictItems(response: unknown): unknown[] {
 function normalizeConflict(
   rawConflict: unknown,
   source: TimetableConflictSource,
+  periods: TimetableConflictPeriod[],
   periodById: Map<string, TimetableConflictPeriod>,
+  context: TimetableConflictNormalizationContext,
 ): TimetableConflictDisplay {
   const conflict = isRecord(rawConflict) ? rawConflict : {};
   const code = stringField(conflict, source === "persisted" ? "type" : "code");
   const dayOfWeek = nullableNumberField(conflict, "dayOfWeek");
   const periodId = nullableStringField(conflict, "periodId") ?? undefined;
-  const period = periodId ? periodById.get(periodId) : undefined;
   const explicitPeriodIndex = numberField(conflict, "periodIndex");
+  const entryIds = conflictEntryIds(conflict);
+  const proposedIndexes = numberArrayField(conflict, "proposedIndexes");
+  const targetEntry = resolveTimetableConflictTargetEntry(
+    { entryIds, proposedIndexes },
+    context.entries ?? [],
+    context.proposedEntries ?? [],
+  );
+  const period =
+    (periodId ? periodById.get(periodId) : undefined) ??
+    (source === "proposed" && targetEntry
+      ? periods.find((candidate) => candidate.index === targetEntry.periodIndex)
+      : undefined);
 
   return {
     type: conflictType(code),
@@ -83,9 +123,9 @@ function normalizeConflict(
       : explicitPeriodIndex === undefined
         ? {}
         : { periodIndex: explicitPeriodIndex }),
-    entryIds: conflictEntryIds(conflict),
-    proposedIndexes: numberArrayField(conflict, "proposedIndexes"),
-    resourceId: conflictResourceId(conflict, code),
+    entryIds,
+    proposedIndexes,
+    resourceId: conflictResourceId(conflict, code, targetEntry),
   };
 }
 
@@ -102,6 +142,7 @@ function conflictEntryIds(conflict: Record<string, unknown>): string[] {
 function conflictResourceId(
   conflict: Record<string, unknown>,
   code: string | undefined,
+  targetEntry: TimetableConflictEntryReference | undefined,
 ): string | undefined {
   const type = conflictType(code);
   if (type === "TEACHER") {
@@ -120,7 +161,11 @@ function conflictResourceId(
     );
   }
   if (type === "CLASSROOM") {
-    return nullableStringField(conflict, "classroomId") ?? undefined;
+    return (
+      nullableStringField(conflict, "classroomId") ??
+      targetEntry?.classroomId ??
+      undefined
+    );
   }
   return nullableStringField(conflict, "resourceId") ?? undefined;
 }

@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import TimetableGrid from "@/features/academics/timetable/components/TimetableGrid";
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
@@ -28,6 +28,10 @@ const baseConflict: TimetableConflictDisplay = {
 };
 
 describe("TimetableGrid conflict highlighting", () => {
+  beforeEach(() => {
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+  });
+
   it("highlights and identifies the selected cell by backend entry ID", () => {
     const conflict = { ...baseConflict, entryIds: ["entry-1"] };
     renderGrid(conflict);
@@ -48,6 +52,14 @@ describe("TimetableGrid conflict highlighting", () => {
     );
   });
 
+  it("reveals the selected conflict day in the mobile view", async () => {
+    const conflict = { ...baseConflict, entryIds: ["entry-1"] };
+    renderGrid(conflict);
+
+    await waitFor(() =>
+      expect(screen.getAllByText("Math")).toHaveLength(2),
+    );
+  });
 });
 
 function renderGrid(focusedConflict: TimetableConflictDisplay) {

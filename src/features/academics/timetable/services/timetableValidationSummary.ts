@@ -6,6 +6,7 @@ import type {
 import {
   normalizeTimetableConflicts,
   type TimetableConflictDisplay,
+  type TimetableConflictNormalizationContext,
   type TimetableConflictPeriod,
 } from "@/features/academics/timetable/services/timetableConflictNormalization";
 
@@ -89,29 +90,32 @@ export function validationIssueText(issue: TimetableValidationIssue): string {
 export function conflictsFromResponse(
   response: unknown,
   periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
 ): TimetableConflictDisplay[] {
-  return normalizeTimetableConflicts(response, "proposed", periods);
+  return normalizeTimetableConflicts(response, "proposed", periods, context);
 }
 
 export function normalizeConflictCheckResponse(
   response: unknown,
   periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
 ): {
   conflicts: TimetableConflictDisplay[];
 } {
   return {
-    conflicts: normalizeTimetableConflicts(response, "proposed", periods),
+    conflicts: normalizeTimetableConflicts(response, "proposed", periods, context),
   };
 }
 
 export function normalizePersistedConflicts(
   response: unknown,
   periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
 ): {
   conflicts: TimetableConflictDisplay[];
 } {
   return {
-    conflicts: normalizeTimetableConflicts(response, "persisted", periods),
+    conflicts: normalizeTimetableConflicts(response, "persisted", periods, context),
   };
 }
 

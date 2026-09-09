@@ -319,6 +319,25 @@ describe("useTimetableData", () => {
     ]);
   });
 
+  it("does not report save success when the authoritative reload fails", async () => {
+    mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
+    mockedBulkSaveEntries.mockResolvedValueOnce({ items: [backendEntry] });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
+    mockedGetConfig.mockRejectedValueOnce(new Error("Reload failed"));
+
+    let saveResult: Awaited<ReturnType<typeof result.current.saveTimetable>>;
+    await act(async () => {
+      saveResult = await result.current.saveTimetable(result.current.timetableEntries);
+    });
+
+    expect(saveResult!).toMatchObject({
+      ok: false,
+      partialMutation: true,
+    });
+  });
+
   it("does not delete cleared entries when another slot has a conflict", async () => {
     mockedCheckConflicts.mockResolvedValueOnce({
       conflicts: [{ code: "academics.timetable.entry_conflict" }],

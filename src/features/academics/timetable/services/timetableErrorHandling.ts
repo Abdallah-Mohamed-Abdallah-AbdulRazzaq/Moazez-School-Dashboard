@@ -2,6 +2,7 @@ import { ApiError, isApiError } from "@/lib/api-error";
 import {
   normalizeTimetableConflicts,
   type TimetableConflictDisplay,
+  type TimetableConflictNormalizationContext,
   type TimetableConflictPeriod,
 } from "@/features/academics/timetable/services/timetableConflictNormalization";
 
@@ -157,6 +158,7 @@ export function timetableFormErrors(
 export function conflictFromTimetableError(
   error: unknown,
   periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
 ): TimetableConflictDisplay | null {
   const code = timetableErrorCode(error);
   if (!isConflictCode(code)) {
@@ -178,6 +180,7 @@ export function conflictFromTimetableError(
     ],
     "proposed",
     periods,
+    context,
   );
 
   return conflict ?? null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
@@ -13,7 +13,10 @@ import {
   Users,
 } from "lucide-react";
 import { TimetableEntry } from "@/features/academics/timetable/types/timetable";
-import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import {
+  resolveTimetableConflictTargetEntry,
+  type TimetableConflictDisplay,
+} from "@/features/academics/timetable/services/timetableConflictNormalization";
 import { Subject } from "@/features/academics/subjects/services/subjectsService";
 import { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { Room } from "@/features/academics/timetable/types/timetable";
@@ -51,17 +54,50 @@ export default function TimetableGrid({
 }: TimetableGridProps) {
   const t = useTranslations("academics.timetable.grid");
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const gridRootRef = useRef<HTMLDivElement | null>(null);
 
   // Get active days and periods from config
   const activeDays = resolvedConfig.days.filter((d) => d.isActive);
   const periods = resolvedConfig.periods;
-  const proposedEntryIds = useMemo(
-    () =>
-      proposalEntries
-        .filter((entry) => entry.subjectId)
-        .map((entry) => entry.id),
+  const mappedProposalEntries = useMemo(
+    () => proposalEntries.filter((entry) => entry.subjectId),
     [proposalEntries],
   );
+  const proposedEntryIds = useMemo(
+    () => mappedProposalEntries.map((entry) => entry.id),
+    [mappedProposalEntries],
+  );
+  const focusedTargetEntry = useMemo(
+    () =>
+      focusedConflict
+        ? resolveTimetableConflictTargetEntry(
+            focusedConflict,
+            entries,
+            mappedProposalEntries,
+          )
+        : undefined,
+    [entries, focusedConflict, mappedProposalEntries],
+  );
+  const focusedDayKey = focusedTargetEntry?.dayKey ?? focusedConflict?.dayKey;
+  const visibleExpandedDay = focusedDayKey ?? expandedDay;
+
+  useEffect(() => {
+    if (!focusedConflict || !gridRootRef.current) return;
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      const targets = Array.from(
+        gridRootRef.current?.querySelectorAll<HTMLElement>(
+          '[data-focused-conflict="true"]',
+        ) ?? [],
+      );
+      const target = targets.find((candidate) => candidate.offsetParent !== null) ?? targets[0];
+      if (!target) return;
+      target.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      target.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [focusedConflict, visibleExpandedDay]);
 
   const getEntry = (
     dayKey: string,
@@ -248,7 +284,7 @@ export default function TimetableGrid({
   };
 
   return (
-    <>
+    <div ref={gridRootRef}>
       {/* Desktop: Table View */}
       <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden print:block print:rounded-none print:shadow-none print:overflow-visible">
         <div className="overflow-x-auto print:overflow-visible">
@@ -324,6 +360,8 @@ export default function TimetableGrid({
                         <td
                           key={`${day.key}-${period.index}`}
                           aria-current={isFocused ? "true" : undefined}
+                          data-focused-conflict={isFocused ? "true" : undefined}
+                          tabIndex={isFocused ? -1 : undefined}
                           className={`border-b border-r border-gray-200 p-0 transition-colors relative group ${
                             isHoliday || !isInstructionalPeriod
                               ? "bg-red-50 cursor-not-allowed"
@@ -359,7 +397,7 @@ export default function TimetableGrid({
       {/* Mobile: Card View by Day */}
       <div className="lg:hidden space-y-3 print:hidden">
         {activeDays.map((day) => {
-          const isExpanded = expandedDay === day.key;
+          const isExpanded = visibleExpandedDay === day.key;
           const isHoliday = isHolidayDay(day.key);
           const dayEntries = periods.map((period) =>
             getEntry(day.key, period.index),
@@ -376,6 +414,7 @@ export default function TimetableGrid({
               {/* Day Header - Collapsible */}
               <button
                 onClick={() => setExpandedDay(isExpanded ? null : day.key)}
+                aria-expanded={isExpanded}
                 className={`w-full px-4 py-3 flex items-center justify-between ${
                   isHoliday ? "bg-red-50" : "bg-gray-50"
                 } hover:bg-gray-100 transition-colors`}
@@ -424,6 +463,8 @@ export default function TimetableGrid({
                       <div
                         key={period.index}
                         aria-current={isFocused ? "true" : undefined}
+                        data-focused-conflict={isFocused ? "true" : undefined}
+                        tabIndex={isFocused ? -1 : undefined}
                         onClick={() =>
                           !isReadOnly &&
                           !isHoliday &&
@@ -536,7 +577,7 @@ export default function TimetableGrid({
           );
         })}
       </div>
-    </>
+    </div>
   );
 }
 

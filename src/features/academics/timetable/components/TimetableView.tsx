@@ -54,7 +54,10 @@ import { useTimetableData } from "@/features/academics/timetable/hooks/useTimeta
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
 import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
-import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import {
+  resolveTimetableConflictTargetEntry,
+  type TimetableConflictDisplay,
+} from "@/features/academics/timetable/services/timetableConflictNormalization";
 import type {
   Stage,
   Grade,
@@ -816,6 +819,34 @@ export default function TimetableView({
   )
     ? selectedSectionTabId
     : displayedSections[0]?.id;
+
+  const handleConflictSelect = useCallback(
+    (conflict: TimetableConflictDisplay) => {
+      const proposedEntries = timetableEntries.filter((entry) => entry.subjectId);
+      const entriesById = new Map(
+        [...allTermEntries, ...timetableEntries].map((entry) => [entry.id, entry]),
+      );
+      const targetEntry = resolveTimetableConflictTargetEntry(
+        conflict,
+        [...entriesById.values()],
+        proposedEntries,
+      );
+      const targetClassroom = classrooms.find(
+        (classroom) =>
+          classroom.id ===
+          (targetEntry?.classroomId ??
+            (conflict.type === "CLASSROOM" ? conflict.resourceId : undefined)),
+      );
+      const targetSectionId = targetEntry?.sectionId ?? targetClassroom?.sectionId;
+
+      if (targetSectionId) {
+        setSelectedSectionTabId(targetSectionId);
+      }
+      setSelectedConflict(conflict);
+      setValidationPanelOpen(false);
+    },
+    [allTermEntries, classrooms, timetableEntries],
+  );
 
   const handleValidationOpen = useCallback(async () => {
     setIsValidating(true);
@@ -1840,6 +1871,9 @@ export default function TimetableView({
                 className="timetable-print-content space-y-6"
                 dir={locale === "ar" ? "rtl" : "ltr"}
               >
+                <p className="sr-only" role="status" aria-live="polite">
+                  {selectedConflict?.message ?? ""}
+                </p>
                 {displayedSections.length > 1 && (
                   <div
                     role="group"
@@ -1934,11 +1968,8 @@ export default function TimetableView({
           rooms={rooms}
           classrooms={classrooms}
           selectedConflict={selectedConflict}
-          onConflictSelect={setSelectedConflict}
-          onClose={() => {
-            setSelectedConflict(null);
-            setValidationPanelOpen(false);
-          }}
+          onConflictSelect={handleConflictSelect}
+          onClose={() => setValidationPanelOpen(false)}
           locale={locale}
         />
       )}

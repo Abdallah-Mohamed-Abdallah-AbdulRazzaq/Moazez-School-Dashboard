@@ -146,4 +146,75 @@ describe("normalizeTimetableConflicts", () => {
     expect(conflict).not.toHaveProperty("endTime");
     expect(conflict).not.toHaveProperty("dayKey");
   });
+
+  it("uses the proposed entry period for display when an overlapping existing entry has a different period ID", () => {
+    const [conflict] = normalizeTimetableConflicts(
+      {
+        conflicts: [
+          {
+            code: "teacher_conflict",
+            message: "Teacher intervals overlap.",
+            severity: "blocking",
+            dayOfWeek: 2,
+            periodId: "existing-config-period",
+            teacherUserId: "teacher-1",
+            proposedIndexes: [0],
+          },
+        ],
+      },
+      "proposed",
+      periods,
+      {
+        proposedEntries: [
+          {
+            id: "temp-entry-1",
+            classroomId: "classroom-1",
+            sectionId: "section-1",
+            dayKey: "tue",
+            periodIndex: 2,
+          },
+        ],
+      },
+    );
+
+    expect(conflict).toMatchObject({
+      periodId: "existing-config-period",
+      periodIndex: 2,
+      periodLabel: "Period 2",
+      startTime: "09:00",
+      endTime: "09:45",
+    });
+  });
+
+  it("derives a persisted classroom conflict resource from an affected entry", () => {
+    const [conflict] = normalizeTimetableConflicts(
+      {
+        conflicts: [
+          {
+            type: "CLASSROOM",
+            dayOfWeek: 2,
+            periodId: "period-2",
+            entryId: "entry-1",
+            relatedEntryId: "entry-2",
+            message: "Classroom intervals overlap.",
+          },
+        ],
+      },
+      "persisted",
+      periods,
+      {
+        entries: [
+          {
+            id: "entry-1",
+            classroomId: "classroom-1",
+            sectionId: "section-1",
+            dayKey: "tue",
+            periodIndex: 2,
+          },
+        ],
+      },
+    );
+
+    expect(conflict.resourceId).toBe("classroom-1");
+  });
 });
