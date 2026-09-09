@@ -397,7 +397,6 @@ export function useTimetableData({
       setTeachers([]);
       setTeacherAllocations([]);
       setRooms([]);
-      setRoomDefaults([]);
       setDependenciesLoading(false);
       dependenciesLoadedKeyRef.current = null;
       dependenciesInFlightKeyRef.current = null;
@@ -465,8 +464,7 @@ export function useTimetableData({
       setSubjectAllocations(subjectAllocsData);
       setTeachers(teachersData);
       setTeacherAllocations(teacherAllocsData);
-      setRooms(roomsData.filter((room) => room.isActive));
-      setRoomDefaults([]);
+      setRooms(roomsData);
 
       dependenciesLoadedKeyRef.current = dependenciesKey;
     } catch (error) {

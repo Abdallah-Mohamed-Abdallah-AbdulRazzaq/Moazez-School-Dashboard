@@ -185,8 +185,8 @@ export default function EditSlotDialog({
           : eligibility.reason === "inactive"
             ? t("roomInactive")
             : t("roomCapacityInsufficient", {
-                roomCapacity: eligibility.roomCapacity,
-                classroomCapacity: eligibility.classroomCapacity,
+                  roomCapacity: eligibility.roomCapacity ?? "",
+                  classroomCapacity: eligibility.classroomCapacity ?? "",
               });
         const roomName = locale === "ar" ? room.nameAr : room.nameEn;
 
