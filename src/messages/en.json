@@ -6749,6 +6749,8 @@
         "scope": {
           "term": "Entire Term",
           "termDesc": "Apply to all grades and sections",
+          "stage": "Specific Stage",
+          "stageDesc": "Apply to one stage only",
           "grade": "Specific Grade",
           "gradeDesc": "Apply to one grade only",
           "section": "Individual Section",
@@ -6829,6 +6831,7 @@
         },
         "scopeOptions": {
           "term": "Term",
+          "stage": "Stage",
           "grade": "Grade",
           "section": "Section",
           "classroom": "Classroom"
@@ -6845,6 +6848,16 @@
         "section": "Section",
         "classroom": "Classroom",
         "configSource": "Config source"
+      },
+      "source": {
+        "exactTitle": "Scope timetable",
+        "exactDescription": "This scope uses its own timetable configuration.",
+        "inheritedTitle": "Inherited published timetable",
+        "inheritedDescription": "This published timetable is inherited and read-only.",
+        "sourceLabel": "Source",
+        "lockedLabel": "Inherited timetable is locked",
+        "createOverride": "Create custom timetable",
+        "overrideUnavailable": "You cannot create an override for this scope while the term is closed or without manage permission."
       },
       "export": {
         "status": "Status",

@@ -6500,6 +6500,8 @@
         "scope": {
           "term": "الترم بالكامل",
           "termDesc": "تطبيق على كل الصفوف والشعب",
+          "stage": "مرحلة محددة",
+          "stageDesc": "تطبيق على مرحلة واحدة فقط",
           "grade": "صف",
           "gradeDesc": "تطبيق على صف واحد فقط",
           "section": "شعبة محددة",
@@ -6580,6 +6582,7 @@
         },
         "scopeOptions": {
           "term": "الترم",
+          "stage": "المرحلة",
           "grade": "الصف",
           "section": "الشعبة",
           "classroom": "الفصل"
@@ -6596,6 +6599,16 @@
         "section": "شعبة",
         "classroom": "فصل",
         "configSource": "مصدر الإعدادات"
+      },
+      "source": {
+        "exactTitle": "جدول النطاق",
+        "exactDescription": "يستخدم هذا النطاق إعدادات جدول خاصة به.",
+        "inheritedTitle": "جدول منشور موروث",
+        "inheritedDescription": "هذا الجدول المنشور موروث ومتاح للعرض فقط.",
+        "sourceLabel": "المصدر",
+        "lockedLabel": "الجدول الموروث مقفل",
+        "createOverride": "إنشاء جدول مخصص",
+        "overrideUnavailable": "لا يمكنك إنشاء تخصيص لهذا النطاق عندما يكون الترم مغلقًا أو بدون صلاحية الإدارة."
       },
       "export": {
         "status": "حالة",
