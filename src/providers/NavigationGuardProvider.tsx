@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useUnsavedChanges } from "./UnsavedChangesProvider";
 import Modal from "@/components/ui/modal/Modal";
 import { useTranslations } from "next-intl";
@@ -21,6 +21,7 @@ export function NavigationGuardProvider({
 }) {
   const { isDirty, resetAll } = useUnsavedChanges();
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("common");
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -28,7 +29,15 @@ export function NavigationGuardProvider({
   
   // Track if we're in the middle of handling a popstate event
   const isHandlingPopState = useRef(false);
-  const lastPathname = useRef(pathname);
+  const lastUrl = useRef(pathname);
+  const wasDirty = useRef(false);
+
+  useEffect(() => {
+    if (!isDirty || !wasDirty.current) {
+      lastUrl.current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    }
+    wasDirty.current = isDirty;
+  }, [isDirty, pathname]);
 
   // beforeunload handler for browser refresh/close
   useEffect(() => {
@@ -46,10 +55,7 @@ export function NavigationGuardProvider({
 
   // popstate handler for browser back/forward navigation
   useEffect(() => {
-    if (!isDirty) {
-      lastPathname.current = pathname;
-      return;
-    }
+    if (!isDirty) return;
 
     const handlePopState = (e: PopStateEvent) => {
       // If we're already handling a popstate, don't recurse
@@ -59,7 +65,8 @@ export function NavigationGuardProvider({
 
       // User clicked back/forward with unsaved changes
       // Push the current state back to prevent navigation
-      window.history.pushState(null, "", lastPathname.current);
+      window.history.pushState(null, "", lastUrl.current);
+      router.replace(lastUrl.current, { scroll: false });
       
       // Show confirmation dialog
       setPendingAction(() => () => {
@@ -89,14 +96,7 @@ export function NavigationGuardProvider({
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [isDirty, resetAll, pathname]);
-
-  // Update last pathname when it changes and we're not dirty
-  useEffect(() => {
-    if (!isDirty) {
-      lastPathname.current = pathname;
-    }
-  }, [pathname, isDirty]);
+  }, [isDirty, pathname, resetAll, router]);
 
   const guardedNavigate = useCallback(
     (action: () => void) => {

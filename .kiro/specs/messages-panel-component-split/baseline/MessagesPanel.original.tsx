@@ -149,7 +149,6 @@ export function MessagesPanel({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const prevMessageCountRef = useRef(messages.length);
   const isInitialLoadRef = useRef(true);
-  const [isScrollReady, setIsScrollReady] = useState(false);
 
   // Scroll to bottom on initial load and when new messages arrive at the bottom
   useEffect(() => {
@@ -161,8 +160,7 @@ export function MessagesPanel({
       container.scrollTop = container.scrollHeight;
       isInitialLoadRef.current = false;
       prevMessageCountRef.current = messages.length;
-      // Show content after scroll is positioned
-      setIsScrollReady(true);
+      container.classList.replace("opacity-0", "opacity-100");
       return;
     }
 
@@ -211,7 +209,7 @@ export function MessagesPanel({
   }
 
   return (
-    <div ref={scrollRef} className={`h-full overflow-y-auto px-4 py-8 ${isScrollReady ? "opacity-100" : "opacity-0"}`}>
+    <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-8 opacity-0">
       <div className="mx-auto flex min-h-full max-w-[1500px] flex-col gap-0.5">
         {/* Loading older messages indicator */}
         {isLoadingOlder ? (

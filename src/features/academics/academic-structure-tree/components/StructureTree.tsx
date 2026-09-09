@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   ChevronRight,
@@ -13,6 +13,12 @@ import {
   GripVertical,
   Edit2,
   Trash2,
+  ChevronsUpDown,
+  ChevronsDownUp,
+  GitBranch,
+  List,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 import {
   DndContext,
@@ -36,6 +42,7 @@ import { Stage, Grade, Section, Classroom } from "@/features/academics/academic-
 import Input from "@/components/ui/input/Input";
 import Button from "@/components/ui/button/Button";
 import DropdownMenu from "@/components/ui/dropdown/DropdownMenu";
+import StructureListView from "./StructureListView";
 
 const normalizeSearchText = (value: string) =>
   value
@@ -59,6 +66,8 @@ interface TreeNodeRef {
   id: string;
 }
 
+export type StructureView = "tree" | "list";
+
 interface StructureTreeProps {
   stages: Stage[];
   grades: Grade[];
@@ -66,12 +75,20 @@ interface StructureTreeProps {
   classrooms: Classroom[];
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
+  view: StructureView;
+  onViewChange: (view: StructureView) => void;
+  onClearSelection: () => void;
   expandedStages: Set<string>;
   expandedGrades: Set<string>;
   expandedSections: Set<string>;
   onExpandedStagesChange: (value: Set<string>) => void;
   onExpandedGradesChange: (value: Set<string>) => void;
   onExpandedSectionsChange: (value: Set<string>) => void;
+  onExpandedBranchesChange: (value: {
+    stages: Set<string>;
+    grades: Set<string>;
+    sections: Set<string>;
+  }) => void;
   selectedNode: TreeNodeRef | null;
   onSelectNode: (node: TreeNodeRef) => void;
   onAddStage: () => void;
@@ -202,12 +219,11 @@ function SortableClassroomItem({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
-
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors touch-manipulation ${
+      className={`flex items-center gap-1 rounded-md px-1 py-1.5 cursor-pointer transition-colors touch-manipulation ${
         isSelected ? "bg-primary/10 border border-primary" : "hover:bg-gray-50"
       }`}
     >
@@ -288,7 +304,6 @@ function SortableSectionItem({
 }: SortableSectionItemProps) {
   const t = useTranslations("academics.structure");
   const locale = useLocale();
-  const isRTL = locale === "ar";
   const classroomSensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -318,11 +333,12 @@ function SortableSectionItem({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+  const hasNoClassrooms = classrooms.length === 0;
 
   return (
-    <div ref={setNodeRef} style={style} className="space-y-1">
+    <div ref={setNodeRef} style={style} className="space-y-0.5">
       <div
-        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors touch-manipulation ${
+        className={`flex items-center gap-1 rounded-md px-1 py-1.5 cursor-pointer transition-colors touch-manipulation ${
           isSelected ? "bg-primary/10 border border-primary" : "hover:bg-gray-50"
         }`}
       >
@@ -345,7 +361,16 @@ function SortableSectionItem({
         <div className="flex-1 text-sm text-gray-600 truncate touch-manipulation" onClick={() => onSelectNode({ type: "section", id: section.id })}>
           {locale === "ar" ? (section.nameAr || section.nameEn || section.name) : (section.nameEn || section.nameAr || section.name)}
         </div>
-        <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+            hasNoClassrooms
+              ? "bg-amber-50 text-amber-700"
+              : "bg-gray-100 text-gray-600"
+          }`}
+          aria-label={hasNoClassrooms ? t("tree.views.validation.no_classrooms") : undefined}
+          title={hasNoClassrooms ? t("tree.views.validation.no_classrooms") : undefined}
+        >
+          {hasNoClassrooms && <AlertTriangle className="h-3 w-3" aria-hidden="true" />}
           {classrooms.length}
         </span>
         <button
@@ -398,7 +423,7 @@ function SortableSectionItem({
       </div>
 
       {isExpanded && classrooms.length > 0 && (
-        <div className={`${isRTL ? "mr-6" : "ml-6"} space-y-1`}>
+        <div className="ms-4 space-y-0.5 border-s border-gray-200 ps-1">
           <DndContext
             sensors={classroomSensors}
             collisionDetection={closestCenter}
@@ -465,7 +490,6 @@ function SortableGradeItem({
 }: SortableGradeItemProps) {
   const t = useTranslations("academics.structure");
   const locale = useLocale();
-  const isRTL = locale === "ar";
   const sectionSensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -497,9 +521,9 @@ function SortableGradeItem({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="space-y-1">
+    <div ref={setNodeRef} style={style} className="space-y-0.5">
       <div
-        className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+        className={`flex items-center gap-1 rounded-md px-1 py-1.5 transition-colors ${
           isSelected ? "bg-primary/10 border border-primary" : "hover:bg-gray-50"
         } ${isSortableDragging ? "shadow-lg z-50" : ""}`}
       >
@@ -580,7 +604,7 @@ function SortableGradeItem({
       </div>
 
       {isExpanded && (
-        <div className={`${isRTL ? "mr-6" : "ml-6"} space-y-1`}>
+        <div className="ms-4 space-y-0.5 border-s border-gray-200 ps-1">
           <DndContext
             sensors={sectionSensors}
             collisionDetection={closestCenter}
@@ -663,7 +687,6 @@ function SortableStageItem({
 }: SortableStageItemProps) {
   const t = useTranslations("academics.structure");
   const locale = useLocale();
-  const isRTL = locale === "ar";
   const gradeSensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -698,9 +721,9 @@ function SortableStageItem({
     : null;
 
   return (
-    <div ref={setNodeRef} style={style} className="space-y-1">
+    <div ref={setNodeRef} style={style} className="space-y-0.5">
       <div
-        className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+        className={`flex items-center gap-1 rounded-md px-1 py-1.5 transition-colors ${
           isSelected ? "bg-primary/10 border border-primary" : "hover:bg-gray-50"
         }`}
       >
@@ -782,7 +805,7 @@ function SortableStageItem({
       </div>
 
       {isExpanded && stageGrades.length > 0 && (
-        <div className={`${isRTL ? "mr-6" : "ml-6"}`}>
+        <div className="ms-4 border-s border-gray-200 ps-1">
           <DndContext
             sensors={gradeSensors}
             collisionDetection={closestCenter}
@@ -858,12 +881,16 @@ export default function StructureTree({
   classrooms,
   searchQuery,
   onSearchQueryChange,
+  view,
+  onViewChange,
+  onClearSelection,
   expandedStages,
   expandedGrades,
   expandedSections,
   onExpandedStagesChange,
   onExpandedGradesChange,
   onExpandedSectionsChange,
+  onExpandedBranchesChange,
   selectedNode,
   onSelectNode,
   onAddStage,
@@ -1060,23 +1087,26 @@ export default function StructureTree({
       .sort((a, b) => a.order - b.order);
   };
 
+  const expandAllBranches = useCallback(() => {
+    onExpandedBranchesChange({
+      stages: new Set(filteredData.stages.map((stage) => stage.id)),
+      grades: new Set(filteredData.grades.map((grade) => grade.id)),
+      sections: new Set(filteredData.sections.map((section) => section.id)),
+    });
+  }, [
+    filteredData.grades,
+    filteredData.sections,
+    filteredData.stages,
+    onExpandedBranchesChange,
+  ]);
+
   useEffect(() => {
     if (!searchQuery.trim()) {
       return;
     }
 
-    onExpandedStagesChange(new Set(filteredData.stages.map((stage) => stage.id)));
-    onExpandedGradesChange(new Set(filteredData.grades.map((grade) => grade.id)));
-    onExpandedSectionsChange(new Set(filteredData.sections.map((section) => section.id)));
-  }, [
-    filteredData.grades,
-    filteredData.sections,
-    filteredData.stages,
-    onExpandedGradesChange,
-    onExpandedSectionsChange,
-    onExpandedStagesChange,
-    searchQuery,
-  ]);
+    expandAllBranches();
+  }, [expandAllBranches, searchQuery]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -1111,32 +1141,140 @@ export default function StructureTree({
 
   const activeStage = activeId ? stages.find((stage) => stage.id === activeId) : null;
 
+  const collapseAllBranches = () => {
+    onExpandedBranchesChange({
+      stages: new Set(),
+      grades: new Set(),
+      sections: new Set(),
+    });
+  };
+
+  const hasCollapsedBranches =
+    filteredData.stages.some((stage) => !expandedStages.has(stage.id)) ||
+    filteredData.grades.some((grade) => !expandedGrades.has(grade.id)) ||
+    filteredData.sections.some((section) => !expandedSections.has(section.id));
+  const hasExpandedBranches =
+    expandedStages.size > 0 || expandedGrades.size > 0 || expandedSections.size > 0;
+
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-border">
+      <div className="space-y-2 border-b border-border bg-white p-3">
         <Input
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
           placeholder={t("tree.search_placeholder")}
           leftIcon={<Search className="w-4 h-4" />}
-          inputSize="md"
+          inputSize="sm"
         />
-      </div>
 
-      <div className="p-4 border-b border-border">
-        <Button
-          onClick={onAddStage}
-          variant="primary"
-          fullWidth
-          leftIcon={<Plus className="w-4 h-4" />}
-          disabled={isReadOnly}
+        <div
+          className="grid grid-cols-4 gap-1"
+          aria-label={t("tree.structure_summary")}
         >
-          {t("tree.add_stage")}
-        </Button>
+          {[
+            [t("insights.total_stages"), filteredData.stages.length],
+            [t("insights.total_grades"), filteredData.grades.length],
+            [t("insights.total_sections"), filteredData.sections.length],
+            [t("insights.total_classrooms"), filteredData.classrooms.length],
+          ].map(([label, count]) => (
+            <div
+              key={label}
+              className="min-w-0 rounded-md border border-gray-200 bg-gray-50 px-1 py-1 text-center"
+            >
+              <div className="text-sm font-semibold leading-none text-gray-900">
+                {count}
+              </div>
+              <div className="mt-1 truncate text-[10px] leading-none text-gray-600">
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1"
+          role="tablist"
+          aria-label={t("tree.views.label")}
+        >
+          <Button
+            type="button"
+            size="sm"
+            variant={view === "tree" ? "secondary" : "ghost"}
+            role="tab"
+            aria-selected={view === "tree"}
+            onClick={() => onViewChange("tree")}
+            leftIcon={<GitBranch className="h-3.5 w-3.5" />}
+          >
+            {t("tree.views.tree")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={view === "list" ? "secondary" : "ghost"}
+            role="tab"
+            aria-selected={view === "list"}
+            onClick={() => onViewChange("list")}
+            leftIcon={<List className="h-3.5 w-3.5" />}
+          >
+            {t("tree.views.list")}
+          </Button>
+        </div>
+
+        <div className="flex gap-1.5">
+          <Button
+            onClick={onAddStage}
+            variant="primary"
+            size="sm"
+            className="min-w-0 flex-1"
+            leftIcon={<Plus className="w-4 h-4" />}
+            disabled={isReadOnly}
+          >
+            {t("tree.add_stage")}
+          </Button>
+          {view === "tree" ? (
+            <>
+              <Button
+                onClick={expandAllBranches}
+                variant="secondary"
+                size="sm"
+                className="px-2.5"
+                disabled={!hasCollapsedBranches}
+                title={t("tree.expand_all")}
+                aria-label={t("tree.expand_all")}
+              >
+                <ChevronsUpDown className="h-4 w-4" />
+                <span className="sr-only">{t("tree.expand_all")}</span>
+              </Button>
+              <Button
+                onClick={collapseAllBranches}
+                variant="secondary"
+                size="sm"
+                className="px-2.5"
+                disabled={!hasExpandedBranches}
+                title={t("tree.collapse_all")}
+                aria-label={t("tree.collapse_all")}
+              >
+                <ChevronsDownUp className="h-4 w-4" />
+                <span className="sr-only">{t("tree.collapse_all")}</span>
+              </Button>
+            </>
+          ) : null}
+        </div>
+
+        {view === "tree" ? (
+          <p className="flex items-start gap-1.5 border-t border-gray-200 pt-2 text-xs leading-5 text-gray-600">
+            <Info
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
+              aria-hidden="true"
+            />
+            <span>{t("tree.views.hints.tree")}</span>
+          </p>
+        ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        <DndContext
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {view === "tree" ? (
+          <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
@@ -1201,7 +1339,24 @@ export default function StructureTree({
               </div>
             ) : null}
           </DragOverlay>
-        </DndContext>
+          </DndContext>
+        ) : (
+          <StructureListView
+            stages={filteredData.stages}
+            grades={filteredData.grades}
+            sections={filteredData.sections}
+            classrooms={filteredData.classrooms}
+            selectedNode={selectedNode}
+            onSelectNode={onSelectNode}
+            onClearSelection={onClearSelection}
+            onAddGrade={onAddGrade}
+            onAddSection={onAddSection}
+            onAddClassroom={onAddClassroom}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            isReadOnly={isReadOnly}
+          />
+        )}
       </div>
     </div>
   );

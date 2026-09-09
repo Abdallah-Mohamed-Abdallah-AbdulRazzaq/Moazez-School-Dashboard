@@ -4575,7 +4575,35 @@
         "delete": "Delete",
         "move_up": "Move Up",
         "move_down": "Move Down",
-        "drag_to_reorder": "Drag to reorder"
+        "drag_to_reorder": "Drag to reorder",
+        "expand_all": "Expand all levels",
+        "collapse_all": "Collapse all levels",
+        "structure_summary": "Visible structure totals",
+        "actions": "Structure item actions",
+        "views": {
+          "label": "Structure view",
+          "tree": "Tree",
+          "list": "Drill-down",
+          "back": "Back to the previous level",
+          "empty_level": "No items exist at this level yet.",
+          "levels": {
+            "stages": "Stages",
+            "grades": "Grades",
+            "sections": "Sections",
+            "classrooms": "Classrooms"
+          },
+          "hints": {
+            "tree": "Expand a stage, then a grade and section to see its classrooms.",
+            "stages": "Choose a stage, then a grade and section to reach its classrooms.",
+            "grades": "Choose a grade, then a section to reach its classrooms.",
+            "sections": "Choose a section to open its classrooms.",
+            "classrooms": "You reached the classrooms for this section."
+          },
+          "validation": {
+            "sections_without_classrooms": "Some sections do not have classrooms yet. Add classrooms to complete the structure.",
+            "no_classrooms": "No classrooms"
+          }
+        }
       },
       "details": {
         "no_selection": "Select an item from the tree to view details",

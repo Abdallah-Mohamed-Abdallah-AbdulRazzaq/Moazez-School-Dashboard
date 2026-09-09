@@ -178,6 +178,7 @@ export default function TimetableConfigDialog({
   }, [
     config,
     open,
+    periods,
     periodSessionKey,
     selectedClassroomId,
     selectedGradeId,

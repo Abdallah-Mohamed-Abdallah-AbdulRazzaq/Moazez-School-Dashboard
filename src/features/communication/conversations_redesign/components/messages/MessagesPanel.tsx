@@ -154,9 +154,11 @@ export function MessagesPanel({
           top: container.scrollHeight,
           behavior: preferredScrollBehavior(),
         });
-        setNewMessageCount(0);
+        queueMicrotask(() => setNewMessageCount(0));
       } else if (appendedCount > 0) {
-        setNewMessageCount((count) => count + appendedCount);
+        queueMicrotask(() =>
+          setNewMessageCount((count) => count + appendedCount),
+        );
       }
     }
 

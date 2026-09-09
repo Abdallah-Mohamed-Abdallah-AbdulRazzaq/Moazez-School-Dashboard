@@ -28,6 +28,10 @@ export default function GradebookAssessmentView({
 
   if (!selectedAssessment) return null;
 
+  const lockedAssessmentHint = selectedAssessment.isLocked
+    ? t("workflow.reasons.locked")
+    : undefined;
+
   return (
     <div className="rounded-xl border p-4" style={{ borderColor: "var(--border-color)" }}>
       <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(280px,0.55fr)_1fr]">
@@ -40,6 +44,11 @@ export default function GradebookAssessmentView({
         <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
           <div>{t("gradebook.assessmentProgress", { weight: selectedAssessment.weight, maxScore: selectedAssessment.maxScore })}</div>
           <div className="mt-1">{t(selectedAssessment.deliveryMode === "QUESTION_BASED" ? "gradebook.deliveryHints.questionBased" : "gradebook.deliveryHints.scoreOnly")}</div>
+          {lockedAssessmentHint ? (
+            <div className="mt-1 text-xs text-[var(--warning-text)]">
+              {lockedAssessmentHint}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
@@ -55,7 +64,13 @@ export default function GradebookAssessmentView({
                 <div className="font-medium" style={{ color: "var(--text-primary)" }}>{locale === "ar" ? row.studentNameAr : row.studentNameEn}</div>
                 <span className="mt-1 inline-block rounded-full border px-2 py-0.5 text-xs" style={gradebookStatusStyles[status]}>{grade}</span>
               </div>
-              <Button size="sm" variant="secondary" onClick={() => onOpenGrade(selectedAssessment, row)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={selectedAssessment.isLocked}
+                title={lockedAssessmentHint}
+                onClick={() => onOpenGrade(selectedAssessment, row)}
+              >
                 {selectedAssessment.deliveryMode === "QUESTION_BASED" ? t("table.openReview") : t("gradebook.grade")}
               </Button>
             </div>
