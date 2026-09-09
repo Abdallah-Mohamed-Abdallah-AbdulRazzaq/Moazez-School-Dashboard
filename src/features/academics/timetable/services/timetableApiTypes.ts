@@ -334,3 +334,40 @@ export interface BulkSaveTimetableRequest {
     roomId?: string | null;
   }>;
 }
+
+export interface GenerateTimetableRequest {
+  timetableConfigId: string;
+}
+
+export type TimetableGenerationUnresolvedCode =
+  | "missing_teacher_allocation"
+  | "no_feasible_slot"
+  | "existing_over_scheduled"
+  | "search_budget_exhausted";
+
+export interface TimetableGenerationUnresolved {
+  code: TimetableGenerationUnresolvedCode;
+  classroomId: string | null;
+  subjectId: string | null;
+  requiredWeeklySlots: number | null;
+  scheduledWeeklySlots: number | null;
+  remainingWeeklySlots: number;
+}
+
+export interface TimetableGenerationResponse {
+  timetableConfigId: string;
+  createdCount: number;
+  existingCount: number;
+  remainingDemandCount: number;
+  complete: boolean;
+  createdEntryIds: string[];
+  unresolved: TimetableGenerationUnresolved[];
+  searchNodesVisited: number;
+  searchBudgetExhausted: boolean;
+  validation: TimetableValidationResponse;
+  publishReadiness: {
+    canPublish: boolean;
+    blockingReasons: TimetablePublishReason[];
+    warnings: TimetablePublishReason[];
+  };
+}

@@ -52,6 +52,8 @@ import {
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTimetableData } from "@/features/academics/timetable/hooks/useTimetableData";
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
+import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
+import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
 import type {
   Stage,
   Grade,
@@ -332,24 +334,6 @@ export default function TimetableView({
       setInternalClassrooms(classrooms);
     });
   }, [stages, grades, sections, classrooms]);
-  const { handleGenerate, applyGenerated } = useTimetableGeneration({
-    termId,
-    selectedSectionId,
-    selectedClassroomId,
-    resolvedConfig,
-    sections,
-    subjects,
-    subjectAllocations,
-    teacherAllocations,
-    teachers,
-    rooms,
-    roomDefaults,
-    allTermEntries,
-    setTimetableEntries,
-    markDirty: () => onDirtyChange(true),
-    showApplied: (count) =>
-      showToast(t("generate.result.applied", { count }), "success"),
-  });
   const configIsDraft =
     !config || String(config.status).toLowerCase() === "draft";
   const canManageTimetable =
@@ -365,6 +349,20 @@ export default function TimetableView({
     termStatus,
     closedTermMessage: t("readOnly.closedTerm"),
     publishedLockedMessage: t("readOnly.publishedLocked"),
+  });
+  const {
+    generateCurrentConfig,
+    isGenerating,
+    result: generationResponse,
+    error: generationError,
+  } = useTimetableGeneration({
+    configId: hasExactConfig ? config?.id ?? null : null,
+    enabled: canEditTimetable,
+    generate: generateTimetableConfig,
+    reloadAuthoritativeState: async () => {
+      await reloadConfigs();
+      await Promise.all([loadValidation(), loadConflicts()]);
+    },
   });
 
   useEffect(() => {
@@ -905,6 +903,35 @@ export default function TimetableView({
         .filter((label): label is string => Boolean(label))
         .join(": ")
     : "";
+  const generationResult = useMemo(
+    () =>
+      generationResponse
+        ? presentTimetableGeneration(generationResponse, {
+            classroomNames: new Map(
+              classrooms.map((classroom) => [classroom.id, getDisplayName(classroom)]),
+            ),
+            subjectNames: new Map(
+              subjects.map((subject) => [subject.id, getDisplayName(subject)]),
+            ),
+            unknownClassroomName: t("generate.unassignedClassroom"),
+            unknownSubjectName: t("generate.unassignedSubject"),
+          })
+        : null,
+    [classrooms, generationResponse, getDisplayName, subjects, t],
+  );
+  const generationClassroomCount = useMemo(() => {
+    if (!config) return null;
+    const scopeType = config.scopeType.toUpperCase();
+    if (scopeType === "CLASSROOM") return config.classroomId ? 1 : null;
+    if (scopeType === "SECTION") return classrooms.filter((classroom) => classroom.sectionId === config.sectionId).length;
+    if (scopeType === "GRADE") return classrooms.filter((classroom) => sections.find((section) => section.id === classroom.sectionId)?.gradeId === config.gradeId).length;
+    if (scopeType === "STAGE") return classrooms.filter((classroom) => {
+      const section = sections.find((candidate) => candidate.id === classroom.sectionId);
+      const grade = grades.find((candidate) => candidate.id === section?.gradeId);
+      return grade?.stageId === config.stageId;
+    }).length;
+    return classrooms.length;
+  }, [classrooms, config, grades, sections]);
 
   const creationProgress = useMemo(
     () =>
@@ -1515,8 +1542,7 @@ export default function TimetableView({
                     onClick={() => setGenerateDialogOpen(true)}
                     disabled={
                       !canEditTimetable ||
-                      !resolvedConfig ||
-                      !selectedClassroomId
+                      !resolvedConfig
                     }
                     variant="secondary"
                     leftIcon={<Sparkles className="w-4 h-4" />}
@@ -1643,8 +1669,7 @@ export default function TimetableView({
                     onClick={() => setGenerateDialogOpen(true)}
                     disabled={
                       !canEditTimetable ||
-                      !resolvedConfig ||
-                      !selectedClassroomId
+                      !resolvedConfig
                     }
                     variant="secondary"
                     leftIcon={<Sparkles className="w-4 h-4" />}
@@ -1951,8 +1976,17 @@ export default function TimetableView({
         <GenerateDialog
           open={generateDialogOpen}
           onClose={() => setGenerateDialogOpen(false)}
-          onGenerate={handleGenerate}
-          onApply={applyGenerated}
+          onGenerate={generateCurrentConfig}
+          configName={config?.name ?? ""}
+          scopeName={configSourceLabel}
+          classroomCount={generationClassroomCount}
+          isGenerating={isGenerating}
+          result={generationResult}
+          error={generationError}
+          onOpenValidation={() => {
+            setGenerateDialogOpen(false);
+            setValidationPanelOpen(true);
+          }}
         />
       )}
 

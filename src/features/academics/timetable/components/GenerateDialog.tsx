@@ -1,204 +1,144 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { CircularProgress, Alert, FormControlLabel, Checkbox } from "@mui/material";
+import { AlertCircle, CheckCircle2, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui";
 import Modal from "@/components/ui/modal/Modal";
-import { GenerationResult } from "@/features/academics/timetable/utils/generator";
+import type { TimetableGenerationViewModel } from "@/features/academics/timetable/services/timetableGenerationPresentation";
 
 interface GenerateDialogProps {
   open: boolean;
   onClose: () => void;
-  onGenerate: (options: {
-    strictMode: boolean;
-    distributeEvenly: boolean;
-    avoidConsecutive: boolean;
-  }) => Promise<GenerationResult>;
-  onApply: (result: GenerationResult) => void;
+  onGenerate: () => Promise<unknown>;
+  configName: string;
+  scopeName: string;
+  classroomCount: number | null;
+  isGenerating: boolean;
+  result: TimetableGenerationViewModel | null;
+  error: string | null;
+  onOpenValidation: () => void;
 }
 
 export default function GenerateDialog({
   open,
   onClose,
   onGenerate,
-  onApply,
+  configName,
+  scopeName,
+  classroomCount,
+  isGenerating,
+  result,
+  error,
+  onOpenValidation,
 }: GenerateDialogProps) {
   const t = useTranslations("academics.timetable.generate");
-
-  const [strictMode, setStrictMode] = useState(false);
-  const [distributeEvenly, setDistributeEvenly] = useState(true);
-  const [avoidConsecutive, setAvoidConsecutive] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [result, setResult] = useState<GenerationResult | null>(null);
-
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    setResult(null);
-
-    try {
-      const generationResult = await onGenerate({
-        strictMode,
-        distributeEvenly,
-        avoidConsecutive,
-      });
-      setResult(generationResult);
-    } catch (error) {
-      console.error("Generation failed:", error);
-      setResult({
-        success: false,
-        entries: [],
-        unresolved: [],
-        conflicts: [],
-        message: "Generation failed due to an error",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleApply = () => {
-    if (result) {
-      onApply(result);
-      handleClose();
-    }
-  };
-
-  const handleClose = () => {
-    setResult(null);
-    onClose();
-  };
+  const isResultVisible = result !== null;
 
   return (
     <Modal
       isOpen={open}
-      onClose={handleClose}
+      onClose={onClose}
       title={t("title")}
       size="md"
       footer={
         <>
-          <Button onClick={handleClose} variant="secondary">
-            {t("cancel")}
+          <Button onClick={onClose} variant="secondary" disabled={isGenerating}>
+            {isResultVisible ? t("close") : t("cancel")}
           </Button>
-          {!result && (
-            <Button onClick={handleGenerate} disabled={isGenerating} variant="primary">
-              {t("generate")}
+          {isResultVisible ? (
+            <Button onClick={onOpenValidation} variant="primary">
+              {t("openValidation")}
             </Button>
-          )}
-          {result && result.entries.length > 0 && (
-            <Button onClick={handleApply} variant="primary">
-              {t("apply")}
+          ) : (
+            <Button onClick={() => void onGenerate()} loading={isGenerating}>
+              {t("generate")}
             </Button>
           )}
         </>
       }
     >
-      <div className="space-y-4">
-        {/* Options */}
-        {!result && (
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600 mb-4">{t("description")}</p>
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={distributeEvenly}
-                  onChange={(e) => setDistributeEvenly(e.target.checked)}
-                  disabled={isGenerating}
-                />
-              }
-              label={t("options.distributeEvenly")}
-            />
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={avoidConsecutive}
-                  onChange={(e) => setAvoidConsecutive(e.target.checked)}
-                  disabled={isGenerating}
-                />
-              }
-              label={t("options.avoidConsecutive")}
-            />
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={strictMode}
-                  onChange={(e) => setStrictMode(e.target.checked)}
-                  disabled={isGenerating}
-                />
-              }
-              label={t("options.strictMode")}
-            />
-
-            <p className="text-xs text-gray-500 mt-2">{t("options.strictModeHelp")}</p>
-          </div>
-        )}
-
-        {/* Loading */}
-        {isGenerating && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <CircularProgress size={40} />
-            <p className="text-sm text-gray-600 mt-4">{t("generating")}</p>
-          </div>
-        )}
-
-        {/* Result */}
-        {result && !isGenerating && (
-          <div className="space-y-4">
-            <Alert severity={result.success ? "success" : "warning"}>
-              {result.success 
-                ? t("result.successMessage", { count: result.entries.length })
-                : t("result.partialMessage", { 
-                    generated: result.entries.length, 
-                    unresolved: result.unresolved.length 
-                  })
-              }
-            </Alert>
-
-            {/* Stats */}
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">{t("result.entriesGenerated")}</span>
-                <span className="font-semibold">{result.entries.length}</span>
-              </div>
-              {result.unresolved.length > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">{t("result.unresolvedSubjects")}</span>
-                  <span className="font-semibold text-orange-600">
-                    {result.unresolved.length}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Unresolved subjects */}
-            {result.unresolved.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">
-                  {t("result.unresolvedTitle")}
-                </h4>
-                <div className="space-y-1">
-                  {result.unresolved.map((item, index) => (
-                    <div
-                      key={index}
-                      className="text-sm text-gray-600 bg-orange-50 rounded px-3 py-2"
-                    >
-                      {item.subjectName}: {item.placed}/{item.required} {t("result.hours")}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Warning */}
-            {result.entries.length > 0 && (
-              <Alert severity="info">{t("result.applyWarning")}</Alert>
-            )}
-          </div>
-        )}
-      </div>
+      {isResultVisible ? (
+        <GenerationResult result={result} />
+      ) : (
+        <GenerationConfirmation
+          configName={configName}
+          scopeName={scopeName}
+          classroomCount={classroomCount}
+          isGenerating={isGenerating}
+          error={error}
+        />
+      )}
     </Modal>
+  );
+}
+
+function GenerationConfirmation({
+  configName,
+  scopeName,
+  classroomCount,
+  isGenerating,
+  error,
+}: Pick<
+  GenerateDialogProps,
+  "configName" | "scopeName" | "classroomCount" | "isGenerating" | "error"
+>) {
+  const t = useTranslations("academics.timetable.generate");
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-700">{t("description")}</p>
+      <dl className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2">
+        <ScopeDetail label={t("configLabel")} value={configName} />
+        <ScopeDetail label={t("scopeLabel")} value={scopeName} />
+        {classroomCount !== null && (
+          <ScopeDetail label={t("classroomCount")} value={String(classroomCount)} />
+        )}
+      </dl>
+      <div className="flex gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        <span>{t("persistenceWarning")}</span>
+      </div>
+      {isGenerating && (
+        <div className="flex items-center gap-2 text-sm text-gray-700" role="status">
+          <Clock3 className="h-4 w-4 animate-pulse" aria-hidden="true" />
+          {t("generating")}
+        </div>
+      )}
+      {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+    </div>
+  );
+}
+
+function ScopeDetail({ label, value }: { label: string; value: string }) {
+  return <div><dt className="text-gray-500">{label}</dt><dd className="font-medium text-gray-900">{value}</dd></div>;
+}
+
+function GenerationResult({ result }: { result: TimetableGenerationViewModel }) {
+  const t = useTranslations("academics.timetable.generate");
+  const isComplete = result.status === "complete";
+  return (
+    <div className="space-y-4">
+      <div className={`flex gap-2 rounded-lg border p-3 text-sm ${isComplete ? "border-green-200 bg-green-50 text-green-900" : "border-amber-200 bg-amber-50 text-amber-900"}`} role="status">
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        <span>{t(`result.${result.status}`)}</span>
+      </div>
+      <dl className="grid grid-cols-3 gap-3 rounded-lg bg-gray-50 p-4 text-sm">
+        <ScopeDetail label={t("result.createdCount")} value={String(result.createdCount)} />
+        <ScopeDetail label={t("result.existingCount")} value={String(result.existingCount)} />
+        <ScopeDetail label={t("result.remainingDemandCount")} value={String(result.remainingDemandCount)} />
+      </dl>
+      {result.groups.map((group) => (
+        <section key={group.classroomId ?? "unassigned"} className="rounded-lg border border-gray-200 p-3">
+          <h3 className="font-semibold text-gray-900">{group.classroomName}</h3>
+          <ul className="mt-2 space-y-2 text-sm text-gray-700">
+            {group.items.map((unresolved) => (
+              <li key={`${unresolved.code}:${unresolved.subjectId ?? "unassigned"}`} className="rounded bg-amber-50 p-2">
+                <p className="font-medium">{unresolved.subjectName}</p>
+                <p>{t(`unresolved.${unresolved.messageKey}`)}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }

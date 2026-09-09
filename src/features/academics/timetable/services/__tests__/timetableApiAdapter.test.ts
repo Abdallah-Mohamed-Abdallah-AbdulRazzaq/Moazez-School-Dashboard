@@ -14,6 +14,7 @@ import {
   getEntry,
   getPreview,
   getPublication,
+  generateTimetableConfig,
   listEntries,
   listPeriods,
   publish,
@@ -318,6 +319,29 @@ describe("timetableApiAdapter", () => {
       3,
       "/academics/timetable/conflicts/check",
       bulkPayload,
+    );
+  });
+
+  it("generates the complete timetable config scope through the backend", async () => {
+    mockedApiPost.mockResolvedValueOnce({
+      timetableConfigId: "config-1",
+      createdCount: 0,
+      existingCount: 0,
+      remainingDemandCount: 0,
+      complete: true,
+      createdEntryIds: [],
+      unresolved: [],
+      searchNodesVisited: 0,
+      searchBudgetExhausted: false,
+      validation: {},
+      publishReadiness: {},
+    });
+
+    await generateTimetableConfig("config-1");
+
+    expect(mockedApiPost).toHaveBeenCalledWith(
+      "/academics/timetable/generate",
+      { timetableConfigId: "config-1" },
     );
   });
 

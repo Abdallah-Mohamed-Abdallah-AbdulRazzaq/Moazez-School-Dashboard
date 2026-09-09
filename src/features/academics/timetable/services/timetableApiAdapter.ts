@@ -6,10 +6,12 @@ import type {
   BulkSaveTimetableRequest,
   CreateEntryRequest,
   CreatePeriodRequest,
+  GenerateTimetableRequest,
   ListResponse,
   PublicationResponse,
   TimetableConflictCheckResponse,
   TimetableDashboardAllResponseDto,
+  TimetableGenerationResponse,
   TimetableScopeType,
   TimetableValidationResponse,
   TimetableUnpublishResponse,
@@ -194,6 +196,15 @@ export const bulkSaveEntries = (
     payload,
   ).then(unwrap);
 
+export const generateTimetableConfig = (
+  timetableConfigId: string,
+): Promise<TimetableGenerationResponse> => {
+  const payload: GenerateTimetableRequest = { timetableConfigId };
+  return apiPost<TimetableGenerationResponse>(`${BASE}/generate`, payload).then(
+    unwrap,
+  );
+};
+
 export const getPreview = (
   timetableConfigId: string,
 ): Promise<TimetablePreviewResponse> =>
@@ -256,6 +267,7 @@ export const timetableApiAdapter = {
   updateEntry,
   deleteEntry,
   bulkSaveEntries,
+  generateTimetableConfig,
   getPreview,
   getConflicts,
   getPublication,

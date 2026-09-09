@@ -6503,27 +6503,31 @@
       },
       "generate": {
         "title": "Auto Generate Timetable",
-        "description": "Missing periods will be generated for the selected classroom based on weekly periods and teacher allocations.",
-        "options": {
-          "distributeEvenly": "Distribute subjects evenly across days",
-          "avoidConsecutive": "Avoid same subject in consecutive periods",
-          "strictMode": "Strict mode (fail on any conflict)",
-          "strictModeHelp": "In strict mode, generation will fail if it cannot place all required hours"
-        },
+        "description": "Generate missing timetable demand for this complete configuration scope.",
+        "configLabel": "Timetable configuration",
+        "scopeLabel": "Scope",
+        "classroomCount": "Classrooms affected",
+        "persistenceWarning": "Generated entries are saved immediately by the backend. The timetable will be refreshed after generation.",
         "generating": "Generating...",
         "generate": "Generate",
-        "apply": "Apply",
         "cancel": "Cancel",
+        "close": "Close",
+        "openValidation": "Open validation",
+        "unassignedClassroom": "Unassigned classroom",
+        "unassignedSubject": "Unassigned subject",
+        "unresolved": {
+          "missing_teacher_allocation": "Assign a qualified teacher before generating again.",
+          "no_feasible_slot": "No feasible timetable slot is available; review validation details.",
+          "existing_over_scheduled": "Existing entries already exceed the required weekly demand.",
+          "search_budget_exhausted": "The backend could not finish its search safely; no partial generation was applied."
+        },
         "result": {
-          "entriesGenerated": "Entries Generated",
-          "unresolvedSubjects": "Incomplete Subjects",
-          "unresolvedTitle": "Subjects with unplaced periods",
-          "periods": "periods",
-          "hours": "periods",
-          "applyWarning": "This will add the generated periods to the selected classroom. Review and save when ready.",
-          "applied": "Applied {count} generated entries",
-          "successMessage": "Successfully generated timetable with {count} entries",
-          "partialMessage": "Generated {generated} entries, but {unresolved} subjects have unplaced hours"
+          "complete": "Generation completed and the saved timetable has been refreshed.",
+          "partial": "Generation saved the feasible entries. Review the unresolved demand below.",
+          "budget_exhausted": "Generation stopped before a safe complete plan was found. No partial generation was applied.",
+          "createdCount": "Created",
+          "existingCount": "Existing",
+          "remainingDemandCount": "Remaining demand"
         }
       },
       "editSlot": {
