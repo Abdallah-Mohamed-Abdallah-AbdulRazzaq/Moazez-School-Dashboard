@@ -67,14 +67,39 @@ describe("ValidationPanel conflict display", () => {
     expect(screen.queryByText(/deleted-period/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Period 0/)).not.toBeInTheDocument();
   });
+
+  it("shows the localized classroom resource for classroom conflicts", () => {
+    renderPanel({
+      conflicts: [
+        {
+          ...knownPeriodConflict,
+          type: "CLASSROOM",
+          code: "classroom_conflict",
+          message: "Classroom intervals overlap.",
+          resourceId: "classroom-1",
+        },
+      ],
+      classrooms: [
+        {
+          id: "classroom-1",
+          nameAr: "الفصل الأول",
+          nameEn: "Classroom 1",
+        },
+      ],
+    });
+
+    expect(screen.getByText("Classroom 1")).toBeInTheDocument();
+  });
 });
 
 function renderPanel({
   conflicts,
+  classrooms = [],
   selectedConflict = null,
   onConflictSelect = vi.fn(),
 }: {
   conflicts: TimetableConflictDisplay[];
+  classrooms?: Array<{ id: string; nameAr: string; nameEn: string }>;
   selectedConflict?: TimetableConflictDisplay | null;
   onConflictSelect?: (conflict: TimetableConflictDisplay) => void;
 }) {
@@ -91,6 +116,7 @@ function renderPanel({
         },
       ]}
       rooms={[]}
+      classrooms={classrooms}
       selectedConflict={selectedConflict}
       onConflictSelect={onConflictSelect}
       onClose={vi.fn()}

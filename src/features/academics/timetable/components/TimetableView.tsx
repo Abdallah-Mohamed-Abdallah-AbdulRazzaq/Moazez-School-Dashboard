@@ -1932,6 +1932,7 @@ export default function TimetableView({
           conflicts={backendConflicts}
           teachers={teachers}
           rooms={rooms}
+          classrooms={classrooms}
           selectedConflict={selectedConflict}
           onConflictSelect={setSelectedConflict}
           onClose={() => {

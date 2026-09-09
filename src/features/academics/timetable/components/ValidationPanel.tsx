@@ -29,6 +29,7 @@ interface ValidationPanelProps {
   conflicts: TimetableConflictDisplay[];
   teachers: NamedEntity[];
   rooms: NamedEntity[];
+  classrooms: NamedEntity[];
   selectedConflict?: TimetableConflictDisplay | null;
   onConflictSelect: (conflict: TimetableConflictDisplay) => void;
   onClose: () => void;
@@ -63,6 +64,7 @@ export default function ValidationPanel({
   conflicts,
   teachers,
   rooms,
+  classrooms,
   selectedConflict = null,
   onConflictSelect,
   onClose,
@@ -189,6 +191,7 @@ export default function ValidationPanel({
                       conflict={conflict}
                       teachers={teachers}
                       rooms={rooms}
+                      classrooms={classrooms}
                       locale={locale}
                       copy={copy}
                       isSelected={selectedConflict === conflict}
@@ -434,6 +437,7 @@ function ConflictCard({
   conflict,
   teachers,
   rooms,
+  classrooms,
   locale,
   copy,
   isSelected,
@@ -442,15 +446,21 @@ function ConflictCard({
   conflict: TimetableConflictDisplay;
   teachers: NamedEntity[];
   rooms: NamedEntity[];
+  classrooms: NamedEntity[];
   locale: string;
   copy: ValidationCopy;
   isSelected: boolean;
   onSelect: (conflict: TimetableConflictDisplay) => void;
 }) {
-  const resource =
+  const resourceDirectory =
     conflict.type === "ROOM"
-      ? rooms.find((room) => room.id === conflict.resourceId)
-      : teachers.find((teacher) => teacher.id === conflict.resourceId);
+      ? rooms
+      : conflict.type === "CLASSROOM"
+        ? classrooms
+        : teachers;
+  const resource = resourceDirectory.find(
+    (entity) => entity.id === conflict.resourceId,
+  );
   const resourceName =
     localizedName(resource ?? null, locale) ||
     conflict.resourceId ||
