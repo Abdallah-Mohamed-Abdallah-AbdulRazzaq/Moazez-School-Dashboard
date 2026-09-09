@@ -6254,27 +6254,31 @@
       },
       "generate": {
         "title": "توليد جدول تلقائي",
-        "description": "سيتم توليد الحصص الناقصة للفصل المختار بناءً على الحصص الأسبوعية وتوزيع المعلمين.",
-        "options": {
-          "distributeEvenly": "توزيع المواد بالتساوي على الأيام",
-          "avoidConsecutive": "تجنب نفس المادة في حصص متتالية",
-          "strictMode": "وضع صارم (فشل عند أي تعارض)",
-          "strictModeHelp": "في الوضع الصارم، سيفشل التوليد إذا لم يتمكن من وضع جميع الحصص المطلوبة"
-        },
+        "description": "ولّد الاحتياج الناقص للجدول ضمن نطاق هذا الإعداد بالكامل.",
+        "configLabel": "إعداد الجدول",
+        "scopeLabel": "النطاق",
+        "classroomCount": "الفصول المتأثرة",
+        "persistenceWarning": "تُحفظ الحصص المولدة فورًا بواسطة الخادم، وسيتم تحديث الجدول بعد التوليد.",
         "generating": "جاري التوليد...",
         "generate": "توليد",
-        "apply": "تطبيق",
         "cancel": "إلغاء",
+        "close": "إغلاق",
+        "openValidation": "فتح التحقق",
+        "unassignedClassroom": "فصل غير محدد",
+        "unassignedSubject": "مادة غير محددة",
+        "unresolved": {
+          "missing_teacher_allocation": "عيّن معلمًا مؤهلًا ثم أعد التوليد.",
+          "no_feasible_slot": "لا توجد حصة مناسبة متاحة؛ راجع تفاصيل التحقق.",
+          "existing_over_scheduled": "الحصص الحالية تتجاوز بالفعل الاحتياج الأسبوعي المطلوب.",
+          "search_budget_exhausted": "لم يتمكن الخادم من إكمال البحث بأمان؛ لم يتم تطبيق توليد جزئي."
+        },
         "result": {
-          "entriesGenerated": "الحصص المولدة",
-          "unresolvedSubjects": "مواد غير مكتملة",
-          "unresolvedTitle": "مواد لم يتم وضع جميع حصصها",
-          "periods": "حصص",
-          "hours": "حصص",
-          "applyWarning": "ستتم إضافة الحصص المولدة إلى الفصل المختار. راجعها ثم احفظ عند الاستعداد.",
-          "applied": "تم تطبيق {count} حصة مولدة",
-          "successMessage": "تم توليد الجدول بنجاح مع {count} حصة",
-          "partialMessage": "تم توليد {generated} حصة، لكن {unresolved} مواد لديها حصص لم يتم وضعها"
+          "complete": "اكتمل التوليد وتم تحديث الجدول المحفوظ.",
+          "partial": "حُفظت الحصص الممكنة. راجع الاحتياج غير المكتمل أدناه.",
+          "budget_exhausted": "توقف التوليد قبل العثور على خطة مكتملة وآمنة. لم يتم تطبيق توليد جزئي.",
+          "createdCount": "تم الإنشاء",
+          "existingCount": "موجود",
+          "remainingDemandCount": "الاحتياج المتبقي"
         }
       },
       "editSlot": {
