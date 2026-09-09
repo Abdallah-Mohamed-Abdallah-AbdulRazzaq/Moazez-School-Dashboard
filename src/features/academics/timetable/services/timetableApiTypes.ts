@@ -1,4 +1,9 @@
-export type TimetableScopeType = "TERM" | "GRADE" | "SECTION" | "CLASSROOM";
+export type TimetableScopeType =
+  | "TERM"
+  | "STAGE"
+  | "GRADE"
+  | "SECTION"
+  | "CLASSROOM";
 
 export type BackendTimetableStatus = "draft" | "active" | "cancelled";
 export type BackendTimetableConfigStatus = "draft" | "active" | "archived";
@@ -20,8 +25,9 @@ export interface BackendTimetableConfigDto {
   name: string;
   weekStartDay: number;
   activeDays: number[];
-  scopeType: "term" | "grade" | "section" | "classroom";
+  scopeType: "term" | "stage" | "grade" | "section" | "classroom";
   scopeKey: string;
+  stageId: string | null;
   gradeId: string | null;
   sectionId: string | null;
   classroomId: string | null;
@@ -276,6 +282,7 @@ export type UpsertConfigRequest = {
   academicYearId: string;
   termId: string;
   scopeType?: TimetableScopeType;
+  stageId?: string;
   gradeId?: string;
   sectionId?: string;
   classroomId?: string;
