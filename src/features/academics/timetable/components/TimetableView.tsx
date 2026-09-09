@@ -54,6 +54,10 @@ import { useTimetableData } from "@/features/academics/timetable/hooks/useTimeta
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
 import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
+import {
+  resolveTimetableConflictTargetEntry,
+  type TimetableConflictDisplay,
+} from "@/features/academics/timetable/services/timetableConflictNormalization";
 import type {
   Stage,
   Grade,
@@ -130,6 +134,9 @@ export default function TimetableView({
     () => ({
       loadFailed: t("errors.loadFailed"),
       saveFailed: t("errors.saveFailed"),
+      saveReloadFailed: t("errors.saveReloadFailed"),
+      partialSaveRefreshed: t("errors.partialSaveRefreshed"),
+      partialSaveReloadFailed: t("errors.partialSaveReloadFailed"),
       publishFailed: t("errors.publishFailed"),
       unpublishFailed: t("errors.unpublishFailed"),
       noConfigSelected: t("errors.noConfigSelected"),
@@ -145,6 +152,8 @@ export default function TimetableView({
   );
 
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
+  const [selectedConflict, setSelectedConflict] =
+    useState<TimetableConflictDisplay | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [periodsDialogOpen, setPeriodsDialogOpen] = useState(false);
@@ -317,6 +326,10 @@ export default function TimetableView({
     [config, periods, timetableEntries],
   );
 
+  useEffect(() => {
+    setSelectedConflict(null);
+  }, [backendConflicts]);
+
   const configGuardEntries = useMemo(() => {
     const entriesById = new Map(
       allTermEntries.map((entry) => [entry.id, entry]),
@@ -356,7 +369,7 @@ export default function TimetableView({
     result: generationResponse,
     error: generationError,
   } = useTimetableGeneration({
-    configId: hasExactConfig ? config?.id ?? null : null,
+    configId: hasExactConfig ? (config?.id ?? null) : null,
     enabled: canEditTimetable,
     generate: generateTimetableConfig,
     reloadAuthoritativeState: async () => {
@@ -810,6 +823,40 @@ export default function TimetableView({
     ? selectedSectionTabId
     : displayedSections[0]?.id;
 
+  const handleConflictSelect = useCallback(
+    (conflict: TimetableConflictDisplay) => {
+      const proposedEntries = timetableEntries.filter(
+        (entry) => entry.subjectId,
+      );
+      const entriesById = new Map(
+        [...allTermEntries, ...timetableEntries].map((entry) => [
+          entry.id,
+          entry,
+        ]),
+      );
+      const targetEntry = resolveTimetableConflictTargetEntry(
+        conflict,
+        [...entriesById.values()],
+        proposedEntries,
+      );
+      const targetClassroom = classrooms.find(
+        (classroom) =>
+          classroom.id ===
+          (targetEntry?.classroomId ??
+            (conflict.type === "CLASSROOM" ? conflict.resourceId : undefined)),
+      );
+      const targetSectionId =
+        targetEntry?.sectionId ?? targetClassroom?.sectionId;
+
+      if (targetSectionId) {
+        setSelectedSectionTabId(targetSectionId);
+      }
+      setSelectedConflict(conflict);
+      setValidationPanelOpen(false);
+    },
+    [allTermEntries, classrooms, timetableEntries],
+  );
+
   const handleValidationOpen = useCallback(async () => {
     setIsValidating(true);
     try {
@@ -908,7 +955,10 @@ export default function TimetableView({
       generationResponse
         ? presentTimetableGeneration(generationResponse, {
             classroomNames: new Map(
-              classrooms.map((classroom) => [classroom.id, getDisplayName(classroom)]),
+              classrooms.map((classroom) => [
+                classroom.id,
+                getDisplayName(classroom),
+              ]),
             ),
             subjectNames: new Map(
               subjects.map((subject) => [subject.id, getDisplayName(subject)]),
@@ -923,13 +973,26 @@ export default function TimetableView({
     if (!config) return null;
     const scopeType = config.scopeType.toUpperCase();
     if (scopeType === "CLASSROOM") return config.classroomId ? 1 : null;
-    if (scopeType === "SECTION") return classrooms.filter((classroom) => classroom.sectionId === config.sectionId).length;
-    if (scopeType === "GRADE") return classrooms.filter((classroom) => sections.find((section) => section.id === classroom.sectionId)?.gradeId === config.gradeId).length;
-    if (scopeType === "STAGE") return classrooms.filter((classroom) => {
-      const section = sections.find((candidate) => candidate.id === classroom.sectionId);
-      const grade = grades.find((candidate) => candidate.id === section?.gradeId);
-      return grade?.stageId === config.stageId;
-    }).length;
+    if (scopeType === "SECTION")
+      return classrooms.filter(
+        (classroom) => classroom.sectionId === config.sectionId,
+      ).length;
+    if (scopeType === "GRADE")
+      return classrooms.filter(
+        (classroom) =>
+          sections.find((section) => section.id === classroom.sectionId)
+            ?.gradeId === config.gradeId,
+      ).length;
+    if (scopeType === "STAGE")
+      return classrooms.filter((classroom) => {
+        const section = sections.find(
+          (candidate) => candidate.id === classroom.sectionId,
+        );
+        const grade = grades.find(
+          (candidate) => candidate.id === section?.gradeId,
+        );
+        return grade?.stageId === config.stageId;
+      }).length;
     return classrooms.length;
   }, [classrooms, config, grades, sections]);
 
@@ -1540,10 +1603,7 @@ export default function TimetableView({
                   </Button>
                   <Button
                     onClick={() => setGenerateDialogOpen(true)}
-                    disabled={
-                      !canEditTimetable ||
-                      !resolvedConfig
-                    }
+                    disabled={!canEditTimetable || !resolvedConfig}
                     variant="secondary"
                     leftIcon={<Sparkles className="w-4 h-4" />}
                   >
@@ -1552,9 +1612,7 @@ export default function TimetableView({
                   {!isPublished ? (
                     <Button
                       onClick={handlePublish}
-                      disabled={
-                        !canEditTimetable || isDirty || !resolvedConfig
-                      }
+                      disabled={!canEditTimetable || isDirty || !resolvedConfig}
                       variant="secondary"
                       loading={isPublishing}
                       leftIcon={<Send className="w-4 h-4" />}
@@ -1667,10 +1725,7 @@ export default function TimetableView({
                   </Button>
                   <Button
                     onClick={() => setGenerateDialogOpen(true)}
-                    disabled={
-                      !canEditTimetable ||
-                      !resolvedConfig
-                    }
+                    disabled={!canEditTimetable || !resolvedConfig}
                     variant="secondary"
                     leftIcon={<Sparkles className="w-4 h-4" />}
                     size="sm"
@@ -1680,9 +1735,7 @@ export default function TimetableView({
                   {!isPublished ? (
                     <Button
                       onClick={handlePublish}
-                      disabled={
-                        !canEditTimetable || isDirty || !resolvedConfig
-                      }
+                      disabled={!canEditTimetable || isDirty || !resolvedConfig}
                       variant="secondary"
                       loading={isPublishing}
                       leftIcon={<Send className="w-4 h-4" />}
@@ -1833,6 +1886,9 @@ export default function TimetableView({
                 className="timetable-print-content space-y-6"
                 dir={locale === "ar" ? "rtl" : "ltr"}
               >
+                <p className="sr-only" role="status" aria-live="polite">
+                  {selectedConflict?.message ?? ""}
+                </p>
                 {displayedSections.length > 1 && (
                   <div
                     role="group"
@@ -1885,10 +1941,15 @@ export default function TimetableView({
                       )}
                       <TimetableGrid
                         entries={classroomEntries}
+                        proposalEntries={timetableEntries}
                         subjects={subjects}
                         teachers={teachers}
                         rooms={rooms}
                         conflicts={backendConflicts}
+                        focusedConflict={selectedConflict}
+                        onFocusedConflictDismiss={() =>
+                          setSelectedConflict(null)
+                        }
                         onSlotClick={(dayKey, periodIndex) =>
                           handleSlotClick(dayKey, periodIndex, classroom.id)
                         }
@@ -1921,9 +1982,11 @@ export default function TimetableView({
           open={validationPanelOpen}
           validationSummary={validationSummary}
           conflicts={backendConflicts}
-          periods={resolvedConfig?.periods ?? []}
           teachers={teachers}
           rooms={rooms}
+          classrooms={classrooms}
+          selectedConflict={selectedConflict}
+          onConflictSelect={handleConflictSelect}
           onClose={() => setValidationPanelOpen(false)}
           locale={locale}
         />

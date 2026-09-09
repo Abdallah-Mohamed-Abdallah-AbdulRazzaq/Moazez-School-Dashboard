@@ -93,19 +93,30 @@ describe("timetableValidationSummary", () => {
 
   it("reads conflict lists from common backend response shapes", () => {
     const conflict = {
-      type: "ROOM" as const,
-      dayKey: "mon",
-      periodIndex: 1,
-      resourceId: "room-1",
-      resourceName: "Room 1",
-      sections: [],
+      code: "room_conflict",
+      message: "Room intervals overlap.",
+      severity: "blocking",
+      dayOfWeek: 1,
+      periodId: "period-1",
+      roomId: "room-1",
+      entryIds: ["entry-1"],
+      proposedIndexes: [],
     };
+    const expectedConflict = expect.objectContaining({
+      type: "ROOM",
+      code: "room_conflict",
+      dayKey: "mon",
+      periodId: "period-1",
+      resourceId: "room-1",
+    });
 
     expect(conflictsFromResponse({ conflicts: [conflict] })).toEqual([
-      conflict,
+      expectedConflict,
     ]);
-    expect(conflictsFromResponse({ items: [conflict] })).toEqual([conflict]);
-    expect(conflictsFromResponse([conflict])).toEqual([conflict]);
+    expect(conflictsFromResponse({ items: [conflict] })).toEqual([
+      expectedConflict,
+    ]);
+    expect(conflictsFromResponse([conflict])).toEqual([expectedConflict]);
   });
 
   it("preserves the source-specific conflict category", () => {
@@ -130,5 +141,30 @@ describe("timetableValidationSummary", () => {
         conflicts: [{ code: "future_conflict", message: "Backend detail" }],
       }).conflicts[0],
     ).toMatchObject({ type: "UNKNOWN", code: "future_conflict" });
+  });
+
+  it("preserves unresolved backend period IDs without inventing an index", () => {
+    const conflict = normalizePersistedConflicts(
+      {
+        conflicts: [
+          {
+            type: "TEACHER",
+            message: "Teacher intervals overlap.",
+            severity: "blocking",
+            dayOfWeek: 2,
+            periodId: "deleted-period",
+            teacherUserId: "teacher-1",
+            entryIds: ["entry-1"],
+          },
+        ],
+      },
+      [],
+    ).conflicts[0];
+
+    expect(conflict).toMatchObject({
+      periodId: "deleted-period",
+      message: "Teacher intervals overlap.",
+    });
+    expect(conflict).not.toHaveProperty("periodIndex");
   });
 });

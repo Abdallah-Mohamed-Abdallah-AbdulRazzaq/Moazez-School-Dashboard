@@ -78,6 +78,7 @@ import {
   publicationBlockingReason,
   type TimetableErrorTranslator,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
+import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import {
   type ResolvedTimetableConfig,
   type TimetableConfig,
@@ -86,7 +87,6 @@ import {
 } from "@/features/academics/timetable/types/timetableConfig";
 import type {
   Room,
-  TimetableConflict,
   TimetableEntry,
 } from "@/features/academics/timetable/types/timetable";
 
@@ -108,6 +108,9 @@ interface UseTimetableDataParams {
   messages?: {
     loadFailed: string;
     saveFailed: string;
+    saveReloadFailed: string;
+    partialSaveRefreshed: string;
+    partialSaveReloadFailed: string;
     publishFailed: string;
     unpublishFailed: string;
     noConfigSelected: string;
@@ -324,7 +327,7 @@ export function useTimetableData({
   const [publication, setPublication] = useState<PublicationResponse | null>(
     null,
   );
-  const [conflicts, setConflicts] = useState<TimetableConflict[]>([]);
+  const [conflicts, setConflicts] = useState<TimetableConflictDisplay[]>([]);
   const [validationSummary, setValidationSummary] =
     useState<TimetableValidationSummary>(emptyValidationSummary);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -363,12 +366,7 @@ export function useTimetableData({
         sectionId: selectedSectionId,
         classroomId: selectedClassroomId,
       }),
-    [
-      selectedClassroomId,
-      selectedGradeId,
-      selectedSectionId,
-      selectedStageId,
-    ],
+    [selectedClassroomId, selectedGradeId, selectedSectionId, selectedStageId],
   );
 
   const clearTimetableState = useCallback(() => {
@@ -412,14 +410,20 @@ export function useTimetableData({
 
     if (dependenciesInFlightKeyRef.current === dependenciesKey) {
       if (process.env.NODE_ENV === "development") {
-        console.debug("[Timetable] loadAcademicDependencies skipped (in-flight)", { dependenciesKey });
+        console.debug(
+          "[Timetable] loadAcademicDependencies skipped (in-flight)",
+          { dependenciesKey },
+        );
       }
       return;
     }
 
     if (dependenciesLoadedKeyRef.current === dependenciesKey) {
       if (process.env.NODE_ENV === "development") {
-        console.debug("[Timetable] loadAcademicDependencies skipped (already loaded)", { dependenciesKey });
+        console.debug(
+          "[Timetable] loadAcademicDependencies skipped (already loaded)",
+          { dependenciesKey },
+        );
       }
       return;
     }
@@ -467,11 +471,11 @@ export function useTimetableData({
       setTeacherAllocations(teacherAllocsData);
       setRooms(roomsData.filter((room) => room.isActive));
       setRoomDefaults([]);
-      
+
       dependenciesLoadedKeyRef.current = dependenciesKey;
     } catch (error) {
       if (requestId !== dependenciesRequestIdRef.current) return;
-      
+
       const currentMessages = messagesRef.current;
       const currentTranslateErrorCode = translateErrorCodeRef.current;
       const currentShowToast = showToastRef.current;
@@ -494,20 +498,20 @@ export function useTimetableData({
     }
   }, [enabled, schoolId, termId, academicYearId]);
 
-  const loadTimetableForScope = useCallback(async () => {
+  const loadTimetableForScope = useCallback(async (): Promise<boolean> => {
     const requestId = ++timetableRequestIdRef.current;
 
     if (!enabled || !termId || !academicYearId || !isScopeSelectionNormalized) {
       clearTimetableState();
       setTimetableLoading(false);
-      return;
+      return true;
     }
 
     setTimetableLoading(true);
     setApiError(null);
 
     try {
-      if (requestId !== timetableRequestIdRef.current) return;
+      if (requestId !== timetableRequestIdRef.current) return false;
 
       const [nextConfig, dashboardResponse] = await Promise.all([
         exactTimetableConfig({ academicYearId, termId, ...scopeSelection }),
@@ -519,7 +523,7 @@ export function useTimetableData({
           : Promise.resolve(null),
       ]);
 
-      if (requestId !== timetableRequestIdRef.current) return;
+      if (requestId !== timetableRequestIdRef.current) return false;
 
       const dashboardItem = dashboardResponse
         ? selectedDashboardItem(dashboardResponse.items, selectedClassroomId)
@@ -531,7 +535,7 @@ export function useTimetableData({
 
       if (!nextWorkspaceState.displayConfigId) {
         clearTimetableState();
-        return;
+        return true;
       }
 
       const effectiveConfig = nextWorkspaceState.effectiveConfig;
@@ -539,7 +543,7 @@ export function useTimetableData({
         const publicationResponse = (await getPublication(
           nextWorkspaceState.displayConfigId,
         )) as PublicationResponse;
-        if (requestId !== timetableRequestIdRef.current) return;
+        if (requestId !== timetableRequestIdRef.current) return false;
 
         const mappedEntries = mapBackendEntriesToUi(dashboardItem.entries);
         setConfig(null);
@@ -557,24 +561,28 @@ export function useTimetableData({
             dashboardItem.periods,
           ),
         );
-        return;
+        return true;
       }
 
-      if (!nextConfig) return;
+      if (!nextConfig) return false;
 
       const configId = nextConfig.id || nextConfig.timetableConfigId || "";
-      const [periodsResponse, entriesResponse, allEntriesResponse, publicationResponse] =
-        await Promise.all([
-          listPeriods(configId),
-          listEntries({
-            timetableConfigId: configId,
-            classroomId: selectedClassroomId || undefined,
-          }),
-          listEntries({ timetableConfigId: configId }),
-          getPublication(configId) as Promise<PublicationResponse>,
-        ]);
+      const [
+        periodsResponse,
+        entriesResponse,
+        allEntriesResponse,
+        publicationResponse,
+      ] = await Promise.all([
+        listPeriods(configId),
+        listEntries({
+          timetableConfigId: configId,
+          classroomId: selectedClassroomId || undefined,
+        }),
+        listEntries({ timetableConfigId: configId }),
+        getPublication(configId) as Promise<PublicationResponse>,
+      ]);
 
-      if (requestId !== timetableRequestIdRef.current) return;
+      if (requestId !== timetableRequestIdRef.current) return false;
 
       const nextPeriods =
         listResponseItems<BackendTimetablePeriodDto>(periodsResponse);
@@ -596,8 +604,9 @@ export function useTimetableData({
       setAllTermEntries(allMappedEntries.entries);
       setConfigs([nextConfigModel]);
       setResolvedConfig(configDtoToResolvedConfig(nextConfig, nextPeriods));
+      return true;
     } catch (error) {
-      if (requestId !== timetableRequestIdRef.current) return;
+      if (requestId !== timetableRequestIdRef.current) return false;
       const message = timetableErrorMessage(
         error,
         messages?.loadFailed ?? "Failed to load timetable for scope.",
@@ -606,6 +615,7 @@ export function useTimetableData({
       setApiError(message);
       console.error("Failed to load timetable for scope:", error);
       showToast(message, "error");
+      return false;
     } finally {
       if (requestId === timetableRequestIdRef.current) {
         setTimetableLoading(false);
@@ -632,16 +642,20 @@ export function useTimetableData({
     await loadTimetableForScope();
   }, [loadTimetableForScope]);
 
-  const loadConflicts = useCallback(async (): Promise<TimetableConflict[]> => {
+  const loadConflicts = useCallback(async (): Promise<
+    TimetableConflictDisplay[]
+  > => {
     if (!config) {
       setConflicts([]);
       return [];
     }
     const response = await getConflicts(config.id);
-    const nextConflicts = normalizePersistedConflicts(response).conflicts;
+    const nextConflicts = normalizePersistedConflicts(response, periods, {
+      entries: allTermEntries,
+    }).conflicts;
     setConflicts(nextConflicts);
     return nextConflicts;
-  }, [config]);
+  }, [allTermEntries, config, periods]);
 
   const loadValidation =
     useCallback(async (): Promise<TimetableValidationSummary> => {
@@ -681,9 +695,7 @@ export function useTimetableData({
         // A cleared entry has no subjectId but has a real backend ID (not temp-).
         const entriesToDelete = entries.filter(
           (entry) =>
-            !entry.subjectId &&
-            entry.id &&
-            !entry.id.startsWith("temp-"),
+            !entry.subjectId && entry.id && !entry.id.startsWith("temp-"),
         );
 
         const bulkSaveRequest = buildBulkSaveTimetableRequest({
@@ -708,7 +720,10 @@ export function useTimetableData({
         }
 
         // If there are no items to bulk-save but we did delete entries, that's still a valid save.
-        if (bulkSaveRequest.payload.items.length === 0 && entriesToDelete.length === 0) {
+        if (
+          bulkSaveRequest.payload.items.length === 0 &&
+          entriesToDelete.length === 0
+        ) {
           const message =
             messages?.noFilledSlotsToSave ??
             "No filled timetable slots to save.";
@@ -722,9 +737,21 @@ export function useTimetableData({
 
         // Only run bulk save + conflict check if there are items to save
         if (bulkSaveRequest.payload.items.length > 0) {
-          assertBulkPayloadSize(bulkSaveRequest.payload.items, "conflict-check");
-          const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-          const nextConflicts = normalizeConflictCheckResponse(conflictResponse).conflicts;
+          assertBulkPayloadSize(
+            bulkSaveRequest.payload.items,
+            "conflict-check",
+          );
+          const conflictResponse = await checkConflicts(
+            bulkSaveRequest.payload,
+          );
+          const nextConflicts = normalizeConflictCheckResponse(
+            conflictResponse,
+            periods,
+            {
+              entries: allTermEntries,
+              proposedEntries: entries.filter((entry) => entry.subjectId),
+            },
+          ).conflicts;
           setConflicts(nextConflicts);
           if (nextConflicts.length > 0) {
             return {
@@ -747,25 +774,25 @@ export function useTimetableData({
 
         if (bulkSaveRequest.payload.items.length > 0) {
           assertBulkPayloadSize(bulkSaveRequest.payload.items, "save");
-          const savedEntriesResponse = await bulkSaveEntries(
-            bulkSaveRequest.payload,
-          );
-          const mappedEntries = mapBackendEntriesToUi(
-            listResponseItems(savedEntriesResponse),
-          );
-          setTimetableEntries(mappedEntries.entries);
-          setAllTermEntries(mappedEntries.entries);
-        } else {
-          // All entries were cleared — remove deleted entries from local state
-          const deletedIds = new Set(entriesToDelete.map((e) => e.id));
-          const remainingEntries = entries.filter((e) => !deletedIds.has(e.id));
-          setTimetableEntries(remainingEntries);
-          setAllTermEntries(remainingEntries);
+          await bulkSaveEntries(bulkSaveRequest.payload);
+        }
+        const reloadSucceeded = await loadTimetableForScope();
+        if (!reloadSucceeded) {
+          return {
+            ok: false,
+            error:
+              messages?.saveReloadFailed ??
+              "Timetable changes may have been saved, but the authoritative reload failed.",
+            partialMutation: true,
+          };
         }
 
         return { ok: true };
       } catch (error) {
-        const conflict = conflictFromTimetableError(error);
+        const conflict = conflictFromTimetableError(error, periods, {
+          entries: allTermEntries,
+          proposedEntries: entries.filter((entry) => entry.subjectId),
+        });
         if (conflict) {
           setConflicts([conflict]);
         }
@@ -774,11 +801,17 @@ export function useTimetableData({
           messages?.saveFailed ?? "Failed to save timetable.",
           translateErrorCode,
         );
-        if (deletionStarted) {
-          await loadTimetableForScope();
-        }
+        const recoveryReloadSucceeded = deletionStarted
+          ? await loadTimetableForScope()
+          : false;
         const message = deletionStarted
-          ? `${baseMessage} Some deletions may already have been applied. The timetable was refreshed.`
+          ? `${baseMessage} ${
+              recoveryReloadSucceeded
+                ? (messages?.partialSaveRefreshed ??
+                  "Some deletions may already have been applied. The timetable was refreshed.")
+                : (messages?.partialSaveReloadFailed ??
+                  "Some deletions may already have been applied, and the authoritative reload failed.")
+            }`
           : baseMessage;
         setApiError(message);
         console.error("Failed to save timetable:", error);
@@ -794,6 +827,7 @@ export function useTimetableData({
     },
     [
       config,
+      allTermEntries,
       periods,
       selectedClassroomId,
       selectedSectionId,
@@ -869,7 +903,14 @@ export function useTimetableData({
         }
         assertBulkPayloadSize(bulkSaveRequest.payload.items, "conflict-check");
         const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-        const nextConflicts = normalizeConflictCheckResponse(conflictResponse).conflicts;
+        const nextConflicts = normalizeConflictCheckResponse(
+          conflictResponse,
+          periods,
+          {
+            entries: allTermEntries,
+            proposedEntries: entries.filter((entry) => entry.subjectId),
+          },
+        ).conflicts;
         setConflicts(nextConflicts);
         if (nextConflicts.length > 0) {
           return {
@@ -893,16 +934,19 @@ export function useTimetableData({
         );
         return { ok: true };
       } catch (error) {
-        const conflict = conflictFromTimetableError(error);
+        const conflict = conflictFromTimetableError(error, periods, {
+          entries: allTermEntries,
+          proposedEntries: entries.filter((entry) => entry.subjectId),
+        });
         if (conflict) {
           setConflicts([conflict]);
         }
         const message =
           publicationBlockingReason(error) ??
           timetableErrorMessage(
-          error,
-          messages?.publishFailed ?? "Failed to publish timetable.",
-          translateErrorCode,
+            error,
+            messages?.publishFailed ?? "Failed to publish timetable.",
+            translateErrorCode,
           );
         setApiError(message);
         console.error("Failed to publish timetable:", error);
@@ -911,6 +955,7 @@ export function useTimetableData({
     },
     [
       config,
+      allTermEntries,
       messages,
       periods,
       selectedClassroomId,

@@ -3,8 +3,12 @@ import type {
   TimetableValidationItem,
   TimetableValidationResponse,
 } from "@/features/academics/timetable/services/timetableApiTypes";
-import type { TimetableConflict } from "@/features/academics/timetable/types/timetable";
-import { dayIndexToKey } from "@/features/academics/timetable/services/timetableMappers";
+import {
+  normalizeTimetableConflicts,
+  type TimetableConflictDisplay,
+  type TimetableConflictNormalizationContext,
+  type TimetableConflictPeriod,
+} from "@/features/academics/timetable/services/timetableConflictNormalization";
 
 export interface TimetableValidationSummary {
   canPublish: boolean;
@@ -83,41 +87,36 @@ export function validationIssueText(issue: TimetableValidationIssue): string {
   return `${name ?? "Timetable issue"}${hours}`;
 }
 
-export function conflictsFromResponse(response: unknown): TimetableConflict[] {
-  return normalizeConflictResponse(response).conflicts;
-}
-
-export function normalizeConflictCheckResponse(response: unknown): {
-  conflicts: TimetableConflict[];
-} {
-  return normalizeConflictResponse(response, "code");
-}
-
-export function normalizePersistedConflicts(response: unknown): {
-  conflicts: TimetableConflict[];
-} {
-  return normalizeConflictResponse(response, "type");
-}
-
-function normalizeConflictResponse(
+export function conflictsFromResponse(
   response: unknown,
-  source: "code" | "type" = "code",
-): { conflicts: TimetableConflict[] } {
-  if (Array.isArray(response)) {
-    return { conflicts: response.map((conflict) => normalizeConflict(conflict, source)) };
-  }
-  if (response && typeof response === "object") {
-    const conflictsResponse = response as {
-      conflicts?: unknown[];
-      items?: unknown[];
-    };
-    return {
-      conflicts: (conflictsResponse.conflicts ?? conflictsResponse.items ?? []).map(
-        (conflict) => normalizeConflict(conflict, source),
-      ),
-    };
-  }
-  return { conflicts: [] };
+  periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
+): TimetableConflictDisplay[] {
+  return normalizeTimetableConflicts(response, "proposed", periods, context);
+}
+
+export function normalizeConflictCheckResponse(
+  response: unknown,
+  periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
+): {
+  conflicts: TimetableConflictDisplay[];
+} {
+  return {
+    conflicts: normalizeTimetableConflicts(response, "proposed", periods, context),
+  };
+}
+
+export function normalizePersistedConflicts(
+  response: unknown,
+  periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
+): {
+  conflicts: TimetableConflictDisplay[];
+} {
+  return {
+    conflicts: normalizeTimetableConflicts(response, "persisted", periods, context),
+  };
 }
 
 export function hasBlockingValidation(summary: TimetableValidationSummary) {
@@ -210,81 +209,4 @@ function blockingReasonsFromSummary(
   return hasSummaryBlockingCounts(response)
     ? ["Resolve timetable validation issues before publishing."]
     : [];
-}
-
-function normalizeConflict(
-  conflict: unknown,
-  source: "code" | "type",
-): TimetableConflict {
-  const current = conflict as Partial<TimetableConflict> & {
-    code?: string;
-    type?: string;
-    dayOfWeek?: number | null;
-    periodIndex?: number;
-    periodId?: string | null;
-    teacherUserId?: string | null;
-    roomId?: string | null;
-    message?: string;
-    severity?: string;
-    proposedIndexes?: number[];
-    entryIds?: string[];
-  };
-  if (
-    current.dayKey &&
-    current.periodIndex &&
-    current.type &&
-    ["CLASSROOM", "TEACHER", "ROOM", "DUPLICATE", "UNKNOWN"].includes(
-      current.type,
-    )
-  ) {
-    return current as TimetableConflict;
-  }
-  const discriminator = source === "type" ? current.type : current.code;
-  const type = conflictType(discriminator);
-  const periodIndex = current.periodIndex ?? current.period ?? 0;
-  const resourceId =
-    type === "ROOM"
-      ? (current.roomId ?? current.resourceId ?? "")
-      : type === "TEACHER"
-        ? (current.teacherUserId ?? current.resourceId ?? "")
-        : current.resourceId ?? "";
-  return {
-    type,
-    code: current.code ?? current.type,
-    message: current.message,
-    severity: current.severity,
-    dayKey: dayIndexToKey(current.dayOfWeek ?? 0),
-    periodIndex,
-    periodId: current.periodId ?? undefined,
-    resourceId,
-    resourceName:
-      current.resourceName ??
-      resourceId ??
-      current.message ??
-      "Timetable conflict",
-    proposedIndexes: current.proposedIndexes ?? [],
-    entryIds: current.entryIds ?? [],
-    sections: current.sections ?? [],
-    day: current.dayOfWeek ?? current.day,
-    period: periodIndex,
-  };
-}
-
-function conflictType(discriminator: string | undefined): TimetableConflict["type"] {
-  switch (discriminator) {
-    case "CLASSROOM_SLOT":
-    case "CLASSROOM":
-    case "classroom_conflict":
-      return "CLASSROOM";
-    case "TEACHER":
-    case "teacher_conflict":
-      return "TEACHER";
-    case "ROOM":
-    case "room_conflict":
-      return "ROOM";
-    case "duplicate_slot":
-      return "DUPLICATE";
-    default:
-      return "UNKNOWN";
-  }
 }
