@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TimetableGrid from "@/features/academics/timetable/components/TimetableGrid";
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
@@ -56,13 +56,24 @@ describe("TimetableGrid conflict highlighting", () => {
     const conflict = { ...baseConflict, entryIds: ["entry-1"] };
     renderGrid(conflict);
 
-    await waitFor(() =>
-      expect(screen.getAllByText("Math")).toHaveLength(2),
-    );
+    await waitFor(() => expect(screen.getAllByText("Math")).toHaveLength(2));
+  });
+
+  it("dismisses conflict focus when the user selects another mobile day", () => {
+    const onFocusedConflictDismiss = vi.fn();
+    const conflict = { ...baseConflict, entryIds: ["entry-1"] };
+    renderGrid(conflict, onFocusedConflictDismiss);
+
+    fireEvent.click(screen.getByRole("button", { name: /Tuesday/ }));
+
+    expect(onFocusedConflictDismiss).toHaveBeenCalledOnce();
   });
 });
 
-function renderGrid(focusedConflict: TimetableConflictDisplay) {
+function renderGrid(
+  focusedConflict: TimetableConflictDisplay,
+  onFocusedConflictDismiss?: () => void,
+) {
   render(
     <TimetableGrid
       entries={[entry]}
@@ -98,6 +109,7 @@ function renderGrid(focusedConflict: TimetableConflictDisplay) {
       ]}
       conflicts={[focusedConflict]}
       focusedConflict={focusedConflict}
+      onFocusedConflictDismiss={onFocusedConflictDismiss}
       onSlotClick={vi.fn()}
       isHolidayDay={() => false}
       locale="en"
@@ -109,6 +121,13 @@ function renderGrid(focusedConflict: TimetableConflictDisplay) {
             index: 1,
             nameAr: "الإثنين",
             nameEn: "Monday",
+            isActive: true,
+          },
+          {
+            key: "tue",
+            index: 2,
+            nameAr: "الثلاثاء",
+            nameEn: "Tuesday",
             isActive: true,
           },
         ],

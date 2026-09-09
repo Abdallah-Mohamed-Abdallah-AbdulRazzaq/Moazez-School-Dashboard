@@ -31,6 +31,7 @@ interface TimetableGridProps {
   rooms: Room[];
   conflicts: TimetableConflictDisplay[];
   focusedConflict?: TimetableConflictDisplay | null;
+  onFocusedConflictDismiss?: () => void;
   onSlotClick: (dayKey: string, periodIndex: number) => void;
   isHolidayDay: (dayKey: string) => boolean;
   locale: string;
@@ -46,6 +47,7 @@ export default function TimetableGrid({
   rooms,
   conflicts,
   focusedConflict = null,
+  onFocusedConflictDismiss,
   onSlotClick,
   isHolidayDay,
   locale,
@@ -90,7 +92,9 @@ export default function TimetableGrid({
           '[data-focused-conflict="true"]',
         ) ?? [],
       );
-      const target = targets.find((candidate) => candidate.offsetParent !== null) ?? targets[0];
+      const target =
+        targets.find((candidate) => candidate.offsetParent !== null) ??
+        targets[0];
       if (!target) return;
       target.scrollIntoView?.({ behavior: "smooth", block: "center" });
       target.focus({ preventScroll: true });
@@ -113,14 +117,8 @@ export default function TimetableGrid({
     period: (typeof periods)[0],
     entry: TimetableEntry | undefined,
   ): boolean => {
-    return conflicts.some(
-      (conflict) => conflictAffectsSlot(
-        conflict,
-        entry,
-        dayKey,
-        period,
-        proposedEntryIds,
-      ),
+    return conflicts.some((conflict) =>
+      conflictAffectsSlot(conflict, entry, dayKey, period, proposedEntryIds),
     );
   };
 
@@ -413,7 +411,10 @@ export default function TimetableGrid({
             >
               {/* Day Header - Collapsible */}
               <button
-                onClick={() => setExpandedDay(isExpanded ? null : day.key)}
+                onClick={() => {
+                  onFocusedConflictDismiss?.();
+                  setExpandedDay(isExpanded ? null : day.key);
+                }}
                 aria-expanded={isExpanded}
                 className={`w-full px-4 py-3 flex items-center justify-between ${
                   isHoliday ? "bg-red-50" : "bg-gray-50"
@@ -449,11 +450,7 @@ export default function TimetableGrid({
                   {periods.map((period) => {
                     const entry = getEntry(day.key, period.index);
                     const conflict = hasConflict(day.key, period, entry);
-                    const isFocused = isFocusedConflict(
-                      day.key,
-                      period,
-                      entry,
-                    );
+                    const isFocused = isFocusedConflict(day.key, period, entry);
                     const isBreak = entry?.slotType === "BREAK";
                     const isInstructionalPeriod =
                       period.isInstructional !== false;

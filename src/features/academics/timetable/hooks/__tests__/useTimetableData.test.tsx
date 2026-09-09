@@ -35,24 +35,28 @@ import type {
   PublicationResponse,
   TimetableValidationResponse,
 } from "@/features/academics/timetable/services/timetableApiTypes";
-import {
-  validationSummaryFromResponse,
-} from "@/features/academics/timetable/services/timetableValidationSummary";
+import { validationSummaryFromResponse } from "@/features/academics/timetable/services/timetableValidationSummary";
 
-vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({
-  fetchAcademicYears: vi.fn(),
-  fetchStructureTree: vi.fn(),
-}));
+vi.mock(
+  "@/features/academics/academic-structure-tree/services/structureService",
+  () => ({
+    fetchAcademicYears: vi.fn(),
+    fetchStructureTree: vi.fn(),
+  }),
+);
 
 vi.mock("@/features/academics/subjects/services/subjectsService", () => ({
   fetchSubjectAllocations: vi.fn(),
   fetchSubjects: vi.fn(),
 }));
 
-vi.mock("@/features/academics/teacher-allocation/services/teacherAllocationService", () => ({
-  fetchTeacherAllocations: vi.fn(),
-  fetchTeachers: vi.fn(),
-}));
+vi.mock(
+  "@/features/academics/teacher-allocation/services/teacherAllocationService",
+  () => ({
+    fetchTeacherAllocations: vi.fn(),
+    fetchTeachers: vi.fn(),
+  }),
+);
 
 vi.mock("@/features/academics/rooms/services/roomsService", () => ({
   fetchRooms: vi.fn(),
@@ -268,7 +272,9 @@ describe("useTimetableData", () => {
     await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
     let saveResult: Awaited<ReturnType<typeof result.current.saveTimetable>>;
     await act(async () => {
-      saveResult = await result.current.saveTimetable(result.current.timetableEntries);
+      saveResult = await result.current.saveTimetable(
+        result.current.timetableEntries,
+      );
     });
 
     expect(saveResult!).toEqual({ ok: true });
@@ -329,13 +335,48 @@ describe("useTimetableData", () => {
 
     let saveResult: Awaited<ReturnType<typeof result.current.saveTimetable>>;
     await act(async () => {
-      saveResult = await result.current.saveTimetable(result.current.timetableEntries);
+      saveResult = await result.current.saveTimetable(
+        result.current.timetableEntries,
+      );
     });
 
     expect(saveResult!).toMatchObject({
       ok: false,
       partialMutation: true,
+      error: expect.stringContaining("may have been saved"),
     });
+  });
+
+  it("does not claim recovery succeeded when a partial save cannot reload", async () => {
+    mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
+    mockedDeleteEntry.mockResolvedValueOnce(undefined);
+    mockedBulkSaveEntries.mockRejectedValueOnce(new Error("Bulk save failed"));
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
+    mockedGetConfig.mockRejectedValueOnce(new Error("Recovery reload failed"));
+    const entriesWithPartialMutation = [
+      {
+        ...result.current.timetableEntries[0],
+        subjectId: null,
+        teacherId: null,
+      },
+      { ...result.current.timetableEntries[0], id: "entry-2", dayKey: "tue" },
+    ];
+
+    let saveResult: Awaited<ReturnType<typeof result.current.saveTimetable>>;
+    await act(async () => {
+      saveResult = await result.current.saveTimetable(
+        entriesWithPartialMutation,
+      );
+    });
+
+    expect(saveResult!).toMatchObject({
+      ok: false,
+      partialMutation: true,
+      error: expect.stringContaining("authoritative reload failed"),
+    });
+    expect(saveResult!.error).not.toContain("was refreshed");
   });
 
   it("does not delete cleared entries when another slot has a conflict", async () => {
@@ -493,6 +534,42 @@ describe("useTimetableData", () => {
     expect(mockedValidate).not.toHaveBeenCalled();
   });
 
+  it("maps publish conflicts to the proposed slot when period IDs differ", async () => {
+    mockedGetPublication.mockResolvedValueOnce(activePublication);
+    mockedCheckConflicts.mockResolvedValueOnce({
+      conflicts: [
+        {
+          code: "teacher_conflict",
+          message: "Teacher intervals overlap.",
+          severity: "blocking",
+          dayOfWeek: 1,
+          periodId: "foreign-existing-period",
+          teacherUserId: "teacher-1",
+          proposedIndexes: [0],
+        },
+      ],
+    });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
+
+    await act(async () => {
+      await result.current.publishCurrentTimetable(
+        result.current.timetableEntries,
+        validationSummaryFromResponse(validTimetableResponse),
+      );
+    });
+
+    expect(result.current.conflicts[0]).toMatchObject({
+      periodId: "foreign-existing-period",
+      periodIndex: 1,
+      periodLabel: "Period 1",
+      startTime: "08:00",
+      endTime: "08:45",
+    });
+    expect(mockedPublish).not.toHaveBeenCalled();
+  });
+
   it("marks the loaded config draft after unpublishing", async () => {
     mockedGetConfig.mockResolvedValueOnce({
       ...backendConfig,
@@ -526,7 +603,9 @@ describe("useTimetableData", () => {
     });
     const { result } = renderHook(() => useTimetableData(hookParams));
 
-    await waitFor(() => expect(result.current.config?.scopeType).toBe("section"));
+    await waitFor(() =>
+      expect(result.current.config?.scopeType).toBe("section"),
+    );
     await act(async () => {
       await result.current.unpublishCurrentTimetable();
     });

@@ -134,6 +134,9 @@ export default function TimetableView({
     () => ({
       loadFailed: t("errors.loadFailed"),
       saveFailed: t("errors.saveFailed"),
+      saveReloadFailed: t("errors.saveReloadFailed"),
+      partialSaveRefreshed: t("errors.partialSaveRefreshed"),
+      partialSaveReloadFailed: t("errors.partialSaveReloadFailed"),
       publishFailed: t("errors.publishFailed"),
       unpublishFailed: t("errors.unpublishFailed"),
       noConfigSelected: t("errors.noConfigSelected"),
@@ -366,7 +369,7 @@ export default function TimetableView({
     result: generationResponse,
     error: generationError,
   } = useTimetableGeneration({
-    configId: hasExactConfig ? config?.id ?? null : null,
+    configId: hasExactConfig ? (config?.id ?? null) : null,
     enabled: canEditTimetable,
     generate: generateTimetableConfig,
     reloadAuthoritativeState: async () => {
@@ -822,9 +825,14 @@ export default function TimetableView({
 
   const handleConflictSelect = useCallback(
     (conflict: TimetableConflictDisplay) => {
-      const proposedEntries = timetableEntries.filter((entry) => entry.subjectId);
+      const proposedEntries = timetableEntries.filter(
+        (entry) => entry.subjectId,
+      );
       const entriesById = new Map(
-        [...allTermEntries, ...timetableEntries].map((entry) => [entry.id, entry]),
+        [...allTermEntries, ...timetableEntries].map((entry) => [
+          entry.id,
+          entry,
+        ]),
       );
       const targetEntry = resolveTimetableConflictTargetEntry(
         conflict,
@@ -837,7 +845,8 @@ export default function TimetableView({
           (targetEntry?.classroomId ??
             (conflict.type === "CLASSROOM" ? conflict.resourceId : undefined)),
       );
-      const targetSectionId = targetEntry?.sectionId ?? targetClassroom?.sectionId;
+      const targetSectionId =
+        targetEntry?.sectionId ?? targetClassroom?.sectionId;
 
       if (targetSectionId) {
         setSelectedSectionTabId(targetSectionId);
@@ -946,7 +955,10 @@ export default function TimetableView({
       generationResponse
         ? presentTimetableGeneration(generationResponse, {
             classroomNames: new Map(
-              classrooms.map((classroom) => [classroom.id, getDisplayName(classroom)]),
+              classrooms.map((classroom) => [
+                classroom.id,
+                getDisplayName(classroom),
+              ]),
             ),
             subjectNames: new Map(
               subjects.map((subject) => [subject.id, getDisplayName(subject)]),
@@ -961,13 +973,26 @@ export default function TimetableView({
     if (!config) return null;
     const scopeType = config.scopeType.toUpperCase();
     if (scopeType === "CLASSROOM") return config.classroomId ? 1 : null;
-    if (scopeType === "SECTION") return classrooms.filter((classroom) => classroom.sectionId === config.sectionId).length;
-    if (scopeType === "GRADE") return classrooms.filter((classroom) => sections.find((section) => section.id === classroom.sectionId)?.gradeId === config.gradeId).length;
-    if (scopeType === "STAGE") return classrooms.filter((classroom) => {
-      const section = sections.find((candidate) => candidate.id === classroom.sectionId);
-      const grade = grades.find((candidate) => candidate.id === section?.gradeId);
-      return grade?.stageId === config.stageId;
-    }).length;
+    if (scopeType === "SECTION")
+      return classrooms.filter(
+        (classroom) => classroom.sectionId === config.sectionId,
+      ).length;
+    if (scopeType === "GRADE")
+      return classrooms.filter(
+        (classroom) =>
+          sections.find((section) => section.id === classroom.sectionId)
+            ?.gradeId === config.gradeId,
+      ).length;
+    if (scopeType === "STAGE")
+      return classrooms.filter((classroom) => {
+        const section = sections.find(
+          (candidate) => candidate.id === classroom.sectionId,
+        );
+        const grade = grades.find(
+          (candidate) => candidate.id === section?.gradeId,
+        );
+        return grade?.stageId === config.stageId;
+      }).length;
     return classrooms.length;
   }, [classrooms, config, grades, sections]);
 
@@ -1578,10 +1603,7 @@ export default function TimetableView({
                   </Button>
                   <Button
                     onClick={() => setGenerateDialogOpen(true)}
-                    disabled={
-                      !canEditTimetable ||
-                      !resolvedConfig
-                    }
+                    disabled={!canEditTimetable || !resolvedConfig}
                     variant="secondary"
                     leftIcon={<Sparkles className="w-4 h-4" />}
                   >
@@ -1590,9 +1612,7 @@ export default function TimetableView({
                   {!isPublished ? (
                     <Button
                       onClick={handlePublish}
-                      disabled={
-                        !canEditTimetable || isDirty || !resolvedConfig
-                      }
+                      disabled={!canEditTimetable || isDirty || !resolvedConfig}
                       variant="secondary"
                       loading={isPublishing}
                       leftIcon={<Send className="w-4 h-4" />}
@@ -1705,10 +1725,7 @@ export default function TimetableView({
                   </Button>
                   <Button
                     onClick={() => setGenerateDialogOpen(true)}
-                    disabled={
-                      !canEditTimetable ||
-                      !resolvedConfig
-                    }
+                    disabled={!canEditTimetable || !resolvedConfig}
                     variant="secondary"
                     leftIcon={<Sparkles className="w-4 h-4" />}
                     size="sm"
@@ -1718,9 +1735,7 @@ export default function TimetableView({
                   {!isPublished ? (
                     <Button
                       onClick={handlePublish}
-                      disabled={
-                        !canEditTimetable || isDirty || !resolvedConfig
-                      }
+                      disabled={!canEditTimetable || isDirty || !resolvedConfig}
                       variant="secondary"
                       loading={isPublishing}
                       leftIcon={<Send className="w-4 h-4" />}
@@ -1932,6 +1947,9 @@ export default function TimetableView({
                         rooms={rooms}
                         conflicts={backendConflicts}
                         focusedConflict={selectedConflict}
+                        onFocusedConflictDismiss={() =>
+                          setSelectedConflict(null)
+                        }
                         onSlotClick={(dayKey, periodIndex) =>
                           handleSlotClick(dayKey, periodIndex, classroom.id)
                         }
