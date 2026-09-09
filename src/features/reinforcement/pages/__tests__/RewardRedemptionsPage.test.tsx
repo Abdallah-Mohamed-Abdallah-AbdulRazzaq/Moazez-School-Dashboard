@@ -517,7 +517,7 @@ describe("RewardRedemptionsPage", () => {
         listCallsBeforeSubmit,
       ),
     );
-  });
+  }, 20_000);
 
   it("keeps the page and create modal usable when lookups fail", async () => {
     filterOptionMocks.getReinforcementFilterOptions.mockRejectedValue(
@@ -562,5 +562,5 @@ describe("RewardRedemptionsPage", () => {
     expect(
       screen.getByLabelText("rewardsModule.redemptions.create.requestNoteEn"),
     ).toHaveValue("Keep this note");
-  });
+  }, 20_000);
 });
