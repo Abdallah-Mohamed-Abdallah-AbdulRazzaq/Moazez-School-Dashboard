@@ -73,7 +73,7 @@ describe("timetableErrorHandling", () => {
     });
   });
 
-  it("builds a grid conflict from backend slot details", () => {
+  it("builds a display conflict from backend slot details", () => {
     const error = new ApiError(
       "Teacher is already scheduled",
       409,
@@ -92,9 +92,44 @@ describe("timetableErrorHandling", () => {
       dayKey: "tue",
       periodIndex: 4,
       resourceId: "teacher-1",
-      resourceName: "Ms. Noor",
-      sections: [],
+      message: "Teacher is already scheduled",
     }));
+  });
+
+  it("resolves an error period ID without requiring backend index metadata", () => {
+    const error = new ApiError(
+      "Room intervals overlap",
+      409,
+      "academics.timetable.room_conflict",
+      undefined,
+      {
+        dayOfWeek: 3,
+        periodId: "period-2",
+        roomId: "room-1",
+        entryIds: ["entry-1"],
+      },
+    );
+
+    expect(
+      conflictFromTimetableError(error, [
+        {
+          id: "period-2",
+          index: 2,
+          nameAr: "الحصة الثانية",
+          nameEn: "Period 2",
+          startTime: "09:00",
+          endTime: "09:45",
+        },
+      ]),
+    ).toMatchObject({
+      type: "ROOM",
+      periodId: "period-2",
+      periodIndex: 2,
+      periodLabel: "Period 2",
+      startTime: "09:00",
+      endTime: "09:45",
+      resourceId: "room-1",
+    });
   });
 
   it("preserves the backend publication blocking reason", () => {

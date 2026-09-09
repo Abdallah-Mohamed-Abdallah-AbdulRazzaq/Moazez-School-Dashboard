@@ -78,6 +78,7 @@ import {
   publicationBlockingReason,
   type TimetableErrorTranslator,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
+import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import {
   type ResolvedTimetableConfig,
   type TimetableConfig,
@@ -86,7 +87,6 @@ import {
 } from "@/features/academics/timetable/types/timetableConfig";
 import type {
   Room,
-  TimetableConflict,
   TimetableEntry,
 } from "@/features/academics/timetable/types/timetable";
 
@@ -324,7 +324,7 @@ export function useTimetableData({
   const [publication, setPublication] = useState<PublicationResponse | null>(
     null,
   );
-  const [conflicts, setConflicts] = useState<TimetableConflict[]>([]);
+  const [conflicts, setConflicts] = useState<TimetableConflictDisplay[]>([]);
   const [validationSummary, setValidationSummary] =
     useState<TimetableValidationSummary>(emptyValidationSummary);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -632,16 +632,16 @@ export function useTimetableData({
     await loadTimetableForScope();
   }, [loadTimetableForScope]);
 
-  const loadConflicts = useCallback(async (): Promise<TimetableConflict[]> => {
+  const loadConflicts = useCallback(async (): Promise<TimetableConflictDisplay[]> => {
     if (!config) {
       setConflicts([]);
       return [];
     }
     const response = await getConflicts(config.id);
-    const nextConflicts = normalizePersistedConflicts(response).conflicts;
+    const nextConflicts = normalizePersistedConflicts(response, periods).conflicts;
     setConflicts(nextConflicts);
     return nextConflicts;
-  }, [config]);
+  }, [config, periods]);
 
   const loadValidation =
     useCallback(async (): Promise<TimetableValidationSummary> => {
@@ -724,7 +724,10 @@ export function useTimetableData({
         if (bulkSaveRequest.payload.items.length > 0) {
           assertBulkPayloadSize(bulkSaveRequest.payload.items, "conflict-check");
           const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-          const nextConflicts = normalizeConflictCheckResponse(conflictResponse).conflicts;
+          const nextConflicts = normalizeConflictCheckResponse(
+            conflictResponse,
+            periods,
+          ).conflicts;
           setConflicts(nextConflicts);
           if (nextConflicts.length > 0) {
             return {
@@ -765,7 +768,7 @@ export function useTimetableData({
 
         return { ok: true };
       } catch (error) {
-        const conflict = conflictFromTimetableError(error);
+        const conflict = conflictFromTimetableError(error, periods);
         if (conflict) {
           setConflicts([conflict]);
         }
@@ -869,7 +872,10 @@ export function useTimetableData({
         }
         assertBulkPayloadSize(bulkSaveRequest.payload.items, "conflict-check");
         const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-        const nextConflicts = normalizeConflictCheckResponse(conflictResponse).conflicts;
+        const nextConflicts = normalizeConflictCheckResponse(
+          conflictResponse,
+          periods,
+        ).conflicts;
         setConflicts(nextConflicts);
         if (nextConflicts.length > 0) {
           return {
@@ -893,7 +899,7 @@ export function useTimetableData({
         );
         return { ok: true };
       } catch (error) {
-        const conflict = conflictFromTimetableError(error);
+        const conflict = conflictFromTimetableError(error, periods);
         if (conflict) {
           setConflicts([conflict]);
         }

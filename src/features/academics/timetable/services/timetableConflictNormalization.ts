@@ -1,4 +1,3 @@
-import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import { dayIndexToKey } from "@/features/academics/timetable/services/timetableMappers";
 
 export type TimetableConflictSource = "persisted" | "proposed";
@@ -20,15 +19,20 @@ export interface TimetableConflictDisplay {
   resourceId?: string;
 }
 
-type ConflictPeriod = Pick<
-  TimetablePeriod,
-  "id" | "index" | "nameAr" | "nameEn" | "startTime" | "endTime"
-> & { label?: string };
+export interface TimetableConflictPeriod {
+  id: string;
+  index: number;
+  label?: string;
+  nameAr?: string;
+  nameEn?: string;
+  startTime?: string;
+  endTime?: string;
+}
 
 export function normalizeTimetableConflicts(
   response: unknown,
   source: TimetableConflictSource,
-  periods: ConflictPeriod[],
+  periods: TimetableConflictPeriod[],
 ): TimetableConflictDisplay[] {
   const periodById = new Map(periods.map((period) => [period.id, period]));
 
@@ -52,13 +56,14 @@ function conflictItems(response: unknown): unknown[] {
 function normalizeConflict(
   rawConflict: unknown,
   source: TimetableConflictSource,
-  periodById: Map<string, ConflictPeriod>,
+  periodById: Map<string, TimetableConflictPeriod>,
 ): TimetableConflictDisplay {
   const conflict = isRecord(rawConflict) ? rawConflict : {};
   const code = stringField(conflict, source === "persisted" ? "type" : "code");
   const dayOfWeek = nullableNumberField(conflict, "dayOfWeek");
   const periodId = nullableStringField(conflict, "periodId") ?? undefined;
   const period = periodId ? periodById.get(periodId) : undefined;
+  const explicitPeriodIndex = numberField(conflict, "periodIndex");
 
   return {
     type: conflictType(code),
@@ -75,7 +80,9 @@ function normalizeConflict(
           startTime: period.startTime,
           endTime: period.endTime,
         }
-      : {}),
+      : explicitPeriodIndex === undefined
+        ? {}
+        : { periodIndex: explicitPeriodIndex }),
     entryIds: conflictEntryIds(conflict),
     proposedIndexes: numberArrayField(conflict, "proposedIndexes"),
     resourceId: conflictResourceId(conflict, code),
@@ -98,10 +105,19 @@ function conflictResourceId(
 ): string | undefined {
   const type = conflictType(code);
   if (type === "TEACHER") {
-    return nullableStringField(conflict, "teacherUserId") ?? undefined;
+    return (
+      nullableStringField(conflict, "teacherUserId") ??
+      nullableStringField(conflict, "teacherId") ??
+      nullableStringField(conflict, "resourceId") ??
+      undefined
+    );
   }
   if (type === "ROOM") {
-    return nullableStringField(conflict, "roomId") ?? undefined;
+    return (
+      nullableStringField(conflict, "roomId") ??
+      nullableStringField(conflict, "resourceId") ??
+      undefined
+    );
   }
   if (type === "CLASSROOM") {
     return nullableStringField(conflict, "classroomId") ?? undefined;
@@ -117,12 +133,17 @@ function conflictType(code: string | undefined): TimetableConflictDisplay["type"
       return "CLASSROOM";
     case "TEACHER":
     case "teacher_conflict":
+    case "academics.timetable.teacher_conflict":
       return "TEACHER";
     case "ROOM":
     case "room_conflict":
+    case "academics.timetable.room_conflict":
       return "ROOM";
     case "duplicate_slot":
+    case "academics.timetable.duplicate_slot":
       return "DUPLICATE";
+    case "academics.timetable.entry_conflict":
+      return "CLASSROOM";
     default:
       return "UNKNOWN";
   }
@@ -156,6 +177,14 @@ function nullableNumberField(
 ): number | null {
   const fieldValue = record[field];
   return typeof fieldValue === "number" ? fieldValue : null;
+}
+
+function numberField(
+  record: Record<string, unknown>,
+  field: string,
+): number | undefined {
+  const fieldValue = record[field];
+  return typeof fieldValue === "number" ? fieldValue : undefined;
 }
 
 function stringArrayField(

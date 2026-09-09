@@ -1,6 +1,9 @@
 import { ApiError, isApiError } from "@/lib/api-error";
-import type { TimetableConflict } from "@/features/academics/timetable/types/timetable";
-import { dayIndexToKey } from "@/features/academics/timetable/services/timetableMappers";
+import {
+  normalizeTimetableConflicts,
+  type TimetableConflictDisplay,
+  type TimetableConflictPeriod,
+} from "@/features/academics/timetable/services/timetableConflictNormalization";
 
 export type TimetableErrorCode =
   | "academics.timetable.config_not_found"
@@ -153,7 +156,8 @@ export function timetableFormErrors(
 
 export function conflictFromTimetableError(
   error: unknown,
-): TimetableConflict | null {
+  periods: TimetableConflictPeriod[] = [],
+): TimetableConflictDisplay | null {
   const code = timetableErrorCode(error);
   if (!isConflictCode(code)) {
     return null;
@@ -162,31 +166,28 @@ export function conflictFromTimetableError(
   if (!isRecord(details)) {
     return null;
   }
-  const periodIndex =
-    numberField(details, "periodIndex") ?? numberField(details, "period");
-  if (!periodIndex) {
-    return null;
+  const [conflict] = normalizeTimetableConflicts(
+    [
+      {
+        ...details,
+        code,
+        message: backendErrorMessage(error) ?? timetableErrorMessage(error),
+        periodIndex:
+          numberField(details, "periodIndex") ?? numberField(details, "period"),
+      },
+    ],
+    "proposed",
+    periods,
+  );
+
+  return conflict ?? null;
+}
+
+function backendErrorMessage(error: unknown): string | undefined {
+  if (isApiError(error)) {
+    return error.message;
   }
-  return {
-    type: code === "academics.timetable.teacher_conflict" ? "TEACHER" : "ROOM",
-    code,
-    severity: stringField(details, "severity") ?? "blocking",
-    dayKey:
-      stringField(details, "dayKey") ??
-      dayIndexToKey(numberField(details, "dayOfWeek") ?? 0),
-    periodIndex,
-    periodId: stringField(details, "periodId"),
-    resourceId:
-      stringField(details, "resourceId") ??
-      stringField(details, "teacherId") ??
-      stringField(details, "roomId") ??
-      "",
-    resourceName:
-      stringField(details, "resourceName") ?? timetableErrorMessage(error),
-    proposedIndexes: numberArrayField(details, "proposedIndexes") ?? [],
-    entryIds: stringArrayField(details, "entryIds") ?? [],
-    sections: [],
-  };
+  return backendErrorPayload(error)?.message;
 }
 
 function backendErrorPayload(error: unknown): BackendErrorShape["error"] {
@@ -258,30 +259,6 @@ function numberField(
   return typeof value === "number" ? value : undefined;
 }
 
-function stringField(
-  record: Record<string, unknown>,
-  field: string,
-): string | undefined {
-  const value = record[field];
-  return typeof value === "string" ? value : undefined;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
-}
-
-function numberArrayField(
-  record: Record<string, unknown>,
-  field: string,
-): number[] | undefined {
-  const value = record[field];
-  return Array.isArray(value) ? value.filter((v): v is number => typeof v === "number") : undefined;
-}
-
-function stringArrayField(
-  record: Record<string, unknown>,
-  field: string,
-): string[] | undefined {
-  const value = record[field];
-  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : undefined;
 }
