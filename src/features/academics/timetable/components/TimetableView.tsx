@@ -72,6 +72,7 @@ interface TimetableViewProps {
   termId: string;
   termStatus: "open" | "closed";
   isReadOnly: boolean;
+  isDirty: boolean;
   onDirtyChange: (dirty: boolean) => void;
   academicYearId?: string;
   selectedStageId: string;
@@ -95,6 +96,7 @@ export default function TimetableView({
   termId,
   termStatus,
   isReadOnly,
+  isDirty,
   onDirtyChange,
   academicYearId = "",
   selectedStageId,
@@ -139,7 +141,6 @@ export default function TimetableView({
     [t],
   );
 
-  const [isDirty, setIsDirty] = useState(false);
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -342,7 +343,7 @@ export default function TimetableView({
     roomDefaults,
     allTermEntries,
     setTimetableEntries,
-    markDirty: () => setIsDirty(true),
+    markDirty: () => onDirtyChange(true),
     showApplied: (count) =>
       showToast(t("generate.result.applied", { count }), "success"),
   });
@@ -360,11 +361,6 @@ export default function TimetableView({
     closedTermMessage: t("readOnly.closedTerm"),
     publishedLockedMessage: t("readOnly.publishedLocked"),
   });
-
-  // Update dirty state
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
 
   useEffect(() => {
     if (stages.length === 0 && grades.length === 0 && sections.length === 0) {
@@ -527,7 +523,7 @@ export default function TimetableView({
     }
 
     setTimetableEntries(updatedEntries);
-    setIsDirty(true);
+    onDirtyChange(true);
     setEditDialogOpen(false);
   };
 
@@ -536,7 +532,7 @@ export default function TimetableView({
 
     const saveResult = await saveTimetable(timetableEntries);
     if (saveResult.ok) {
-      setIsDirty(false);
+      onDirtyChange(false);
       showToast(t("actions.saveSuccess"), "success");
     } else {
       if (saveResult.hasConflicts) {
@@ -685,7 +681,7 @@ export default function TimetableView({
 
     try {
       await loadTimetable();
-      setIsDirty(false);
+      onDirtyChange(false);
       showToast(t("actions.resetSuccess"), "success");
     } catch (error) {
       console.error("Failed to reset timetable:", error);

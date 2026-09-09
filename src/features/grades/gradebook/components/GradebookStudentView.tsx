@@ -171,6 +171,9 @@ export default function GradebookStudentView({
                 {visibleAssessments.map((assessment) => {
                   const status = selectedStudent.statusByAssessmentId[assessment.id];
                   const isQuestionBased = assessment.deliveryMode === "QUESTION_BASED";
+                  const lockedAssessmentHint = assessment.isLocked
+                    ? t("workflow.reasons.locked")
+                    : undefined;
                   return (
                   <div key={assessment.id} className="flex min-h-[142px] flex-col rounded-lg border border-s-4 p-3" style={{ borderColor: gradebookStatusStyles[status].borderColor, backgroundColor: "var(--background-color)" }}>
                     <div className="flex items-start justify-between gap-2">
@@ -193,8 +196,19 @@ export default function GradebookStudentView({
                         {t(isQuestionBased ? "gradebook.deliveryHints.questionBased" : "gradebook.deliveryHints.scoreOnly")}
                       </span>
                     </div>
+                    {lockedAssessmentHint ? (
+                      <div className="mt-2 text-xs text-[var(--warning-text)]">
+                        {lockedAssessmentHint}
+                      </div>
+                    ) : null}
                     <div className="mt-auto flex justify-end pt-3">
-                      <Button size="sm" variant="secondary" onClick={() => onOpenGrade(assessment, selectedStudent)}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={assessment.isLocked}
+                        title={lockedAssessmentHint}
+                        onClick={() => onOpenGrade(assessment, selectedStudent)}
+                      >
                         {isQuestionBased ? t("table.openReview") : t("gradebook.grade")}
                       </Button>
                     </div>

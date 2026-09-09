@@ -20,7 +20,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/hooks/usePermissions", async (importOriginal) => {
-  const permissions = await importOriginal<typeof import("@/hooks/usePermissions")>();
+  const permissions =
+    await importOriginal<typeof import("@/hooks/usePermissions")>();
 
   return {
     ...permissions,
@@ -59,7 +60,9 @@ describe("Sidebar toggle control", () => {
     try {
       render(<Sidebar isOpen onToggle={vi.fn()} />);
 
-      expect(screen.getByRole("link", { name: "System Health" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "System Health" }),
+      ).toBeInTheDocument();
     } finally {
       navigationState.grantedPermissions = null;
     }
@@ -72,10 +75,10 @@ describe("Sidebar toggle control", () => {
       render(<Sidebar isOpen onToggle={vi.fn()} />);
 
       fireEvent.click(
-        screen.getByRole("button", { name: "Assessments & Grades" }),
+        screen.getByRole("button", { name: "Assignments and Exams" }),
       );
 
-      expect(screen.getByText("Assessments")).toBeInTheDocument();
+      expect(screen.getByText("Exams")).toBeInTheDocument();
       expect(screen.queryByText("Gradebook")).not.toBeInTheDocument();
     } finally {
       navigationState.grantedPermissions = null;
@@ -121,7 +124,9 @@ describe("Sidebar toggle control", () => {
     );
 
     expect(screen.getByText("Application Pipeline")).toBeInTheDocument();
-    expect(screen.getByText("Enrollment", { selector: "p" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Enrollment", { selector: "p" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Applications")).toBeInTheDocument();
   });
 

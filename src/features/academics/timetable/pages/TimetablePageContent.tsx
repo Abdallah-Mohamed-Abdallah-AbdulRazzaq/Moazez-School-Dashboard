@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, Tab } from "@mui/material";
@@ -11,9 +11,11 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { DEFAULT_SCHOOL_ID } from "@/features/academics/constants/school";
 import { usePermissions } from "@/hooks/usePermissions";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 
 export default function TimetablePageContent() {
   const t = useTranslations("academics.timetable");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { markDirty, clearDirty, isDirty } = useDirtyKey("timetable");
@@ -21,8 +23,10 @@ export default function TimetablePageContent() {
     useAcademicYearTermLayoutContext();
   const { hasPermission } = usePermissions();
   const canManageStructure = hasPermission("academics.structure.manage");
+  const pendingViewChangeRef = useRef<(() => void) | null>(null);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
 
-  const queryState = useMemo(
+  const urlQueryState = useMemo(
     () => ({
       activeTab: searchParams.get("tab") === "rooms" ? "rooms" : "timetable",
       stageId: searchParams.get("stage") || "",
@@ -32,6 +36,8 @@ export default function TimetablePageContent() {
     }),
     [searchParams],
   );
+  const [retainedQueryState, setRetainedQueryState] = useState(urlQueryState);
+  const queryState = isDirty ? retainedQueryState : urlQueryState;
 
   const isTermClosed = termStatus === "closed";
   const isReadOnly = isTermClosed || !canManageStructure;
@@ -102,87 +108,131 @@ export default function TimetablePageContent() {
     ],
   );
 
-  const handleTabChange = (
-    _event: React.SyntheticEvent,
-    newValue: "timetable" | "rooms",
-  ) => {
-    if (isDirty) {
-      const confirmed = window.confirm(t("unsavedChanges.message"));
-      if (!confirmed) return;
-      clearDirty();
-    }
-    syncQueryParams({ activeTab: newValue }, "push");
-  };
+  const requestViewChange = useCallback(
+    (applyViewChange: () => void) => {
+      if (!isDirty) {
+        applyViewChange();
+        return;
+      }
+
+      pendingViewChangeRef.current = applyViewChange;
+      setDiscardConfirmOpen(true);
+    },
+    [isDirty],
+  );
+
+  const cancelViewChange = useCallback(() => {
+    pendingViewChangeRef.current = null;
+    setDiscardConfirmOpen(false);
+  }, []);
+
+  const confirmViewChange = useCallback(() => {
+    const applyViewChange = pendingViewChangeRef.current;
+    pendingViewChangeRef.current = null;
+    setDiscardConfirmOpen(false);
+    clearDirty();
+    applyViewChange?.();
+  }, [clearDirty]);
+
+  const handleTabChange = useCallback(
+    (_event: React.SyntheticEvent, newValue: "timetable" | "rooms") => {
+      requestViewChange(() =>
+        syncQueryParams({ activeTab: newValue }, "push"),
+      );
+    },
+    [requestViewChange, syncQueryParams],
+  );
 
   const handleDirtyChange = useCallback(
     (dirty: boolean) => {
-      if (dirty) markDirty();
-      else clearDirty();
+      if (dirty) {
+        if (!isDirty) {
+          setRetainedQueryState(urlQueryState);
+        }
+        markDirty();
+        return;
+      }
+
+      clearDirty();
     },
-    [markDirty, clearDirty],
+    [clearDirty, isDirty, markDirty, urlQueryState],
   );
 
   const handleStageChange = useCallback(
     (stageId: string) => {
-      syncQueryParams(
-        {
-          stageId,
-          gradeId: "",
-          sectionId: "",
-          classroomId: "",
-        },
-        "push",
+      requestViewChange(() =>
+        syncQueryParams(
+          {
+            stageId,
+            gradeId: "",
+            sectionId: "",
+            classroomId: "",
+          },
+          "push",
+        ),
       );
     },
-    [syncQueryParams],
+    [requestViewChange, syncQueryParams],
   );
 
   const handleGradeChange = useCallback(
     (gradeId: string) => {
-      syncQueryParams(
-        {
-          stageId: queryState.stageId,
-          gradeId,
-          sectionId: "",
-          classroomId: "",
-        },
-        "push",
+      requestViewChange(() =>
+        syncQueryParams(
+          {
+            stageId: queryState.stageId,
+            gradeId,
+            sectionId: "",
+            classroomId: "",
+          },
+          "push",
+        ),
       );
     },
-    [queryState.stageId, syncQueryParams],
+    [queryState.stageId, requestViewChange, syncQueryParams],
   );
 
   const handleSectionChange = useCallback(
     (sectionId: string) => {
-      syncQueryParams(
-        {
-          stageId: queryState.stageId,
-          gradeId: queryState.gradeId,
-          sectionId,
-          classroomId: "",
-        },
-        "push",
+      requestViewChange(() =>
+        syncQueryParams(
+          {
+            stageId: queryState.stageId,
+            gradeId: queryState.gradeId,
+            sectionId,
+            classroomId: "",
+          },
+          "push",
+        ),
       );
     },
-    [queryState.gradeId, queryState.stageId, syncQueryParams],
+    [
+      queryState.gradeId,
+      queryState.stageId,
+      requestViewChange,
+      syncQueryParams,
+    ],
   );
 
   const handleClassroomChange = useCallback(
     (classroomId: string) => {
-      syncQueryParams(
-        {
-          stageId: queryState.stageId,
-          gradeId: queryState.gradeId,
-          sectionId: queryState.sectionId,
-          classroomId,
-        },
-        "push",
+      requestViewChange(() =>
+        syncQueryParams(
+          {
+            stageId: queryState.stageId,
+            gradeId: queryState.gradeId,
+            sectionId: queryState.sectionId,
+            classroomId,
+          },
+          "push",
+        ),
       );
     },
     [
       queryState.gradeId,
       queryState.sectionId,
       queryState.stageId,
+      requestViewChange,
       syncQueryParams,
     ],
   );
@@ -252,6 +302,7 @@ export default function TimetablePageContent() {
             termId={termId}
             termStatus={termStatus}
             isReadOnly={isReadOnly}
+            isDirty={isDirty}
             onDirtyChange={handleDirtyChange}
             selectedStageId={queryState.stageId}
             selectedGradeId={queryState.gradeId}
@@ -273,6 +324,17 @@ export default function TimetablePageContent() {
           />
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={discardConfirmOpen}
+        onClose={cancelViewChange}
+        onConfirm={confirmViewChange}
+        title={t("unsavedChanges.label")}
+        description={t("unsavedChanges.message")}
+        confirmLabel={tCommon("discard")}
+        cancelLabel={tCommon("cancel")}
+        severity="warning"
+      />
     </div>
   );
 }

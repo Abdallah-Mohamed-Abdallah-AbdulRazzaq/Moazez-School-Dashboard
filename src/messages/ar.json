@@ -7282,7 +7282,7 @@
       }
     },
     "grades": {
-      "title": "الدرجات والتقييمات",
+      "title": "الدرجات والاختبارات",
       "readOnlyBanner": "أنت في وضع العرض فقط. لا يمكنك إجراء أي تعديلات.",
       "tabs": {
         "overview": "نظرة عامة",
@@ -7295,7 +7295,7 @@
         "title": "تسليمات التقييم",
         "subtitle": "متابعة تقدم الإجابات وحالة التسليم وجاهزية التصحيح.",
         "detailTitle": "التسليم",
-        "backToAssessments": "العودة إلى التقييمات",
+        "backToAssessments": "العودة إلى الاختبارات",
           "search": "البحث عن الطلاب",
           "grade": "الصف",
           "section": "الشعبة",
@@ -7454,13 +7454,13 @@
       },
       "kpis": {
         "students": "الطلاب",
-        "assessments": "التقييمات",
+        "assessments": "الاختبارات",
         "classAverage": "متوسط الفصل",
         "completionRate": "معدل الإكمال"
       },
       "trend": {
         "title": "اتجاه الأداء",
-        "subtitle": "متوسط النتائج عبر التقييمات خلال الوقت",
+        "subtitle": "متوسط النتائج عبر الاختبارات خلال الوقت",
         "average": "المتوسط"
       },
       "summaryPanel": {
@@ -7468,14 +7468,14 @@
         "highest": "أعلى درجة",
         "lowest": "أقل درجة",
         "passMark": "درجة النجاح",
-        "assessments": "التقييمات"
+        "assessments": "الاختبارات"
       },
       "gradebook": {
         "title": "سجل الدرجات",
-        "subtitle": "متابعة أداء الطلاب في التقييمات المختلفة",
+        "subtitle": "متابعة أداء الطلاب في الاختبارات المختلفة",
         "search": "البحث عن طالب أو فصل",
         "statusFilter": "تصفية حسب حالة الدرجة",
-        "groups": "مجموعات التقييمات",
+        "groups": "مجموعات الاختبارات",
         "viewMode": "عرض سجل الدرجات",
         "views": {
           "student": "الطلاب",
@@ -7487,11 +7487,11 @@
         "assessmentProgress": "الوزن {weight}% · الدرجة الكاملة {maxScore}",
         "points": "درجة",
         "grade": "رصد الدرجة",
-        "assessments": "التقييمات",
-        "assessmentFilter": "تصفية التقييمات",
+        "assessments": "الاختبارات",
+        "assessmentFilter": "تصفية الاختبارات",
         "studentListSignals": "{missing} مفقود · {absent} غياب",
         "emptyStates": {
-          "noAssessmentsTitle": "لا توجد تقييمات لعرضها"
+          "noAssessmentsTitle": "لا توجد اختبارات لعرضها"
         },
         "deliveryHints": {
           "scoreOnly": "أدخل درجة الطالب يدويًا؛ لا توجد تسليمات لهذا التقييم.",
@@ -7691,7 +7691,7 @@
         },
         "supportedContract": "مدعوم من الخادم: الملخص والتوزيع",
         "assessments": {
-          "title": "أداء التقييمات",
+          "title": "أداء الاختبارات",
           "subtitle": "متوسط النتائج لكل تقييم",
           "average": "المتوسط"
         },
@@ -7957,13 +7957,13 @@
         "assessment_date_outside_term": "يجب أن يكون تاريخ التقييم ضمن الفصل المحدد.",
         "assessment_delivery_mode_invalid": "اختر طريقة إدخال صالحة للتقييم.",
         "assessment_max_score_positive": "يجب أن تكون الدرجة النهائية أكبر من صفر.",
-        "question_based_required_for_sync": "يمكن مزامنة درجات التسليم للتقييمات المبنية على الأسئلة فقط.",
-        "question_based_required_for_questions": "يمكن إدارة الأسئلة في التقييمات المبنية على الأسئلة فقط.",
+        "question_based_required_for_sync": "يمكن مزامنة درجات التسليم للاختبارات المبنية على الأسئلة فقط.",
+        "question_based_required_for_questions": "يمكن إدارة الأسئلة في الاختبارات المبنية على الأسئلة فقط.",
         "question_based_required_for_publish": "يتطلب التحقق قبل النشر تقييما مبنيا على الأسئلة.",
-        "question_based_required_for_review": "مراجعة التسليم متاحة للتقييمات المبنية على الأسئلة فقط.",
-        "question_based_required_for_submissions": "التسليم متاح للتقييمات المبنية على الأسئلة فقط.",
+        "question_based_required_for_review": "مراجعة التسليم متاحة للاختبارات المبنية على الأسئلة فقط.",
+        "question_based_required_for_submissions": "التسليم متاح للاختبارات المبنية على الأسئلة فقط.",
         "assessment_type_invalid": "اختر نوع تقييم صالحا.",
-        "assessment_weight_budget_exceeded": "لا يمكن أن يتجاوز مجموع أوزان التقييمات لهذه المادة والنطاق 100٪.",
+        "assessment_weight_budget_exceeded": "لا يمكن أن يتجاوز مجموع أوزان الاختبارات لهذه المادة والنطاق 100٪.",
         "assessment_weight_invalid": "يجب أن يكون وزن التقييم أكبر من صفر وألا يتجاوز 100٪.",
         "awarded_points_out_of_range": "يجب أن تكون الدرجة الممنوحة بين صفر والدرجة النهائية للسؤال.",
         "bulk_points_required": "أضف تحديثا واحدا على الأقل لنقاط الأسئلة.",
@@ -7993,7 +7993,7 @@
         "question_sort_order_conflict": "يوجد سؤال آخر بالترتيب نفسه.",
         "question_type_invalid": "اختر نوع سؤال صالحا.",
         "question_type_required": "اختر نوع السؤال.",
-        "question_based_deferred": "التقييمات المبنية على الأسئلة غير مفعلة من الخادم لهذا المسار.",
+        "question_based_deferred": "الاختبارات المبنية على الأسئلة غير مفعلة من الخادم لهذا المسار.",
         "active_question_required": "أضف سؤالا نشطا واحدا على الأقل قبل النشر.",
         "reorder_question_set_invalid": "يجب أن يتضمن الترتيب جميع الأسئلة النشطة مرة واحدة.",
         "scope_aliases_mismatch": "معرفات النطاق المرسلة غير متطابقة.",
@@ -8031,7 +8031,7 @@
         "deleteDescription": "هل أنت متأكد من حذف هذا السؤال من التقييم؟",
         "deleteConfirm": "حذف",
         "deleteCancel": "إلغاء",
-        "back": "العودة إلى التقييمات",
+        "back": "العودة إلى الاختبارات",
         "notFound": "لم يتم العثور على التقييم المطلوب أو لا تملك صلاحية الوصول إليه.",
         "notQuestionBased": "هذا الاختبار ورقي ولا يستخدم منشئ الأسئلة.",
         "loading": "جار تحميل الأسئلة...",
