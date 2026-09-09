@@ -8,12 +8,12 @@ export function getTimetableConfigSourceName(
 ): string | null {
   if (!source.id || source.scope === "TERM") return null;
 
-  const sourceNodes =
-    source.scope === "GRADE"
-      ? academicTree.grades
-      : source.scope === "SECTION"
-        ? academicTree.sections
-        : academicTree.classrooms;
+  const sourceNodes = {
+    STAGE: academicTree.stages,
+    GRADE: academicTree.grades,
+    SECTION: academicTree.sections,
+    CLASSROOM: academicTree.classrooms,
+  }[source.scope];
   const sourceNode = sourceNodes.find((node) => node.id === source.id);
 
   if (!sourceNode) return null;

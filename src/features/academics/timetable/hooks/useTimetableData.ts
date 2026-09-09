@@ -30,6 +30,7 @@ import {
   deleteEntry,
   getConfig,
   getConflicts,
+  getDashboardTimetable,
   getPublication,
   listEntries,
   listPeriods,
@@ -43,9 +44,19 @@ import type {
   BackendTimetablePeriodDto,
   ListResponse,
   PublicationResponse,
+  TimetableDashboardConfigSummaryDto,
+  TimetableDashboardItemDto,
   TimetablePublishReason,
   TimetableScopeType,
 } from "@/features/academics/timetable/services/timetableApiTypes";
+import {
+  resolveTimetableScopeSelection,
+  timetableConfigScopeId,
+} from "@/features/academics/timetable/services/timetableScope";
+import {
+  resolveTimetableWorkspaceState,
+  type TimetableWorkspaceState,
+} from "@/features/academics/timetable/services/timetableWorkspaceState";
 import { mapBackendEntriesToUi } from "@/features/academics/timetable/services/timetableMappers";
 import {
   assertBulkPayloadSize,
@@ -84,6 +95,7 @@ interface UseTimetableDataParams {
   termId: string;
   academicYearId: string;
   enabled?: boolean;
+  selectedStageId: string;
   selectedGradeId: string;
   selectedSectionId: string;
   selectedClassroomId: string;
@@ -116,13 +128,6 @@ type SaveTimetableResult =
       changesWereNotSaved?: boolean;
       partialMutation?: boolean;
     };
-
-type ScopeSelection = {
-  scopeType: TimetableScopeType;
-  gradeId?: string;
-  sectionId?: string;
-  classroomId?: string;
-};
 
 const dayNames = [
   { key: "sun", nameAr: "\u0627\u0644\u0623\u062d\u062f", nameEn: "Sunday" },
@@ -157,9 +162,6 @@ const dayNames = [
 const listResponseItems = <T>(response: ListResponse<T> | T[]): T[] =>
   Array.isArray(response) ? response : response.items;
 
-const scopeId = (config: BackendTimetableConfigDto): string | undefined =>
-  config.classroomId ?? config.sectionId ?? config.gradeId ?? undefined;
-
 const configScope = (config: BackendTimetableConfigDto): TimetableScopeType =>
   config.scopeType.toUpperCase() as TimetableScopeType;
 
@@ -178,13 +180,7 @@ const periodDtosToUi = (
   }));
 
 const configDtoToDays = (config: BackendTimetableConfigDto): TimetableDay[] =>
-  dayNames.map((dayName, index) => ({
-    key: dayName.key,
-    index,
-    nameAr: dayName.nameAr,
-    nameEn: dayName.nameEn,
-    isActive: config.activeDays.includes(index),
-  }));
+  mapActiveDays(config.activeDays);
 
 const configDtoToUi = (
   config: BackendTimetableConfigDto,
@@ -193,7 +189,7 @@ const configDtoToUi = (
   id: config.id,
   termId: config.termId,
   scopeType: configScope(config),
-  scopeId: scopeId(config),
+  scopeId: timetableConfigScopeId(config),
   days: configDtoToDays(config),
   periods: periodDtosToUi(backendPeriods),
   updatedAt: config.updatedAt,
@@ -207,7 +203,19 @@ const configDtoToResolvedConfig = (
   periods: periodDtosToUi(backendPeriods),
   source: {
     scope: configScope(config),
-    id: scopeId(config),
+    id: timetableConfigScopeId(config),
+  },
+});
+
+const dashboardConfigToResolvedConfig = (
+  config: TimetableDashboardConfigSummaryDto,
+  backendPeriods: BackendTimetablePeriodDto[],
+): ResolvedTimetableConfig => ({
+  days: mapActiveDays(config.activeDays),
+  periods: periodDtosToUi(backendPeriods),
+  source: {
+    scope: config.scopeType.toUpperCase() as TimetableScopeType,
+    id: timetableConfigScopeId(config),
   },
 });
 
@@ -242,37 +250,39 @@ const readinessReasonText = (
   reason: string | TimetablePublishReason,
 ): string => (typeof reason === "string" ? reason : reason.message);
 
-function resolveScopeSelection(params: {
-  selectedGradeId: string;
-  selectedSectionId: string;
-  selectedClassroomId: string;
-}): ScopeSelection {
-  if (params.selectedClassroomId) {
-    return {
-      scopeType: "CLASSROOM",
-      classroomId: params.selectedClassroomId,
-    };
+const mapActiveDays = (activeDays: number[]): TimetableDay[] =>
+  dayNames.map((dayName, index) => ({
+    key: dayName.key,
+    index,
+    nameAr: dayName.nameAr,
+    nameEn: dayName.nameEn,
+    isActive: activeDays.includes(index),
+  }));
+
+async function exactTimetableConfig(
+  params: Parameters<typeof getConfig>[0],
+): Promise<BackendTimetableConfigDto | null> {
+  try {
+    return await getConfig(params);
+  } catch (error) {
+    if (isTimetableConfigNotFound(error)) return null;
+    throw error;
   }
-  if (params.selectedSectionId) {
-    return {
-      scopeType: "SECTION",
-      sectionId: params.selectedSectionId,
-    };
-  }
-  if (params.selectedGradeId) {
-    return {
-      scopeType: "GRADE",
-      gradeId: params.selectedGradeId,
-    };
-  }
-  return { scopeType: "TERM" };
 }
+
+const selectedDashboardItem = (
+  items: TimetableDashboardItemDto[],
+  classroomId: string,
+): TimetableDashboardItemDto | null =>
+  items.find((dashboardItem) => dashboardItem.classroomId === classroomId) ??
+  null;
 
 export function useTimetableData({
   schoolId,
   termId,
   academicYearId = "",
   enabled = true,
+  selectedStageId,
   selectedGradeId,
   selectedSectionId,
   selectedClassroomId,
@@ -303,6 +313,13 @@ export function useTimetableData({
   const [resolvedConfig, setResolvedConfig] =
     useState<ResolvedTimetableConfig | null>(null);
   const [config, setConfig] = useState<BackendTimetableConfigDto | null>(null);
+  const [workspaceState, setWorkspaceState] = useState<TimetableWorkspaceState>(
+    () =>
+      resolveTimetableWorkspaceState({
+        exactConfig: null,
+        effectiveConfig: null,
+      }),
+  );
   const [periods, setPeriods] = useState<BackendTimetablePeriodDto[]>([]);
   const [publication, setPublication] = useState<PublicationResponse | null>(
     null,
@@ -340,16 +357,28 @@ export function useTimetableData({
 
   const scopeSelection = useMemo(
     () =>
-      resolveScopeSelection({
-        selectedGradeId,
-        selectedSectionId,
-        selectedClassroomId,
+      resolveTimetableScopeSelection({
+        stageId: selectedStageId,
+        gradeId: selectedGradeId,
+        sectionId: selectedSectionId,
+        classroomId: selectedClassroomId,
       }),
-    [selectedClassroomId, selectedGradeId, selectedSectionId],
+    [
+      selectedClassroomId,
+      selectedGradeId,
+      selectedSectionId,
+      selectedStageId,
+    ],
   );
 
   const clearTimetableState = useCallback(() => {
     setConfig(null);
+    setWorkspaceState(
+      resolveTimetableWorkspaceState({
+        exactConfig: null,
+        effectiveConfig: null,
+      }),
+    );
     setPeriods([]);
     setPublication(null);
     setConflicts([]);
@@ -480,16 +509,58 @@ export function useTimetableData({
     try {
       if (requestId !== timetableRequestIdRef.current) return;
 
-      const nextConfig = await getConfig({
-        academicYearId,
-        termId,
-        scopeType: scopeSelection.scopeType,
-        gradeId: scopeSelection.gradeId,
-        sectionId: scopeSelection.sectionId,
-        classroomId: scopeSelection.classroomId,
-      });
+      const [nextConfig, dashboardResponse] = await Promise.all([
+        exactTimetableConfig({ academicYearId, termId, ...scopeSelection }),
+        selectedClassroomId
+          ? getDashboardTimetable({
+              termId,
+              classroomId: selectedClassroomId,
+            })
+          : Promise.resolve(null),
+      ]);
 
       if (requestId !== timetableRequestIdRef.current) return;
+
+      const dashboardItem = dashboardResponse
+        ? selectedDashboardItem(dashboardResponse.items, selectedClassroomId)
+        : null;
+      const nextWorkspaceState = resolveTimetableWorkspaceState({
+        exactConfig: nextConfig,
+        effectiveConfig: dashboardItem?.effectiveConfig ?? null,
+      });
+
+      if (!nextWorkspaceState.displayConfigId) {
+        clearTimetableState();
+        return;
+      }
+
+      const effectiveConfig = nextWorkspaceState.effectiveConfig;
+      if (nextWorkspaceState.isInherited && dashboardItem && effectiveConfig) {
+        const publicationResponse = (await getPublication(
+          nextWorkspaceState.displayConfigId,
+        )) as PublicationResponse;
+        if (requestId !== timetableRequestIdRef.current) return;
+
+        const mappedEntries = mapBackendEntriesToUi(dashboardItem.entries);
+        setConfig(null);
+        setWorkspaceState(nextWorkspaceState);
+        setPeriods(dashboardItem.periods);
+        setPublication(publicationResponse);
+        setConflicts([]);
+        setValidationSummary(emptyValidationSummary());
+        setTimetableEntries(mappedEntries.entries);
+        setAllTermEntries(mappedEntries.entries);
+        setConfigs([]);
+        setResolvedConfig(
+          dashboardConfigToResolvedConfig(
+            effectiveConfig,
+            dashboardItem.periods,
+          ),
+        );
+        return;
+      }
+
+      if (!nextConfig) return;
 
       const configId = nextConfig.id || nextConfig.timetableConfigId || "";
       const [periodsResponse, entriesResponse, allEntriesResponse, publicationResponse] =
@@ -516,6 +587,7 @@ export function useTimetableData({
       const nextConfigModel = configDtoToUi(nextConfig, nextPeriods);
 
       setConfig(nextConfig);
+      setWorkspaceState(nextWorkspaceState);
       setPeriods(nextPeriods);
       setPublication(publicationResponse);
       setConflicts([]);
@@ -526,10 +598,6 @@ export function useTimetableData({
       setResolvedConfig(configDtoToResolvedConfig(nextConfig, nextPeriods));
     } catch (error) {
       if (requestId !== timetableRequestIdRef.current) return;
-      if (isTimetableConfigNotFound(error)) {
-        clearTimetableState();
-        return;
-      }
       const message = timetableErrorMessage(
         error,
         messages?.loadFailed ?? "Failed to load timetable for scope.",
@@ -923,6 +991,7 @@ export function useTimetableData({
     configs,
     resolvedConfig,
     config,
+    workspaceState,
     periods,
     publication,
     conflicts,

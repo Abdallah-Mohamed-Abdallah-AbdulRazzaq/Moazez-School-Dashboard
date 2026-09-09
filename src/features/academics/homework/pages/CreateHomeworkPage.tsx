@@ -52,6 +52,7 @@ interface AllocationSelectOption extends SelectOption {
   teacherLabel: string;
   subjectLabel: string;
   classroomLabel: string;
+  stageId: string;
   gradeId: string;
 }
 
@@ -214,6 +215,7 @@ function buildAllocationOptions(input: {
         teacherLabel,
         subjectLabel,
         classroomLabel,
+        stageId: grade?.stageId ?? "",
         gradeId: grade?.id ?? "",
       };
     })
@@ -283,6 +285,7 @@ export default function CreateHomeworkPage() {
     () => ({
       academicYearId: effectiveDraft.academicYearId,
       termId: effectiveDraft.termId,
+      stageId: selectedAllocation?.stageId ?? "",
       gradeId: selectedAllocation?.gradeId ?? "",
       sectionId: selectedAllocation?.allocation.sectionId ?? "",
       classroomId: selectedAllocation?.allocation.classroomId ?? "",

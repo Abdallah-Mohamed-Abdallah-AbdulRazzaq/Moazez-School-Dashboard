@@ -12,7 +12,10 @@ export function getExcuseTimetableCandidates(
   const term = { ...base, scopeType: "TERM" as const };
 
   if (scopeType === "SCHOOL") return [];
-  if (scopeType === "STAGE") return [];
+
+  const stage = scopeIds?.stageId
+    ? { ...base, scopeType: "STAGE" as const, stageId: scopeIds.stageId }
+    : null;
 
   const grade = scopeIds?.gradeId
     ? { ...base, scopeType: "GRADE" as const, gradeId: scopeIds.gradeId }
@@ -36,9 +39,19 @@ export function getExcuseTimetableCandidates(
         }
       : null;
 
-  if (scopeType === "GRADE") return grade ? [grade, term] : [];
-  if (scopeType === "SECTION") return section && grade ? [section, grade, term] : [];
-  return classroom && section && grade ? [classroom, section, grade, term] : [];
+  const inheritedCandidates = stage ? [stage, term] : [term];
+  if (scopeType === "STAGE") return stage ? inheritedCandidates : [];
+  if (scopeType === "GRADE") {
+    return grade ? [grade, ...inheritedCandidates] : [];
+  }
+  if (scopeType === "SECTION") {
+    return section && grade
+      ? [section, grade, ...inheritedCandidates]
+      : [];
+  }
+  return classroom && section && grade
+    ? [classroom, section, grade, ...inheritedCandidates]
+    : [];
 }
 
 export async function resolveExcuseTimetableConfig<T>(

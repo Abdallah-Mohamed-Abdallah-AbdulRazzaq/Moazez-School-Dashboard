@@ -7,6 +7,7 @@ import type {
 export interface TimetableSlotScope {
   academicYearId: string;
   termId: string;
+  stageId: string;
   gradeId: string;
   sectionId: string;
   classroomId: string;
@@ -19,6 +20,7 @@ export interface TimetableConfigLookupParams {
   academicYearId: string;
   termId: string;
   scopeType: TimetableScopeType;
+  stageId?: string;
   gradeId?: string;
   sectionId?: string;
   classroomId?: string;
@@ -27,13 +29,21 @@ export interface TimetableConfigLookupParams {
 export function timetableConfigCandidates(
   scope: TimetableSlotScope,
 ): TimetableConfigLookupParams[] {
-  const { academicYearId, termId, gradeId, sectionId, classroomId } = scope;
+  const {
+    academicYearId,
+    termId,
+    stageId,
+    gradeId,
+    sectionId,
+    classroomId,
+  } = scope;
 
   return [
     {
       academicYearId,
       termId,
       scopeType: "CLASSROOM",
+      stageId,
       gradeId,
       sectionId,
       classroomId,
@@ -42,6 +52,7 @@ export function timetableConfigCandidates(
       academicYearId,
       termId,
       scopeType: "SECTION",
+      stageId,
       gradeId,
       sectionId,
     },
@@ -49,7 +60,14 @@ export function timetableConfigCandidates(
       academicYearId,
       termId,
       scopeType: "GRADE",
+      stageId,
       gradeId,
+    },
+    {
+      academicYearId,
+      termId,
+      scopeType: "STAGE",
+      stageId,
     },
     {
       academicYearId,

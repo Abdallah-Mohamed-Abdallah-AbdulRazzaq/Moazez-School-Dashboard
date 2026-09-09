@@ -19,6 +19,7 @@ import {
   checkConflicts,
   deleteEntry,
   getConfig,
+  getDashboardTimetable,
   getPublication,
   listEntries,
   listPeriods,
@@ -62,6 +63,7 @@ vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
   checkConflicts: vi.fn(),
   deleteEntry: vi.fn(),
   getConfig: vi.fn(),
+  getDashboardTimetable: vi.fn(),
   getConflicts: vi.fn(),
   getPublication: vi.fn(),
   listEntries: vi.fn(),
@@ -82,6 +84,7 @@ const mockedBulkSaveEntries = vi.mocked(bulkSaveEntries);
 const mockedCheckConflicts = vi.mocked(checkConflicts);
 const mockedDeleteEntry = vi.mocked(deleteEntry);
 const mockedGetConfig = vi.mocked(getConfig);
+const mockedGetDashboardTimetable = vi.mocked(getDashboardTimetable);
 const mockedGetPublication = vi.mocked(getPublication);
 const mockedListEntries = vi.mocked(listEntries);
 const mockedListPeriods = vi.mocked(listPeriods);
@@ -98,6 +101,7 @@ const backendConfig: BackendTimetableConfigDto = {
   activeDays: [0, 1, 2, 3, 4],
   scopeType: "classroom",
   scopeKey: "classroom-1",
+  stageId: null,
   gradeId: null,
   sectionId: null,
   classroomId: "classroom-1",
@@ -187,6 +191,7 @@ const hookParams = {
   schoolId: "school-1",
   termId: "term-1",
   academicYearId: "year-1",
+  selectedStageId: "stage-1",
   selectedGradeId: "grade-1",
   selectedSectionId: "section-1",
   selectedClassroomId: "classroom-1",
@@ -213,6 +218,10 @@ describe("useTimetableData", () => {
       scopeType: "CLASSROOM",
       classroomId: "classroom-1",
     });
+    expect(mockedGetDashboardTimetable).toHaveBeenCalledWith({
+      termId: "term-1",
+      classroomId: "classroom-1",
+    });
     expect(mockedListPeriods).toHaveBeenCalledWith("config-1");
     expect(mockedListEntries).toHaveBeenCalledWith({
       timetableConfigId: "config-1",
@@ -235,6 +244,7 @@ describe("useTimetableData", () => {
     const { result } = renderHook(() =>
       useTimetableData({
         ...hookParams,
+        selectedStageId: "",
         selectedGradeId: "",
         selectedSectionId: "",
         selectedClassroomId: "",
@@ -331,7 +341,66 @@ describe("useTimetableData", () => {
 
     await waitFor(() => expect(result.current.timetableLoading).toBe(false));
     expect(result.current.config).toBeNull();
+    expect(result.current.workspaceState.mode).toBe("unconfigured");
     expect(result.current.apiError).toBeNull();
+  });
+
+  it("displays a backend-selected stage timetable when the classroom has no exact config", async () => {
+    mockedGetConfig.mockRejectedValueOnce(
+      new ApiError(
+        "Config not found",
+        404,
+        "academics.timetable.config_not_found",
+      ),
+    );
+    mockedGetDashboardTimetable.mockResolvedValueOnce({
+      termId: "term-1",
+      academicYearId: "year-1",
+      publishedAt: "2026-01-02T00:00:00.000Z",
+      isPublished: true,
+      items: [
+        {
+          classroomId: "classroom-1",
+          classroom: backendEntry.classroom,
+          gradeId: "grade-1",
+          grade: {
+            id: "grade-1",
+            nameAr: "الصف 1",
+            nameEn: "Grade 1",
+          },
+          effectiveConfig: {
+            id: "stage-config",
+            name: "Stage timetable",
+            scopeType: "stage",
+            scopeKey: "stage-1",
+            stageId: "stage-1",
+            status: "published",
+            activeDays: [0, 1, 2, 3, 4],
+          },
+          configs: [],
+          periods: [{ ...backendPeriod, timetableConfigId: "stage-config" }],
+          entries: [{ ...backendEntry, timetableConfigId: "stage-config" }],
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    expect(result.current.config).toBeNull();
+    expect(result.current.workspaceState).toMatchObject({
+      mode: "inherited",
+      displayConfigId: "stage-config",
+      isInherited: true,
+      canEdit: false,
+    });
+    expect(result.current.resolvedConfig?.source).toEqual({
+      scope: "STAGE",
+      id: "stage-1",
+    });
+    expect(result.current.timetableEntries).toEqual([
+      expect.objectContaining({ id: "entry-1" }),
+    ]);
   });
 
   it("surfaces hierarchy 404 errors instead of clearing them as absent configs", async () => {
@@ -515,6 +584,13 @@ function mockAcademicDependencies() {
 
 function mockTimetableLoad(publication: PublicationResponse) {
   mockedGetConfig.mockResolvedValue(backendConfig);
+  mockedGetDashboardTimetable.mockResolvedValue({
+    termId: "term-1",
+    academicYearId: "year-1",
+    publishedAt: null,
+    isPublished: false,
+    items: [],
+  });
   mockedListPeriods.mockResolvedValue({ items: [backendPeriod] });
   mockedListEntries.mockResolvedValue({ items: [backendEntry] });
   mockedGetPublication.mockResolvedValue(publication);

@@ -20,6 +20,7 @@ import {
 import FilterBar from "./FilterBar";
 import TimetableGrid from "./TimetableGrid";
 import TimetableCreationStepper from "./TimetableCreationStepper";
+import TimetableSourceBanner from "./TimetableSourceBanner";
 import ValidationPanel from "./ValidationPanel";
 import EditSlotDialog from "./EditSlotDialog";
 import GenerateDialog from "./GenerateDialog";
@@ -263,6 +264,7 @@ export default function TimetableView({
     allTermEntries,
     resolvedConfig,
     config,
+    workspaceState,
     periods,
     apiError,
     isLoading,
@@ -285,6 +287,7 @@ export default function TimetableView({
     termId,
     academicYearId,
     enabled: canViewTimetable,
+    selectedStageId,
     selectedGradeId,
     selectedSectionId,
     selectedClassroomId,
@@ -353,8 +356,10 @@ export default function TimetableView({
     canViewTimetable && hasPermission("academics.structure.manage");
   const canWriteTimetable =
     canManageTimetable && termStatus !== "closed" && !isReadOnly;
-  const canCreateConfig = canWriteTimetable && configIsDraft;
-  const canEditTimetable = canWriteTimetable && configIsDraft;
+  const hasExactConfig = workspaceState.mode === "exact";
+  const canCreateConfig = canWriteTimetable && !hasExactConfig;
+  const canEditTimetable =
+    canWriteTimetable && configIsDraft && workspaceState.canEdit;
   const readOnlyBanner = readOnlyBannerMessage({
     configStatus: config?.status,
     termStatus,
@@ -911,7 +916,7 @@ export default function TimetableView({
         validationSummary,
         conflicts: backendConflicts,
         publication,
-        isReadOnly: !canWriteTimetable,
+        isReadOnly: !canWriteTimetable || workspaceState.isInherited,
       }),
     [
       backendConflicts,
@@ -923,6 +928,7 @@ export default function TimetableView({
       timetableEntries,
       timetableLoading,
       validationSummary,
+      workspaceState.isInherited,
     ],
   );
 
@@ -1418,16 +1424,27 @@ export default function TimetableView({
                     ))}
               </span>
             </div>
-            {resolvedConfig && (
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <span className="font-medium">{t("target.configSource")}:</span>
-                <span className="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">
-                  {configSourceLabel}
-                </span>
-              </div>
-            )}
           </div>
         </div>
+      )}
+
+      {hasTimetableScope && resolvedConfig && (
+        <TimetableSourceBanner
+          workspaceState={workspaceState}
+          sourceName={configSourceLabel}
+          canCreateOverride={canCreateConfig}
+          onCreateOverride={() => setConfigDialogOpen(true)}
+          copy={{
+            exactTitle: t("source.exactTitle"),
+            exactDescription: t("source.exactDescription"),
+            inheritedTitle: t("source.inheritedTitle"),
+            inheritedDescription: t("source.inheritedDescription"),
+            sourceLabel: t("source.sourceLabel"),
+            lockedLabel: t("source.lockedLabel"),
+            createOverride: t("source.createOverride"),
+            overrideUnavailable: t("source.overrideUnavailable"),
+          }}
+        />
       )}
 
       {hasTimetableScope && readOnlyBanner && (
@@ -1510,7 +1527,7 @@ export default function TimetableView({
                     <Button
                       onClick={handlePublish}
                       disabled={
-                        !canWriteTimetable || isDirty || !resolvedConfig
+                        !canEditTimetable || isDirty || !resolvedConfig
                       }
                       variant="secondary"
                       loading={isPublishing}
@@ -1523,6 +1540,7 @@ export default function TimetableView({
                       onClick={handleUnpublish}
                       disabled={
                         !canWriteTimetable ||
+                        !hasExactConfig ||
                         isDirty ||
                         !resolvedConfig ||
                         config?.scopeType.toUpperCase() === "SECTION"
@@ -1638,7 +1656,7 @@ export default function TimetableView({
                     <Button
                       onClick={handlePublish}
                       disabled={
-                        !canWriteTimetable || isDirty || !resolvedConfig
+                        !canEditTimetable || isDirty || !resolvedConfig
                       }
                       variant="secondary"
                       loading={isPublishing}
@@ -1652,6 +1670,7 @@ export default function TimetableView({
                       onClick={handleUnpublish}
                       disabled={
                         !canWriteTimetable ||
+                        !hasExactConfig ||
                         isDirty ||
                         !resolvedConfig ||
                         config?.scopeType.toUpperCase() === "SECTION"
@@ -1951,10 +1970,11 @@ export default function TimetableView({
           config={config}
           periods={periods}
           entries={configGuardEntries}
+          selectedStageId={selectedStageId}
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
-          readOnly={!canEditTimetable}
+          readOnly={config ? !canEditTimetable : !canCreateConfig}
           locale={locale}
         />
       )}
@@ -1972,6 +1992,7 @@ export default function TimetableView({
           config={config}
           periods={periods}
           entries={configGuardEntries}
+          selectedStageId={selectedStageId}
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}

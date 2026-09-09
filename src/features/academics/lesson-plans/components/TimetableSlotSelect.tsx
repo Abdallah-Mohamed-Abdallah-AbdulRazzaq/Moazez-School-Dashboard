@@ -149,6 +149,7 @@ export default function TimetableSlotSelect({
   loadErrorMessage,
   academicYearId,
   termId,
+  stageId,
   gradeId,
   sectionId,
   classroomId,
@@ -163,6 +164,7 @@ export default function TimetableSlotSelect({
     () => ({
       academicYearId,
       termId,
+      stageId,
       gradeId,
       sectionId,
       classroomId,
@@ -175,6 +177,7 @@ export default function TimetableSlotSelect({
       classroomId,
       gradeId,
       sectionId,
+      stageId,
       subjectId,
       teacherSubjectAllocationId,
       teacherUserId,

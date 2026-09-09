@@ -39,6 +39,7 @@ type ConfigParams = {
   academicYearId: string;
   termId: string;
   scopeType?: TimetableScopeType;
+  stageId?: string;
   gradeId?: string;
   sectionId?: string;
   classroomId?: string;

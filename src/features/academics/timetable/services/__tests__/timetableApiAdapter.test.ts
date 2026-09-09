@@ -98,8 +98,8 @@ describe("timetableApiAdapter", () => {
     await getConfig({
       academicYearId: "year-1",
       termId: "term-1",
-      scopeType: "GRADE",
-      gradeId: "grade-1",
+      scopeType: "STAGE",
+      stageId: "stage-1",
     });
     await upsertConfig({
       academicYearId: "year-1",
@@ -127,8 +127,8 @@ describe("timetableApiAdapter", () => {
         params: {
           academicYearId: "year-1",
           termId: "term-1",
-          scopeType: "GRADE",
-          gradeId: "grade-1",
+          scopeType: "STAGE",
+          stageId: "stage-1",
         },
       },
     );

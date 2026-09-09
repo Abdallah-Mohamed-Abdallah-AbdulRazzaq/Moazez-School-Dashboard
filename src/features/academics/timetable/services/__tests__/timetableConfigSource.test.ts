@@ -49,6 +49,7 @@ const academicTree: StructureTree = {
 
 describe("getTimetableConfigSourceName", () => {
   it.each([
+    ["STAGE", "stage-1", "المرحلة الابتدائية", "Primary"],
     ["GRADE", "grade-1", "الصف الأول", "Grade 1"],
     ["SECTION", "section-1", "أ", "A"],
     ["CLASSROOM", "classroom-1", "1أ", "1A"],
