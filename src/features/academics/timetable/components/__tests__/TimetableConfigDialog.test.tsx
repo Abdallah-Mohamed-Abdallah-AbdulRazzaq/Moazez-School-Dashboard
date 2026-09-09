@@ -9,6 +9,7 @@ import type {
 import {
   createTimetablePeriodDto,
 } from "@/features/academics/timetable/services/timetablePeriodsService";
+import { upsertBackendTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
@@ -21,6 +22,10 @@ vi.mock("@/features/academics/timetable/services/timetablePeriodsService", () =>
   updateTimetablePeriodDto: vi.fn(),
 }));
 
+vi.mock("@/features/academics/timetable/services/timetableConfigService", () => ({
+  upsertBackendTimetableConfig: vi.fn(),
+}));
+
 const timetableConfig: BackendTimetableConfigDto = {
   id: "config-1",
   academicYearId: "year-1",
@@ -30,6 +35,7 @@ const timetableConfig: BackendTimetableConfigDto = {
   activeDays: [0, 1, 2, 3, 4],
   scopeType: "term",
   scopeKey: "term-1",
+  stageId: null,
   gradeId: null,
   sectionId: null,
   classroomId: null,
@@ -54,23 +60,30 @@ const savedPeriod: BackendTimetablePeriodDto = {
 const renderDialog = ({
   periods = [savedPeriod],
   readOnly = false,
+  mode = "periods",
+  config = timetableConfig,
+  selectedStageId = "",
 }: {
   periods?: BackendTimetablePeriodDto[];
   readOnly?: boolean;
+  mode?: "config" | "periods";
+  config?: BackendTimetableConfigDto | null;
+  selectedStageId?: string;
 } = {}) => {
   const onSaved = vi.fn().mockResolvedValue(undefined);
 
   render(
     <TimetableConfigDialog
-      mode="periods"
+      mode={mode}
       open
       onClose={vi.fn()}
       onSaved={onSaved}
       academicYearId="year-1"
       termId="term-1"
-      config={timetableConfig}
+      config={config}
       periods={periods}
       entries={[]}
+      selectedStageId={selectedStageId}
       selectedGradeId=""
       selectedSectionId=""
       selectedClassroomId=""
@@ -146,5 +159,29 @@ describe("TimetableConfigDialog", () => {
     expect(
       screen.queryByRole("button", { name: "config.deletePeriod" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("creates a stage config when only a stage is selected", async () => {
+    const user = userEvent.setup();
+    vi.mocked(upsertBackendTimetableConfig).mockResolvedValue({
+      ...timetableConfig,
+      scopeType: "stage",
+      scopeKey: "stage-1",
+      stageId: "stage-1",
+    });
+    renderDialog({
+      mode: "config",
+      config: null,
+      periods: [],
+      selectedStageId: "stage-1",
+    });
+
+    await user.click(screen.getByRole("button", { name: "config.saveConfig" }));
+
+    await waitFor(() => {
+      expect(upsertBackendTimetableConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ scopeType: "STAGE", stageId: "stage-1" }),
+      );
+    });
   });
 });

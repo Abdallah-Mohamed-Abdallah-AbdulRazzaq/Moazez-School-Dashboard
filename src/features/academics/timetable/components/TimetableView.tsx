@@ -1951,6 +1951,7 @@ export default function TimetableView({
           config={config}
           periods={periods}
           entries={configGuardEntries}
+          selectedStageId={normalizedStageId}
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
@@ -1972,6 +1973,7 @@ export default function TimetableView({
           config={config}
           periods={periods}
           entries={configGuardEntries}
+          selectedStageId={normalizedStageId}
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}

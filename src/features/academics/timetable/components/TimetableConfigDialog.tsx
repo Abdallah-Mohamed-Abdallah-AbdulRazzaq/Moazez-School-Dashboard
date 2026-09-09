@@ -20,10 +20,10 @@ import type {
   BackendTimetableConfigDto,
   BackendTimetablePeriodDto,
   CreatePeriodRequest,
-  TimetableScopeType,
   UpsertConfigRequest,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import { upsertBackendTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
+import { resolveTimetableScopeSelection } from "@/features/academics/timetable/services/timetableScope";
 import {
   createTimetablePeriodDto,
   deleteTimetablePeriod,
@@ -51,6 +51,7 @@ interface TimetableConfigDialogProps {
   config: BackendTimetableConfigDto | null;
   periods: BackendTimetablePeriodDto[];
   entries: TimetableEntry[];
+  selectedStageId: string;
   selectedGradeId: string;
   selectedSectionId: string;
   selectedClassroomId: string;
@@ -119,6 +120,7 @@ export default function TimetableConfigDialog({
   config,
   periods,
   entries,
+  selectedStageId,
   selectedGradeId,
   selectedSectionId,
   selectedClassroomId,
@@ -129,11 +131,13 @@ export default function TimetableConfigDialog({
   const isConfigMode = mode === "config";
   const translateTimetableError = (code: TimetableErrorCode) =>
     t(`errors.${code.replace("academics.timetable.", "")}`);
-  const scopeType = defaultScopeType({
-    selectedGradeId,
-    selectedSectionId,
-    selectedClassroomId,
+  const scopeSelection = resolveTimetableScopeSelection({
+    stageId: selectedStageId,
+    gradeId: selectedGradeId,
+    sectionId: selectedSectionId,
+    classroomId: selectedClassroomId,
   });
+  const scopeType = scopeSelection.scopeType;
   const [name, setName] = useState("");
   const [weekStartDay, setWeekStartDay] = useState(0);
   const [activeDays, setActiveDays] = useState<number[]>([0, 1, 2, 3, 4]);
@@ -151,6 +155,7 @@ export default function TimetableConfigDialog({
   const initializedPeriodSessionRef = useRef<string | null>(null);
   const periodSessionKey = [
     config?.id ?? "new",
+    selectedStageId,
     selectedGradeId,
     selectedSectionId,
     selectedClassroomId,
@@ -183,6 +188,7 @@ export default function TimetableConfigDialog({
     selectedClassroomId,
     selectedGradeId,
     selectedSectionId,
+    selectedStageId,
     t,
   ]);
 
@@ -415,10 +421,7 @@ export default function TimetableConfigDialog({
   const buildConfigPayload = (): UpsertConfigRequest => ({
     academicYearId,
     termId,
-    scopeType,
-    gradeId: scopeType === "GRADE" ? selectedGradeId : undefined,
-    sectionId: scopeType === "SECTION" ? selectedSectionId : undefined,
-    classroomId: scopeType === "CLASSROOM" ? selectedClassroomId : undefined,
+    ...scopeSelection,
     name: name.trim(),
     weekStartDay,
     activeDays,
@@ -906,23 +909,3 @@ function FieldError({
   return <div className="mt-1 text-xs text-red-600">{error}</div>;
 }
 
-function defaultScopeType({
-  selectedGradeId,
-  selectedSectionId,
-  selectedClassroomId,
-}: {
-  selectedGradeId: string;
-  selectedSectionId: string;
-  selectedClassroomId: string;
-}): TimetableScopeType {
-  if (selectedClassroomId) {
-    return "CLASSROOM";
-  }
-  if (selectedSectionId) {
-    return "SECTION";
-  }
-  if (selectedGradeId) {
-    return "GRADE";
-  }
-  return "TERM";
-}
