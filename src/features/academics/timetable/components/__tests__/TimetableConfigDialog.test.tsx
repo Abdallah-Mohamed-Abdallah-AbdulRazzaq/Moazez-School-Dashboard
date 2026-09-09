@@ -8,8 +8,6 @@ import type {
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
   createTimetablePeriodDto,
-  deleteTimetablePeriod,
-  updateTimetablePeriodDto,
 } from "@/features/academics/timetable/services/timetablePeriodsService";
 
 vi.mock("next-intl", () => ({

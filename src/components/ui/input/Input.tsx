@@ -99,9 +99,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const [selectedCountryCode, setSelectedCountryCode] = useState(
       detectedPhoneCountry?.code || defaultPhoneCountryCode,
     );
-    const selectedPhoneCountry = phoneCountries.find(
-      (country) => country.code === selectedCountryCode,
-    ) || phoneCountries[0];
+    const selectedPhoneCountry =
+      detectedPhoneCountry ||
+      phoneCountries.find((country) => country.code === selectedCountryCode) ||
+      phoneCountries[0];
     const phoneCountryOptions: SelectOption[] = phoneCountries.map((country) => ({
       value: country.code,
       label: country.name,
@@ -124,12 +125,6 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         </span>
       ),
     }));
-
-    useEffect(() => {
-      if (detectedPhoneCountry) {
-        setSelectedCountryCode(detectedPhoneCountry.code);
-      }
-    }, [detectedPhoneCountry]);
 
     const phoneValidationError =
       phoneValue && !isValidPhoneNumber(phoneValue) ? t("invalid") : undefined;
