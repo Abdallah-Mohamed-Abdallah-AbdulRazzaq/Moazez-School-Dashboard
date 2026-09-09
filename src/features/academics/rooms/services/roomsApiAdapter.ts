@@ -37,7 +37,7 @@ const mapRoom = (dto: RoomApiDto): Room => ({
   name: dto.name || dto.nameEn || dto.nameAr,
   nameAr: dto.nameAr,
   nameEn: dto.nameEn,
-  capacity: dto.capacity ?? 0,
+  capacity: dto.capacity,
   floor: dto.floor ?? undefined,
   building: dto.building ?? undefined,
   isActive: dto.isActive,

@@ -47,7 +47,7 @@ describe("roomsApiAdapter", () => {
         name: "Science Lab",
         nameAr: "معمل العلوم",
         nameEn: "Science Lab",
-        capacity: 0,
+        capacity: null,
         floor: undefined,
         building: "Block A",
         isActive: true,
