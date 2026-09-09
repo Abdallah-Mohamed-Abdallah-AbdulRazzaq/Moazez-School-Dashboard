@@ -43,6 +43,7 @@ function policyFor(
 describe("getPolicyTimetableConfigRequest", () => {
   it.each([
     ["SCHOOL", {}, { scopeType: "TERM" }],
+    ["STAGE", { stageId: "stage-1" }, { scopeType: "STAGE", stageId: "stage-1" }],
     ["GRADE", { gradeId: "grade-1" }, { scopeType: "GRADE", gradeId: "grade-1" }],
     ["SECTION", { sectionId: "section-1" }, { scopeType: "SECTION", sectionId: "section-1" }],
     [
@@ -67,25 +68,12 @@ describe("getPolicyTimetableConfigRequest", () => {
     },
   );
 
-  it("uses the term timetable for a legacy stage policy", () => {
-    expect(
-      getPolicyTimetableConfigRequest(
-        policyFor("STAGE", { stageId: "stage-1" }),
-        "year-1",
-        "term-1",
-      ),
-    ).toEqual({
-      academicYearId: "year-1",
-      termId: "term-1",
-      scopeType: "TERM",
-    });
-  });
 });
 
 describe("getRollCallTimetableConfigRequest", () => {
   it.each([
     ["SCHOOL", {}, { scopeType: "TERM" }],
-    ["STAGE", { stageId: "stage-1" }, { scopeType: "TERM" }],
+    ["STAGE", { stageId: "stage-1" }, { scopeType: "STAGE", stageId: "stage-1" }],
     ["GRADE", { gradeId: "grade-1" }, { scopeType: "GRADE", gradeId: "grade-1" }],
     ["SECTION", { sectionId: "section-1" }, { scopeType: "SECTION", sectionId: "section-1" }],
     [

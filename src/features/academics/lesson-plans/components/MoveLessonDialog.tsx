@@ -31,6 +31,7 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
     () => ({
       academicYearId: props.academicYearId,
       termId: props.termId,
+      stageId: props.stageId,
       gradeId: props.gradeId,
       sectionId: props.sectionId,
       classroomId: props.classroomId,
@@ -43,6 +44,7 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
       props.classroomId,
       props.gradeId,
       props.sectionId,
+      props.stageId,
       props.subjectId,
       props.teacherSubjectAllocationId,
       props.teacherUserId,

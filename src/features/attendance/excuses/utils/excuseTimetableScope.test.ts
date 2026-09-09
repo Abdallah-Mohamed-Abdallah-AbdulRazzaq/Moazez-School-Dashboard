@@ -35,6 +35,12 @@ describe("getExcuseTimetableCandidates", () => {
         scopeType: "GRADE",
         gradeId: "grade-1",
       },
+      {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "STAGE",
+        stageId: "stage-1",
+      },
       { academicYearId: "year-1", termId: "term-1", scopeType: "TERM" },
     ]);
   });
@@ -45,12 +51,20 @@ describe("getExcuseTimetableCandidates", () => {
     ).toEqual([]);
   });
 
-  it("does not guess a timetable for stage scope", () => {
+  it("falls back from a stage timetable to the term timetable", () => {
     expect(
       getExcuseTimetableCandidates("year-1", "term-1", "STAGE", {
         stageId: "stage-1",
       }),
-    ).toEqual([]);
+    ).toEqual([
+      {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "STAGE",
+        stageId: "stage-1",
+      },
+      { academicYearId: "year-1", termId: "term-1", scopeType: "TERM" },
+    ]);
   });
 });
 
@@ -78,12 +92,13 @@ describe("resolveExcuseTimetableConfig", () => {
       .fn()
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(termConfig);
     const candidates = getExcuseTimetableCandidates(
       "year-1",
       "term-1",
       "SECTION",
-      { gradeId: "grade-1", sectionId: "section-1" },
+      { stageId: "stage-1", gradeId: "grade-1", sectionId: "section-1" },
     );
 
     await expect(resolveExcuseTimetableConfig(candidates, load)).resolves.toBe(
@@ -92,6 +107,7 @@ describe("resolveExcuseTimetableConfig", () => {
     expect(load.mock.calls.map(([candidate]) => candidate.scopeType)).toEqual([
       "SECTION",
       "GRADE",
+      "STAGE",
       "TERM",
     ]);
   });

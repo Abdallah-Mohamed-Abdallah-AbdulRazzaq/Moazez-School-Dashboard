@@ -65,6 +65,7 @@ interface LessonPlansBoardProps {
   teacherSubjectAllocationId: string;
   curriculumId: string;
   subjectId: string;
+  stageId: string;
   gradeId: string;
   sectionId: string;
   classroomId: string;
@@ -106,6 +107,7 @@ export default function LessonPlansBoard({
   teacherSubjectAllocationId,
   curriculumId,
   gradeId,
+  stageId,
   sectionId,
   classroomId,
   teacherId,
@@ -151,6 +153,7 @@ export default function LessonPlansBoard({
     () => ({
       academicYearId,
       termId,
+      stageId,
       gradeId,
       sectionId,
       classroomId,
@@ -163,6 +166,7 @@ export default function LessonPlansBoard({
       classroomId,
       gradeId,
       sectionId,
+      stageId,
       subjectId,
       teacherId,
       teacherSubjectAllocationId,
@@ -916,6 +920,7 @@ export default function LessonPlansBoard({
             termEndDate={termEndDate}
             academicYearId={academicYearId}
             termId={termId}
+            stageId={stageId}
             gradeId={gradeId}
             sectionId={sectionId}
             classroomId={classroomId}
@@ -985,6 +990,7 @@ export default function LessonPlansBoard({
           termEndDate={termEndDate}
           academicYearId={academicYearId}
           termId={termId}
+          stageId={stageId}
           gradeId={gradeId}
           sectionId={sectionId}
           classroomId={classroomId}

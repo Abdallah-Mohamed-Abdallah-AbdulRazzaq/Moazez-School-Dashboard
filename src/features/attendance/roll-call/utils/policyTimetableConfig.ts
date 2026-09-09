@@ -5,13 +5,14 @@ import type { AttendanceScopeIds } from "@/features/attendance/shared/attendance
 
 type PolicyTimetableScope = Exclude<
   AttendancePolicy["scopeType"],
-  "SCHOOL" | "STAGE"
+  "SCHOOL"
 >;
 
 const timetableScopeIds: Record<
   PolicyTimetableScope,
   keyof NonNullable<AttendancePolicy["scopeIds"]>
 > = {
+  STAGE: "stageId",
   GRADE: "gradeId",
   SECTION: "sectionId",
   CLASSROOM: "classroomId",
@@ -41,10 +42,6 @@ export function getRollCallTimetableConfigRequest(
   if (scopeType === "SCHOOL") {
     return { ...request, scopeType: "TERM" };
   }
-  if (scopeType === "STAGE") {
-    return { ...request, scopeType: "TERM" };
-  }
-
   const scopeIdKey = timetableScopeIds[scopeType];
   const scopeId = scopeIds[scopeIdKey];
   if (!scopeId) return null;

@@ -18,6 +18,7 @@ vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
 const scope = {
   academicYearId: "year-1",
   termId: "term-1",
+  stageId: "stage-1",
   gradeId: "grade-1",
   sectionId: "section-1",
   classroomId: "classroom-1",
@@ -35,6 +36,7 @@ const config = {
   activeDays: [0, 1, 2, 3, 4],
   scopeType: "classroom",
   scopeKey: "classroom-1",
+  stageId: "stage-1",
   gradeId: "grade-1",
   sectionId: "section-1",
   classroomId: "classroom-1",
@@ -156,6 +158,7 @@ describe("useTimetableConfigForScope", () => {
       academicYearId: "year-1",
       termId: "term-1",
       scopeType: "CLASSROOM",
+      stageId: "stage-1",
       gradeId: "grade-1",
       sectionId: "section-1",
       classroomId: "classroom-1",
@@ -164,6 +167,7 @@ describe("useTimetableConfigForScope", () => {
       academicYearId: "year-1",
       termId: "term-1",
       scopeType: "SECTION",
+      stageId: "stage-1",
       gradeId: "grade-1",
       sectionId: "section-1",
     });
@@ -199,7 +203,7 @@ describe("useTimetableConfigForScope", () => {
 
     await waitFor(() => expect(result.current.isMissing).toBe(true));
     expect(result.current.error).toBeNull();
-    expect(getConfig).toHaveBeenCalledTimes(4);
+    expect(getConfig).toHaveBeenCalledTimes(5);
   });
 
   it("ignores an obsolete config response after the scope changes", async () => {
