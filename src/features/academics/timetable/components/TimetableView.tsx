@@ -269,7 +269,6 @@ export default function TimetableView({
     teachers,
     teacherAllocations,
     rooms,
-    roomDefaults,
     timetableEntries,
     setTimetableEntries,
     allTermEntries,
@@ -737,11 +736,6 @@ export default function TimetableView({
       subjectId,
       subjects,
       rooms,
-      roomDefaults,
-      selectedSectionId:
-        editingSlot?.sectionId || selectedSectionId || undefined,
-      selectedClassroomId:
-        editingSlot?.classroomId || selectedClassroomId || undefined,
       selectedClassroom: editingClassroom,
     });
 
@@ -754,11 +748,6 @@ export default function TimetableView({
       subjectId,
       subjects,
       rooms,
-      roomDefaults,
-      selectedSectionId:
-        editingSlot?.sectionId || selectedSectionId || undefined,
-      selectedClassroomId:
-        editingSlot?.classroomId || selectedClassroomId || undefined,
       selectedClassroom: editingClassroom,
     });
 
@@ -2030,6 +2019,7 @@ export default function TimetableView({
               ? editingClassroom?.nameAr
               : editingClassroom?.nameEn
           }
+          selectedClassroomCapacity={editingClassroom?.capacity}
           locale={locale}
         />
       )}

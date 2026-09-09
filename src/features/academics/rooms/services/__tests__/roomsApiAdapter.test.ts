@@ -56,13 +56,6 @@ describe("roomsApiAdapter", () => {
     expect(mockedApiGet).toHaveBeenCalledWith("/academics/rooms");
   });
 
-  it("returns no room defaults without calling an unsupported endpoint", async () => {
-    await expect(
-      adapter.fetchRoomDefaultAssignments("school-1"),
-    ).resolves.toEqual([]);
-    expect(mockedApiGet).not.toHaveBeenCalled();
-  });
-
   it("creates rooms with only backend-supported payload fields", async () => {
     mockedApiPost.mockResolvedValue({
       id: "room-2",

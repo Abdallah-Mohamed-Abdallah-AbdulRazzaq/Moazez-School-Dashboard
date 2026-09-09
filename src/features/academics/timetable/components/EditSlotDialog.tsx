@@ -13,6 +13,7 @@ import {
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { Room } from "@/features/academics/timetable/types/timetable";
 import { RoomAssignmentSource } from "@/features/academics/rooms/services/roomsService";
+import { evaluateRoomEligibility } from "@/features/academics/rooms/services/roomSchedulingEligibility";
 import { teacherAllocationOptions } from "@/features/academics/timetable/services/timetableSlotEditing";
 
 type ResolvedRoomSuggestion = {
@@ -45,6 +46,7 @@ interface EditSlotDialogProps {
     subjectId?: string
   ) => RoomAssignmentSource | null;
   selectedClassroomName?: string;
+  selectedClassroomCapacity?: number | null;
   selectedSectionId: string;
   selectedClassroomId?: string;
   hasRoomConflict: (roomId: string) => boolean;
@@ -67,6 +69,7 @@ export default function EditSlotDialog({
   getDefaultRoomSuggestion,
   getRoomSource,
   selectedClassroomName,
+  selectedClassroomCapacity,
   selectedSectionId,
   selectedClassroomId,
   hasRoomConflict,
@@ -172,18 +175,33 @@ export default function EditSlotDialog({
 
   const roomOptions = [
     { value: "", label: t("noRoom") },
-    ...rooms.map((room) => ({
-      value: room.id,
-      label: locale === "ar" ? room.nameAr : room.nameEn,
-    })),
+    ...rooms
+      .map((room) => {
+        const eligibility = evaluateRoomEligibility(room, {
+          capacity: selectedClassroomCapacity,
+        });
+        const reason = eligibility.eligible
+          ? undefined
+          : eligibility.reason === "inactive"
+            ? t("roomInactive")
+            : t("roomCapacityInsufficient", {
+                roomCapacity: eligibility.roomCapacity,
+                classroomCapacity: eligibility.classroomCapacity,
+              });
+        const roomName = locale === "ar" ? room.nameAr : room.nameEn;
+
+        return {
+          value: room.id,
+          label: reason ? `${roomName} — ${reason}` : roomName,
+          disabled: !eligibility.eligible,
+          ariaLabel: reason ? `${roomName}: ${reason}` : roomName,
+        };
+      })
+      .sort((left, right) => Number(left.disabled) - Number(right.disabled)),
   ];
 
   const getRoomSourceLabel = (source: RoomAssignmentSource | null) => {
     switch (source) {
-      case "CLASSROOM_DEFAULT":
-        return t("roomSourceClassroomDefault");
-      case "SECTION_DEFAULT":
-        return t("roomSourceSectionDefault");
       case "RECOMMENDED":
         return t("roomSourceRecommended");
       case "MANUAL":

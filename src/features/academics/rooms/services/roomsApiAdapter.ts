@@ -63,10 +63,6 @@ export const createRoomsApiAdapter = (
     return items.map(mapRoom);
   },
 
-  async fetchRoomDefaultAssignments() {
-    return [];
-  },
-
   async createRoom(schoolId, room) {
     void schoolId;
     const payload = toRoomPayload(room);

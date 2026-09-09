@@ -1,12 +1,7 @@
 import { Subject } from "@/features/academics/subjects/services/subjectsService";
-import {
-  resolveDefaultRoomForTarget,
-  resolveDefaultRoomSourceForTarget,
-  type RoomAssignmentSource,
-  type RoomDefaultAssignment,
-} from "@/features/academics/rooms/services/roomsService";
+import { type RoomAssignmentSource } from "@/features/academics/rooms/services/roomsService";
+import { evaluateRoomEligibility } from "@/features/academics/rooms/services/roomSchedulingEligibility";
 import { Room } from "@/features/academics/timetable/types/timetable";
-import { DEFAULT_SCHOOL_ID } from "@/features/academics/constants/school";
 
 interface ClassroomLike {
   id: string;
@@ -19,9 +14,6 @@ interface RoomRecommendationContext {
   subjectId?: string;
   subjects: Subject[];
   rooms: Room[];
-  roomDefaults: RoomDefaultAssignment[];
-  selectedSectionId?: string;
-  selectedClassroomId?: string;
   selectedClassroom?: ClassroomLike;
 }
 
@@ -36,44 +28,17 @@ function subjectNeedsLab(subject?: Subject): boolean {
   );
 }
 
-function resolveExplicitDefaultRoom(context: RoomRecommendationContext) {
-  if (!context.selectedSectionId) {
-    return null;
-  }
-
-  return resolveDefaultRoomForTarget(context.rooms, context.roomDefaults, {
-    schoolId: DEFAULT_SCHOOL_ID,
-    sectionId: context.selectedSectionId,
-    classroomId: context.selectedClassroomId,
-  });
-}
-
-function resolveExplicitDefaultRoomSource(context: RoomRecommendationContext) {
-  if (!context.selectedSectionId) {
-    return null;
-  }
-
-  return resolveDefaultRoomSourceForTarget(context.roomDefaults, {
-    schoolId: DEFAULT_SCHOOL_ID,
-    sectionId: context.selectedSectionId,
-    classroomId: context.selectedClassroomId,
-  });
-}
-
 export function getRecommendedRooms(context: RoomRecommendationContext): Room[] {
   const selectedSubject = context.subjectId
     ? context.subjects.find((item) => item.id === context.subjectId)
     : undefined;
-  const explicitDefaultRoom = resolveExplicitDefaultRoom(context);
   const isLabSubject = subjectNeedsLab(selectedSubject);
 
-  return [...context.rooms].sort((left, right) => {
+  return context.rooms
+    .filter((room) => evaluateRoomEligibility(room, context.selectedClassroom).eligible)
+    .sort((left, right) => {
     const getScore = (room: Room) => {
       let score = 0;
-
-      if (explicitDefaultRoom?.id === room.id) {
-        score += 200;
-      }
 
       if (
         context.selectedClassroom &&
@@ -102,8 +67,8 @@ export function getRecommendedRooms(context: RoomRecommendationContext): Room[] 
       return score;
     };
 
-    return getScore(right) - getScore(left);
-  });
+      return getScore(right) - getScore(left);
+    });
 }
 
 export function getDefaultRoomSuggestion(
@@ -112,16 +77,6 @@ export function getDefaultRoomSuggestion(
   roomId: string | null;
   source: Exclude<RoomAssignmentSource, "MANUAL"> | null;
 } {
-  const explicitDefaultRoom = resolveExplicitDefaultRoom(context);
-  const explicitDefaultSource = resolveExplicitDefaultRoomSource(context);
-
-  if (explicitDefaultRoom && explicitDefaultSource) {
-    return {
-      roomId: explicitDefaultRoom.id,
-      source: explicitDefaultSource,
-    };
-  }
-
   const [preferredRoom] = getRecommendedRooms(context);
   return {
     roomId: preferredRoom?.id || null,
@@ -137,12 +92,6 @@ export function getRoomSource(
 ): RoomAssignmentSource | null {
   if (!context.roomId) {
     return null;
-  }
-
-  const explicitDefaultRoom = resolveExplicitDefaultRoom(context);
-  const explicitDefaultSource = resolveExplicitDefaultRoomSource(context);
-  if (explicitDefaultRoom?.id === context.roomId && explicitDefaultSource) {
-    return explicitDefaultSource;
   }
 
   if (context.subjectId) {

@@ -20,10 +20,7 @@ import {
   type Teacher,
   type TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import {
-  fetchRooms,
-  type RoomDefaultAssignment,
-} from "@/features/academics/rooms/services/roomsService";
+import { fetchRooms } from "@/features/academics/rooms/services/roomsService";
 import {
   bulkSaveEntries,
   checkConflicts,
@@ -307,7 +304,6 @@ export function useTimetableData({
     TeacherAllocation[]
   >([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [roomDefaults, setRoomDefaults] = useState<RoomDefaultAssignment[]>([]);
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>(
     [],
   );
@@ -1028,7 +1024,6 @@ export function useTimetableData({
     teachers,
     teacherAllocations,
     rooms,
-    roomDefaults,
     timetableEntries,
     setTimetableEntries,
     allTermEntries,
