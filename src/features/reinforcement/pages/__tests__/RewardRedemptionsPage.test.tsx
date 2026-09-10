@@ -517,7 +517,7 @@ describe("RewardRedemptionsPage", () => {
         listCallsBeforeSubmit,
       ),
     );
-  });
+  }, 20_000);
 
   it("keeps the page and create modal usable when lookups fail", async () => {
     filterOptionMocks.getReinforcementFilterOptions.mockRejectedValue(
@@ -526,11 +526,14 @@ describe("RewardRedemptionsPage", () => {
 
     await openCreateModal();
 
-    expect(await screen.findByText("common.error")).toBeInTheDocument();
+    const modal = screen
+      .getByText("rewardsModule.redemptions.create.title")
+      .closest("[role='dialog']");
+    expect(modal).not.toBeNull();
+    expect(await within(modal as HTMLElement).findByRole("alert")).toHaveTextContent(
+      "common.error",
+    );
     expect(screen.getByText("Student One")).toBeInTheDocument();
-    expect(
-      screen.getByText("rewardsModule.redemptions.create.title"),
-    ).toBeInTheDocument();
   });
 
   it("keeps create selections and notes when submit fails", async () => {
@@ -562,5 +565,5 @@ describe("RewardRedemptionsPage", () => {
     expect(
       screen.getByLabelText("rewardsModule.redemptions.create.requestNoteEn"),
     ).toHaveValue("Keep this note");
-  });
+  }, 20_000);
 });

@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import GradesTab from "../GradesTab";
 import { fetchStudentGradesSnapshot } from "@/features/grades/overview/services/gradesOverviewService";
@@ -19,6 +20,15 @@ vi.mock("@/features/grades/overview/services/gradesOverviewService", () => ({
 // Mock @mui/x-charts/LineChart to simplify component rendering
 vi.mock("@mui/x-charts/LineChart", () => ({
   LineChart: () => <div data-testid="line-chart" />,
+}));
+
+vi.mock("recharts", () => ({
+  ResponsiveContainer: ({ children }: { children: ReactNode }) => (
+    <div data-testid="responsive-chart">{children}</div>
+  ),
+  AreaChart: () => null,
+  Area: () => null,
+  Tooltip: () => null,
 }));
 
 const mockStudent: Student = {
