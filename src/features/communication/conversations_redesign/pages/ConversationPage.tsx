@@ -199,7 +199,7 @@ export default function ConversationPage({
       <div className="flex min-h-0 flex-1">
         <ConversationSidebar
           canCreateConversation={canCreateConversation}
-          className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:w-[360px] md:shrink-0`}
+          className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:shrink-0`}
           conversations={conversationsState.conversations}
           error={
             conversationsState.conversations.length === 0

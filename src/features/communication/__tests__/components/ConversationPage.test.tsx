@@ -222,6 +222,31 @@ describe("ConversationPage", () => {
     expect(screen.getByTestId("create-dialog")).toBeInTheDocument();
   });
 
+  it("collapses and expands the conversation sidebar", () => {
+    const { container } = render(<ConversationPage />);
+    const sidebar = container.querySelector("aside");
+
+    expect(sidebar).toHaveClass("md:w-[360px]");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse conversations" }),
+    );
+
+    expect(sidebar).toHaveClass("md:w-20");
+    expect(
+      screen.getByRole("button", { name: "Expand conversations" }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand conversations" }),
+    );
+
+    expect(sidebar).toHaveClass("md:w-[360px]");
+    expect(
+      screen.getByRole("button", { name: "Collapse conversations" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
   // ─── Property 2 (partial): Render Count During Initial Mount ─────────────
 
   describe("Property 2 (partial): Does not re-render excessively during initial mount", () => {
