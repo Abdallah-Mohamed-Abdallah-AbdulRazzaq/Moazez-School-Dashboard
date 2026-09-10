@@ -22,7 +22,11 @@ import type {
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import { formatTimetableTimeRange } from "@/features/academics/timetable/services/timetableTimeFormat";
 import { Button } from "@/components/ui";
-import { classifyPublicationReasons, type PublicationReasonCategory } from "@/features/academics/timetable/services/timetablePublicationReasons";
+import {
+  classifyPublicationReasons,
+  publicationReasonPresentation,
+  type PublicationReasonCategory,
+} from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { TimetablePublishReason } from "@/features/academics/timetable/services/timetableApiTypes";
 
 interface ValidationPanelProps {
@@ -80,17 +84,17 @@ export default function ValidationPanel({
   const issueItems = validationSummary.items.filter(
     (item) => item.status !== "complete" || item.issues.length > 0,
   );
-  const fallbackSections = validationSections(
-    validationSummary,
-    copy,
-  );
+  const fallbackSections = validationSections(validationSummary, copy);
   const publicationGroups = classifyPublicationReasons(publicationReasons);
   const fallbackIssueCount = fallbackSections.reduce(
     (total, section) => total + section.issues.length,
     0,
   );
   const hasIssues =
-    issueItems.length > 0 || conflicts.length > 0 || fallbackIssueCount > 0 || publicationGroups.length > 0;
+    issueItems.length > 0 ||
+    conflicts.length > 0 ||
+    fallbackIssueCount > 0 ||
+    publicationGroups.length > 0;
 
   return (
     <Drawer
@@ -211,8 +215,17 @@ export default function ValidationPanel({
               ))}
               {publicationGroups.map((group) => (
                 <section key={group.category} className="space-y-2">
-                  <SectionTitle title={publicationCategoryLabel(group.category, locale)} count={group.reasons.length} />
-                  {group.reasons.map((reason) => <div key={`${reason.code}-${reason.message}`} className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><div className="font-medium">{reason.message}</div>{reason.details && <div className="mt-1 text-xs text-red-700">{Object.values(reason.details).filter((value) => typeof value === "string" || typeof value === "number").join(" · ")}</div>}</div>)}
+                  <SectionTitle
+                    title={publicationCategoryLabel(group.category, locale)}
+                    count={group.reasons.length}
+                  />
+                  {group.reasons.map((reason) => (
+                    <PublicationReasonCard
+                      key={`${reason.code}-${reason.message}`}
+                      reason={reason}
+                      locale={locale}
+                    />
+                  ))}
                 </section>
               ))}
             </>
@@ -220,6 +233,31 @@ export default function ValidationPanel({
         </div>
       </div>
     </Drawer>
+  );
+}
+
+function PublicationReasonCard({
+  reason,
+  locale,
+}: {
+  reason: TimetablePublishReason;
+  locale: string;
+}) {
+  const presentation = publicationReasonPresentation(reason, locale);
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+      <div className="font-medium">{presentation.message}</div>
+      {presentation.details.length > 0 && (
+        <dl className="mt-2 grid gap-1 text-xs text-red-700 sm:grid-cols-2">
+          {presentation.details.map((detail) => (
+            <div key={detail.label} className="flex gap-1">
+              <dt className="font-medium">{detail.label}:</dt>
+              <dd className="break-all">{detail.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
   );
 }
 
@@ -620,10 +658,28 @@ function validationIssueCount(
   );
 }
 
-function publicationCategoryLabel(category: PublicationReasonCategory, locale: string) {
-  const labels = locale === "ar"
-    ? { configuration: "الإعداد والسياق الأكاديمي", curriculum: "متطلبات المنهج", teachers: "تخصيصات المعلمين", weekly_hours: "اكتمال الساعات الأسبوعية", conflicts: "تعارضات الجدول", rooms: "صلاحية الغرف" }
-    : { configuration: "Configuration and academic context", curriculum: "Curriculum requirements", teachers: "Teacher allocations", weekly_hours: "Weekly-hour completeness", conflicts: "Timetable conflicts", rooms: "Room integrity" };
+function publicationCategoryLabel(
+  category: PublicationReasonCategory,
+  locale: string,
+) {
+  const labels =
+    locale === "ar"
+      ? {
+          configuration: "الإعداد والسياق الأكاديمي",
+          curriculum: "متطلبات المنهج",
+          teachers: "تخصيصات المعلمين",
+          weekly_hours: "اكتمال الساعات الأسبوعية",
+          conflicts: "تعارضات الجدول",
+          rooms: "صلاحية الغرف",
+        }
+      : {
+          configuration: "Configuration and academic context",
+          curriculum: "Curriculum requirements",
+          teachers: "Teacher allocations",
+          weekly_hours: "Weekly-hour completeness",
+          conflicts: "Timetable conflicts",
+          rooms: "Room integrity",
+        };
   return labels[category];
 }
 

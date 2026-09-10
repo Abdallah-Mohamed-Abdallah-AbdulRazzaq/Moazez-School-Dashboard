@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TimetableGenerationResponse } from "@/features/academics/timetable/services/timetableApiTypes";
 
 interface UseTimetableGenerationParams {
@@ -18,8 +18,17 @@ export function useTimetableGeneration({
 }: UseTimetableGenerationParams) {
   const requestIdRef = useRef(0);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [result, setResult] = useState<TimetableGenerationResponse | null>(null);
+  const [result, setResult] = useState<TimetableGenerationResponse | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    requestIdRef.current += 1;
+    setIsGenerating(false);
+    setResult(null);
+    setError(null);
+  }, [configId, enabled]);
 
   const generateCurrentConfig = useCallback(async () => {
     if (!enabled || !configId) return null;

@@ -1,35 +1,64 @@
 import { isApiError } from "@/lib/api-error";
 
 export type RoomSchedulingUiError = {
-  code: string;
-  message: string;
-  operation?: string;
-  dependencyCounts: Record<string, number>;
+  code: "academics.rooms.scheduling_dependency";
+  reason?: RoomSchedulingReason;
+  details: Partial<Record<RoomSchedulingDetail, number>>;
   traceId?: string;
 };
 
-export function roomSchedulingUiError(error: unknown): RoomSchedulingUiError | null {
-  if (!isApiError(error)) return null;
+export type RoomSchedulingReason =
+  "room_deactivation" | "capacity_insufficient" | "room_delete";
 
-  const details = error.details;
-  const dependencyCounts =
-    details && typeof details === "object"
-      ? Object.fromEntries(
-          Object.entries(details).filter(
-            ([, value]) => typeof value === "number" && Number.isFinite(value),
-          ),
-        )
+export type RoomSchedulingDetail =
+  | "activeTimetableEntryCount"
+  | "classroomDefaultRoomCount"
+  | "incompatibleClassroomCount"
+  | "proposedRoomCapacity";
+
+const schedulingDetails: RoomSchedulingDetail[] = [
+  "activeTimetableEntryCount",
+  "classroomDefaultRoomCount",
+  "incompatibleClassroomCount",
+  "proposedRoomCapacity",
+];
+
+const schedulingReasons: RoomSchedulingReason[] = [
+  "room_deactivation",
+  "capacity_insufficient",
+  "room_delete",
+];
+
+export function roomSchedulingUiError(
+  error: unknown,
+): RoomSchedulingUiError | null {
+  if (
+    !isApiError(error) ||
+    error.code !== "academics.rooms.scheduling_dependency"
+  ) {
+    return null;
+  }
+
+  const backendDetails: Record<string, unknown> =
+    error.details && typeof error.details === "object"
+      ? (error.details as Record<string, unknown>)
       : {};
-  const operation =
-    details && typeof details === "object" && "operation" in details && typeof details.operation === "string"
-      ? details.operation
-      : undefined;
+  const reason = schedulingReasons.find(
+    (candidate) => backendDetails.reason === candidate,
+  );
+  const details = Object.fromEntries(
+    schedulingDetails.flatMap((detailName) => {
+      const detailValue = backendDetails[detailName];
+      return typeof detailValue === "number" && Number.isFinite(detailValue)
+        ? [[detailName, detailValue]]
+        : [];
+    }),
+  ) as RoomSchedulingUiError["details"];
 
   return {
     code: error.code,
-    message: error.message,
-    operation,
-    dependencyCounts,
+    reason,
+    details,
     traceId: error.traceId,
   };
 }

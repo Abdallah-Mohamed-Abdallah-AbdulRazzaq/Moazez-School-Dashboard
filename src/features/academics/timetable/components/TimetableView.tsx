@@ -139,6 +139,7 @@ export default function TimetableView({
       partialSaveReloadFailed: t("errors.partialSaveReloadFailed"),
       publishFailed: t("errors.publishFailed"),
       unpublishFailed: t("errors.unpublishFailed"),
+      unpublishUnsupportedScope: t("errors.unpublishUnsupportedScope"),
       noConfigSelected: t("errors.noConfigSelected"),
       noFilledSlotsToSave: t("errors.noFilledSlotsToSave"),
       noFilledSlotsToPublish: t("errors.noFilledSlotsToPublish"),

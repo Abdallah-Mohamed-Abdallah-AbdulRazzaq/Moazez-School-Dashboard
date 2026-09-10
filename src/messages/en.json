@@ -6670,9 +6670,21 @@
         "emptyState": "No rooms found. Add your first room.",
         "searchPlaceholder": "Search rooms...",
         "dependency": {
+          "title": "Room scheduling dependency",
+          "description": "This room cannot be changed because the current schedule depends on it.",
           "close": "Close",
-          "operation": "Operation",
-          "traceId": "Trace ID"
+          "traceId": "Trace ID",
+          "reasons": {
+            "room_deactivation": "This room cannot be deactivated while it is assigned to active timetable entries or classrooms.",
+            "capacity_insufficient": "The proposed capacity is too small for classrooms currently using this room.",
+            "room_delete": "This room cannot be deleted while it is assigned to active timetable entries or classrooms."
+          },
+          "details": {
+            "activeTimetableEntryCount": "Active timetable entries",
+            "classroomDefaultRoomCount": "Classrooms using this default room",
+            "incompatibleClassroomCount": "Classrooms exceeding the proposed capacity",
+            "proposedRoomCapacity": "Proposed room capacity"
+          }
         },
         "defaults": {
           "title": "Default Room Assignments",
@@ -6889,6 +6901,7 @@
         "partialSaveReloadFailed": "Some deletions may already have been applied, and the authoritative reload failed.",
         "publishFailed": "Failed to publish timetable.",
         "unpublishFailed": "Failed to unpublish timetable.",
+        "unpublishUnsupportedScope": "Unpublish is unavailable for stage and section timetables.",
         "noConfigSelected": "No timetable config selected.",
         "noFilledSlotsToSave": "No filled timetable slots to save.",
         "noFilledSlotsToPublish": "No filled timetable slots to publish.",

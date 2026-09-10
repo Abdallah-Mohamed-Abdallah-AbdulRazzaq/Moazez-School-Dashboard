@@ -110,6 +110,7 @@ interface UseTimetableDataParams {
     partialSaveReloadFailed: string;
     publishFailed: string;
     unpublishFailed: string;
+    unpublishUnsupportedScope: string;
     noConfigSelected: string;
     noFilledSlotsToSave: string;
     noFilledSlotsToPublish: string;
@@ -949,8 +950,12 @@ export function useTimetableData({
     if (!config) {
       return false;
     }
-    if (configScope(config) === "SECTION") {
-      setApiError("Unpublish is unavailable for section timetables.");
+    const scope = configScope(config);
+    if (scope === "STAGE" || scope === "SECTION") {
+      setApiError(
+        messages?.unpublishUnsupportedScope ??
+          "Unpublish is unavailable for stage and section timetables.",
+      );
       return false;
     }
 

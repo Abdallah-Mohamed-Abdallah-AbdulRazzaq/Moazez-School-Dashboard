@@ -12,7 +12,7 @@ const BASE = "/academics/timetable";
 const listResponseItems = <T>(response: ListResponse<T> | T[]): T[] =>
   Array.isArray(response) ? response : response.items;
 
-const mapBackendPeriodToUi = (
+export const mapBackendPeriodToUi = (
   dto: BackendTimetablePeriodDto,
 ): TimetablePeriod => ({
   id: dto.id,

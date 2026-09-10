@@ -525,6 +525,10 @@ describe("useTimetableData", () => {
     const { result } = renderHook(() => useTimetableData(hookParams));
 
     await waitFor(() => expect(result.current.config?.status).toBe("draft"));
+    mockedGetConfig.mockResolvedValueOnce({
+      ...backendConfig,
+      status: "active",
+    });
 
     await act(async () => {
       await result.current.publishCurrentTimetable(
@@ -597,27 +601,33 @@ describe("useTimetableData", () => {
     expect(result.current.isPublished).toBe(false);
   });
 
-  it("does not unpublish a section config through the grade-scoped endpoint", async () => {
-    mockedGetConfig.mockResolvedValueOnce({
-      ...backendConfig,
-      scopeType: "section",
-      classroomId: null,
-      sectionId: "section-1",
-    });
-    const { result } = renderHook(() => useTimetableData(hookParams));
+  it.each([
+    ["stage", { stageId: "stage-1", sectionId: null }],
+    ["section", { stageId: null, sectionId: "section-1" }],
+  ] as const)(
+    "does not unpublish a %s config through a broader endpoint",
+    async (scopeType, scopeIds) => {
+      mockedGetConfig.mockResolvedValueOnce({
+        ...backendConfig,
+        scopeType,
+        classroomId: null,
+        ...scopeIds,
+      });
+      const { result } = renderHook(() => useTimetableData(hookParams));
 
-    await waitFor(() =>
-      expect(result.current.config?.scopeType).toBe("section"),
-    );
-    await act(async () => {
-      await result.current.unpublishCurrentTimetable();
-    });
+      await waitFor(() =>
+        expect(result.current.config?.scopeType).toBe(scopeType),
+      );
+      await act(async () => {
+        await result.current.unpublishCurrentTimetable();
+      });
 
-    expect(mockedUnpublish).not.toHaveBeenCalled();
-    expect(result.current.apiError).toBe(
-      "Unpublish is unavailable for section timetables.",
-    );
-  });
+      expect(mockedUnpublish).not.toHaveBeenCalled();
+      expect(result.current.apiError).toBe(
+        "Unpublish is unavailable for stage and section timetables.",
+      );
+    },
+  );
 });
 
 function mockAcademicDependencies() {

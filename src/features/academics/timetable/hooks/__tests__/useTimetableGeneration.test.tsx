@@ -108,6 +108,39 @@ describe("useTimetableGeneration", () => {
     expect(result.current.result).toMatchObject({ createdCount: 3 });
     expect(reloadAuthoritativeState).toHaveBeenCalledTimes(1);
   });
+
+  it("invalidates an in-flight generation when the selected config changes", async () => {
+    const pendingGeneration = deferred<TimetableGenerationResponse>();
+    const generate = vi.fn().mockReturnValue(pendingGeneration.promise);
+    const reloadAuthoritativeState = vi.fn().mockResolvedValue(undefined);
+    let configId = "config-1";
+    const { result, rerender } = renderHook(() =>
+      useTimetableGeneration({
+        configId,
+        enabled: true,
+        generate,
+        reloadAuthoritativeState,
+      }),
+    );
+
+    act(() => {
+      void result.current.generateCurrentConfig();
+    });
+    expect(result.current.isGenerating).toBe(true);
+
+    configId = "config-2";
+    rerender();
+    expect(result.current.isGenerating).toBe(false);
+    expect(result.current.result).toBeNull();
+
+    await act(async () => {
+      pendingGeneration.resolve(generationResponse);
+      await pendingGeneration.promise;
+    });
+
+    expect(result.current.result).toBeNull();
+    expect(reloadAuthoritativeState).not.toHaveBeenCalled();
+  });
 });
 
 function deferred<T>() {
