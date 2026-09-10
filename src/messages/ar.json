@@ -6421,9 +6421,21 @@
         "emptyState": "لا توجد غرف. أضف غرفتك الأولى.",
         "searchPlaceholder": "بحث عن غرف...",
         "dependency": {
+          "title": "اعتماد الغرفة في الجدول",
+          "description": "لا يمكن تعديل هذه الغرفة لأن الجدول الحالي يعتمد عليها.",
           "close": "إغلاق",
-          "operation": "العملية",
-          "traceId": "معرف التتبع"
+          "traceId": "معرف التتبع",
+          "reasons": {
+            "room_deactivation": "لا يمكن تعطيل الغرفة أثناء إسنادها إلى حصص نشطة أو فصول دراسية.",
+            "capacity_insufficient": "السعة المقترحة أقل من سعة الفصول التي تستخدم هذه الغرفة.",
+            "room_delete": "لا يمكن حذف الغرفة أثناء إسنادها إلى حصص نشطة أو فصول دراسية."
+          },
+          "details": {
+            "activeTimetableEntryCount": "الحصص النشطة في الجدول",
+            "classroomDefaultRoomCount": "الفصول التي تستخدمها كغرفة افتراضية",
+            "incompatibleClassroomCount": "الفصول التي تتجاوز السعة المقترحة",
+            "proposedRoomCapacity": "سعة الغرفة المقترحة"
+          }
         },
         "defaults": {
           "title": "إعدادات الغرف الافتراضية",
@@ -6640,6 +6652,7 @@
         "partialSaveReloadFailed": "ربما تم تطبيق بعض عمليات الحذف بالفعل، وتعذر إعادة تحميل البيانات المعتمدة.",
         "publishFailed": "فشل نشر الجدول.",
         "unpublishFailed": "فشل إلغاء نشر الجدول.",
+        "unpublishUnsupportedScope": "إلغاء النشر غير متاح لجداول المرحلة أو الشعبة.",
         "noConfigSelected": "لم يتم اختيار إعدادات جدول.",
         "noFilledSlotsToSave": "لا توجد خانات جدول ممتلئة للحفظ.",
         "noFilledSlotsToPublish": "لا توجد خانات جدول ممتلئة للنشر.",

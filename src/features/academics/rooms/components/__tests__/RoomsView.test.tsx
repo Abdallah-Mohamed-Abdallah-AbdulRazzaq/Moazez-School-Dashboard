@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import RoomsView from "@/features/academics/rooms/components/RoomsView";
 import type { Room } from "@/features/academics/timetable/types/timetable";
+import { ApiError } from "@/lib/api-error";
 
 const roomsServiceMocks = vi.hoisted(() => ({
   createRoom: vi.fn(),
@@ -181,9 +182,7 @@ describe("RoomsView", () => {
 
     expect(await screen.findByText("no_rooms.title")).toBeInTheDocument();
     expect(screen.getByText("no_rooms.description")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "no_rooms.cta" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "no_rooms.cta" })).toBeEnabled();
   });
 
   it("shows load errors and allows retry", async () => {
@@ -192,7 +191,9 @@ describe("RoomsView", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
     roomsServiceMocks.fetchRooms
-      .mockRejectedValueOnce({ error: { message: "Localized backend failure" } })
+      .mockRejectedValueOnce({
+        error: { message: "Localized backend failure" },
+      })
       .mockResolvedValueOnce(rooms);
     try {
       renderRoomsView();
@@ -230,5 +231,50 @@ describe("RoomsView", () => {
     await waitFor(() => {
       expect(roomsServiceMocks.deleteRoom).toHaveBeenCalledWith("room-active");
     });
+  });
+
+  it("keeps delete confirmation open and shows scheduling dependencies", async () => {
+    const user = userEvent.setup();
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    roomsServiceMocks.deleteRoom.mockRejectedValue(
+      new ApiError(
+        "Room is required by current scheduling state",
+        409,
+        "academics.rooms.scheduling_dependency",
+        undefined,
+        {
+          reason: "room_delete",
+          roomId: "room-active",
+          activeTimetableEntryCount: 3,
+          classroomDefaultRoomCount: 1,
+        },
+      ),
+    );
+
+    try {
+      renderRoomsView();
+      const scienceRow = (await screen.findByText("Science Lab")).closest("tr");
+      await user.click(
+        within(scienceRow as HTMLTableRowElement).getByRole("button", {
+          name: "delete",
+        }),
+      );
+      await user.click(
+        screen.getAllByRole("button", { name: "delete" }).at(-1)!,
+      );
+
+      expect(
+        await screen.findByText("reasons.room_delete"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("details.activeTimetableEntryCount"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("3")).toBeInTheDocument();
+      expect(screen.getAllByRole("dialog")).toHaveLength(2);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });
