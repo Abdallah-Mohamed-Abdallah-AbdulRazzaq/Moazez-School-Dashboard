@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Lock,
   Pin,
   Plus,
@@ -20,7 +24,6 @@ import {
   Menu,
 } from "lucide-react";
 import { useLocale } from "next-intl";
-import { Button } from "@/components/ui/button";
 import Input from "@/components/ui/input/Input";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
@@ -43,6 +46,7 @@ export type ConversationRedesignFilter =
   | "closed";
 
 export interface ConversationSidebarProps {
+  desktopWidth: number;
   conversations: ConversationListItemModel[];
   error?: string | null;
   selectedConversationId?: string | null;
@@ -221,6 +225,7 @@ function ConversationTypeBadge({
 export default function ConversationSidebar({
   canCreateConversation = true,
   className = "",
+  desktopWidth,
   conversations,
   error = null,
   filter,
@@ -240,8 +245,6 @@ export default function ConversationSidebar({
 }: ConversationSidebarProps) {
   const locale = useLocale();
   const labels = labelsForLocale(locale);
-  const isRtl = locale === "ar";
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
   const filterTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -281,40 +284,21 @@ export default function ConversationSidebar({
 
   const pinnedConversations = visibleConversations.filter((c) => c.isPinned);
   const unpinnedConversations = visibleConversations.filter((c) => !c.isPinned);
-  const sidebarToggleLabel = isSidebarExpanded
-    ? labels.collapseConversations
-    : labels.expandConversations;
-  const SidebarToggleIcon = isSidebarExpanded
-    ? isRtl
-      ? ChevronRight
-      : ChevronLeft
-    : isRtl
-      ? ChevronLeft
-      : ChevronRight;
-  const handleSidebarToggle = () => {
-    if (isSidebarExpanded) setIsFilterMenuOpen(false);
-    setIsSidebarExpanded((current) => !current);
-  };
 
   return (
     <aside
       aria-label={labels.conversations}
-      className={`flex h-full min-h-0 flex-col border-e border-slate-200 bg-white transition-[width] duration-200 motion-reduce:transition-none ${
-        isSidebarExpanded ? "md:w-[360px]" : "md:w-20"
-      } ${className}`}
+      style={
+        {
+          "--conversation-sidebar-width": `${desktopWidth}px`,
+        } as CSSProperties
+      }
+      className={`flex h-full min-h-0 flex-col border-e border-slate-200 bg-white md:w-[var(--conversation-sidebar-width)] ${className}`}
     >
       {/* ── Header ── */}
-      <div
-        className={`shrink-0 border-b border-slate-200 pb-3 pt-4 ${
-          isSidebarExpanded ? "px-4" : "px-4 md:px-3"
-        }`}
-      >
+      <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
         <div className="flex items-center justify-between gap-3">
-          <div
-            className={`items-center gap-2 ${
-              isSidebarExpanded ? "flex" : "flex md:hidden"
-            }`}
-          >
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("toggle-sidebar"))}
@@ -337,64 +321,35 @@ export default function ConversationSidebar({
               </p>
             </div>
           </div>
-          <div
-            className={`flex items-center gap-1.5 ${
-              isSidebarExpanded ? "" : "md:w-full md:justify-center"
-            }`}
-          >
-            <Button
+          <div className="flex items-center gap-1.5">
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleSidebarToggle}
-              aria-expanded={isSidebarExpanded}
-              aria-label={sidebarToggleLabel}
-              className="hidden h-8 w-8 cursor-pointer !p-0 text-slate-500 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-primary md:inline-flex"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              aria-busy={isRefreshing}
+              aria-label={labels.refreshConversations}
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-wait disabled:opacity-60"
             >
-              <SidebarToggleIcon
-                className="h-5 w-5"
+              <RefreshCw
+                className={`h-4 w-4 ${isRefreshing ? "motion-safe:animate-spin" : ""}`}
                 aria-hidden="true"
               />
-              <span className="sr-only">{sidebarToggleLabel}</span>
-            </Button>
-            <div
-              className={`items-center gap-1.5 ${
-                isSidebarExpanded ? "flex" : "flex md:hidden"
-              }`}
-            >
+            </button>
+            {canCreateConversation ? (
               <button
                 type="button"
-                onClick={onRefresh}
-                disabled={isRefreshing}
-                aria-busy={isRefreshing}
-                aria-label={labels.refreshConversations}
-                className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-wait disabled:opacity-60"
+                onClick={onCreateConversation}
+                aria-label={labels.createConversation}
+                className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-primary text-white shadow-md shadow-primary/25 transition-all duration-200 hover:bg-primary/90 hover:shadow-primary/40"
               >
-                <RefreshCw
-                  className={`h-4 w-4 ${isRefreshing ? "motion-safe:animate-spin" : ""}`}
-                  aria-hidden="true"
-                />
+                <Plus className="h-4 w-4" />
               </button>
-              {canCreateConversation ? (
-                <button
-                  type="button"
-                  onClick={onCreateConversation}
-                  aria-label={labels.createConversation}
-                  className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-primary text-white shadow-md shadow-primary/25 transition-all duration-200 hover:bg-primary/90 hover:shadow-primary/40"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
+            ) : null}
           </div>
         </div>
 
         {/* Search */}
-        <div
-          className={`relative mt-4 ${
-            isSidebarExpanded ? "" : "md:hidden"
-          }`}
-        >
+        <div className="relative mt-4">
           <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
           <Input
             value={search}
@@ -416,11 +371,7 @@ export default function ConversationSidebar({
           )}
         </div>
 
-        <div
-          className={`mt-3 items-center gap-1.5 ${
-            isSidebarExpanded ? "flex" : "flex md:hidden"
-          }`}
-        >
+        <div className="mt-3 flex items-center gap-1.5">
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
             {primaryFilters.map((item) => (
               <button
@@ -515,21 +466,13 @@ export default function ConversationSidebar({
       </div>
 
       {/* ── List ── */}
-      <div
-        className={`min-h-0 flex-1 overflow-y-auto ${
-          isSidebarExpanded ? "" : "md:hidden"
-        }`}
-        onScroll={(event) => {
-          if (isLoading || isRefreshing || !hasMore || !loadMore) return;
-          const target = event.currentTarget;
-          if (
-            target.scrollHeight - target.scrollTop - target.clientHeight <
-            100
-          ) {
-            loadMore();
-          }
-        }}
-      >
+      <div className="min-h-0 flex-1 overflow-y-auto" onScroll={(event) => {
+        if (isLoading || isRefreshing || !hasMore || !loadMore) return;
+        const target = event.currentTarget;
+        if (target.scrollHeight - target.scrollTop - target.clientHeight < 100) {
+          loadMore();
+        }
+      }}>
         {isLoading ? (
           <div
             role="status"

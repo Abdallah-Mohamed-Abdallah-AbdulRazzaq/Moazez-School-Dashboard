@@ -3,8 +3,7 @@ export type ConversationRedesignLocale = "en" | "ar";
 export const conversationRedesignLabels = {
   en: {
     conversations: "Conversations",
-    collapseConversations: "Collapse conversations",
-    expandConversations: "Expand conversations",
+    resizeConversationSidebar: "Resize conversation sidebar",
     manageSchoolCommunication: "Manage school communication",
     searchConversations: "Search conversations...",
     clearSearch: "Clear search",
@@ -323,8 +322,7 @@ export const conversationRedesignLabels = {
   },
   ar: {
     conversations: "المحادثات",
-    collapseConversations: "طي المحادثات",
-    expandConversations: "توسيع المحادثات",
+    resizeConversationSidebar: "تغيير عرض الشريط الجانبي للمحادثات",
     manageSchoolCommunication: "إدارة تواصل المدرسة",
     searchConversations: "ابحث في المحادثات...",
     clearSearch: "مسح البحث",

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
+import PanelResizeHandle from "@/components/ui/panel/PanelResizeHandle";
 import ConversationSidebar, {
   type ConversationRedesignFilter,
   statusForRedesignFilter,
@@ -23,6 +24,7 @@ import type {
 import CreateConversationDialog from "@/features/communication/components/conversations/CreateConversationDialog";
 import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useResizablePanels } from "@/hooks/useResizablePanels";
 
 function filterConversations(
   conversations: ConversationListItemModel[],
@@ -59,7 +61,26 @@ export default function ConversationPage({
   initialConversationId = null,
 }: ConversationPageProps) {
   const locale = useLocale();
+  const isRTL = locale === "ar";
   const labels = labelsForLocale(locale);
+  const {
+    state: panelState,
+    containerRef,
+    handleResizeStart,
+    resizeLeftBy,
+  } = useResizablePanels({
+    defaultLeftWidth: 360,
+    defaultRightWidth: 0,
+    constraints: {
+      leftMin: 280,
+      leftMax: 640,
+      rightMin: 0,
+      rightMax: 0,
+      centerMin: 480,
+    },
+    storageKey: "conversation-sidebar-panel-widths",
+    isRTL,
+  });
   const conversationsState = useConversations();
   const realtimeState = useCommunicationSocket();
   const { hasPermission } = usePermissions();
@@ -196,10 +217,11 @@ export default function ConversationPage({
         }}
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div ref={containerRef} className="flex min-h-0 flex-1">
         <ConversationSidebar
           canCreateConversation={canCreateConversation}
           className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:shrink-0`}
+          desktopWidth={panelState.leftWidth}
           conversations={conversationsState.conversations}
           error={
             conversationsState.conversations.length === 0
@@ -226,6 +248,15 @@ export default function ConversationPage({
           loadMore={conversationsState.loadMore}
           hasMore={conversationsState.hasMore}
         />
+
+        <div className="hidden md:flex">
+          <PanelResizeHandle
+            ariaLabel={labels.resizeConversationSidebar}
+            isRTL={isRTL}
+            onResizeStart={() => handleResizeStart("left")}
+            onResizeBy={resizeLeftBy}
+          />
+        </div>
 
         <section
           className={`${showMobileThread ? "flex" : "hidden"} min-w-0 flex-1 flex-col md:flex`}

@@ -143,6 +143,7 @@ function createConversationListItem(
 describe("ConversationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.removeItem("conversation-sidebar-panel-widths");
     hasPermissionMock.mockReturnValue(true);
     mockConversationsState.conversations = [];
     mockConversationsState.total = 0;
@@ -222,29 +223,22 @@ describe("ConversationPage", () => {
     expect(screen.getByTestId("create-dialog")).toBeInTheDocument();
   });
 
-  it("collapses and expands the conversation sidebar", () => {
+  it("resizes the conversation sidebar from the keyboard", () => {
     const { container } = render(<ConversationPage />);
     const sidebar = container.querySelector("aside");
 
-    expect(sidebar).toHaveClass("md:w-[360px]");
+    expect(
+      sidebar?.style.getPropertyValue("--conversation-sidebar-width"),
+    ).toBe("360px");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Collapse conversations" }),
+    fireEvent.keyDown(
+      screen.getByRole("separator", { name: "Resize conversation sidebar" }),
+      { key: "ArrowRight" },
     );
 
-    expect(sidebar).toHaveClass("md:w-20");
     expect(
-      screen.getByRole("button", { name: "Expand conversations" }),
-    ).toHaveAttribute("aria-expanded", "false");
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Expand conversations" }),
-    );
-
-    expect(sidebar).toHaveClass("md:w-[360px]");
-    expect(
-      screen.getByRole("button", { name: "Collapse conversations" }),
-    ).toHaveAttribute("aria-expanded", "true");
+      sidebar?.style.getPropertyValue("--conversation-sidebar-width"),
+    ).toBe("376px");
   });
 
   // ─── Property 2 (partial): Render Count During Initial Mount ─────────────
