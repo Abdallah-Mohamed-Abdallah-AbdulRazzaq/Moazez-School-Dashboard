@@ -141,7 +141,10 @@ export function CommunicationRealtimeProvider({
       return;
     }
 
+    let hasConnected = false;
     nextSocket.on("connect", () => {
+      const isReconnect = hasConnected;
+      hasConnected = true;
       setIsConnected(true);
       setConnectionError(null);
       joinedConversationIdsRef.current.forEach((_, conversationId) => {
@@ -149,6 +152,9 @@ export function CommunicationRealtimeProvider({
           conversationId,
         });
       });
+      if (isReconnect) {
+        setResyncVersion((version) => version + 1);
+      }
     });
 
     nextSocket.on("disconnect", () => {
@@ -163,17 +169,6 @@ export function CommunicationRealtimeProvider({
 
     nextSocket.on("exception", (payload) => {
       setConnectionError(socketExceptionMessage(payload));
-    });
-
-    nextSocket.io.on("reconnect", () => {
-      setIsConnected(true);
-      setConnectionError(null);
-      joinedConversationIdsRef.current.forEach((_, conversationId) => {
-        nextSocket.emit(COMMUNICATION_SOCKET_EVENTS.conversationJoin, {
-          conversationId,
-        });
-      });
-      setResyncVersion((version) => version + 1);
     });
 
     socketRef.current = nextSocket;

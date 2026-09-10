@@ -341,6 +341,7 @@ export function useConversations() {
   const { socket, resyncVersion } = useCommunicationSocket();
   const { user } = useAuth();
   const mountedRef = useRef(false);
+  const hasCompletedInitialLoadRef = useRef(false);
   const userIdRef = useRef(user?.id);
   useEffect(() => {
     userIdRef.current = user?.id;
@@ -364,8 +365,14 @@ export function useConversations() {
   }, [filters.search, filters.status, filters.type]);
 
   const refresh = useCallback(async (pageToFetch: number = 1) => {
-    if (pageToFetch === 1) {
-      setIsLoading(true);
+    const isFirstPage = pageToFetch === 1;
+    const isInitialLoad = isFirstPage && !hasCompletedInitialLoadRef.current;
+    if (isFirstPage) {
+      if (isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       setPage(1);
       setHasMore(true);
     } else {
@@ -419,13 +426,14 @@ export function useConversations() {
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));
-      if (pageToFetch === 1) {
+      if (isInitialLoad) {
         setConversations([]);
         setTotal(0);
       }
-      setHasMore(false);
+      if (isInitialLoad || !isFirstPage) setHasMore(false);
     } finally {
       if (mountedRef.current) {
+        if (isFirstPage) hasCompletedInitialLoadRef.current = true;
         setIsLoading(false);
         setIsRefreshing(false);
       }
@@ -457,7 +465,7 @@ export function useConversations() {
 
   useEffect(() => {
     if (resyncVersion > 0) {
-    void Promise.resolve().then(() => refresh());
+      void Promise.resolve().then(() => refresh());
     }
   }, [refresh, resyncVersion]);
 
