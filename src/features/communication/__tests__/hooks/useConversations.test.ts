@@ -27,6 +27,7 @@ vi.mock("@/features/communication/api/communication.service", () => ({
 }));
 
 let mockSocket: MockSocket;
+let mockResyncVersion: number;
 const mockJoinConversation = vi.fn();
 
 vi.mock("@/features/communication/hooks/useCommunicationSocket", () => ({
@@ -34,7 +35,7 @@ vi.mock("@/features/communication/hooks/useCommunicationSocket", () => ({
     socket: mockSocket,
     isConnected: mockSocket.connected,
     connectionError: null,
-    resyncVersion: 0,
+    resyncVersion: mockResyncVersion,
     joinConversation: mockJoinConversation,
     leaveConversation: vi.fn(),
     startTyping: vi.fn(),
@@ -63,6 +64,7 @@ describe("useConversations", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     mockSocket = createMockSocket();
+    mockResyncVersion = 0;
 
     // Default: return empty conversation list
     mockGetConversations.mockResolvedValue({
@@ -285,6 +287,47 @@ describe("useConversations", () => {
       });
 
       expect(mockGetConversations).toHaveBeenCalledWith({ limit: 20, page: 1 });
+    });
+
+    it("keeps loaded conversations visible when reconnect resync fails", async () => {
+      const conversation = createConversation({ id: "conv-resync" });
+      mockGetConversations.mockResolvedValueOnce({
+        data: { items: [conversation], total: 1 },
+      });
+
+      const useConversations = await importHook();
+      const { result, rerender } = renderHook(() => useConversations());
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      let rejectResync!: (reason?: unknown) => void;
+      mockGetConversations.mockImplementationOnce(
+        () =>
+          new Promise((_, reject) => {
+            rejectResync = reject;
+          }),
+      );
+      mockResyncVersion = 1;
+      rerender();
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isRefreshing).toBe(true);
+      expect(result.current.conversations).toEqual([
+        expect.objectContaining({ id: "conv-resync" }),
+      ]);
+
+      await act(async () => {
+        rejectResync(new Error("Reconnect resync failed"));
+      });
+
+      expect(result.current.conversations).toEqual([
+        expect.objectContaining({ id: "conv-resync" }),
+      ]);
+      expect(result.current.error).toBe("Reconnect resync failed");
     });
   });
 

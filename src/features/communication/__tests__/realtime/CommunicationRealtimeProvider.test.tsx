@@ -6,6 +6,7 @@ import { useCommunicationSocket } from "@/features/communication/hooks/useCommun
 const tokenHarness = vi.hoisted(() => ({ value: "token-1" }));
 const socketHarness = vi.hoisted(() => {
   const listeners = new Map<string, (payload?: unknown) => void>();
+  const managerListeners = new Map<string, () => void>();
   const socket = {
     auth: { token: "token-1" },
     connected: true,
@@ -15,7 +16,9 @@ const socketHarness = vi.hoisted(() => {
     id: "socket-1",
     io: {
       engine: { transport: { name: "websocket" } },
-      on: vi.fn(),
+      on: vi.fn((event: string, listener: () => void) => {
+        managerListeners.set(event, listener);
+      }),
       removeAllListeners: vi.fn(),
     },
     on: vi.fn((event: string, listener: (payload?: unknown) => void) => {
@@ -23,7 +26,7 @@ const socketHarness = vi.hoisted(() => {
     }),
     removeAllListeners: vi.fn(),
   };
-  return { listeners, socket };
+  return { listeners, managerListeners, socket };
 });
 
 vi.mock("@/hooks/use-auth", () => ({
@@ -44,12 +47,21 @@ vi.mock("@/features/communication/realtime/communication-socket", () => ({
 }));
 
 function RealtimeErrorProbe() {
-  const { connectionError, retryConnection } = useCommunicationSocket();
+  const {
+    connectionError,
+    joinConversation,
+    resyncVersion,
+    retryConnection,
+  } = useCommunicationSocket();
   return (
     <div>
       <span>{connectionError ?? "connected"}</span>
+      <span>Resync {resyncVersion}</span>
       <button type="button" onClick={retryConnection}>
         Retry
+      </button>
+      <button type="button" onClick={() => joinConversation("conversation-1")}>
+        Join conversation
       </button>
     </div>
   );
@@ -63,6 +75,7 @@ describe("CommunicationRealtimeProvider", () => {
     socketHarness.socket.auth = { token: "token-1" };
     socketHarness.socket.connected = true;
     socketHarness.listeners.clear();
+    socketHarness.managerListeners.clear();
   });
 
   afterEach(() => {
@@ -89,6 +102,44 @@ describe("CommunicationRealtimeProvider", () => {
     expect(socketHarness.socket.auth).toEqual({ token: "token-2" });
     expect(socketHarness.socket.disconnect).toHaveBeenCalledOnce();
     expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
+    act(() => {
+      unmount();
+      vi.runAllTicks();
+    });
+  });
+
+  it("rejoins rooms once and requests one resync after reconnecting", () => {
+    const { unmount } = render(
+      <CommunicationRealtimeProvider>
+        <RealtimeErrorProbe />
+      </CommunicationRealtimeProvider>,
+    );
+    act(() => {
+      vi.runAllTicks();
+      socketHarness.listeners.get("connect")?.();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Join conversation" }));
+
+    socketHarness.socket.connected = false;
+    act(() => {
+      socketHarness.listeners.get("disconnect")?.();
+    });
+    socketHarness.socket.emit.mockClear();
+
+    socketHarness.socket.connected = true;
+    act(() => {
+      socketHarness.listeners.get("connect")?.();
+    });
+    act(() => {
+      socketHarness.managerListeners.get("reconnect")?.();
+    });
+
+    expect(socketHarness.socket.emit).toHaveBeenCalledOnce();
+    expect(socketHarness.socket.emit).toHaveBeenCalledWith(
+      "communication.chat.conversation.join",
+      { conversationId: "conversation-1" },
+    );
+    expect(screen.getByText("Resync 1")).toBeInTheDocument();
     act(() => {
       unmount();
       vi.runAllTicks();

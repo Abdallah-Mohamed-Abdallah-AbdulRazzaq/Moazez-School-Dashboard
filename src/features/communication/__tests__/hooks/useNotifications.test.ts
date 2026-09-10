@@ -118,6 +118,24 @@ describe("useNotifications", () => {
     expect(getNotificationsMock).toHaveBeenCalledTimes(1);
   });
 
+  it("does not retry forbidden background notifications after reconnect", async () => {
+    getNotificationsMock.mockRejectedValue(
+      new ApiError("Forbidden", 403, "FORBIDDEN"),
+    );
+    const { rerender } = renderHook(() =>
+      useNotifications({ isBackground: true }),
+    );
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
+    await act(async () => undefined);
+
+    resyncVersion = 1;
+    rerender();
+    await act(async () => undefined);
+
+    expect(getNotificationsMock).toHaveBeenCalledTimes(1);
+  });
+
   it("does not send a limit parameter by default", async () => {
     renderHook(() => useNotifications());
 
