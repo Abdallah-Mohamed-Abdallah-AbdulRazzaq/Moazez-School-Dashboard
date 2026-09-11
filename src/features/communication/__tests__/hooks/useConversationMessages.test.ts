@@ -40,6 +40,7 @@ vi.mock("@/hooks/use-auth", () => authMock);
 // ─── Import Hook Under Test ─────────────────────────────────────────────────
 
 import { useConversationMessages } from "@/features/communication/hooks/useConversationMessages";
+import { ApiError } from "@/lib/api-error";
 
 // ─── Test Setup ─────────────────────────────────────────────────────────────
 
@@ -144,6 +145,21 @@ describe("useConversationMessages", () => {
       expect(result.current.messages).toHaveLength(2);
       expect(result.current.messages[0].body).toBe("First message");
       expect(result.current.messages[1].body).toBe("Second message");
+    });
+
+    it("exposes an error when the message list itself fails to load", async () => {
+      apiMocks.getMessages.mockRejectedValue(new Error("Load failed"));
+
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBe("Load failed");
+      expect(result.current.messages).toEqual([]);
     });
 
     it("applies read counts from the backend paginated summary", async () => {
@@ -771,7 +787,68 @@ describe("useConversationMessages", () => {
       );
     });
 
-    it("marks message as failed when sendMessage API throws", async () => {
+    it("restores messages without setting a list error when deletion fails", async () => {
+      const existingMessage = createMessage({
+        id: "msg-1",
+        conversationId: TEST_CONVERSATION_ID,
+        body: "Keep this",
+      });
+      apiMocks.getMessages.mockResolvedValue({
+        data: { items: [existingMessage], total: 1 },
+      });
+      apiMocks.deleteMessage.mockRejectedValue(new Error("Delete failed"));
+
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await act(async () => {
+        await expect(result.current.remove("msg-1")).rejects.toThrow(
+          "Delete failed",
+        );
+      });
+
+      expect(result.current.error).toBeNull();
+      expect(result.current.messages[0]).toEqual(
+        expect.objectContaining({ body: "Keep this", status: "sent" }),
+      );
+    });
+
+    it("keeps attachment policy rejection out of the message-list error state", async () => {
+      const attachmentFile = new File(["content"], "policy.pdf", {
+        type: "application/pdf",
+      });
+      apiMocks.sendMessage.mockRejectedValue(
+        new ApiError(
+          "Attachment file exceeds the communication policy limit",
+          422,
+          "communication.attachment.invalid_file",
+          undefined,
+          { maxAttachmentSizeMb: 1 },
+        ),
+      );
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await expect(
+          result.current.sendMedia({ type: "file", files: [attachmentFile] }),
+        ).rejects.toMatchObject({
+          code: "communication.attachment.invalid_file",
+        });
+      });
+
+      expect(result.current.error).toBeNull();
+      expect(result.current.messages.at(-1)?.deliveryStatus).toBe("failed");
+    });
+
+    it("marks message as failed without setting a list error when sendMessage throws", async () => {
       apiMocks.sendMessage.mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() =>
@@ -792,7 +869,33 @@ describe("useConversationMessages", () => {
 
       expect(result.current.messages).toHaveLength(1);
       expect(result.current.messages[0].deliveryStatus).toBe("failed");
-      expect(result.current.error).toBe("Network error");
+      expect(result.current.error).toBeNull();
+    });
+
+    it("restores messages without setting a list error when editing fails", async () => {
+      const existingMessage = createMessage({
+        id: "msg-1",
+        conversationId: TEST_CONVERSATION_ID,
+        body: "Original",
+      });
+      apiMocks.getMessages.mockResolvedValue({
+        data: { items: [existingMessage], total: 1 },
+      });
+      apiMocks.updateMessage.mockRejectedValue(new Error("Edit failed"));
+
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await act(async () => {
+        await expect(result.current.edit("msg-1", "Changed")).rejects.toThrow(
+          "Edit failed",
+        );
+      });
+
+      expect(result.current.error).toBeNull();
+      expect(result.current.messages[0].body).toBe("Original");
     });
 
     it("always sorts pending messages after non-pending messages even if pending message has an older client timestamp", async () => {

@@ -82,11 +82,25 @@ vi.mock("@/hooks/usePermissions", () => ({
 vi.mock(
   "@/features/communication/conversations_redesign/components/ConversationDetail",
   () => ({
-    default: ({ conversationId, onBack }: { conversationId: string; onBack: () => void }) => (
+    default: ({
+      conversationId,
+      onBack,
+      onConversationRead,
+    }: {
+      conversationId: string;
+      onBack: () => void;
+      onConversationRead?: (conversationId: string) => void;
+    }) => (
       <div data-testid="conversation-detail">
         <span data-testid="detail-conversation-id">{conversationId}</span>
         <button data-testid="back-button" onClick={onBack}>
           Back
+        </button>
+        <button
+          data-testid="confirm-read-button"
+          onClick={() => onConversationRead?.(conversationId)}
+        >
+          Confirm read
         </button>
       </div>
     ),
@@ -468,6 +482,12 @@ describe("ConversationPage", () => {
 
       const { container } = render(
         <ConversationPage initialConversationId="conv-initial" />,
+      );
+
+      expect(mockConversationsState.markAsRead).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId("confirm-read-button"));
+      expect(mockConversationsState.markAsRead).toHaveBeenCalledWith(
+        "conv-initial",
       );
 
       // Sidebar should be hidden on mobile (showMobileThread starts as true)

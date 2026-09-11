@@ -100,16 +100,6 @@ export default function ConversationPage({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
-  useEffect(() => {
-    conversationsState.setFilters({
-      search: "",
-      status: "all",
-      type: "all",
-    });
-    // The hook owns its initial fetch; this aligns it with the redesign default.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const selectedTypeFilter = conversationsState.filters.type ?? "all";
   const typeFilter = selectedTypeFilter === "all" ? "" : selectedTypeFilter;
 
@@ -129,10 +119,11 @@ export default function ConversationPage({
     if (!initialConversationId) return;
     if (initialConversationIdRef.current === initialConversationId) return;
     initialConversationIdRef.current = initialConversationId;
-    setSelectedConversationId(initialConversationId);
-    setShowMobileThread(true);
-    conversationsState.markAsRead(initialConversationId);
-  }, [initialConversationId, conversationsState]);
+    void Promise.resolve().then(() => {
+      setSelectedConversationId(initialConversationId);
+      setShowMobileThread(true);
+    });
+  }, [initialConversationId]);
 
   useEffect(() => {
     // Don't auto-select if user explicitly closed the conversation
@@ -241,7 +232,6 @@ export default function ConversationPage({
             userClosedRef.current = false;
             setSelectedConversationId(conversationId);
             setShowMobileThread(true);
-            conversationsState.markAsRead(conversationId);
           }}
           search={search}
           selectedConversationId={selectedConversationId}
@@ -267,6 +257,7 @@ export default function ConversationPage({
               conversationId={selectedConversationId}
               onBack={handleBackToList}
               labels={labels}
+              onConversationRead={conversationsState.markAsRead}
               onToast={setToast}
             />
           ) : (
