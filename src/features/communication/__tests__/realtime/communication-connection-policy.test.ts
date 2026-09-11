@@ -1,0 +1,41 @@
+import { describe, expect, it } from "vitest";
+import {
+  classifyConnectionFailure,
+  retryDelayFromError,
+} from "@/features/communication/realtime/communication-connection-policy";
+
+describe("communication connection policy", () => {
+  it.each([401, 403])("classifies status %s as auth", (status) => {
+    expect(classifyConnectionFailure({ data: { status } })).toBe("auth");
+  });
+
+  it.each(["AUTHENTICATION_ERROR", "UNAUTHORIZED", "FORBIDDEN"])(
+    "classifies server code %s as auth",
+    (code) => {
+      expect(classifyConnectionFailure({ data: { code } })).toBe("auth");
+    },
+  );
+
+  it.each([{ status: 429 }, { code: "RATE_LIMITED" }])(
+    "classifies $status$code as rate-limit",
+    (data) => {
+      expect(classifyConnectionFailure({ data })).toBe("rate-limit");
+    },
+  );
+
+  it.each([new Error("transport close"), { data: { status: 503 } }])(
+    "treats temporary failure %# as temporary",
+    (error) => {
+      expect(classifyConnectionFailure(error)).toBe("temporary");
+    },
+  );
+
+  it.each([
+    [{ data: { retryAfterMs: 12_000 } }, 12_000],
+    [{ data: { retryAfter: 15 } }, 15_000],
+    [{ data: { retryAfter: -1 } }, undefined],
+    [{ data: { retryAfter: "15" } }, undefined],
+  ])("parses supported retry delay %#", (error, expectedDelay) => {
+    expect(retryDelayFromError(error)).toBe(expectedDelay);
+  });
+});
