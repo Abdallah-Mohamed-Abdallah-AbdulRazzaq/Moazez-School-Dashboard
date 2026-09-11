@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   archiveConversation,
   closeConversation,
@@ -17,6 +18,7 @@ import type {
 } from "@/features/communication/types/communication.types";
 import type {
   Conversation,
+  ListConversationsParams,
   ConversationStatus,
   ConversationType,
   CreateConversationPayload,
@@ -31,7 +33,9 @@ export type ConversationTypeFilter = "all" | ConversationType;
 export interface ConversationLastMessage {
   id?: string;
   body?: string;
+  type?: string;
   status?: string;
+  sentAt?: string;
   createdAt?: string;
   updatedAt?: string;
   senderName?: string;
@@ -67,9 +71,12 @@ export interface ConversationFormValues {
 
 const DEFAULT_FILTERS: ConversationFiltersState = {
   search: "",
-  status: "active",
+  status: "all",
   type: "all",
 };
+
+const CONVERSATIONS_PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 350;
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -164,7 +171,9 @@ function toConversationListItem(
             stringFromUnknown(lastMessageRecord.body) ??
             stringFromUnknown(lastMessageRecord.content) ??
             stringFromUnknown(lastMessageRecord.text),
+          type: stringFromUnknown(lastMessageRecord.type),
           status: stringFromUnknown(lastMessageRecord.status),
+          sentAt: stringFromUnknown(lastMessageRecord.sentAt),
           createdAt: stringFromUnknown(lastMessageRecord.createdAt),
           updatedAt: stringFromUnknown(lastMessageRecord.updatedAt),
           senderName:
@@ -188,6 +197,7 @@ function sortConversations(
     const leftDate =
       left.pinnedAt ??
       left.lastMessage?.createdAt ??
+      left.lastMessage?.sentAt ??
       left.lastMessageAt ??
       left.updatedAt ??
       left.createdAt ??
@@ -195,6 +205,7 @@ function sortConversations(
     const rightDate =
       right.pinnedAt ??
       right.lastMessage?.createdAt ??
+      right.lastMessage?.sentAt ??
       right.lastMessageAt ??
       right.updatedAt ??
       right.createdAt ??
@@ -218,6 +229,53 @@ function dedupeConversations(
   }
 
   return output;
+}
+
+function lastMessageTimestamp(
+  message: ConversationLastMessage | null | undefined,
+  fallback?: string | null,
+): number | null {
+  const value =
+    message?.createdAt ?? message?.sentAt ?? message?.updatedAt ?? fallback;
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function mergeSameLastMessage(
+  apiMessage: ConversationLastMessage,
+  localMessage: ConversationLastMessage,
+): ConversationLastMessage {
+  return {
+    ...localMessage,
+    ...apiMessage,
+    body: apiMessage.body ?? localMessage.body,
+    type: apiMessage.type ?? localMessage.type,
+    status: apiMessage.status ?? localMessage.status,
+    sentAt: apiMessage.sentAt ?? localMessage.sentAt,
+    createdAt: apiMessage.createdAt ?? localMessage.createdAt,
+    updatedAt: apiMessage.updatedAt ?? localMessage.updatedAt,
+    senderName: apiMessage.senderName ?? localMessage.senderName,
+  };
+}
+
+function newerLastMessage(
+  apiMessage: ConversationLastMessage | null | undefined,
+  localMessage: ConversationLastMessage | null | undefined,
+  apiFallback?: string | null,
+  localFallback?: string | null,
+): ConversationLastMessage | null {
+  if (!apiMessage) return localMessage ?? null;
+  if (!localMessage) return apiMessage;
+  if (apiMessage.id && apiMessage.id === localMessage.id) {
+    return mergeSameLastMessage(apiMessage, localMessage);
+  }
+
+  const apiTimestamp = lastMessageTimestamp(apiMessage, apiFallback);
+  const localTimestamp = lastMessageTimestamp(localMessage, localFallback);
+  if (apiTimestamp === null) return localMessage;
+  if (localTimestamp === null) return apiMessage;
+  return apiTimestamp >= localTimestamp ? apiMessage : localMessage;
 }
 
 function errorMessageFromUnknown(error: unknown): string {
@@ -265,7 +323,9 @@ function lastMessageFromPayload(
         stringFromUnknown(message.body) ??
         stringFromUnknown(message.content) ??
         stringFromUnknown(message.text),
+      type: stringFromUnknown(message.type),
       status: stringFromUnknown(message.status),
+      sentAt: stringFromUnknown(message.sentAt),
       createdAt:
         stringFromUnknown(message.createdAt) ??
         stringFromUnknown(message.updatedAt) ??
@@ -341,6 +401,12 @@ export function useConversations() {
   const { socket, resyncVersion } = useCommunicationSocket();
   const { user } = useAuth();
   const mountedRef = useRef(false);
+  const hasCompletedInitialLoadRef = useRef(false);
+  const latestRequestIdRef = useRef(0);
+  const inFlightRequestsRef = useRef(
+    new Map<string, Promise<CommunicationList<Conversation>>>(),
+  );
+  const lastHandledResyncVersionRef = useRef(0);
   const userIdRef = useRef(user?.id);
   useEffect(() => {
     userIdRef.current = user?.id;
@@ -356,34 +422,49 @@ export function useConversations() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void Promise.resolve().then(() => setPage(1));
-    void Promise.resolve().then(() => setHasMore(true));
-  }, [filters.search, filters.status, filters.type]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(
+    filters.search.trim(),
+    SEARCH_DEBOUNCE_MS,
+  );
 
   const refresh = useCallback(async (pageToFetch: number = 1) => {
-    if (pageToFetch === 1) {
-      setIsLoading(true);
+    const requestParams: ListConversationsParams = {
+      ...(filters.status !== "all"
+        ? { status: filters.status as ConversationStatus }
+        : {}),
+      ...(filters.type !== "all" ? { type: filters.type } : {}),
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      limit: CONVERSATIONS_PAGE_SIZE,
+      page: pageToFetch,
+    };
+    const requestKey = JSON.stringify(requestParams);
+    const requestId = ++latestRequestIdRef.current;
+    const isFirstPage = pageToFetch === 1;
+    const isInitialLoad = isFirstPage && !hasCompletedInitialLoadRef.current;
+
+    if (isFirstPage) {
+      if (isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       setPage(1);
       setHasMore(true);
     } else {
       setIsRefreshing(true);
     }
-    setError(null);
+    setLoadError(null);
 
     try {
-      const response = await getConversations({
-        ...(filters.status !== "all"
-          ? { status: filters.status as ConversationStatus }
-          : {}),
-        ...(filters.type !== "all" ? { type: filters.type } : {}),
-        ...(filters.search.trim() ? { search: filters.search.trim() } : {}),
-        limit: 20,
-        page: pageToFetch,
-      });
-      const list = unwrapList<Conversation>(response);
+      let conversationListRequest = inFlightRequestsRef.current.get(requestKey);
+      if (!conversationListRequest) {
+        conversationListRequest = getConversations(requestParams).then((response) =>
+          unwrapList<Conversation>(response),
+        );
+        inFlightRequestsRef.current.set(requestKey, conversationListRequest);
+      }
+      const list = await conversationListRequest;
 
       const normalized = sortConversations(
         dedupeConversations(
@@ -391,7 +472,7 @@ export function useConversations() {
         ),
       );
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || requestId !== latestRequestIdRef.current) return;
       // Merge with existing data to preserve lastMessage from previous enrichment/realtime
       setConversations((current) => {
         const existingMap = new Map(current.map((c) => [c.id, c]));
@@ -400,7 +481,12 @@ export function useConversations() {
           if (!existing) return conversation;
           return {
             ...conversation,
-            lastMessage: existing.lastMessage ?? conversation.lastMessage,
+            lastMessage: newerLastMessage(
+              conversation.lastMessage,
+              existing.lastMessage,
+              conversation.lastMessageAt,
+              existing.lastMessageAt,
+            ),
             // Prefer the API's unreadCount (source of truth) unless it's undefined/null,
             // in which case fall back to the existing local value
             unreadCount: conversation.unreadCount ?? existing.unreadCount,
@@ -414,23 +500,30 @@ export function useConversations() {
       setTotal(totalItems);
 
       const fetchedCount = list.items.length;
-      setHasMore(fetchedCount > 0 && pageToFetch * 20 < totalItems);
+      setHasMore(
+        fetchedCount > 0 &&
+          pageToFetch * CONVERSATIONS_PAGE_SIZE < totalItems,
+      );
 
     } catch (nextError) {
-      if (!mountedRef.current) return;
-      setError(errorMessageFromUnknown(nextError));
-      if (pageToFetch === 1) {
+      if (!mountedRef.current || requestId !== latestRequestIdRef.current) return;
+      setLoadError(errorMessageFromUnknown(nextError));
+      if (isInitialLoad) {
         setConversations([]);
         setTotal(0);
       }
-      setHasMore(false);
+      if (isInitialLoad || !isFirstPage) setHasMore(false);
     } finally {
-      if (mountedRef.current) {
+      if (inFlightRequestsRef.current.get(requestKey)) {
+        inFlightRequestsRef.current.delete(requestKey);
+      }
+      if (mountedRef.current && requestId === latestRequestIdRef.current) {
+        if (isFirstPage) hasCompletedInitialLoadRef.current = true;
         setIsLoading(false);
         setIsRefreshing(false);
       }
     }
-  }, [filters.search, filters.status, filters.type]);
+  }, [debouncedSearch, filters.status, filters.type]);
 
   const debouncedRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -445,7 +538,6 @@ export function useConversations() {
 
   useEffect(() => {
     mountedRef.current = true;
-    void Promise.resolve().then(() => refresh());
 
     return () => {
       mountedRef.current = false;
@@ -453,12 +545,20 @@ export function useConversations() {
         clearTimeout(refreshTimerRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    void refresh();
   }, [refresh]);
 
   useEffect(() => {
-    if (resyncVersion > 0) {
-    void Promise.resolve().then(() => refresh());
-    }
+    if (
+      resyncVersion === 0 ||
+      resyncVersion <= lastHandledResyncVersionRef.current
+    ) return;
+
+    lastHandledResyncVersionRef.current = resyncVersion;
+    void refresh();
   }, [refresh, resyncVersion]);
 
   useEffect(() => {
@@ -485,11 +585,13 @@ export function useConversations() {
           return {
             ...conversation,
             lastMessage: message,
-            lastMessageAt: message.createdAt ?? conversation.lastMessageAt,
+            lastMessageAt:
+              message.createdAt ?? message.sentAt ?? conversation.lastMessageAt,
             unreadCount: isDuplicateMessage || isOwnMessage
               ? conversation.unreadCount
               : (conversation.unreadCount ?? 0) + 1,
-            updatedAt: message.createdAt ?? conversation.updatedAt,
+            updatedAt:
+              message.createdAt ?? message.sentAt ?? conversation.updatedAt,
           };
         });
 
@@ -573,15 +675,12 @@ export function useConversations() {
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
       setIsMutating(true);
-      setError(null);
 
       try {
         const response = await operation();
         await refresh();
         return response;
       } catch (nextError) {
-        const message = errorMessageFromUnknown(nextError);
-        setError(message);
         throw nextError;
       } finally {
         if (mountedRef.current) {
@@ -631,7 +730,7 @@ export function useConversations() {
   const hasFilters = useMemo(
     () =>
       filters.search.trim() !== "" ||
-      filters.status !== "active" ||
+      filters.status !== "all" ||
       filters.type !== "all",
     [filters.search, filters.status, filters.type],
   );
@@ -653,7 +752,7 @@ export function useConversations() {
     void refresh(nextPage);
   }, [isLoading, isRefreshing, hasMore, page, refresh]);
 
-  const clearError = useCallback(() => setError(null), []);
+  const clearError = useCallback(() => setLoadError(null), []);
 
   return {
     conversations,
@@ -663,7 +762,7 @@ export function useConversations() {
     isLoading,
     isRefreshing,
     isMutating,
-    error,
+    error: loadError,
     clearError,
     hasFilters,
     refresh,

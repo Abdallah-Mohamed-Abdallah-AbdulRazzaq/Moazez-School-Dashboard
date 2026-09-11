@@ -158,10 +158,22 @@ function lastMessagePreview(
   if (conversation.lastMessage.status === "deleted")
     return labels.messageDeleted;
   const body = conversation.lastMessage.body;
-  if (!body) return labels.noMessagesYet;
+  const type = conversation.lastMessage.type?.toLowerCase();
+  const preview = body
+    ? body
+    : type === "image"
+      ? labels.lastMessageImage
+      : type === "video"
+        ? labels.lastMessageVideo
+        : type === "voice" || type === "audio"
+          ? labels.lastMessageVoice
+          : type
+            ? labels.lastMessageAttachment
+            : labels.noMessagesYet;
+
   return conversation.lastMessage.senderName
-    ? `${conversation.lastMessage.senderName}: ${body}`
-    : body;
+    ? `${conversation.lastMessage.senderName}: ${preview}`
+    : preview;
 }
 
 function rowMatchesFilter(
@@ -646,6 +658,7 @@ function ConversationRow({
   const avatar = conversationAvatar(conversation);
   const lastTime =
     conversation.lastMessage?.createdAt ||
+    conversation.lastMessage?.sentAt ||
     (record.lastMessageAt as string | undefined) ||
     conversation.updatedAt ||
     conversation.createdAt;
