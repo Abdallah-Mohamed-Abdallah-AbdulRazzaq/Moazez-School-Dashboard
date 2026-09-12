@@ -325,12 +325,12 @@ describe("CommunicationRealtimeProvider", () => {
   it("leaves no listeners or timers after 100 owner lifecycles", () => {
     const addWindowListenerSpy = vi.spyOn(window, "addEventListener");
     const removeWindowListenerSpy = vi.spyOn(window, "removeEventListener");
-    const ownedWindowEvents = [
+    const ownedWindowEvents = new Set([
       "moazez:access-token-changed",
       "storage",
       "offline",
       "online",
-    ];
+    ]);
 
     for (let lifecycle = 0; lifecycle < 100; lifecycle += 1) {
       const renderedProvider = renderProvider();
@@ -339,15 +339,15 @@ describe("CommunicationRealtimeProvider", () => {
       expect(socketHarness.socketListeners.countAll()).toBe(0);
       expect(socketHarness.managerListeners.countAll()).toBe(0);
       expect(vi.getTimerCount()).toBe(0);
-      ownedWindowEvents.forEach((eventName) => {
-        const addedListenerCount = addWindowListenerSpy.mock.calls.filter(
-          ([registeredEvent]) => registeredEvent === eventName,
-        ).length;
-        const removedListenerCount = removeWindowListenerSpy.mock.calls.filter(
-          ([registeredEvent]) => registeredEvent === eventName,
-        ).length;
-        expect(removedListenerCount).toBe(addedListenerCount);
-      });
+      const unmatchedOwnedListeners = addWindowListenerSpy.mock.calls.filter(
+        ([addedEvent, addedListener]) =>
+          ownedWindowEvents.has(addedEvent) &&
+          !removeWindowListenerSpy.mock.calls.some(
+            ([removedEvent, removedListener]) =>
+              removedEvent === addedEvent && removedListener === addedListener,
+          ),
+      );
+      expect(unmatchedOwnedListeners).toHaveLength(0);
     }
 
     expect(socketHarness.createCommunicationSocket).toHaveBeenCalledTimes(100);
