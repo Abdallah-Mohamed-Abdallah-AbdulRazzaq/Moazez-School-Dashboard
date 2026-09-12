@@ -24,6 +24,18 @@ describe("communication connection policy", () => {
     },
   );
 
+  it.each([
+    { description: 429 },
+    { description: "fetch read error", context: { status: 429 } },
+  ])("classifies Engine.IO transport 429 shape %# as rate-limit", (error) => {
+    expect(
+      classifyConnectionFailure({
+        type: "TransportError",
+        ...error,
+      }),
+    ).toBe("rate-limit");
+  });
+
   it.each([new Error("transport close"), { data: { status: 503 } }])(
     "treats temporary failure %# as temporary",
     (error) => {
@@ -44,5 +56,15 @@ describe("communication connection policy", () => {
     expect(reconnectDelayForAttempt(0, () => 0)).toBe(500);
     expect(reconnectDelayForAttempt(1, () => 0.5)).toBe(2_000);
     expect(reconnectDelayForAttempt(20, () => 1)).toBe(30_000);
+  });
+
+  it("disperses 100 first retries across the complete jitter window", () => {
+    const retryDelays = Array.from({ length: 100 }, (_, clientIndex) =>
+      reconnectDelayForAttempt(0, () => clientIndex / 99),
+    );
+
+    expect(retryDelays[0]).toBe(500);
+    expect(retryDelays[99]).toBe(1_500);
+    expect(new Set(retryDelays).size).toBe(100);
   });
 });

@@ -231,6 +231,14 @@ describe("useNotifications", () => {
     await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(2));
   });
 
+  it("does not repeat the initial load for an existing resync version", async () => {
+    resyncVersion = 3;
+
+    renderHook(() => useNotifications());
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
+  });
+
   describe("optimistic mutations", () => {
     const mockNotifications = [
       { id: "notif-1", status: "unread" as const, readAt: null, archivedAt: null },

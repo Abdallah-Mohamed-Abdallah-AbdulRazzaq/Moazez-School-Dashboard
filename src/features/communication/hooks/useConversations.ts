@@ -406,7 +406,7 @@ export function useConversations() {
   const inFlightRequestsRef = useRef(
     new Map<string, Promise<CommunicationList<Conversation>>>(),
   );
-  const lastHandledResyncVersionRef = useRef(0);
+  const lastHandledResyncVersionRef = useRef(resyncVersion);
   const userIdRef = useRef(user?.id);
   useEffect(() => {
     userIdRef.current = user?.id;

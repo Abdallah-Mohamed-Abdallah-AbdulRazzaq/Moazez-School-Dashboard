@@ -148,6 +148,7 @@ export function createCommunicationSocket(
       token,
     },
     transports: [...REALTIME_TRANSPORTS],
+    tryAllTransports: true,
     reconnection: true,
     reconnectionAttempts: RECONNECTION_ATTEMPTS,
     reconnectionDelay: RECONNECTION_DELAY_MS,

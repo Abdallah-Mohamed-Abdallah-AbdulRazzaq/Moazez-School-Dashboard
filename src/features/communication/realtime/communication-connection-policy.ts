@@ -20,9 +20,18 @@ export const RECONNECTION_COOLDOWN_MS = 60_000;
 
 interface ConnectionErrorFields {
   code?: unknown;
+  context?: unknown;
+  description?: unknown;
   retryAfter?: unknown;
   retryAfterMs?: unknown;
   status?: unknown;
+}
+
+function statusFromTransportField(transportField: unknown): unknown {
+  if (typeof transportField === "number") return transportField;
+  if (!transportField || typeof transportField !== "object") return undefined;
+
+  return (transportField as { status?: unknown }).status;
 }
 
 function connectionErrorFields(error: unknown): ConnectionErrorFields {
@@ -38,7 +47,11 @@ function connectionErrorFields(error: unknown): ConnectionErrorFields {
     code: nestedFields.code ?? outerFields.code,
     retryAfter: nestedFields.retryAfter ?? outerFields.retryAfter,
     retryAfterMs: nestedFields.retryAfterMs ?? outerFields.retryAfterMs,
-    status: nestedFields.status ?? outerFields.status,
+    status:
+      nestedFields.status ??
+      outerFields.status ??
+      statusFromTransportField(outerFields.description) ??
+      statusFromTransportField(outerFields.context),
   };
 }
 

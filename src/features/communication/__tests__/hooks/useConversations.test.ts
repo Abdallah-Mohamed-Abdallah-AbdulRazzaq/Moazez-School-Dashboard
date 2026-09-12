@@ -412,6 +412,21 @@ describe("useConversations", () => {
       expect(mockGetConversations).toHaveBeenCalledWith({ limit: 20, page: 1 });
     });
 
+    it("does not repeat the initial request for an existing resync version", async () => {
+      mockResyncVersion = 3;
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(mockGetConversations).toHaveBeenCalledTimes(1);
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isRefreshing).toBe(false);
+    });
+
     it("keeps loaded conversations visible when reconnect resync fails", async () => {
       const conversation = createConversation({ id: "conv-resync" });
       mockGetConversations.mockResolvedValueOnce({

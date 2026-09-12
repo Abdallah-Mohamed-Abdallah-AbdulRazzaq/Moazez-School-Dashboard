@@ -34,6 +34,7 @@ describe("createCommunicationSocket", () => {
         reconnectionDelay: 1_000,
         reconnectionDelayMax: 30_000,
         transports: ["websocket", "polling"],
+        tryAllTransports: true,
         withCredentials: true,
       }),
     );
