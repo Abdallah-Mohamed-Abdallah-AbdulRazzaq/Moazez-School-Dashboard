@@ -87,6 +87,28 @@ async function settledRecord(request: Promise<unknown>) {
     : undefined;
 }
 
+type SettledRecord = Record<string, unknown> | undefined;
+
+const messageInfoRequests = new Map<string, Promise<SettledRecord>>();
+const conversationRequests = new Map<string, Promise<SettledRecord>>();
+
+function sharedSettledRecord(
+  requests: Map<string, Promise<SettledRecord>>,
+  requestKey: string,
+  request: () => Promise<unknown>,
+) {
+  const activeRequest = requests.get(requestKey);
+  if (activeRequest) return activeRequest;
+
+  const sharedRequest = settledRecord(request()).finally(() => {
+    if (requests.get(requestKey) === sharedRequest) {
+      requests.delete(requestKey);
+    }
+  });
+  requests.set(requestKey, sharedRequest);
+  return sharedRequest;
+}
+
 function notificationDeepLink(notification: NotificationRecord) {
   return (
     recordValue(notification.deepLink) ?? recordValue(notification.deep_link)
@@ -328,9 +350,17 @@ async function loadMessagePresentationContext(
   messageId: string,
 ) {
   const notificationConversationId = communicationConversationId(notification);
-  const messageInfoRequest = settledRecord(getMessageInfo(messageId));
+  const messageInfoRequest = sharedSettledRecord(
+    messageInfoRequests,
+    messageId,
+    () => getMessageInfo(messageId),
+  );
   const notificationConversationRequest = notificationConversationId
-    ? settledRecord(getConversation(notificationConversationId))
+    ? sharedSettledRecord(
+        conversationRequests,
+        notificationConversationId,
+        () => getConversation(notificationConversationId),
+      )
     : undefined;
   const messageInfo = await messageInfoRequest;
   const conversationId =
@@ -338,7 +368,11 @@ async function loadMessagePresentationContext(
   const conversation = notificationConversationRequest
     ? await notificationConversationRequest
     : conversationId
-      ? await settledRecord(getConversation(conversationId))
+      ? await sharedSettledRecord(
+          conversationRequests,
+          conversationId,
+          () => getConversation(conversationId),
+        )
       : undefined;
   return { conversation, conversationId, messageInfo };
 }

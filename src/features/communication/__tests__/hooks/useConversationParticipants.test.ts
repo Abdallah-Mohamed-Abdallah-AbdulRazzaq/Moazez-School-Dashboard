@@ -3,10 +3,11 @@ import { renderHook, act } from "@testing-library/react";
 import { createParticipant } from "../utils/test-data-generators";
 
 const mockGetParticipants = vi.fn();
+const mockAddParticipant = vi.fn();
 
 vi.mock("@/features/communication/api/communication.service", () => ({
   getParticipants: (...args: unknown[]) => mockGetParticipants(...args),
-  addParticipant: vi.fn(),
+  addParticipant: (...args: unknown[]) => mockAddParticipant(...args),
   updateParticipant: vi.fn(),
   removeParticipant: vi.fn(),
   leaveConversation: vi.fn(),
@@ -25,6 +26,7 @@ describe("useConversationParticipants", () => {
     mockGetParticipants.mockResolvedValue({
       data: { items: [], total: 0 },
     });
+    mockAddParticipant.mockResolvedValue({ data: {} });
   });
 
   afterEach(() => {
@@ -81,5 +83,27 @@ describe("useConversationParticipants", () => {
       (p) => p.user?.displayName
     );
     expect(sortedNames).toEqual(["Alice", "Bob", "Charlie"]);
+  });
+
+  it("exposes loading errors but not participant mutation errors", async () => {
+    mockGetParticipants.mockRejectedValueOnce(new Error("Load failed"));
+    const useConversationParticipants = await importHook();
+    const { result } = renderHook(() => useConversationParticipants("conv-1"));
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+    expect(result.current.error).toBe("Load failed");
+
+    mockGetParticipants.mockResolvedValue({ data: { items: [], total: 0 } });
+    await act(async () => {
+      await result.current.refresh();
+    });
+    mockAddParticipant.mockRejectedValueOnce(new Error("Add failed"));
+    await act(async () => {
+      await expect(
+        result.current.add({ userId: "user-1", role: "MEMBER" }),
+      ).rejects.toThrow("Add failed");
+    });
+    expect(result.current.error).toBeNull();
   });
 });
