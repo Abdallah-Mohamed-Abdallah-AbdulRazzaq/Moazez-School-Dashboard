@@ -136,6 +136,7 @@ Run: `npm run test:run -- src/features/communication/__tests__/realtime/Communic
 **Files:**
 - Modify: `src/features/communication/hooks/useNotifications.ts`
 - Modify: `src/features/communication/hooks/useConversationRealtime.ts`
+- Modify: `src/features/communication/hooks/useConversations.ts`
 - Test: `src/features/communication/__tests__/hooks/useConversations.test.ts`
 - Test: `src/features/communication/__tests__/hooks/useNotifications.test.ts`
 - Test: `src/features/communication/__tests__/hooks/useConversationRealtime.test.ts`
@@ -152,7 +153,7 @@ Each test initializes `resyncVersion` to `3`, mounts the hook, flushes its initi
 
 Run: `npm run test:run -- src/features/communication/__tests__/hooks/useConversations.test.ts src/features/communication/__tests__/hooks/useNotifications.test.ts src/features/communication/__tests__/hooks/useConversationRealtime.test.ts`
 
-- [x] **Step 3: Initialize the notification and detail-hook last-observed refs from the current `resyncVersion`; retain the conversation list's existing in-flight request coalescing after its acceptance test proves one HTTP request**
+- [x] **Step 3: Initialize each route hook's last-observed ref from the current `resyncVersion`; retain the conversation list's in-flight request coalescing for genuinely concurrent callers**
 
 ```ts
 const previousResyncVersionRef = useRef(resyncVersion);
@@ -169,7 +170,7 @@ useEffect(() => {
 ```powershell
 & {
   npm run test:run -- src/features/communication/__tests__/hooks/useConversations.test.ts src/features/communication/__tests__/hooks/useNotifications.test.ts src/features/communication/__tests__/hooks/useConversationRealtime.test.ts
-  git add -- src/features/communication/hooks/useNotifications.ts src/features/communication/hooks/useConversationRealtime.ts src/features/communication/__tests__/hooks/useConversations.test.ts src/features/communication/__tests__/hooks/useNotifications.test.ts src/features/communication/__tests__/hooks/useConversationRealtime.test.ts
+  git add -- src/features/communication/hooks/useConversations.ts src/features/communication/hooks/useNotifications.ts src/features/communication/hooks/useConversationRealtime.ts src/features/communication/__tests__/hooks/useConversations.test.ts src/features/communication/__tests__/hooks/useNotifications.test.ts src/features/communication/__tests__/hooks/useConversationRealtime.test.ts
   git commit -m "fix(communication): bound reconnect reconciliation"
 }
 ```

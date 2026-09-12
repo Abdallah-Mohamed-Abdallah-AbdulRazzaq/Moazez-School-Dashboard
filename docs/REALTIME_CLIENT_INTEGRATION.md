@@ -100,7 +100,7 @@ Hooks must unregister the exact callback they registered. The provider separatel
 - `useCommunicationOverview()` performs one full six-resource recovery refresh for a new version. Message, notification, and announcement bursts otherwise use the resource-key scheduler and its 500 ms debounce window.
 - `useNotifications()` ignores a version already present when the hook mounts, then refreshes once for each later observed version change. A background feed that received HTTP 403 remains suppressed.
 - `useConversationRealtime()` ignores a version already present on mount, then invokes its `onReconnect` callback once for each later observed version change while enabled.
-- `useConversations()` coalesces identical in-flight list requests, including overlap between its initial load and an already-present recovery version.
+- `useConversations()` ignores a version already present on mount and coalesces identical in-flight list requests.
 
 This reconciliation is route-scoped. The frontend does not implement a global REST refresh coordinator.
 
