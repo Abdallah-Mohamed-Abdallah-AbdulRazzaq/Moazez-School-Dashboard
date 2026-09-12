@@ -951,7 +951,6 @@ export default function ConversationDetail({
         {activeTab === "invites" ? (
           <InvitesPanel
             canCreate={canManageInvites}
-            canManage={canManageInvites}
             currentUserId={user?.id}
             error={null}
             invites={invitesState.invites}
@@ -970,7 +969,6 @@ export default function ConversationDetail({
             onRejectInvite={setRejectInvite}
             total={invitesState.total}
             userDisplayNames={userDisplayNames}
-            isActiveParticipant={permissions.isActiveParticipant}
           />
         ) : null}
 

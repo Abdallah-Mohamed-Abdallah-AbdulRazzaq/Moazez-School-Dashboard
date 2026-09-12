@@ -41,4 +41,36 @@ describe("InvitesPanel", () => {
 
     expect(screen.getByText("Abdo Mohammed")).toBeInTheDocument();
   });
+
+  it("hides the cancel action from the invitation sender", () => {
+    const invite: ConversationInvite = {
+      id: "invite-1",
+      conversationId: "conversation-1",
+      invitedUserId: "recipient-1",
+      invitedById: "sender-1",
+      status: "pending",
+    };
+
+    render(
+      <InvitesPanel
+        canCreate
+        currentUserId="sender-1"
+        error={null}
+        invites={[invite]}
+        isLoading={false}
+        isMutating={false}
+        labels={conversationRedesignLabels.en}
+        locale="en"
+        onAcceptInvite={() => Promise.resolve()}
+        onCreateInvite={() => undefined}
+        onRejectInvite={() => undefined}
+        total={1}
+        userDisplayNames={{}}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^(Reject|Revoke) invite$/ }),
+    ).not.toBeInTheDocument();
+  });
 });

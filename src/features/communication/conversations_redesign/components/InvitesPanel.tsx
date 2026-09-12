@@ -9,7 +9,6 @@ import { formatDate, statusLabel } from "@/features/communication/conversations_
 
 export default function InvitesPanel({
   canCreate,
-  canManage,
   currentUserId,
   error,
   invites,
@@ -22,10 +21,8 @@ export default function InvitesPanel({
   onRejectInvite,
   total,
   userDisplayNames,
-  isActiveParticipant,
 }: {
   canCreate: boolean;
-  canManage: boolean;
   currentUserId?: string | null;
   error: string | null;
   invites: ConversationInvite[];
@@ -38,7 +35,6 @@ export default function InvitesPanel({
   onRejectInvite: (invite: ConversationInvite) => void;
   total: number;
   userDisplayNames: UserDisplayNameMap;
-  isActiveParticipant?: boolean;
 }) {
   return (
     <PanelLayout
@@ -77,8 +73,6 @@ export default function InvitesPanel({
               currentUserId && invitedUserId === currentUserId,
             );
             const canRespondToInvite = isPending && isCurrentUserInvite;
-            const canRejectInvite =
-              isPending && ((canManage && isActiveParticipant) || isCurrentUserInvite);
             return (
               <div
                 key={invite.id}
@@ -122,16 +116,14 @@ export default function InvitesPanel({
                       {labels.acceptInvite}
                     </button>
                   ) : null}
-                  {canRejectInvite ? (
+                  {canRespondToInvite ? (
                     <button
                       type="button"
                       disabled={isMutating}
                       onClick={() => void onRejectInvite(invite)}
                       className="rounded-md bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {canManage && !isCurrentUserInvite
-                        ? labels.revokeInvite
-                        : labels.rejectInvite}
+                      {labels.rejectInvite}
                     </button>
                   ) : null}
                 </div>
