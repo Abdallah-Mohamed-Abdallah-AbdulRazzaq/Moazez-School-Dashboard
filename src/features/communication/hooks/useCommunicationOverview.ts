@@ -10,6 +10,7 @@ import {
   getRestrictions,
 } from "@/features/communication/api/communication.service";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
+import { logRealtimeEvent } from "@/features/communication/realtime/communication-realtime-diagnostics";
 import type {
   CommunicationAdminOverview,
   CommunicationList,
@@ -33,8 +34,14 @@ export interface CommunicationOverviewData {
   restrictions: CommunicationList<Restriction>;
 }
 
-interface OverviewRequestResult {
-  data: CommunicationOverviewData;
+type OverviewResourceKey = keyof CommunicationOverviewData;
+type OverviewResourceLoader = () => Promise<{
+  resourceData: unknown;
+  error: string | null;
+}>;
+
+interface OverviewRefreshResponse {
+  refreshedData: Partial<CommunicationOverviewData>;
   errors: string[];
 }
 
@@ -44,6 +51,26 @@ const EMPTY_LIST = {
   page: 1,
   limit: 0,
 } satisfies CommunicationList<never>;
+
+const ALL_OVERVIEW_RESOURCES: readonly OverviewResourceKey[] = [
+  "adminOverview",
+  "policy",
+  "conversations",
+  "notifications",
+  "reports",
+  "restrictions",
+];
+const MESSAGE_OVERVIEW_RESOURCES: readonly OverviewResourceKey[] = [
+  "adminOverview",
+  "conversations",
+];
+const NOTIFICATION_OVERVIEW_RESOURCES: readonly OverviewResourceKey[] = [
+  "adminOverview",
+  "notifications",
+];
+const ANNOUNCEMENT_OVERVIEW_RESOURCES: readonly OverviewResourceKey[] = [
+  "adminOverview",
+];
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -57,149 +84,132 @@ function numberFromUnknown(value: unknown): number | undefined {
 }
 
 function unwrapItem<T>(response: unknown): T | null {
-  if (!isRecord(response)) {
-    return (response ?? null) as T | null;
-  }
-
+  if (!isRecord(response)) return (response ?? null) as T | null;
   const candidates = [
     response.data,
     response.item,
     response.result,
     response.payload,
   ];
-
-  const item = candidates.find((candidate) => {
-    if (!candidate) return false;
-    if (Array.isArray(candidate)) return false;
-    return typeof candidate === "object";
-  });
-
-  return (item ?? response) as T;
+  const normalizedItem = candidates.find(
+    (candidate) =>
+      Boolean(candidate) &&
+      !Array.isArray(candidate) &&
+      typeof candidate === "object",
+  );
+  return (normalizedItem ?? response) as T;
 }
 
 function unwrapList<T>(response: unknown): CommunicationList<T> {
   if (Array.isArray(response)) {
     return { items: response as T[], total: response.length };
   }
+  if (!isRecord(response)) return cloneEmptyList<T>();
 
-  if (!isRecord(response)) {
-    return cloneEmptyList<T>();
-  }
-
-  const sources = [
-    response,
-    response.data,
-    response.result,
-    response.payload,
-  ].filter(isRecord);
-
-  const itemSource = sources.find((source) => Array.isArray(source.items));
-  if (itemSource) {
-    const items = itemSource.items as T[];
+  const sources = [response, response.data, response.result, response.payload].filter(
+    isRecord,
+  );
+  const listSource = sources.find((source) => Array.isArray(source.items));
+  if (listSource) {
+    const items = listSource.items as T[];
     return {
-      ...itemSource,
+      ...listSource,
       items,
       total:
-        numberFromUnknown(itemSource.total) ??
-        numberFromUnknown(itemSource.count) ??
+        numberFromUnknown(listSource.total) ??
+        numberFromUnknown(listSource.count) ??
         items.length,
-      page: numberFromUnknown(itemSource.page),
-      limit: numberFromUnknown(itemSource.limit),
-      totalPages: numberFromUnknown(itemSource.totalPages),
+      page: numberFromUnknown(listSource.page),
+      limit: numberFromUnknown(listSource.limit),
+      totalPages: numberFromUnknown(listSource.totalPages),
     };
   }
 
-  const arraySource = [
-    response.data,
-    response.result,
-    response.payload,
-  ].find(Array.isArray);
-
-  if (arraySource) {
-    const items = arraySource as T[];
-    return { items, total: items.length };
-  }
-
-  return cloneEmptyList<T>();
+  const arrayResponse = [response.data, response.result, response.payload].find(
+    Array.isArray,
+  );
+  if (!arrayResponse) return cloneEmptyList<T>();
+  return { items: arrayResponse as T[], total: arrayResponse.length };
 }
 
-function errorMessageFromUnknown(error: unknown): string {
-  return error instanceof Error ? error.message : "Unable to load communication data.";
+function errorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : "Unable to load communication data.";
 }
 
-async function safeRequest<T>(
+async function loadOverviewResource(
   request: () => Promise<unknown>,
-  normalize: (response: unknown) => T,
-): Promise<{ data: T; error: string | null }> {
+  normalize: (response: unknown) => unknown,
+) {
   try {
-    return {
-      data: normalize(await request()),
-      error: null,
-    };
-  } catch (error) {
-    return {
-      data: normalize(null),
-      error: errorMessageFromUnknown(error),
-    };
+    return { resourceData: normalize(await request()), error: null };
+  } catch (requestError) {
+    return { resourceData: undefined, error: errorMessage(requestError) };
   }
 }
 
-async function fetchOverviewData(): Promise<OverviewRequestResult> {
-  const [
-    adminOverview,
-    policy,
-    conversations,
-    notifications,
-    reports,
-    restrictions,
-  ] = await Promise.all([
-    safeRequest(getAdminOverview, (response) =>
+const OVERVIEW_RESOURCE_LOADERS: Record<
+  OverviewResourceKey,
+  OverviewResourceLoader
+> = {
+  adminOverview: () =>
+    loadOverviewResource(getAdminOverview, (response) =>
       unwrapItem<CommunicationAdminOverview>(response),
     ),
-    safeRequest(getPolicy, (response) =>
+  policy: () =>
+    loadOverviewResource(getPolicy, (response) =>
       unwrapItem<CommunicationPolicy>(response),
     ),
-    safeRequest(
+  conversations: () =>
+    loadOverviewResource(
       () => getConversations({ status: "active", limit: 5 }),
       unwrapList<Conversation>,
     ),
-    safeRequest(
+  notifications: () =>
+    loadOverviewResource(
       () => getNotifications({ limit: 5 }),
       unwrapList<CommunicationNotification>,
     ),
-    safeRequest(
+  reports: () =>
+    loadOverviewResource(
       () => getMessageReports({ status: "open", limit: 20 }),
       unwrapList<MessageReport>,
     ),
-    safeRequest(
+  restrictions: () =>
+    loadOverviewResource(
       () => getRestrictions({ activeOnly: true, limit: 20 }),
       unwrapList<Restriction>,
     ),
-  ]);
+};
+
+async function fetchOverviewResources(
+  resourceKeys: readonly OverviewResourceKey[],
+): Promise<OverviewRefreshResponse> {
+  const resourceResponses = await Promise.all(
+    resourceKeys.map(async (resourceKey) => ({
+      resourceKey,
+      ...(await OVERVIEW_RESOURCE_LOADERS[resourceKey]()),
+    })),
+  );
+  const refreshedEntries = resourceResponses
+    .filter((response) => !response.error)
+    .map(({ resourceKey, resourceData }) => [resourceKey, resourceData]);
 
   return {
-    data: {
-      adminOverview: adminOverview.data,
-      policy: policy.data,
-      conversations: conversations.data,
-      notifications: notifications.data,
-      reports: reports.data,
-      restrictions: restrictions.data,
-    },
-    errors: [
-      adminOverview.error,
-      policy.error,
-      conversations.error,
-      notifications.error,
-      reports.error,
-      restrictions.error,
-    ].filter((error): error is string => Boolean(error)),
+    refreshedData: Object.fromEntries(
+      refreshedEntries,
+    ) as Partial<CommunicationOverviewData>,
+    errors: resourceResponses
+      .map((response) => response.error)
+      .filter((error): error is string => Boolean(error)),
   };
 }
 
 export function useCommunicationOverview() {
   const { socket, resyncVersion } = useCommunicationSocket();
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingResourceKeysRef = useRef(new Set<OverviewResourceKey>());
   const mountedRef = useRef(false);
   const [data, setData] = useState<CommunicationOverviewData>(() => ({
     adminOverview: null,
@@ -213,69 +223,107 @@ export function useCommunicationOverview() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setIsRefreshing(true);
-    setError(null);
-
-    try {
-      const result = await fetchOverviewData();
+  const refreshResources = useCallback(
+    async (resourceKeys: readonly OverviewResourceKey[]) => {
+      setIsRefreshing(true);
+      setError(null);
+      const refreshResponse = await fetchOverviewResources(resourceKeys);
       if (!mountedRef.current) return;
 
-      setData(result.data);
-      setError(result.errors.length > 0 ? result.errors[0] : null);
-    } catch (nextError) {
-      if (!mountedRef.current) return;
-      setError(errorMessageFromUnknown(nextError));
-    } finally {
-      if (mountedRef.current) {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
-    }
-  }, []);
+      setData((currentData) => ({
+        ...currentData,
+        ...refreshResponse.refreshedData,
+      }));
+      setError(refreshResponse.errors[0] ?? null);
+      setIsLoading(false);
+      setIsRefreshing(false);
+      logRealtimeEvent("overview_refresh_completed", {
+        resourceCount: resourceKeys.length,
+      });
+    },
+    [],
+  );
 
-  const debouncedRefresh = useCallback(() => {
-    if (refreshTimerRef.current) {
-      clearTimeout(refreshTimerRef.current);
-    }
+  const refresh = useCallback(
+    () => refreshResources(ALL_OVERVIEW_RESOURCES),
+    [refreshResources],
+  );
 
-    refreshTimerRef.current = setTimeout(() => {
-      refreshTimerRef.current = null;
-      void refresh();
-    }, 500);
-  }, [refresh]);
+  const scheduleResourceRefresh = useCallback(
+    (resourceKeys: readonly OverviewResourceKey[]) => {
+      resourceKeys.forEach((resourceKey) =>
+        pendingResourceKeysRef.current.add(resourceKey),
+      );
+      if (refreshTimerRef.current) return;
+
+      logRealtimeEvent("overview_refresh_scheduled", {
+        resourceCount: pendingResourceKeysRef.current.size,
+      });
+      refreshTimerRef.current = setTimeout(() => {
+        refreshTimerRef.current = null;
+        const pendingResourceKeys = [...pendingResourceKeysRef.current];
+        pendingResourceKeysRef.current.clear();
+        void refreshResources(pendingResourceKeys);
+      }, 500);
+    },
+    [refreshResources],
+  );
 
   useEffect(() => {
+    const pendingResourceKeys = pendingResourceKeysRef.current;
     mountedRef.current = true;
     void Promise.resolve().then(refresh);
-
     return () => {
       mountedRef.current = false;
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current);
-      }
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      pendingResourceKeys.clear();
     };
   }, [refresh]);
 
   useEffect(() => {
-    if (resyncVersion > 0) {
-    void Promise.resolve().then(refresh);
-    }
+    if (resyncVersion > 0) void Promise.resolve().then(refresh);
   }, [refresh, resyncVersion]);
 
   useEffect(() => {
     if (!socket) return;
+    const refreshMessages = () =>
+      scheduleResourceRefresh(MESSAGE_OVERVIEW_RESOURCES);
+    const refreshNotifications = () =>
+      scheduleResourceRefresh(NOTIFICATION_OVERVIEW_RESOURCES);
+    const refreshAnnouncements = () =>
+      scheduleResourceRefresh(ANNOUNCEMENT_OVERVIEW_RESOURCES);
 
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageCreated, debouncedRefresh);
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, debouncedRefresh);
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, debouncedRefresh);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageCreated, refreshMessages);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, refreshMessages);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, refreshMessages);
+    socket.on(
+      COMMUNICATION_SOCKET_EVENTS.notificationCreated,
+      refreshNotifications,
+    );
+    socket.on(COMMUNICATION_SOCKET_EVENTS.notificationRead, refreshNotifications);
+    socket.on(
+      COMMUNICATION_SOCKET_EVENTS.announcementPublished,
+      refreshAnnouncements,
+    );
 
     return () => {
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageCreated, debouncedRefresh);
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, debouncedRefresh);
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, debouncedRefresh);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageCreated, refreshMessages);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, refreshMessages);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, refreshMessages);
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.notificationCreated,
+        refreshNotifications,
+      );
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.notificationRead,
+        refreshNotifications,
+      );
+      socket.off(
+        COMMUNICATION_SOCKET_EVENTS.announcementPublished,
+        refreshAnnouncements,
+      );
     };
-  }, [debouncedRefresh, socket]);
+  }, [scheduleResourceRefresh, socket]);
 
   const hasAnyContent = useMemo(
     () =>
