@@ -304,6 +304,39 @@ describe("MessageBubble Delete Confirmation", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
+  it("hides backend voice metadata from the visible message text", () => {
+    const voiceMetadata = JSON.stringify({
+      kind: "voice_metadata",
+      durationMs: 6600,
+      waveform: ["0.24", "0.52", "0.57"],
+    });
+    const message = createMessage({
+      id: "msg-voice-metadata",
+      body: voiceMetadata,
+      senderId: "user-2",
+      status: "sent",
+      type: "audio",
+    });
+
+    render(<MessageBubble {...mockProps} isOwn={false} message={message} />);
+
+    expect(screen.queryByText(voiceMetadata)).not.toBeInTheDocument();
+  });
+
+  it("keeps an ordinary audio caption visible", () => {
+    const message = createMessage({
+      id: "msg-audio-caption",
+      body: "Voice note from the teacher",
+      senderId: "user-2",
+      status: "sent",
+      type: "audio",
+    });
+
+    render(<MessageBubble {...mockProps} isOwn={false} message={message} />);
+
+    expect(screen.getByText("Voice note from the teacher")).toBeInTheDocument();
+  });
+
   it("collapses very long redesigned messages and expands them inline", () => {
     const longBody = `${"Long message content ".repeat(50)}Final sentence after expansion.`;
     const message = createMessage({
