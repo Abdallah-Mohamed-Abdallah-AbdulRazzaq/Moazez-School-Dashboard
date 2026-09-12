@@ -952,7 +952,6 @@ export default function ConversationDetail({
         {activeTab === "invites" ? (
           <InvitesPanel
             canCreate={canManageInvites}
-            canManage={canManageInvites}
             currentUserId={user?.id}
             error={invitesState.error}
             invites={invitesState.invites}
@@ -972,7 +971,6 @@ export default function ConversationDetail({
             onRetry={() => void invitesState.refresh()}
             total={invitesState.total}
             userDisplayNames={userDisplayNames}
-            isActiveParticipant={permissions.isActiveParticipant}
           />
         ) : null}
 
