@@ -96,6 +96,7 @@ function RealtimeProbe({ conversationId }: { conversationId?: string }) {
     connectionState,
     joinConversation,
     leaveConversation,
+    resyncVersion,
     retryConnection,
   } = useCommunicationSocket();
 
@@ -108,6 +109,7 @@ function RealtimeProbe({ conversationId }: { conversationId?: string }) {
   return (
     <div>
       <span data-testid="state">{connectionState}</span>
+      <span data-testid="resync-version">{resyncVersion}</span>
       <span>{connectionError ?? "no-error"}</span>
       <button type="button" onClick={retryConnection}>
         Retry
@@ -148,7 +150,7 @@ describe("CommunicationRealtimeProvider", () => {
     vi.useRealTimers();
   });
 
-  it("restores each active room once after reconnect", () => {
+  it("restores each active room once and requests one resync after reconnect", () => {
     renderProvider("conversation-1");
     act(() => socketHarness.socketListeners.emit("connect"));
     socketHarness.socket.emit.mockClear();
@@ -162,6 +164,7 @@ describe("CommunicationRealtimeProvider", () => {
       "communication.chat.conversation.join",
       { conversationId: "conversation-1" },
     );
+    expect(screen.getByTestId("resync-version")).toHaveTextContent("1");
   });
 
   it("does not reconnect when a token notification keeps the same value", () => {

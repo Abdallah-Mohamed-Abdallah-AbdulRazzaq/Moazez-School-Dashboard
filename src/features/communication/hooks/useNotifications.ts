@@ -393,7 +393,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   }, [addRealtimeNotification, isBackground, isBackgroundRefreshForbidden, socket]);
 
   useEffect(() => {
-    if (resyncVersion === 0) return;
+    if (
+      resyncVersion === 0 ||
+      (isBackground && isBackgroundRefreshForbidden)
+    ) {
+      return;
+    }
 
     let cancelled = false;
     void Promise.resolve().then(() => {
@@ -405,7 +410,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     return () => {
       cancelled = true;
     };
-  }, [isBackground, refresh, resyncVersion]);
+  }, [
+    isBackground,
+    isBackgroundRefreshForbidden,
+    refresh,
+    resyncVersion,
+  ]);
 
   const markAllRead = useCallback(async () => {
     setIsMutating(true);
