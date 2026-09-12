@@ -40,6 +40,27 @@ const SWIPE_REPLY_THRESHOLD = 64;
 const SWIPE_REPLY_MAX_OFFSET = 88;
 const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
 
+function messageBodyForDisplay(message: ConversationMessage): string {
+  const body = message.body ?? "";
+  if (!body) return body;
+
+  try {
+    const parsedBody = JSON.parse(body) as unknown;
+    if (
+      typeof parsedBody === "object" &&
+      parsedBody !== null &&
+      "kind" in parsedBody &&
+      parsedBody.kind === "voice_metadata"
+    ) {
+      return "";
+    }
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+  }
+
+  return body;
+}
+
 function replyPreviewBody(
   message: ConversationMessage | undefined,
   labels: ConversationRedesignLabels,
@@ -135,6 +156,7 @@ export function MessageBubble({
   );
   const normStatus = normalizeStatus(message.status);
   const deleted = normStatus === "deleted" || normStatus === "hidden";
+  const visibleMessageBody = messageBodyForDisplay(message);
   const canMutateOwnMessage =
     isOwn &&
     !deleted &&
@@ -490,17 +512,17 @@ export function MessageBubble({
                   : labels.errorMessageHidden}
               </span>
             </p>
-          ) : (
+          ) : visibleMessageBody ? (
             <>
               <MessageText
                 isOwn={isOwn}
-                text={message.body ?? ""}
+                text={visibleMessageBody}
                 readMoreLabel={labels.readMore}
                 showLessLabel={labels.showLess}
               />
-              <LinkPreviewCard isOwn={isOwn} text={message.body ?? ""} />
+              <LinkPreviewCard isOwn={isOwn} text={visibleMessageBody} />
             </>
-          )}
+          ) : null}
 
           {!deleted && attachments.length > 0 ? (
             <div className="mt-3 space-y-2">
