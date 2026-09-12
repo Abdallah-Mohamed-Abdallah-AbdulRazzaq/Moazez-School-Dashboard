@@ -93,6 +93,14 @@ function expectEveryOverviewRequestOnce() {
   expect(apiMocks.getRestrictions).toHaveBeenCalledOnce();
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 describe("useCommunicationOverview realtime refresh", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -183,6 +191,48 @@ describe("useCommunicationOverview realtime refresh", () => {
     await flushRequests();
 
     expectEveryOverviewRequestOnce();
+  });
+
+  it("does not duplicate the initial refresh for an existing resync version", async () => {
+    render(<OverviewTestProvider resyncVersion={3} />);
+    await flushRequests();
+
+    expectEveryOverviewRequestOnce();
+  });
+
+  it("replaces a pending targeted refresh with one full resync", async () => {
+    const renderedOverview = render(<OverviewTestProvider />);
+    await flushRequests();
+    clearApiMocks();
+
+    act(() => socketHarness.emitServer("communication.chat.message.created"));
+    renderedOverview.rerender(<OverviewTestProvider resyncVersion={1} />);
+    await flushRequests();
+    act(() => vi.advanceTimersByTime(500));
+    await flushRequests();
+
+    expectEveryOverviewRequestOnce();
+  });
+
+  it("does not let an older refresh overwrite newer realtime data", async () => {
+    const initialConversations = deferred<typeof emptyList>();
+    apiMocks.getConversations
+      .mockReturnValueOnce(initialConversations.promise)
+      .mockResolvedValueOnce({ items: [], total: 9 });
+    render(<OverviewTestProvider />);
+    await flushRequests();
+
+    act(() => {
+      socketHarness.emitServer("communication.chat.message.created");
+      vi.advanceTimersByTime(500);
+    });
+    await flushRequests();
+    expect(screen.getByTestId("conversation-total")).toHaveTextContent("9");
+
+    initialConversations.resolve({ items: [], total: 1 });
+    await flushRequests();
+
+    expect(screen.getByTestId("conversation-total")).toHaveTextContent("9");
   });
 
   it("preserves unrelated data when a targeted request fails", async () => {

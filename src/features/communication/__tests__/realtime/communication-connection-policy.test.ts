@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyConnectionFailure,
+  reconnectDelayForAttempt,
   retryDelayFromError,
 } from "@/features/communication/realtime/communication-connection-policy";
 
@@ -37,5 +38,11 @@ describe("communication connection policy", () => {
     [{ data: { retryAfter: "15" } }, undefined],
   ])("parses supported retry delay %#", (error, expectedDelay) => {
     expect(retryDelayFromError(error)).toBe(expectedDelay);
+  });
+
+  it("applies capped exponential backoff with deterministic jitter", () => {
+    expect(reconnectDelayForAttempt(0, () => 0)).toBe(500);
+    expect(reconnectDelayForAttempt(1, () => 0.5)).toBe(2_000);
+    expect(reconnectDelayForAttempt(20, () => 1)).toBe(30_000);
   });
 });

@@ -40,9 +40,10 @@ type OverviewResourceLoader = () => Promise<{
   error: string | null;
 }>;
 
-interface OverviewRefreshResponse {
-  refreshedData: Partial<CommunicationOverviewData>;
-  errors: string[];
+interface OverviewResourceResponse {
+  resourceKey: OverviewResourceKey;
+  resourceData: unknown;
+  error: string | null;
 }
 
 const EMPTY_LIST = {
@@ -185,31 +186,61 @@ const OVERVIEW_RESOURCE_LOADERS: Record<
 
 async function fetchOverviewResources(
   resourceKeys: readonly OverviewResourceKey[],
-): Promise<OverviewRefreshResponse> {
-  const resourceResponses = await Promise.all(
+): Promise<OverviewResourceResponse[]> {
+  return Promise.all(
     resourceKeys.map(async (resourceKey) => ({
       resourceKey,
       ...(await OVERVIEW_RESOURCE_LOADERS[resourceKey]()),
     })),
   );
-  const refreshedEntries = resourceResponses
+}
+
+function initialResourceGenerations(): Record<OverviewResourceKey, number> {
+  return Object.fromEntries(
+    ALL_OVERVIEW_RESOURCES.map((resourceKey) => [resourceKey, 0]),
+  ) as Record<OverviewResourceKey, number>;
+}
+
+function advanceResourceGenerations(
+  generations: Record<OverviewResourceKey, number>,
+  resourceKeys: readonly OverviewResourceKey[],
+) {
+  return new Map(
+    resourceKeys.map((resourceKey) => {
+      const generation = generations[resourceKey] + 1;
+      generations[resourceKey] = generation;
+      return [resourceKey, generation] as const;
+    }),
+  );
+}
+
+function selectCurrentResponses(
+  responses: OverviewResourceResponse[],
+  generations: Record<OverviewResourceKey, number>,
+  requestedGenerations: ReadonlyMap<OverviewResourceKey, number>,
+) {
+  return responses.filter(
+    ({ resourceKey }) =>
+      generations[resourceKey] === requestedGenerations.get(resourceKey),
+  );
+}
+
+function successfulRefreshData(responses: OverviewResourceResponse[]) {
+  const refreshedEntries = responses
     .filter((response) => !response.error)
     .map(({ resourceKey, resourceData }) => [resourceKey, resourceData]);
-
-  return {
-    refreshedData: Object.fromEntries(
-      refreshedEntries,
-    ) as Partial<CommunicationOverviewData>,
-    errors: resourceResponses
-      .map((response) => response.error)
-      .filter((error): error is string => Boolean(error)),
-  };
+  return Object.fromEntries(
+    refreshedEntries,
+  ) as Partial<CommunicationOverviewData>;
 }
 
 export function useCommunicationOverview() {
   const { socket, resyncVersion } = useCommunicationSocket();
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingResourceKeysRef = useRef(new Set<OverviewResourceKey>());
+  const resourceGenerationsRef = useRef(initialResourceGenerations());
+  const activeRefreshCountRef = useRef(0);
+  const previousResyncVersionRef = useRef(resyncVersion);
   const mountedRef = useRef(false);
   const [data, setData] = useState<CommunicationOverviewData>(() => ({
     adminOverview: null,
@@ -225,28 +256,54 @@ export function useCommunicationOverview() {
 
   const refreshResources = useCallback(
     async (resourceKeys: readonly OverviewResourceKey[]) => {
+      const requestedGenerations = advanceResourceGenerations(
+        resourceGenerationsRef.current,
+        resourceKeys,
+      );
+      activeRefreshCountRef.current += 1;
       setIsRefreshing(true);
       setError(null);
-      const refreshResponse = await fetchOverviewResources(resourceKeys);
+      const resourceResponses = await fetchOverviewResources(resourceKeys);
+      activeRefreshCountRef.current -= 1;
       if (!mountedRef.current) return;
 
-      setData((currentData) => ({
-        ...currentData,
-        ...refreshResponse.refreshedData,
-      }));
-      setError(refreshResponse.errors[0] ?? null);
-      setIsLoading(false);
-      setIsRefreshing(false);
+      const currentResponses = selectCurrentResponses(
+        resourceResponses,
+        resourceGenerationsRef.current,
+        requestedGenerations,
+      );
+      if (currentResponses.length > 0) {
+        setData((currentData) => ({
+          ...currentData,
+          ...successfulRefreshData(currentResponses),
+        }));
+        setError(
+          currentResponses.find((response) => response.error)?.error ?? null,
+        );
+        setIsLoading(false);
+      }
+      setIsRefreshing(activeRefreshCountRef.current > 0);
       logRealtimeEvent("overview_refresh_completed", {
-        resourceCount: resourceKeys.length,
+        resourceCount: currentResponses.length,
       });
     },
     [],
   );
 
+  const cancelScheduledRefresh = useCallback(() => {
+    if (refreshTimerRef.current !== null) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    pendingResourceKeysRef.current.clear();
+  }, []);
+
   const refresh = useCallback(
-    () => refreshResources(ALL_OVERVIEW_RESOURCES),
-    [refreshResources],
+    () => {
+      cancelScheduledRefresh();
+      return refreshResources(ALL_OVERVIEW_RESOURCES);
+    },
+    [cancelScheduledRefresh, refreshResources],
   );
 
   const scheduleResourceRefresh = useCallback(
@@ -254,7 +311,7 @@ export function useCommunicationOverview() {
       resourceKeys.forEach((resourceKey) =>
         pendingResourceKeysRef.current.add(resourceKey),
       );
-      if (refreshTimerRef.current) return;
+      if (refreshTimerRef.current !== null) return;
 
       logRealtimeEvent("overview_refresh_scheduled", {
         resourceCount: pendingResourceKeysRef.current.size,
@@ -275,13 +332,15 @@ export function useCommunicationOverview() {
     void Promise.resolve().then(refresh);
     return () => {
       mountedRef.current = false;
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      cancelScheduledRefresh();
       pendingResourceKeys.clear();
     };
-  }, [refresh]);
+  }, [cancelScheduledRefresh, refresh]);
 
   useEffect(() => {
-    if (resyncVersion > 0) void Promise.resolve().then(refresh);
+    if (previousResyncVersionRef.current === resyncVersion) return;
+    previousResyncVersionRef.current = resyncVersion;
+    void Promise.resolve().then(refresh);
   }, [refresh, resyncVersion]);
 
   useEffect(() => {

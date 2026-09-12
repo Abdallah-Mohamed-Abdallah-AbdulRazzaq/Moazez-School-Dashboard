@@ -71,3 +71,19 @@ export function retryDelayFromError(error: unknown): number | undefined {
   }
   return undefined;
 }
+
+export function reconnectDelayForAttempt(
+  attempt: number,
+  random: () => number = Math.random,
+): number {
+  const exponentialDelay = Math.min(
+    RECONNECTION_DELAY_MS * 2 ** Math.max(0, attempt),
+    RECONNECTION_DELAY_MAX_MS,
+  );
+  const jitterMultiplier =
+    1 + RECONNECTION_RANDOMIZATION_FACTOR * (2 * random() - 1);
+  return Math.min(
+    Math.round(exponentialDelay * jitterMultiplier),
+    RECONNECTION_DELAY_MAX_MS,
+  );
+}

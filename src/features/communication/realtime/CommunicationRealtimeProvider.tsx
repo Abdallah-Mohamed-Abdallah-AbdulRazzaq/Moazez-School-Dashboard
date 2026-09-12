@@ -39,10 +39,6 @@ export interface CommunicationRealtimeContextValue {
 export const CommunicationRealtimeContext =
   createContext<CommunicationRealtimeContextValue | null>(null);
 
-function deferStateUpdate(updateState: () => void) {
-  window.setTimeout(updateState, 0);
-}
-
 function socketExceptionMessage(payload: unknown): string {
   if (!payload || typeof payload !== "object") {
     return "Realtime room request failed.";
@@ -72,11 +68,27 @@ export function CommunicationRealtimeProvider({
   const sessionRef = useRef<CommunicationSocketSession | null>(null);
   const roomSubscriberCountsRef = useRef<Map<string, number>>(new Map());
   const serverRoomIdsRef = useRef<Set<string>>(new Set());
+  const deferredStateTimersRef = useRef<Set<number>>(new Set());
   const [socket, setSocket] = useState<CommunicationSocket | null>(null);
   const [connectionState, setConnectionState] =
     useState<CommunicationConnectionState>("idle");
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [resyncVersion, setResyncVersion] = useState(0);
+
+  const clearDeferredStateUpdates = useCallback(() => {
+    deferredStateTimersRef.current.forEach((timer) =>
+      window.clearTimeout(timer),
+    );
+    deferredStateTimersRef.current.clear();
+  }, []);
+
+  const deferStateUpdate = useCallback((updateState: () => void) => {
+    const timer = window.setTimeout(() => {
+      deferredStateTimersRef.current.delete(timer);
+      updateState();
+    }, 0);
+    deferredStateTimersRef.current.add(timer);
+  }, []);
 
   const emitConversationJoin = useCallback(
     (activeSocket: CommunicationSocket, conversationId: string) => {
@@ -107,6 +119,7 @@ export function CommunicationRealtimeProvider({
 
   useEffect(() => {
     if (typeof window === "undefined" || isLoading) return;
+    clearDeferredStateUpdates();
     const roomSubscriberCounts = roomSubscriberCountsRef.current;
     const serverRoomIds = serverRoomIdsRef.current;
     const token = getCommunicationAccessToken();
@@ -122,7 +135,7 @@ export function CommunicationRealtimeProvider({
         setConnectionError(null);
         setConnectionState("idle");
       });
-      return;
+      return clearDeferredStateUpdates;
     }
 
     const nextSocket = createCommunicationSocket(token);
@@ -164,8 +177,16 @@ export function CommunicationRealtimeProvider({
       if (socketRef.current === nextSocket) socketRef.current = null;
       roomSubscriberCounts.clear();
       serverRoomIds.clear();
+      clearDeferredStateUpdates();
     };
-  }, [isAuthenticated, isLoading, restoreActiveRooms, user?.id]);
+  }, [
+    clearDeferredStateUpdates,
+    deferStateUpdate,
+    isAuthenticated,
+    isLoading,
+    restoreActiveRooms,
+    user?.id,
+  ]);
 
   const joinConversation = useCallback(
     (conversationId: string) => {

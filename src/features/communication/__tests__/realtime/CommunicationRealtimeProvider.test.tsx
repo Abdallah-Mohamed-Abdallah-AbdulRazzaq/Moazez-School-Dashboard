@@ -46,6 +46,7 @@ const socketHarness = vi.hoisted(() => {
     removeAllListeners: vi.fn(() => managerListeners.clear()),
   };
   const socket = {
+    active: false,
     auth: { token: "token-1" } as Record<string, unknown>,
     connected: false,
     connect: vi.fn(),
@@ -133,6 +134,7 @@ describe("CommunicationRealtimeProvider", () => {
     socketHarness.managerListeners.clear();
     socketHarness.socketListeners.clear();
     socketHarness.socket.auth = { token: "token-1" };
+    socketHarness.socket.active = false;
     socketHarness.socket.connected = false;
     Object.defineProperty(navigator, "onLine", {
       configurable: true,
@@ -142,6 +144,7 @@ describe("CommunicationRealtimeProvider", () => {
 
   afterEach(() => {
     localStorage.clear();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -325,5 +328,90 @@ describe("CommunicationRealtimeProvider", () => {
 
     expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
     expect(screen.getByText("no-error")).toBeInTheDocument();
+  });
+
+  it("automatically retries a temporary namespace connection failure", () => {
+    renderProvider();
+    socketHarness.socket.connect.mockClear();
+
+    act(() =>
+      socketHarness.socketListeners.emit(
+        "connect_error",
+        new Error("Namespace unavailable"),
+      ),
+    );
+    act(() => vi.advanceTimersByTime(1_500));
+
+    expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
+  });
+
+  it("leaves active transport recovery to the socket manager", () => {
+    renderProvider();
+    socketHarness.socket.active = true;
+    socketHarness.socket.connect.mockClear();
+
+    act(() =>
+      socketHarness.socketListeners.emit(
+        "connect_error",
+        new Error("Transport unavailable"),
+      ),
+    );
+    act(() => vi.advanceTimersByTime(1_500));
+
+    expect(socketHarness.socket.connect).not.toHaveBeenCalled();
+  });
+
+  it("automatically retries after a server-initiated disconnect", () => {
+    renderProvider();
+    socketHarness.socket.connect.mockClear();
+
+    act(() =>
+      socketHarness.socketListeners.emit("disconnect", "io server disconnect"),
+    );
+    act(() => vi.advanceTimersByTime(1_500));
+
+    expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
+  });
+
+  it("enters cooldown after the bounded namespace retry cycle", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    renderProvider();
+    socketHarness.socket.connect.mockClear();
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      act(() =>
+        socketHarness.socketListeners.emit(
+          "connect_error",
+          new Error("Namespace unavailable"),
+        ),
+      );
+      act(() => vi.advanceTimersByTime(30_000));
+    }
+    expect(socketHarness.socket.connect).toHaveBeenCalledTimes(8);
+
+    act(() =>
+      socketHarness.socketListeners.emit(
+        "connect_error",
+        new Error("Namespace unavailable"),
+      ),
+    );
+    expect(screen.getByTestId("state")).toHaveTextContent("degraded");
+    act(() => vi.advanceTimersByTime(59_999));
+    expect(socketHarness.socket.connect).toHaveBeenCalledTimes(8);
+    act(() => vi.advanceTimersByTime(1));
+    expect(socketHarness.socket.connect).toHaveBeenCalledTimes(9);
+  });
+
+  it("clears deferred provider state updates during teardown", () => {
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+    const renderedProvider = render(
+      <CommunicationRealtimeProvider>
+        <RealtimeProbe />
+      </CommunicationRealtimeProvider>,
+    );
+
+    renderedProvider.unmount();
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
   });
 });

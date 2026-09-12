@@ -1,6 +1,8 @@
 import { subscribeToAccessTokenChanges } from "@/lib/token-storage";
 import {
   classifyConnectionFailure,
+  reconnectDelayForAttempt,
+  RECONNECTION_ATTEMPTS,
   RECONNECTION_COOLDOWN_MS,
   retryDelayFromError,
   type CommunicationConnectionState,
@@ -39,6 +41,8 @@ export class CommunicationSocketSession {
   private authBlockedToken: string | null = null;
   private cooldownTimer: number | null = null;
   private hasConnected = false;
+  private reconnectAttempt = 0;
+  private reconnectTimer: number | null = null;
   private releaseSocketOwner: () => void = () => undefined;
   private stopped = false;
   private unsubscribeAccessToken: () => void = () => undefined;
@@ -66,7 +70,7 @@ export class CommunicationSocketSession {
     if (this.stopped) return;
     this.stopped = true;
     const { socket } = this.options;
-    this.clearCooldown();
+    this.resetReconnectCycle();
     this.unsubscribeAccessToken();
     window.removeEventListener("offline", this.goOffline);
     window.removeEventListener("online", this.goOnline);
@@ -86,7 +90,7 @@ export class CommunicationSocketSession {
     if (socket.connected || !navigator.onLine || !token) return;
     if (this.authBlockedToken === token) return;
 
-    this.clearCooldown();
+    this.resetReconnectCycle();
     this.options.updateError(null);
     socket.io.reconnection(true);
     this.updateState("connecting");
@@ -94,9 +98,21 @@ export class CommunicationSocketSession {
   };
 
   private clearCooldown() {
-    if (!this.cooldownTimer) return;
+    if (this.cooldownTimer === null) return;
     window.clearTimeout(this.cooldownTimer);
     this.cooldownTimer = null;
+  }
+
+  private clearReconnectTimer() {
+    if (this.reconnectTimer === null) return;
+    window.clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+  }
+
+  private resetReconnectCycle() {
+    this.clearCooldown();
+    this.clearReconnectTimer();
+    this.reconnectAttempt = 0;
   }
 
   private updateState(state: CommunicationConnectionState) {
@@ -106,7 +122,7 @@ export class CommunicationSocketSession {
 
   private onConnect = () => {
     const isRecovery = this.hasConnected;
-    this.clearCooldown();
+    this.resetReconnectCycle();
     this.authBlockedToken = null;
     this.hasConnected = true;
     this.options.socket.io.reconnection(true);
@@ -126,6 +142,9 @@ export class CommunicationSocketSession {
         : "reconnecting";
     this.updateState(state);
     logRealtimeEvent("disconnected", { reason });
+    if (reason === "io server disconnect" && navigator.onLine) {
+      this.scheduleTemporaryReconnect();
+    }
   };
 
   private onConnectError = (error: Error) => {
@@ -143,6 +162,7 @@ export class CommunicationSocketSession {
       return;
     }
     this.updateState("reconnecting");
+    if (!this.options.socket.active) this.scheduleTemporaryReconnect();
   };
 
   private pauseForAuthentication() {
@@ -163,12 +183,39 @@ export class CommunicationSocketSession {
   };
 
   private scheduleReconnect(delayMs: number) {
-    this.clearCooldown();
+    this.resetReconnectCycle();
     this.options.socket.io.reconnection(false);
     this.updateState("degraded");
     logRealtimeEvent("cooldown_started", { delayMs });
     this.cooldownTimer = window.setTimeout(this.resumeAfterCooldown, delayMs);
   }
+
+  private scheduleTemporaryReconnect() {
+    if (this.reconnectTimer !== null || this.cooldownTimer !== null) return;
+    if (this.reconnectAttempt >= RECONNECTION_ATTEMPTS) {
+      this.scheduleReconnect(RECONNECTION_COOLDOWN_MS);
+      return;
+    }
+
+    const delayMs = reconnectDelayForAttempt(this.reconnectAttempt);
+    this.reconnectAttempt += 1;
+    this.options.socket.io.reconnection(false);
+    this.updateState("reconnecting");
+    logRealtimeEvent("reconnect_attempt_scheduled", {
+      attempt: this.reconnectAttempt,
+      delayMs,
+    });
+    this.reconnectTimer = window.setTimeout(this.runScheduledReconnect, delayMs);
+  }
+
+  private runScheduledReconnect = () => {
+    this.reconnectTimer = null;
+    if (this.stopped) return;
+    const token = getCommunicationAccessToken();
+    if (!navigator.onLine || !token || this.authBlockedToken === token) return;
+    this.options.socket.io.reconnection(true);
+    this.options.socket.connect();
+  };
 
   private resumeAfterCooldown = () => {
     this.cooldownTimer = null;
@@ -184,7 +231,7 @@ export class CommunicationSocketSession {
     if (this.stopped) return;
     const token = getCommunicationAccessToken();
     if (token === socketToken(this.options.socket)) return;
-    this.clearCooldown();
+    this.resetReconnectCycle();
     if (!token) {
       this.stop();
       this.options.detachSocket();
@@ -200,7 +247,7 @@ export class CommunicationSocketSession {
   };
 
   private goOffline = () => {
-    this.clearCooldown();
+    this.resetReconnectCycle();
     this.options.socket.io.reconnection(false);
     this.options.socket.disconnect();
     this.updateState("offline");
