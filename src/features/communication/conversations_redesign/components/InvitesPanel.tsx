@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
-import { ActionButton, PanelLayout, PanelState, StatusPill } from "@/features/communication/conversations_redesign/components/PanelLayout";
+import { ActionButton, PanelErrorState, PanelLayout, PanelState, StatusPill } from "@/features/communication/conversations_redesign/components/PanelLayout";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { UserDisplayNameMap } from "@/features/communication/conversations_redesign/types";
 import type { ConversationInvite } from "@/features/communication/types/conversation.types";
@@ -20,6 +20,7 @@ export default function InvitesPanel({
   onAcceptInvite,
   onCreateInvite,
   onRejectInvite,
+  onRetry,
   total,
   userDisplayNames,
   isActiveParticipant,
@@ -36,6 +37,7 @@ export default function InvitesPanel({
   onAcceptInvite: (invite: ConversationInvite) => Promise<unknown>;
   onCreateInvite: () => void;
   onRejectInvite: (invite: ConversationInvite) => void;
+  onRetry?: () => void;
   total: number;
   userDisplayNames: UserDisplayNameMap;
   isActiveParticipant?: boolean;
@@ -55,7 +57,9 @@ export default function InvitesPanel({
       title={`${labels.invites} (${total || invites.length})`}
     >
       {isLoading ? <PanelState label={labels.loading} /> : null}
-      {error ? <PanelState label={error} /> : null}
+      {error ? (
+        <PanelErrorState error={error} labels={labels} onRetry={onRetry} />
+      ) : null}
       {!isLoading && !error ? (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           {invites.length === 0 ? <PanelState label={labels.invites} /> : null}

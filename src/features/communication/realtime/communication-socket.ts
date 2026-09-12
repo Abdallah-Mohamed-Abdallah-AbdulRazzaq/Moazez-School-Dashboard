@@ -3,6 +3,12 @@
 import { io, type Socket } from "socket.io-client";
 import { tokenStorage } from "@/lib/token-storage";
 import { COMMUNICATION_SOCKET_EVENTS } from "./communication-events";
+import {
+  RECONNECTION_ATTEMPTS,
+  RECONNECTION_DELAY_MAX_MS,
+  RECONNECTION_DELAY_MS,
+  RECONNECTION_RANDOMIZATION_FACTOR,
+} from "./communication-connection-policy";
 
 const REALTIME_TRANSPORTS = ["websocket", "polling"] as const;
 
@@ -143,6 +149,10 @@ export function createCommunicationSocket(
     },
     transports: [...REALTIME_TRANSPORTS],
     reconnection: true,
+    reconnectionAttempts: RECONNECTION_ATTEMPTS,
+    reconnectionDelay: RECONNECTION_DELAY_MS,
+    reconnectionDelayMax: RECONNECTION_DELAY_MAX_MS,
+    randomizationFactor: RECONNECTION_RANDOMIZATION_FACTOR,
     withCredentials: true,
     ...(COMMUNICATION_REALTIME_SOCKET_PATH
       ? { path: COMMUNICATION_REALTIME_SOCKET_PATH }

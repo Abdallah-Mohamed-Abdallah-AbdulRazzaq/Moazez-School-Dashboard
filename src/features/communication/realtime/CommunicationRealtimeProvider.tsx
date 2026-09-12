@@ -10,20 +10,23 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import type { CommunicationConnectionState } from "./communication-connection-policy";
+import {
+  logRealtimeEvent,
+  warnDuplicateRoomJoin,
+} from "./communication-realtime-diagnostics";
 import { COMMUNICATION_SOCKET_EVENTS } from "./communication-events";
 import {
-  COMMUNICATION_REALTIME_DEBUG,
-  COMMUNICATION_REALTIME_SOCKET_PATH,
-  COMMUNICATION_REALTIME_URL,
   createCommunicationSocket,
   getCommunicationAccessToken,
-  getCommunicationRealtimeNamespace,
   type CommunicationSocket,
 } from "./communication-socket";
+import { CommunicationSocketSession } from "./communication-socket-session";
 
 export interface CommunicationRealtimeContextValue {
   socket: CommunicationSocket | null;
   isConnected: boolean;
+  connectionState: CommunicationConnectionState;
   connectionError: string | null;
   resyncVersion: number;
   retryConnection: () => void;
@@ -36,43 +39,11 @@ export interface CommunicationRealtimeContextValue {
 export const CommunicationRealtimeContext =
   createContext<CommunicationRealtimeContextValue | null>(null);
 
-function disconnectSocket(socket: CommunicationSocket | null) {
-  if (!socket) return;
-  socket.removeAllListeners();
-  socket.io.removeAllListeners();
-  socket.disconnect();
-}
-
-function deferStateUpdate(update: () => void) {
-  if (typeof window === "undefined") return;
-  window.queueMicrotask(update);
-}
-
-function getTransportName(socket: CommunicationSocket | null): string | undefined {
-  return socket?.io.engine?.transport?.name;
-}
-
-function logConnectError(error: Error, socket: CommunicationSocket | null) {
-  if (!COMMUNICATION_REALTIME_DEBUG) return;
-
-  console.info("[communication socket] connect_error", {
-    message: error.message,
-    name: error.name,
-    socketId: socket?.id,
-    connected: Boolean(socket?.connected),
-    transport: getTransportName(socket),
-    url: COMMUNICATION_REALTIME_URL,
-    namespace: getCommunicationRealtimeNamespace(),
-    path:
-      COMMUNICATION_REALTIME_SOCKET_PATH ??
-      "(socket.io default)",
-  });
-}
-
 function socketExceptionMessage(payload: unknown): string {
   if (!payload || typeof payload !== "object") {
     return "Realtime room request failed.";
   }
+
   const exception = payload as { code?: unknown; message?: unknown };
   const nestedException =
     exception.message && typeof exception.message === "object"
@@ -93,180 +64,163 @@ export function CommunicationRealtimeProvider({
   children: ReactNode;
 }) {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const userId = user?.id;
   const socketRef = useRef<CommunicationSocket | null>(null);
-  const joinedConversationIdsRef = useRef<Map<string, number>>(new Map());
+  const sessionRef = useRef<CommunicationSocketSession | null>(null);
+  const roomSubscriberCountsRef = useRef<Map<string, number>>(new Map());
+  const serverRoomIdsRef = useRef<Set<string>>(new Set());
+  const deferredStateTimersRef = useRef<Set<number>>(new Set());
   const [socket, setSocket] = useState<CommunicationSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [connectionState, setConnectionState] =
+    useState<CommunicationConnectionState>("idle");
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [resyncVersion, setResyncVersion] = useState(0);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || isLoading) {
-      return;
-    }
-
-    const token = getCommunicationAccessToken();
-
-    if (!isAuthenticated || !userId || !token) {
-      disconnectSocket(socketRef.current);
-      socketRef.current = null;
-      joinedConversationIdsRef.current.clear();
-      deferStateUpdate(() => {
-        setSocket(null);
-        setIsConnected(false);
-      });
-      return;
-    }
-
-    if (socketRef.current) {
-      const currentAuth = socketRef.current.auth as { token?: string };
-      if (currentAuth.token === token) {
-        if (!socketRef.current.connected) {
-          socketRef.current.connect();
-        }
-        return;
-      }
-
-      disconnectSocket(socketRef.current);
-      socketRef.current = null;
-      deferStateUpdate(() => {
-        setSocket(null);
-        setIsConnected(false);
-      });
-    }
-
-    const nextSocket = createCommunicationSocket(token);
-    if (!nextSocket) {
-      return;
-    }
-
-    let hasConnected = false;
-    nextSocket.on("connect", () => {
-      const isReconnect = hasConnected;
-      hasConnected = true;
-      setIsConnected(true);
-      setConnectionError(null);
-      joinedConversationIdsRef.current.forEach((_, conversationId) => {
-        nextSocket.emit(COMMUNICATION_SOCKET_EVENTS.conversationJoin, {
-          conversationId,
-        });
-      });
-      if (isReconnect) {
-        setResyncVersion((version) => version + 1);
-      }
-    });
-
-    nextSocket.on("disconnect", () => {
-      setIsConnected(false);
-    });
-
-    nextSocket.on("connect_error", (error) => {
-      setIsConnected(false);
-      setConnectionError(error.message);
-      logConnectError(error, nextSocket);
-    });
-
-    nextSocket.on("exception", (payload) => {
-      setConnectionError(socketExceptionMessage(payload));
-    });
-
-    socketRef.current = nextSocket;
-    deferStateUpdate(() => setSocket(nextSocket));
-    nextSocket.connect();
-
-    return () => {
-      disconnectSocket(nextSocket);
-      if (socketRef.current === nextSocket) {
-        socketRef.current = null;
-        deferStateUpdate(() => {
-          setSocket(null);
-          setIsConnected(false);
-        });
-      }
-    };
-  }, [isAuthenticated, isLoading, userId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const synchronizeSocketToken = () => {
-      const token = getCommunicationAccessToken();
-      const activeSocket = socketRef.current;
-      if (token && activeSocket) {
-        const currentAuth = activeSocket.auth as { token?: string };
-        if (currentAuth.token === token) {
-          return;
-        }
-        activeSocket.auth = { ...currentAuth, token };
-        activeSocket.disconnect();
-        activeSocket.connect();
-        return;
-      }
-
-      if (token) return;
-      disconnectSocket(activeSocket);
-      socketRef.current = null;
-      joinedConversationIdsRef.current.clear();
-      setSocket(null);
-      setIsConnected(false);
-    };
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key && !event.key.includes("moazez_access_token")) {
-        return;
-      }
-
-      synchronizeSocketToken();
-    };
-
-    const intervalId = window.setInterval(synchronizeSocketToken, 5000);
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener("storage", handleStorage);
-    };
+  const clearDeferredStateUpdates = useCallback(() => {
+    deferredStateTimersRef.current.forEach((timer) =>
+      window.clearTimeout(timer),
+    );
+    deferredStateTimersRef.current.clear();
   }, []);
 
-  const emitRoomEvent = useCallback(
-    (
-      event:
-        | typeof COMMUNICATION_SOCKET_EVENTS.conversationJoin
-        | typeof COMMUNICATION_SOCKET_EVENTS.conversationLeave,
-      conversationId: string,
-    ) => {
-      if (!conversationId) return;
-      const refCounts = joinedConversationIdsRef.current;
+  const deferStateUpdate = useCallback((updateState: () => void) => {
+    const timer = window.setTimeout(() => {
+      deferredStateTimersRef.current.delete(timer);
+      updateState();
+    }, 0);
+    deferredStateTimersRef.current.add(timer);
+  }, []);
 
-      if (event === COMMUNICATION_SOCKET_EVENTS.conversationJoin) {
-        const count = refCounts.get(conversationId) ?? 0;
-        refCounts.set(conversationId, count + 1);
-        // Only emit join if this is the first subscriber
-        if (count === 0) {
-          const activeSocket = socketRef.current;
-          if (activeSocket?.connected) {
-            activeSocket.emit(event, { conversationId });
-          }
-        }
-      } else {
-        const count = refCounts.get(conversationId) ?? 0;
-        const nextCount = Math.max(0, count - 1);
-        if (nextCount === 0) {
-          refCounts.delete(conversationId);
-          // Only emit leave if no one else needs this room
-          const activeSocket = socketRef.current;
-          if (activeSocket?.connected) {
-            activeSocket.emit(event, { conversationId });
-          }
-        } else {
-          refCounts.set(conversationId, nextCount);
-        }
+  const emitConversationJoin = useCallback(
+    (activeSocket: CommunicationSocket, conversationId: string) => {
+      if (serverRoomIdsRef.current.has(conversationId)) {
+        warnDuplicateRoomJoin(serverRoomIdsRef.current.size);
+        return;
       }
+      serverRoomIdsRef.current.add(conversationId);
+      activeSocket.emit(COMMUNICATION_SOCKET_EVENTS.conversationJoin, {
+        conversationId,
+      });
+      logRealtimeEvent("room_joined", {
+        currentRoomCount: serverRoomIdsRef.current.size,
+      });
     },
     [],
   );
+
+  const restoreActiveRooms = useCallback(
+    (activeSocket: CommunicationSocket) => {
+      serverRoomIdsRef.current.clear();
+      roomSubscriberCountsRef.current.forEach((_, conversationId) => {
+        emitConversationJoin(activeSocket, conversationId);
+      });
+    },
+    [emitConversationJoin],
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isLoading) return;
+    clearDeferredStateUpdates();
+    const roomSubscriberCounts = roomSubscriberCountsRef.current;
+    const serverRoomIds = serverRoomIdsRef.current;
+    const token = getCommunicationAccessToken();
+    if (!isAuthenticated || !user?.id || !token) {
+      sessionRef.current?.stop();
+      sessionRef.current = null;
+      socketRef.current = null;
+      roomSubscriberCounts.clear();
+      serverRoomIds.clear();
+      deferStateUpdate(() => {
+        if (socketRef.current) return;
+        setSocket(null);
+        setConnectionError(null);
+        setConnectionState("idle");
+      });
+      return clearDeferredStateUpdates;
+    }
+
+    const nextSocket = createCommunicationSocket(token);
+    if (!nextSocket) return;
+    socketRef.current = nextSocket;
+    deferStateUpdate(() => {
+      if (socketRef.current === nextSocket) setSocket(nextSocket);
+    });
+
+    const nextSession = new CommunicationSocketSession({
+      socket: nextSocket,
+      clearServerRooms: () => serverRoomIdsRef.current.clear(),
+      detachSocket: () => {
+        if (socketRef.current !== nextSocket) return;
+        socketRef.current = null;
+        setSocket(null);
+        setConnectionError(null);
+        setConnectionState("idle");
+        roomSubscriberCountsRef.current.clear();
+      },
+      incrementResyncVersion: () =>
+        setResyncVersion((version) => version + 1),
+      restoreActiveRooms,
+      updateError: setConnectionError,
+      updateState: setConnectionState,
+    });
+    sessionRef.current = nextSession;
+
+    const onException = (payload: unknown) => {
+      setConnectionError(socketExceptionMessage(payload));
+    };
+    nextSocket.on("exception", onException);
+    nextSession.start();
+
+    return () => {
+      nextSocket.off("exception", onException);
+      nextSession.stop();
+      if (sessionRef.current === nextSession) sessionRef.current = null;
+      if (socketRef.current === nextSocket) socketRef.current = null;
+      roomSubscriberCounts.clear();
+      serverRoomIds.clear();
+      clearDeferredStateUpdates();
+    };
+  }, [
+    clearDeferredStateUpdates,
+    deferStateUpdate,
+    isAuthenticated,
+    isLoading,
+    restoreActiveRooms,
+    user?.id,
+  ]);
+
+  const joinConversation = useCallback(
+    (conversationId: string) => {
+      if (!conversationId) return;
+      const subscriberCount =
+        roomSubscriberCountsRef.current.get(conversationId) ?? 0;
+      roomSubscriberCountsRef.current.set(conversationId, subscriberCount + 1);
+      const activeSocket = socketRef.current;
+      if (subscriberCount === 0 && activeSocket?.connected) {
+        emitConversationJoin(activeSocket, conversationId);
+      }
+    },
+    [emitConversationJoin],
+  );
+
+  const leaveConversation = useCallback((conversationId: string) => {
+    const subscriberCount =
+      roomSubscriberCountsRef.current.get(conversationId) ?? 0;
+    if (subscriberCount > 1) {
+      roomSubscriberCountsRef.current.set(conversationId, subscriberCount - 1);
+      return;
+    }
+
+    roomSubscriberCountsRef.current.delete(conversationId);
+    if (!serverRoomIdsRef.current.delete(conversationId)) return;
+    const activeSocket = socketRef.current;
+    if (!activeSocket?.connected) return;
+    activeSocket.emit(COMMUNICATION_SOCKET_EVENTS.conversationLeave, {
+      conversationId,
+    });
+    logRealtimeEvent("room_left", {
+      currentRoomCount: serverRoomIdsRef.current.size,
+    });
+  }, []);
 
   const emitTypingEvent = useCallback(
     (
@@ -287,30 +241,19 @@ export function CommunicationRealtimeProvider({
   );
 
   const retryConnection = useCallback(() => {
-    setConnectionError(null);
-    const activeSocket = socketRef.current;
-    if (!activeSocket?.connected) {
-      activeSocket?.connect();
-    }
+    sessionRef.current?.retry();
   }, []);
 
   const value = useMemo<CommunicationRealtimeContextValue>(
     () => ({
       socket,
-      isConnected,
+      isConnected: connectionState === "connected",
+      connectionState,
       connectionError,
       resyncVersion,
       retryConnection,
-      joinConversation: (conversationId) =>
-        emitRoomEvent(
-          COMMUNICATION_SOCKET_EVENTS.conversationJoin,
-          conversationId,
-        ),
-      leaveConversation: (conversationId) =>
-        emitRoomEvent(
-          COMMUNICATION_SOCKET_EVENTS.conversationLeave,
-          conversationId,
-        ),
+      joinConversation,
+      leaveConversation,
       startTyping: (conversationId, messageDraftId) =>
         emitTypingEvent(
           COMMUNICATION_SOCKET_EVENTS.typingStart,
@@ -325,13 +268,14 @@ export function CommunicationRealtimeProvider({
         ),
     }),
     [
-      socket,
-      isConnected,
       connectionError,
+      connectionState,
+      emitTypingEvent,
+      joinConversation,
+      leaveConversation,
       resyncVersion,
       retryConnection,
-      emitRoomEvent,
-      emitTypingEvent,
+      socket,
     ],
   );
 

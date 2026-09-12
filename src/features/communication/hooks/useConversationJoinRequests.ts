@@ -134,12 +134,12 @@ export function useConversationJoinRequests(
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!enabled) return;
     setIsRefreshing(true);
-    setError(null);
+    setLoadError(null);
     try {
       const response = await getJoinRequests(conversationId);
       const list = unwrapList<ConversationJoinRequest>(response);
@@ -149,7 +149,7 @@ export function useConversationJoinRequests(
       setTotal(list.total ?? nextJoinRequests.length);
     } catch (nextError) {
       if (!mountedRef.current) return;
-      setError(errorMessage(nextError));
+      setLoadError(errorMessage(nextError));
       setJoinRequests([]);
       setTotal(0);
     } finally {
@@ -163,13 +163,11 @@ export function useConversationJoinRequests(
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
       setIsMutating(true);
-      setError(null);
       try {
         const response = await operation();
         await refresh();
         return response;
       } catch (nextError) {
-        if (mountedRef.current) setError(errorMessage(nextError));
         throw nextError;
       } finally {
         if (mountedRef.current) setIsMutating(false);
@@ -235,7 +233,7 @@ export function useConversationJoinRequests(
     isLoading,
     isRefreshing,
     isMutating,
-    error,
+    error: loadError,
     refresh,
     create,
     approve,

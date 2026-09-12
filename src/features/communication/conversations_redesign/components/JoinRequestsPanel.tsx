@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
-import { ActionButton, PanelLayout, PanelState, StatusPill } from "@/features/communication/conversations_redesign/components/PanelLayout";
+import { ActionButton, PanelErrorState, PanelLayout, PanelState, StatusPill } from "@/features/communication/conversations_redesign/components/PanelLayout";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { UserDisplayNameMap } from "@/features/communication/conversations_redesign/types";
 import type { ConversationJoinRequest } from "@/features/communication/types/conversation.types";
@@ -17,6 +17,7 @@ export default function JoinRequestsPanel({
   locale,
   onCreateRequest,
   onReject,
+  onRetry,
   onReview,
   total,
   userDisplayNames,
@@ -30,6 +31,7 @@ export default function JoinRequestsPanel({
   locale: string;
   onCreateRequest: () => void;
   onReject: (request: ConversationJoinRequest) => void;
+  onRetry?: () => void;
   onReview: (request: ConversationJoinRequest) => void;
   total: number;
   userDisplayNames: UserDisplayNameMap;
@@ -49,7 +51,9 @@ export default function JoinRequestsPanel({
       title={`${labels.joinRequests} (${total || joinRequests.length})`}
     >
       {isLoading ? <PanelState label={labels.loading} /> : null}
-      {error ? <PanelState label={error} /> : null}
+      {error ? (
+        <PanelErrorState error={error} labels={labels} onRetry={onRetry} />
+      ) : null}
       {!isLoading && !error ? (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           {joinRequests.length === 0 ? (
