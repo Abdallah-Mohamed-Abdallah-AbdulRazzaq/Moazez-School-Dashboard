@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
+import PanelResizeHandle from "@/components/ui/panel/PanelResizeHandle";
 import ConversationSidebar, {
   type ConversationRedesignFilter,
   statusForRedesignFilter,
@@ -23,6 +24,7 @@ import type {
 import CreateConversationDialog from "@/features/communication/components/conversations/CreateConversationDialog";
 import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useResizablePanels } from "@/hooks/useResizablePanels";
 
 function filterConversations(
   conversations: ConversationListItemModel[],
@@ -59,7 +61,26 @@ export default function ConversationPage({
   initialConversationId = null,
 }: ConversationPageProps) {
   const locale = useLocale();
+  const isRTL = locale === "ar";
   const labels = labelsForLocale(locale);
+  const {
+    state: panelState,
+    containerRef,
+    handleResizeStart,
+    resizeLeftBy,
+  } = useResizablePanels({
+    defaultLeftWidth: 360,
+    defaultRightWidth: 0,
+    constraints: {
+      leftMin: 280,
+      leftMax: 640,
+      rightMin: 0,
+      rightMax: 0,
+      centerMin: 480,
+    },
+    storageKey: "conversation-sidebar-panel-widths",
+    isRTL,
+  });
   const conversationsState = useConversations();
   const realtimeState = useCommunicationSocket();
   const { hasPermission } = usePermissions();
@@ -78,16 +99,6 @@ export default function ConversationPage({
   );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
-
-  useEffect(() => {
-    conversationsState.setFilters({
-      search: "",
-      status: "all",
-      type: "all",
-    });
-    // The hook owns its initial fetch; this aligns it with the redesign default.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const selectedTypeFilter = conversationsState.filters.type ?? "all";
   const typeFilter = selectedTypeFilter === "all" ? "" : selectedTypeFilter;
@@ -108,10 +119,11 @@ export default function ConversationPage({
     if (!initialConversationId) return;
     if (initialConversationIdRef.current === initialConversationId) return;
     initialConversationIdRef.current = initialConversationId;
-    setSelectedConversationId(initialConversationId);
-    setShowMobileThread(true);
-    conversationsState.markAsRead(initialConversationId);
-  }, [initialConversationId, conversationsState]);
+    void Promise.resolve().then(() => {
+      setSelectedConversationId(initialConversationId);
+      setShowMobileThread(true);
+    });
+  }, [initialConversationId]);
 
   useEffect(() => {
     // Don't auto-select if user explicitly closed the conversation
@@ -196,10 +208,11 @@ export default function ConversationPage({
         }}
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div ref={containerRef} className="flex min-h-0 flex-1">
         <ConversationSidebar
           canCreateConversation={canCreateConversation}
-          className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:w-[360px] md:shrink-0`}
+          className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:shrink-0`}
+          desktopWidth={panelState.leftWidth}
           conversations={conversationsState.conversations}
           error={
             conversationsState.conversations.length === 0
@@ -219,13 +232,21 @@ export default function ConversationPage({
             userClosedRef.current = false;
             setSelectedConversationId(conversationId);
             setShowMobileThread(true);
-            conversationsState.markAsRead(conversationId);
           }}
           search={search}
           selectedConversationId={selectedConversationId}
           loadMore={conversationsState.loadMore}
           hasMore={conversationsState.hasMore}
         />
+
+        <div className="hidden md:flex">
+          <PanelResizeHandle
+            ariaLabel={labels.resizeConversationSidebar}
+            isRTL={isRTL}
+            onResizeStart={() => handleResizeStart("left")}
+            onResizeBy={resizeLeftBy}
+          />
+        </div>
 
         <section
           className={`${showMobileThread ? "flex" : "hidden"} min-w-0 flex-1 flex-col md:flex`}
@@ -236,6 +257,7 @@ export default function ConversationPage({
               conversationId={selectedConversationId}
               onBack={handleBackToList}
               labels={labels}
+              onConversationRead={conversationsState.markAsRead}
               onToast={setToast}
             />
           ) : (

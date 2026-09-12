@@ -54,6 +54,8 @@ import ReviewJoinRequestDialog, {
 import { getConversationPermissionFlags } from "@/features/communication/utils/conversation-permissions";
 import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import {
+  attachmentPolicyLimitMb,
+  communicationAttachmentErrorMessage,
   communicationErrorMessage,
   normalizeRole,
   normalizeStatus,
@@ -158,11 +160,13 @@ export default function ConversationDetail({
   conversationId,
   labels,
   onBack,
+  onConversationRead,
   onToast,
 }: {
   conversationId: string;
   labels: ConversationRedesignLabels;
   onBack: () => void;
+  onConversationRead?: (conversationId: string) => void;
   onToast: (toast: ToastState) => void;
 }) {
   const locale = useLocale();
@@ -237,14 +241,20 @@ export default function ConversationDetail({
       permissions.canManageInvites &&
       hasPermission("communication.participants.manage"),
   });
+  const canLoadJoinRequests =
+    (permissions.canReviewJoinRequests &&
+      hasPermission("communication.participants.manage")) ||
+    (permissions.canCreateJoinRequest &&
+      hasPermission("communication.conversations.view"));
   const joinRequestsState = useConversationJoinRequests(conversationId, {
-    enabled:
-      loadedTabs.joinRequests &&
-      permissions.canReviewJoinRequests &&
-      hasPermission("communication.participants.manage"),
+    enabled: loadedTabs.joinRequests && canLoadJoinRequests,
   });
   const canViewPolicy = hasPermission("communication.policies.view");
-  const { policy, isLoading: isPolicyLoading } = useCommunicationPolicy({
+  const {
+    policy,
+    isLoading: isPolicyLoading,
+    refresh: refreshPolicy,
+  } = useCommunicationPolicy({
     enabled: canViewPolicy,
     includeAdminOverview: false,
   });
@@ -369,24 +379,6 @@ export default function ConversationDetail({
     }
   }, [messagesState.error, onToast]);
 
-  useEffect(() => {
-    if (participantsState.error) {
-      onToast({ tone: "error", message: participantsState.error });
-    }
-  }, [participantsState.error, onToast]);
-
-  useEffect(() => {
-    if (invitesState.error) {
-      onToast({ tone: "error", message: invitesState.error });
-    }
-  }, [invitesState.error, onToast]);
-
-  useEffect(() => {
-    if (joinRequestsState.error) {
-      onToast({ tone: "error", message: joinRequestsState.error });
-    }
-  }, [joinRequestsState.error, onToast]);
-
   const refreshAll = useCallback(() => {
     void conversationState.refresh();
     void messagesState.refresh();
@@ -451,11 +443,13 @@ export default function ConversationDetail({
       }
 
       lastMarkedReadRef.current = latestFromOther.id;
-      void markConversationRead(conversationId).catch(() => {
-        if (lastMarkedReadRef.current === latestFromOther.id) {
-          lastMarkedReadRef.current = null;
-        }
-      });
+      void markConversationRead(conversationId)
+        .then(() => onConversationRead?.(conversationId))
+        .catch(() => {
+          if (lastMarkedReadRef.current === latestFromOther.id) {
+            lastMarkedReadRef.current = null;
+          }
+        });
     };
 
     markLatestVisibleMessageRead();
@@ -468,7 +462,13 @@ export default function ConversationDetail({
         markLatestVisibleMessageRead,
       );
     };
-  }, [activeTab, conversationId, messagesState.messages, user?.id]);
+  }, [
+    activeTab,
+    conversationId,
+    messagesState.messages,
+    onConversationRead,
+    user?.id,
+  ]);
 
   const handleTabChange = (tab: DetailTab) => {
     setActiveTab(tab);
@@ -921,7 +921,7 @@ export default function ConversationDetail({
             canLeaveConversation={canLeaveConversation}
             canManage={canManageParticipants}
             currentUserId={user?.id}
-            error={null}
+            error={participantsState.error}
             isLoading={participantsState.isLoading}
             labels={labels}
             locale={locale}
@@ -937,6 +937,7 @@ export default function ConversationDetail({
               setParticipantEditState({ mode: "promote", participant })
             }
             onRemoveParticipant={setParticipantToRemove}
+            onRetry={() => void participantsState.refresh()}
             participants={participantsState.participants}
             presenceByUserId={
               policy?.allowOnlinePresence === false
@@ -953,7 +954,7 @@ export default function ConversationDetail({
             canCreate={canManageInvites}
             canManage={canManageInvites}
             currentUserId={user?.id}
-            error={null}
+            error={invitesState.error}
             invites={invitesState.invites}
             isLoading={invitesState.isLoading}
             isMutating={invitesState.isMutating}
@@ -968,6 +969,7 @@ export default function ConversationDetail({
             }
             onCreateInvite={() => setIsInviteOpen(true)}
             onRejectInvite={setRejectInvite}
+            onRetry={() => void invitesState.refresh()}
             total={invitesState.total}
             userDisplayNames={userDisplayNames}
             isActiveParticipant={permissions.isActiveParticipant}
@@ -978,7 +980,7 @@ export default function ConversationDetail({
           <JoinRequestsPanel
             canCreate={canCreateJoinRequest}
             canReview={canReviewJoinRequests}
-            error={null}
+            error={joinRequestsState.error}
             isLoading={joinRequestsState.isLoading}
             joinRequests={joinRequestsState.joinRequests}
             labels={labels}
@@ -987,6 +989,7 @@ export default function ConversationDetail({
             onReject={(request) =>
               setReviewRequest({ mode: "reject", request })
             }
+            onRetry={() => void joinRequestsState.refresh()}
             onReview={(request) =>
               setReviewRequest({ mode: "approve", request })
             }
@@ -1074,12 +1077,12 @@ export default function ConversationDetail({
                 });
                 setReplyTo(null);
               } catch (error) {
+                if (attachmentPolicyLimitMb(error) !== undefined) {
+                  void refreshPolicy();
+                }
                 onToast({
                   tone: "error",
-                  message: communicationErrorMessage(
-                    error,
-                    labels.unableToUploadAttachment,
-                  ),
+                  message: communicationAttachmentErrorMessage(error, labels),
                 });
                 throw error;
               }

@@ -82,11 +82,25 @@ vi.mock("@/hooks/usePermissions", () => ({
 vi.mock(
   "@/features/communication/conversations_redesign/components/ConversationDetail",
   () => ({
-    default: ({ conversationId, onBack }: { conversationId: string; onBack: () => void }) => (
+    default: ({
+      conversationId,
+      onBack,
+      onConversationRead,
+    }: {
+      conversationId: string;
+      onBack: () => void;
+      onConversationRead?: (conversationId: string) => void;
+    }) => (
       <div data-testid="conversation-detail">
         <span data-testid="detail-conversation-id">{conversationId}</span>
         <button data-testid="back-button" onClick={onBack}>
           Back
+        </button>
+        <button
+          data-testid="confirm-read-button"
+          onClick={() => onConversationRead?.(conversationId)}
+        >
+          Confirm read
         </button>
       </div>
     ),
@@ -143,6 +157,7 @@ function createConversationListItem(
 describe("ConversationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.removeItem("conversation-sidebar-panel-widths");
     hasPermissionMock.mockReturnValue(true);
     mockConversationsState.conversations = [];
     mockConversationsState.total = 0;
@@ -220,6 +235,24 @@ describe("ConversationPage", () => {
 
     fireEvent.click(createButtons.at(-1)!);
     expect(screen.getByTestId("create-dialog")).toBeInTheDocument();
+  });
+
+  it("resizes the conversation sidebar from the keyboard", () => {
+    const { container } = render(<ConversationPage />);
+    const sidebar = container.querySelector("aside");
+
+    expect(
+      sidebar?.style.getPropertyValue("--conversation-sidebar-width"),
+    ).toBe("360px");
+
+    fireEvent.keyDown(
+      screen.getByRole("separator", { name: "Resize conversation sidebar" }),
+      { key: "ArrowRight" },
+    );
+
+    expect(
+      sidebar?.style.getPropertyValue("--conversation-sidebar-width"),
+    ).toBe("376px");
   });
 
   // ─── Property 2 (partial): Render Count During Initial Mount ─────────────
@@ -449,6 +482,12 @@ describe("ConversationPage", () => {
 
       const { container } = render(
         <ConversationPage initialConversationId="conv-initial" />,
+      );
+
+      expect(mockConversationsState.markAsRead).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId("confirm-read-button"));
+      expect(mockConversationsState.markAsRead).toHaveBeenCalledWith(
+        "conv-initial",
       );
 
       // Sidebar should be hidden on mobile (showMobileThread starts as true)

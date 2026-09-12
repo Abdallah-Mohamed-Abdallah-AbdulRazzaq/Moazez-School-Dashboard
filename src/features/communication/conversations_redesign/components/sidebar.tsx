@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   Check,
   ChevronDown,
@@ -40,6 +46,7 @@ export type ConversationRedesignFilter =
   | "closed";
 
 export interface ConversationSidebarProps {
+  desktopWidth: number;
   conversations: ConversationListItemModel[];
   error?: string | null;
   selectedConversationId?: string | null;
@@ -151,10 +158,22 @@ function lastMessagePreview(
   if (conversation.lastMessage.status === "deleted")
     return labels.messageDeleted;
   const body = conversation.lastMessage.body;
-  if (!body) return labels.noMessagesYet;
+  const type = conversation.lastMessage.type?.toLowerCase();
+  const preview = body
+    ? body
+    : type === "image"
+      ? labels.lastMessageImage
+      : type === "video"
+        ? labels.lastMessageVideo
+        : type === "voice" || type === "audio"
+          ? labels.lastMessageVoice
+          : type
+            ? labels.lastMessageAttachment
+            : labels.noMessagesYet;
+
   return conversation.lastMessage.senderName
-    ? `${conversation.lastMessage.senderName}: ${body}`
-    : body;
+    ? `${conversation.lastMessage.senderName}: ${preview}`
+    : preview;
 }
 
 function rowMatchesFilter(
@@ -218,6 +237,7 @@ function ConversationTypeBadge({
 export default function ConversationSidebar({
   canCreateConversation = true,
   className = "",
+  desktopWidth,
   conversations,
   error = null,
   filter,
@@ -280,7 +300,12 @@ export default function ConversationSidebar({
   return (
     <aside
       aria-label={labels.conversations}
-      className={`flex h-full min-h-0 flex-col border-e border-slate-200 bg-white ${className}`}
+      style={
+        {
+          "--conversation-sidebar-width": `${desktopWidth}px`,
+        } as CSSProperties
+      }
+      className={`flex h-full min-h-0 flex-col border-e border-slate-200 bg-white md:w-[var(--conversation-sidebar-width)] ${className}`}
     >
       {/* ── Header ── */}
       <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
@@ -633,6 +658,7 @@ function ConversationRow({
   const avatar = conversationAvatar(conversation);
   const lastTime =
     conversation.lastMessage?.createdAt ||
+    conversation.lastMessage?.sentAt ||
     (record.lastMessageAt as string | undefined) ||
     conversation.updatedAt ||
     conversation.createdAt;
