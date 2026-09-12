@@ -84,6 +84,7 @@ export function setupCommunicationMocks() {
     useCommunicationSocket: (): CommunicationRealtimeContextValue => ({
       socket: currentSocket as unknown as CommunicationRealtimeContextValue["socket"],
       isConnected: currentSocket.connected,
+      connectionState: currentSocket.connected ? "connected" : "reconnecting",
       connectionError: null,
       resyncVersion: 0,
       retryConnection: vi.fn(),
