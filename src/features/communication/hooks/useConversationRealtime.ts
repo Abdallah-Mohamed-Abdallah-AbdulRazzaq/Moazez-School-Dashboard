@@ -84,6 +84,7 @@ export function useConversationRealtime({
     onTypingStarted,
     onTypingStopped,
   });
+  const previousResyncVersionRef = useRef(resyncVersion);
 
   useEffect(() => {
     handlersRef.current = {
@@ -263,8 +264,8 @@ export function useConversationRealtime({
   }, [conversationId, enabled, socket]);
 
   useEffect(() => {
-    if (enabled && resyncVersion > 0) {
-      handlersRef.current.onReconnect();
-    }
+    if (previousResyncVersionRef.current === resyncVersion) return;
+    previousResyncVersionRef.current = resyncVersion;
+    if (enabled) handlersRef.current.onReconnect();
   }, [enabled, resyncVersion]);
 }

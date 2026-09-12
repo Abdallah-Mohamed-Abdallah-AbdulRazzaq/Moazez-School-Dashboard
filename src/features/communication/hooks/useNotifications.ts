@@ -241,6 +241,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const { socket, resyncVersion } = useCommunicationSocket();
   const { isBackground = false, recipientUserId } = options;
   const mountedRef = useRef(false);
+  const previousResyncVersionRef = useRef(resyncVersion);
   const [filters, setFilters] =
     useState<NotificationFiltersState>(DEFAULT_FILTERS);
   const [notifications, setNotifications] = useState<
@@ -393,12 +394,9 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   }, [addRealtimeNotification, isBackground, isBackgroundRefreshForbidden, socket]);
 
   useEffect(() => {
-    if (
-      resyncVersion === 0 ||
-      (isBackground && isBackgroundRefreshForbidden)
-    ) {
-      return;
-    }
+    if (previousResyncVersionRef.current === resyncVersion) return;
+    previousResyncVersionRef.current = resyncVersion;
+    if (isBackground && isBackgroundRefreshForbidden) return;
 
     let cancelled = false;
     void Promise.resolve().then(() => {
