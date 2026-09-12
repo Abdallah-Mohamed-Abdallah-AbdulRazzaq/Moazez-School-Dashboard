@@ -24,6 +24,18 @@ describe("communication connection policy", () => {
     },
   );
 
+  it.each([
+    { description: 429 },
+    { description: "fetch read error", context: { status: 429 } },
+  ])("classifies Engine.IO transport 429 shape %# as rate-limit", (error) => {
+    expect(
+      classifyConnectionFailure({
+        type: "TransportError",
+        ...error,
+      }),
+    ).toBe("rate-limit");
+  });
+
   it.each([new Error("transport close"), { data: { status: 503 } }])(
     "treats temporary failure %# as temporary",
     (error) => {
