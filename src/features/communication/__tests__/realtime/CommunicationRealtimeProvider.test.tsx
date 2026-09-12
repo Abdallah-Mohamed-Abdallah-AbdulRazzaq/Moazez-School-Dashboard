@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommunicationRealtimeProvider } from "@/features/communication/realtime/CommunicationRealtimeProvider";
 import { useCommunicationSocket } from "@/features/communication/hooks/useCommunicationSocket";
-import { tokenStorage } from "@/lib/token-storage";
+import { ACCESS_TOKEN_KEY, tokenStorage } from "@/lib/token-storage";
 
 const socketHarness = vi.hoisted(() => {
   type Handler = (...args: never[]) => void;
@@ -20,6 +20,13 @@ const socketHarness = vi.hoisted(() => {
       },
       count(event: string) {
         return listeners.get(event)?.size ?? 0;
+      },
+      countAll() {
+        return Array.from(listeners.values()).reduce(
+          (listenerCount, eventListeners) =>
+            listenerCount + eventListeners.size,
+          0,
+        );
       },
       emit(event: string, ...args: unknown[]) {
         listeners
@@ -187,6 +194,23 @@ describe("CommunicationRealtimeProvider", () => {
     expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
   });
 
+  it("reconnects once when another tab changes the access token", () => {
+    renderProvider();
+    socketHarness.socket.connect.mockClear();
+    socketHarness.socket.disconnect.mockClear();
+    localStorage.setItem(ACCESS_TOKEN_KEY, "token-2");
+
+    act(() =>
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: ACCESS_TOKEN_KEY }),
+      ),
+    );
+
+    expect(socketHarness.socket.auth).toEqual({ token: "token-2" });
+    expect(socketHarness.socket.disconnect).toHaveBeenCalledOnce();
+    expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
+  });
+
   it("does not reactivate the detached socket after the token is removed", () => {
     renderProvider();
     act(() => tokenStorage.removeAccessToken());
@@ -298,6 +322,19 @@ describe("CommunicationRealtimeProvider", () => {
     expect(socketHarness.socket.connect).not.toHaveBeenCalled();
   });
 
+  it("leaves no listeners or timers after 100 owner lifecycles", () => {
+    for (let lifecycle = 0; lifecycle < 100; lifecycle += 1) {
+      const renderedProvider = renderProvider();
+      renderedProvider.unmount();
+
+      expect(socketHarness.socketListeners.countAll()).toBe(0);
+      expect(socketHarness.managerListeners.countAll()).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+    }
+
+    expect(socketHarness.createCommunicationSocket).toHaveBeenCalledTimes(100);
+  });
+
   it("does not poll token storage", () => {
     const intervalSpy = vi.spyOn(window, "setInterval");
     renderProvider();
@@ -374,6 +411,29 @@ describe("CommunicationRealtimeProvider", () => {
     act(() => vi.advanceTimersByTime(1_500));
 
     expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
+  });
+
+  it("recovers one room once after a five-minute connection", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    renderProvider("conversation-1");
+    act(() => socketHarness.socketListeners.emit("connect"));
+    socketHarness.socket.emit.mockClear();
+    socketHarness.socket.connect.mockClear();
+
+    act(() => vi.advanceTimersByTime(300_000));
+    act(() =>
+      socketHarness.socketListeners.emit("disconnect", "io server disconnect"),
+    );
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
+
+    act(() => socketHarness.socketListeners.emit("connect"));
+    expect(socketHarness.socket.emit).toHaveBeenCalledTimes(1);
+    expect(socketHarness.socket.emit).toHaveBeenCalledWith(
+      "communication.chat.conversation.join",
+      { conversationId: "conversation-1" },
+    );
+    expect(screen.getByTestId("resync-version")).toHaveTextContent("1");
   });
 
   it("enters cooldown after the bounded namespace retry cycle", () => {

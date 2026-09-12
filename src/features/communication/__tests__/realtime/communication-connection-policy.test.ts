@@ -57,4 +57,14 @@ describe("communication connection policy", () => {
     expect(reconnectDelayForAttempt(1, () => 0.5)).toBe(2_000);
     expect(reconnectDelayForAttempt(20, () => 1)).toBe(30_000);
   });
+
+  it("disperses 100 first retries across the complete jitter window", () => {
+    const retryDelays = Array.from({ length: 100 }, (_, clientIndex) =>
+      reconnectDelayForAttempt(0, () => clientIndex / 99),
+    );
+
+    expect(retryDelays[0]).toBe(500);
+    expect(retryDelays[99]).toBe(1_500);
+    expect(new Set(retryDelays).size).toBe(100);
+  });
 });
