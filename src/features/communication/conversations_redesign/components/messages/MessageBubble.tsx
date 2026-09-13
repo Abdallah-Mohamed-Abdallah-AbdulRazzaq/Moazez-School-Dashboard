@@ -18,6 +18,7 @@ import {
   formatTime,
   messageSenderUserId,
 } from "@/features/communication/conversations_redesign/utils/formatters";
+import { messageBodyForDisplay } from "@/features/communication/conversations_redesign/utils/messageContent";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { UserDisplayNameMap } from "@/features/communication/conversations_redesign/types";
 import type { ConversationMessage } from "@/features/communication/hooks/useConversationMessages";
@@ -39,27 +40,6 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 const SWIPE_REPLY_THRESHOLD = 64;
 const SWIPE_REPLY_MAX_OFFSET = 88;
 const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
-
-function messageBodyForDisplay(message: ConversationMessage): string {
-  const body = message.body ?? "";
-  if (!body) return body;
-
-  try {
-    const parsedBody = JSON.parse(body) as unknown;
-    if (
-      typeof parsedBody === "object" &&
-      parsedBody !== null &&
-      "kind" in parsedBody &&
-      parsedBody.kind === "voice_metadata"
-    ) {
-      return "";
-    }
-  } catch (error) {
-    if (!(error instanceof SyntaxError)) throw error;
-  }
-
-  return body;
-}
 
 function replyPreviewBody(
   message: ConversationMessage | undefined,
@@ -156,7 +136,7 @@ export function MessageBubble({
   );
   const normStatus = normalizeStatus(message.status);
   const deleted = normStatus === "deleted" || normStatus === "hidden";
-  const visibleMessageBody = messageBodyForDisplay(message);
+  const visibleMessageBody = messageBodyForDisplay(message.body);
   const canMutateOwnMessage =
     isOwn &&
     !deleted &&

@@ -73,6 +73,24 @@ describe("ConversationSidebar last-message previews", () => {
     expect(screen.getByText("صورة")).toBeInTheDocument();
   });
 
+  it("shows the voice label instead of backend metadata for an audio message", () => {
+    const voiceMetadata = JSON.stringify({
+      kind: "voice_metadata",
+      durationMs: 6600,
+      waveform: ["0.24", "0.52", "0.57"],
+    });
+
+    renderSidebar({
+      id: "message-voice-metadata",
+      type: "audio",
+      body: voiceMetadata,
+      status: "sent",
+    });
+
+    expect(screen.getByText("Voice note")).toBeInTheDocument();
+    expect(screen.queryByText(voiceMetadata)).not.toBeInTheDocument();
+  });
+
   it("keeps text and deleted previews authoritative", () => {
     const { rerender } = renderSidebar({
       id: "message-1",
