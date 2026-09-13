@@ -32,6 +32,7 @@ import {
   type ConversationRedesignLabels,
 } from "@/features/communication/conversations_redesign/labels";
 import { formatTime } from "@/features/communication/conversations_redesign/utils/formatters";
+import { messageBodyForDisplay } from "@/features/communication/conversations_redesign/utils/messageContent";
 import type {
   ConversationFiltersState,
   ConversationListItemModel,
@@ -157,7 +158,7 @@ function lastMessagePreview(
   if (!conversation.lastMessage) return labels.noMessagesYet;
   if (conversation.lastMessage.status === "deleted")
     return labels.messageDeleted;
-  const body = conversation.lastMessage.body;
+  const body = messageBodyForDisplay(conversation.lastMessage.body);
   const type = conversation.lastMessage.type?.toLowerCase();
   const preview = body
     ? body
