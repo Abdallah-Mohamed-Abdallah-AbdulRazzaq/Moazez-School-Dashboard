@@ -20,6 +20,7 @@ export interface ModerationHistoryTableLabels {
 
 export interface ModerationHistoryTableProps {
   actions: ModerationAction[];
+  isLoading?: boolean;
   labels: ModerationHistoryTableLabels;
 }
 
@@ -59,35 +60,61 @@ function moderatorName(action: ModerationAction, fallback: string) {
 
 export default function ModerationHistoryTable({
   actions,
+  isLoading,
   labels,
 }: ModerationHistoryTableProps) {
+  const historyColumns = [
+    labels.action,
+    labels.moderator,
+    labels.reason,
+    labels.createdAt,
+  ];
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="mb-4 text-base font-semibold text-slate-900">
         {labels.title}
       </h2>
-      {actions.length === 0 ? (
+      {isLoading ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm" aria-busy="true">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                {historyColumns.map((label) => (
+                    <th key={label} className="px-3 py-3 text-start font-semibold">
+                      {label}
+                    </th>
+                  ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {Array.from({ length: 4 }).map((_, rowIndex) => (
+                <tr key={rowIndex} className="animate-pulse">
+                  {Array.from({ length: 4 }).map((_, columnIndex) => (
+                    <td key={columnIndex} className="px-3 py-3">
+                      <span className="block h-5 rounded bg-slate-100" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : actions.length === 0 ? (
         <CommunicationEmptyState
           title={labels.emptyTitle}
           description={labels.emptyDescription}
         />
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <table className="min-w-full divide-y divide-slate-200 text-sm" aria-busy="false">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-3 py-3 text-start font-semibold">
-                  {labels.action}
-                </th>
-                <th className="px-3 py-3 text-start font-semibold">
-                  {labels.moderator}
-                </th>
-                <th className="px-3 py-3 text-start font-semibold">
-                  {labels.reason}
-                </th>
-                <th className="px-3 py-3 text-start font-semibold">
-                  {labels.createdAt}
-                </th>
+                {historyColumns.map((label) => (
+                  <th key={label} className="px-3 py-3 text-start font-semibold">
+                    {label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

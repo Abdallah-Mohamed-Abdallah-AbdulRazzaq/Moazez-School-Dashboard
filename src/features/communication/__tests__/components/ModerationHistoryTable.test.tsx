@@ -17,6 +17,13 @@ const labels = {
 };
 
 describe("ModerationHistoryTable", () => {
+  it("shows table loading rows while moderation history is loading", () => {
+    render(<ModerationHistoryTable actions={[]} isLoading labels={labels} />);
+
+    expect(screen.getByRole("table")).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText(labels.emptyTitle)).not.toBeInTheDocument();
+  });
+
   it("shows the backend actor UUID when no moderator name is provided", () => {
     render(
       <ModerationHistoryTable

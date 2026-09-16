@@ -184,6 +184,7 @@ export default function ModerationPage() {
           />
           <ModerationHistoryTable
             actions={actions}
+            isLoading={isLoading}
             labels={{
               title: t.historyTitle,
               action: t.action,
