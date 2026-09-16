@@ -4,7 +4,6 @@ import { useLocale } from "next-intl";
 import { RefreshCw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
-import CommunicationLoadingState from "@/features/communication/components/layout/CommunicationLoadingState";
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
 import ReportFilters from "@/features/communication/components/safety/ReportFilters";
@@ -18,7 +17,6 @@ const labels = {
     description:
       "Review message reports, triage open cases, and track moderation outcomes.",
     refresh: "Refresh",
-    loading: "Loading reports...",
     errorTitle: "Unable to load reports",
     retry: "Retry",
     status: "Status",
@@ -43,7 +41,6 @@ const labels = {
     title: "بلاغات الأمان",
     description: "راجع بلاغات الرسائل وفرز الحالات المفتوحة وتتبع قرارات الإشراف.",
     refresh: "تحديث",
-    loading: "جار تحميل البلاغات...",
     errorTitle: "تعذر تحميل البلاغات",
     retry: "إعادة المحاولة",
     status: "الحالة",
@@ -93,7 +90,6 @@ const reportPageLabels = {
     title: "بلاغات الأمان",
     description: "راجع بلاغات الرسائل وفرز الحالات المفتوحة وتابع نتائج الإشراف.",
     refresh: "تحديث",
-    loading: "جارٍ تحميل البلاغات...",
     errorTitle: "تعذّر تحميل البلاغات",
     retry: "إعادة المحاولة",
     status: "الحالة",
@@ -152,10 +148,6 @@ export default function MessageReportsPage() {
     setFilters,
     total,
   } = useMessageReports();
-  if (isLoading) {
-    return <CommunicationLoadingState label={t.loading} />;
-  }
-
   return (
     <div className="space-y-6">
       <CommunicationPageHeader
@@ -220,7 +212,7 @@ export default function MessageReportsPage() {
       <ReportsTable
         reports={reports}
         locale={locale}
-        isLoading={isRefreshing}
+        isLoading={isLoading || isRefreshing}
         page={filters.page}
         pageSize={pageSize}
         total={total}
