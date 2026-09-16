@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
+import CommunicationAccessGuard from "@/features/communication/components/CommunicationAccessGuard";
+import MessageReportDetailsPage from "@/features/communication/pages/MessageReportDetailsPage";
 
 interface PageProps {
   params: Promise<{
-    lang: string;
     reportId: string;
   }>;
 }
@@ -10,7 +10,13 @@ interface PageProps {
 export default async function CommunicationSafetyReportDetailsPage({
   params,
 }: PageProps) {
-  const { lang, reportId } = await params;
+  const { reportId } = await params;
 
-  redirect(`/${lang}/communication/moderation/${reportId}`);
+  return (
+    <CommunicationAccessGuard permission="communication.messages.moderate">
+      <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6">
+        <MessageReportDetailsPage reportId={reportId} />
+      </main>
+    </CommunicationAccessGuard>
+  );
 }
