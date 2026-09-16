@@ -18,6 +18,33 @@ export interface CommunicationSelectorOption {
 
 type RecordLike = Record<string, unknown>;
 
+const messageFallbackLabels = {
+  en: {
+    hidden: "Hidden message",
+    deleted: "Deleted message",
+    text: "Message without text",
+    image: "Image message",
+    file: "File message",
+    audio: "Audio message",
+    voice: "Voice message",
+    video: "Video message",
+    system: "System message",
+    unknown: "Message",
+  },
+  ar: {
+    hidden: "رسالة مخفية",
+    deleted: "رسالة محذوفة",
+    text: "رسالة بدون نص",
+    image: "رسالة صورة",
+    file: "رسالة ملف",
+    audio: "رسالة صوتية",
+    voice: "رسالة صوتية",
+    video: "رسالة فيديو",
+    system: "رسالة نظام",
+    unknown: "رسالة",
+  },
+} as const;
+
 const isRecord = (value: unknown): value is RecordLike =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -79,6 +106,36 @@ function filterOptions(
       `${option.label} ${option.description ?? ""}`.toLowerCase().includes(normalized),
     )
     .slice(0, 30);
+}
+
+function messageOptionLabel(record: RecordLike, locale: string): string {
+  const labels = locale.startsWith("ar")
+    ? messageFallbackLabels.ar
+    : messageFallbackLabels.en;
+  const status = stringValue(record.status)?.toLowerCase();
+  if (status === "hidden" || status === "deleted") return labels[status];
+
+  const body =
+    stringValue(record.body) ??
+    stringValue(record.content) ??
+    stringValue(record.text);
+  if (body) return body.slice(0, 80);
+
+  const type = stringValue(record.type)?.toLowerCase();
+  return type && type in labels
+    ? labels[type as keyof typeof labels]
+    : labels.unknown;
+}
+
+function formatMessageTimestamp(record: RecordLike, locale: string) {
+  const timestamp = stringValue(record.sentAt) ?? stringValue(record.createdAt);
+  if (!timestamp) return undefined;
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 export async function searchAcademicYears(
@@ -190,6 +247,7 @@ export async function searchConversations(
 export async function searchMessages(
   conversationId: string,
   query = "",
+  locale = "en",
 ): Promise<CommunicationSelectorOption[]> {
   if (!conversationId) return [];
 
@@ -199,18 +257,11 @@ export async function searchMessages(
       const id = stringValue(record.id);
       if (!id) return items;
 
-      const body =
-        stringValue(record.body) ??
-        stringValue(record.content) ??
-        stringValue(record.text);
-      const description =
-        stringValue(record.createdAt) ??
-        stringValue(record.senderId) ??
-        stringValue(record.type);
+      const description = formatMessageTimestamp(record, locale);
 
       items.push({
         id,
-        label: body ? body.slice(0, 80) : id,
+        label: messageOptionLabel(record, locale),
         ...(description ? { description } : {}),
       });
       return items;

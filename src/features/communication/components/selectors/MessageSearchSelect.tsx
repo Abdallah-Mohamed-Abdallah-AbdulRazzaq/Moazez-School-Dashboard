@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useLocale } from "next-intl";
 import { searchMessages } from "@/features/communication/api/communication-selectors.service";
 import CommunicationEntitySelect, {
   type CommunicationEntitySelectProps,
@@ -16,9 +17,10 @@ export default function MessageSearchSelect({
   helperText,
   ...props
 }: Props) {
+  const locale = useLocale();
   const search = useCallback(
-    (query: string) => searchMessages(conversationId ?? "", query),
-    [conversationId],
+    (query: string) => searchMessages(conversationId ?? "", query, locale),
+    [conversationId, locale],
   );
 
   return (
