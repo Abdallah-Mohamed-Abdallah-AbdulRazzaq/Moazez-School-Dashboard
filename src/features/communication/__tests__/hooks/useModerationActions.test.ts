@@ -50,11 +50,21 @@ describe("useModerationActions", () => {
     );
 
     await act(async () => {
+      result.current.selectMessage({
+        id: "message-1",
+        conversationId: "conversation-1",
+        senderUserId: "user-1",
+      });
+    });
+    await waitFor(() => expect(result.current.message?.id).toBe("message-1"));
+
+    await act(async () => {
       await result.current.load("message-1");
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.senderParticipant?.user?.displayName).toBe("آية حسن");
     expect(serviceMocks.getParticipants).toHaveBeenCalledTimes(1);
+    expect(serviceMocks.getMessage).not.toHaveBeenCalled();
   });
 });

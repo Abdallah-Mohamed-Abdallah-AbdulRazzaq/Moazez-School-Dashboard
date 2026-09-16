@@ -9,7 +9,7 @@ const LOADING_VALUE = "__loading";
 const EMPTY_VALUE = "__empty";
 const ERROR_VALUE = "__error";
 
-export interface CommunicationEntitySelectProps {
+export interface CommunicationEntitySelectProps<TEntity = unknown> {
   label: string;
   value?: string;
   placeholder?: string;
@@ -17,14 +17,14 @@ export interface CommunicationEntitySelectProps {
   error?: string;
   disabled?: boolean;
   clearable?: boolean;
-  search: (query: string) => Promise<CommunicationSelectorOption[]>;
+  search: (query: string) => Promise<CommunicationSelectorOption<TEntity>[]>;
   onChange: (value: string) => void;
-  onOptionChange?: (option: CommunicationSelectorOption | null) => void;
-  onOptionsChange?: (options: CommunicationSelectorOption[]) => void;
+  onOptionChange?: (option: CommunicationSelectorOption<TEntity> | null) => void;
+  onOptionsChange?: (options: CommunicationSelectorOption<TEntity>[]) => void;
 }
 
-function toSelectOption(
-  option: CommunicationSelectorOption,
+function toSelectOption<TEntity>(
+  option: CommunicationSelectorOption<TEntity>,
   locale: string,
 ): SelectOption {
   const description = locale.startsWith("ar") && option.description
@@ -41,7 +41,7 @@ function toSelectOption(
   };
 }
 
-export default function CommunicationEntitySelect({
+export default function CommunicationEntitySelect<TEntity>({
   clearable = true,
   disabled,
   error,
@@ -53,9 +53,9 @@ export default function CommunicationEntitySelect({
   placeholder,
   search,
   value,
-}: CommunicationEntitySelectProps) {
+}: CommunicationEntitySelectProps<TEntity>) {
   const locale = useLocale();
-  const [options, setOptions] = useState<CommunicationSelectorOption[]>([]);
+  const [options, setOptions] = useState<CommunicationSelectorOption<TEntity>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [loadError, setLoadError] = useState(false);

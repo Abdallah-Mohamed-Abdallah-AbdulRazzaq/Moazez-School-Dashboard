@@ -43,6 +43,7 @@ export interface ModerationActionsPanelProps {
   onConversationIdChange: (conversationId: string) => void;
   labels: ModerationActionsPanelLabels;
   onMessageIdChange: (messageId: string) => void;
+  onMessageChange: (message: Message | null) => void;
   onLoad: () => Promise<void> | void;
 }
 
@@ -72,6 +73,7 @@ export default function ModerationActionsPanel({
   messageId,
   onConversationIdChange,
   onLoad,
+  onMessageChange,
   onMessageIdChange,
   senderParticipant,
 }: ModerationActionsPanelProps) {
@@ -101,6 +103,7 @@ export default function ModerationActionsPanel({
             !conversationId ? labels.selectConversationFirst : undefined
           }
           onChange={onMessageIdChange}
+          onMessageChange={onMessageChange}
         />
         <Button type="button" loading={isLoading} onClick={() => void onLoad()}>
           {labels.load}

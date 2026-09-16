@@ -9,11 +9,13 @@ import {
   getConversations,
   getMessages,
 } from "./communication.service";
+import type { Message } from "@/features/communication/types/message.types";
 
-export interface CommunicationSelectorOption {
+export interface CommunicationSelectorOption<TEntity = unknown> {
   id: string;
   label: string;
   description?: string;
+  entity?: TEntity;
 }
 
 type RecordLike = Record<string, unknown>;
@@ -89,16 +91,16 @@ function optionFromRecord(record: RecordLike): CommunicationSelectorOption | nul
   };
 }
 
-function isOption(
-  option: CommunicationSelectorOption | null,
-): option is CommunicationSelectorOption {
+function isOption<TEntity>(
+  option: CommunicationSelectorOption<TEntity> | null,
+): option is CommunicationSelectorOption<TEntity> {
   return Boolean(option);
 }
 
-function filterOptions(
-  options: CommunicationSelectorOption[],
+function filterOptions<TEntity>(
+  options: CommunicationSelectorOption<TEntity>[],
   query?: string,
-): CommunicationSelectorOption[] {
+): CommunicationSelectorOption<TEntity>[] {
   const normalized = query?.trim().toLowerCase();
   if (!normalized) return options.slice(0, 30);
   return options
@@ -268,11 +270,11 @@ export async function searchMessages(
   conversationId: string,
   query = "",
   locale = "en",
-): Promise<CommunicationSelectorOption[]> {
+): Promise<CommunicationSelectorOption<Message>[]> {
   if (!conversationId) return [];
 
   const response = await getMessages(conversationId, { limit: 30 });
-  const options = unwrapItems(response).reduce<CommunicationSelectorOption[]>(
+  const options = unwrapItems(response).reduce<CommunicationSelectorOption<Message>[]>(
     (items, record) => {
       const id = stringValue(record.id);
       if (!id) return items;
@@ -282,6 +284,7 @@ export async function searchMessages(
       items.push({
         id,
         label: messageOptionLabel(record, locale),
+        entity: record as Message,
         ...(description ? { description } : {}),
       });
       return items;

@@ -53,6 +53,10 @@ describe("searchMessages", () => {
     ]);
     expect(options[0].description).not.toContain("T12:30:00.000Z");
     expect(options[0].description).toContain("2026");
+    expect(options[0].entity).toMatchObject({
+      id: "message-text-id",
+      body: "Visible message text",
+    });
   });
 
   // Regression: Arabic message dropdown dates previously displayed Latin digits.

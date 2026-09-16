@@ -107,6 +107,7 @@ export default function ModerationPage() {
     messageId,
     runAction,
     senderParticipant,
+    selectMessage,
     setMessageId,
   } = useModerationActions();
 
@@ -153,6 +154,7 @@ export default function ModerationPage() {
               void loadConversation(nextConversationId);
             }}
             onMessageIdChange={setMessageId}
+            onMessageChange={selectMessage}
             onLoad={() => load()}
             labels={{
               title: t.panelTitle,

@@ -70,6 +70,10 @@ function errorMessageFromUnknown(error: unknown): string {
     : "Unable to load moderation data.";
 }
 
+type LoadOptions = {
+  refreshMessage?: true;
+};
+
 export function useModerationActions() {
   const { socket } = useCommunicationSocket();
   const mountedRef = useRef(false);
@@ -93,7 +97,12 @@ export function useModerationActions() {
     };
   }, []);
 
-  const load = useCallback(async (nextMessageId = messageId) => {
+  const selectMessage = useCallback((nextMessage: Message | null) => {
+    setMessage(nextMessage);
+    setActions([]);
+  }, []);
+
+  const load = useCallback(async (nextMessageId = messageId, options?: LoadOptions) => {
     const trimmed = nextMessageId.trim();
     if (!trimmed) return;
 
@@ -101,11 +110,15 @@ export function useModerationActions() {
     setError(null);
 
     try {
-      const [messageResponse, actionsResponse] = await Promise.all([
-        getMessage(trimmed),
+      const [actionsResponse, messageResponse] = await Promise.all([
         getModerationActions(trimmed),
+        options?.refreshMessage || message?.id !== trimmed
+          ? getMessage(trimmed)
+          : undefined,
       ]);
-      const nextMessage = unwrapItem<Message>(messageResponse);
+      const nextMessage = messageResponse
+        ? unwrapItem<Message>(messageResponse)
+        : message;
       const nextActions = sortActions(
         unwrapList<ModerationAction>(actionsResponse),
       );
@@ -122,7 +135,7 @@ export function useModerationActions() {
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
-  }, [messageId]);
+  }, [message, messageId]);
 
   const loadConversation = useCallback(async (conversationId: string) => {
     if (!conversationId) {
@@ -160,7 +173,7 @@ export function useModerationActions() {
           action,
           ...(reason?.trim() ? { reason: reason.trim() } : {}),
         });
-        await load(message.id);
+        await load(message.id, { refreshMessage: true });
       } catch (nextError) {
         setError(errorMessageFromUnknown(nextError));
         throw nextError;
@@ -194,6 +207,7 @@ export function useModerationActions() {
   return {
     messageId,
     setMessageId,
+    selectMessage,
     message,
     conversation,
     senderParticipant,
