@@ -26,6 +26,9 @@ describe("SafetyNavigation", () => {
       "aria-current",
       "page",
     );
+    expect(screen.getByRole("link", { name: "Reports" })).not.toHaveAttribute(
+      "aria-current",
+    );
     expect(screen.queryByText(/block/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/restriction/i)).not.toBeInTheDocument();
   });

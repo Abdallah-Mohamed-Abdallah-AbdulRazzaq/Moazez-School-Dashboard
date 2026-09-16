@@ -28,6 +28,7 @@ export interface CommunicationTabItem {
   labelEn: string;
   labelAr: string;
   href: string;
+  activePath?: string;
   icon: LucideIcon;
 }
 
@@ -77,6 +78,7 @@ export const communicationTabs: CommunicationTabItem[] = [
     labelEn: "Safety",
     labelAr: "الأمان",
     href: "/communication/safety/reports",
+    activePath: "/communication/safety",
     icon: ShieldCheck,
   },
   {
@@ -88,8 +90,9 @@ export const communicationTabs: CommunicationTabItem[] = [
   },
 ];
 
-function isTabActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isTabActive(pathname: string, href: string, activePath?: string) {
+  const path = activePath ?? href;
+  return pathname === path || pathname.startsWith(`${path}/`);
 }
 
 export default function CommunicationTabs({
@@ -107,7 +110,11 @@ export default function CommunicationTabs({
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const localizedHref = `/${locale}${tab.href}`;
-        const isActive = isTabActive(pathname, localizedHref);
+        const isActive = isTabActive(
+          pathname,
+          localizedHref,
+          tab.activePath ? `/${locale}${tab.activePath}` : undefined,
+        );
         const label = locale === "ar" ? tab.labelAr : tab.labelEn;
 
         return (

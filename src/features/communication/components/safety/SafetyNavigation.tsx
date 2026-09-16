@@ -32,10 +32,10 @@ export default function SafetyNavigation() {
             key={section.href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+            className={`cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               active
-                ? "border-primary-600 bg-primary-600 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:border-primary-300"
+                ? "border-primary-600 bg-primary-600 text-white shadow-sm ring-1 ring-primary-600"
+                : "border-slate-200 bg-white text-slate-700 hover:border-primary-300 hover:text-primary-700"
             }`}
           >
             {section.label[locale]}
