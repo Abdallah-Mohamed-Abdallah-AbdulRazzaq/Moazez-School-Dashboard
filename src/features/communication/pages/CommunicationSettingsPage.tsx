@@ -170,10 +170,6 @@ export default function CommunicationSettingsPage() {
     }
   };
 
-  if (isLoading) {
-    return <CommunicationLoadingState label={t.loading} />;
-  }
-
   return (
     <div className="space-y-6">
       <CommunicationPageHeader
@@ -193,30 +189,34 @@ export default function CommunicationSettingsPage() {
       />
       <CommunicationTabs />
 
-      {error ? (
-        <CommunicationErrorState
-          title={t.errorTitle}
-          message={error}
-          action={
-            <Button type="button" variant="secondary" onClick={() => void refresh()}>
-              {t.retry}
-            </Button>
-          }
-        />
-      ) : null}
+      {isLoading ? (
+        <CommunicationLoadingState label={t.loading} />
+      ) : (
+        <>
+          {error ? (
+            <CommunicationErrorState
+              title={t.errorTitle}
+              message={error}
+              action={
+                <Button type="button" variant="secondary" onClick={() => void refresh()}>
+                  {t.retry}
+                </Button>
+              }
+            />
+          ) : null}
 
-      <CommunicationAdminOverviewCards
-        overview={adminOverview}
-        labels={{
-          conversations: t.overviewConversations,
-          openReports: t.overviewOpenReports,
-          activeRestrictions: t.overviewActiveRestrictions,
-          activeBlocks: t.overviewActiveBlocks,
-        }}
-      />
+          <CommunicationAdminOverviewCards
+            overview={adminOverview}
+            labels={{
+              conversations: t.overviewConversations,
+              openReports: t.overviewOpenReports,
+              activeRestrictions: t.overviewActiveRestrictions,
+              activeBlocks: t.overviewActiveBlocks,
+            }}
+          />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <CommunicationPolicyForm
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <CommunicationPolicyForm
           key={policy?.updatedAt ?? policy?.id ?? "communication-policy"}
           policy={policy}
           isSaving={isSaving}
@@ -264,8 +264,8 @@ export default function CommunicationSettingsPage() {
             metadataHelp: t.metadataHelp,
             invalidMetadata: t.invalidMetadata,
           }}
-        />
-        <CommunicationPolicySummary
+            />
+            <CommunicationPolicySummary
           policy={policy}
           labels={{
             title: t.summaryTitle,
@@ -279,8 +279,10 @@ export default function CommunicationSettingsPage() {
             maxAttachmentSize: t.maxAttachmentSize,
             notSet: t.notSet,
           }}
-        />
-      </div>
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
