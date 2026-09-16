@@ -51,6 +51,7 @@ function moderatorName(action: ModerationAction, fallback: string) {
     action.moderator?.name ||
     action.moderator?.nameEn ||
     action.moderator?.nameAr ||
+    action.actorUserId ||
     action.moderatorId ||
     fallback
   );

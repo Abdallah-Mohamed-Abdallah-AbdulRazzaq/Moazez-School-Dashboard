@@ -111,6 +111,7 @@ export interface CreateModerationActionPayload {
 export interface ModerationAction extends CommunicationRecord {
   id: CommunicationId;
   messageId?: CommunicationId;
+  actorUserId?: CommunicationId;
   moderatorId?: CommunicationId;
   moderator?: CommunicationActor;
   action?: ModerationActionType;
