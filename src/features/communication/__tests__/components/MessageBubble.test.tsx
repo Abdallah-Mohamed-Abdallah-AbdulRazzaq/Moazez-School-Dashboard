@@ -173,21 +173,68 @@ describe("MessageBubble Delete Confirmation", () => {
     expect(screen.getByText(labels.errorMessageDeleted)).toBeInTheDocument();
   });
 
-  it("renders localized placeholder when normalized message status is 'hidden'", () => {
+  it("protects hidden content while keeping moderator recovery actions available", () => {
     const message = createMessage({
       id: "msg-hidden",
-      body: "Original message content",
-      senderId: "user-1",
+      body: "Sensitive hidden content",
+      senderId: "user-2",
       status: "hidden",
     });
+    const onReply = vi.fn();
+    const onViewModerationHistory = vi.fn();
+
     render(
       <MessageBubble
         {...mockProps}
+        attachments={[
+          {
+            id: "attachment-hidden",
+            messageId: message.id,
+            fileId: "file-hidden",
+            name: "sensitive-hidden.pdf",
+          },
+        ]}
+        capabilities={{
+          canEditMessage: false,
+          canAddAttachment: false,
+          canRemoveAttachment: false,
+          canReportMessage: false,
+          canViewMessageInfo: false,
+          canHideMessage: false,
+          canUnhideMessage: true,
+          canViewModerationHistory: true,
+          deleteMode: "moderation",
+        }}
+        isOwn={false}
         message={message}
+        onReply={onReply}
+        onViewModerationHistory={onViewModerationHistory}
       />
     );
+
     expect(screen.getByText(labels.errorMessageHidden)).toBeInTheDocument();
-    expect(screen.queryByText("Original message content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sensitive hidden content")).not.toBeInTheDocument();
+    expect(screen.queryByText("sensitive-hidden.pdf")).not.toBeInTheDocument();
+
+    fireEvent.doubleClick(screen.getByText(labels.errorMessageHidden).closest("div")!);
+    expect(onReply).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole("button")[0]);
+    expect(
+      screen.queryByRole("button", { name: labels.reply }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: labels.copy }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: labels.unhideMessage }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: labels.moderationHistory }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: labels.deleteMessage }),
+    ).toBeInTheDocument();
   });
 
   it("calls onReply with the message when the message bubble container is double-clicked and message is not deleted", () => {
@@ -302,6 +349,71 @@ describe("MessageBubble Delete Confirmation", () => {
     expect(link).toHaveAttribute("href", "https://example.com/path");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("confirms before editing another user's message", () => {
+    const onStartEdit = vi.fn();
+    render(
+      <MessageBubble
+        {...mockProps}
+        isOwn={false}
+        message={createMessage({ id: "msg-other", senderId: "user-2", type: "text" })}
+        capabilities={{
+          canEditMessage: true,
+          canAddAttachment: false,
+          canRemoveAttachment: false,
+          canReportMessage: false,
+          canViewMessageInfo: false,
+          canHideMessage: false,
+          canUnhideMessage: false,
+          canViewModerationHistory: false,
+          deleteMode: null,
+        }}
+        onStartEdit={onStartEdit}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button")[0]);
+    fireEvent.click(screen.getByRole("button", { name: labels.editMessage }));
+    expect(onStartEdit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole("button", { name: labels.editMessage }).at(-1)!);
+    expect(onStartEdit).toHaveBeenCalledOnce();
+  });
+
+  it("requires a reason before moderation deletion", async () => {
+    const onModerateMessage = vi.fn().mockResolvedValue(undefined);
+    render(
+      <MessageBubble
+        {...mockProps}
+        isOwn={false}
+        message={createMessage({ id: "msg-moderated", senderId: "user-2" })}
+        capabilities={{
+          canEditMessage: false,
+          canAddAttachment: false,
+          canRemoveAttachment: false,
+          canReportMessage: false,
+          canViewMessageInfo: false,
+          canHideMessage: true,
+          canUnhideMessage: false,
+          canViewModerationHistory: true,
+          deleteMode: "moderation",
+        }}
+        onModerateMessage={onModerateMessage}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button")[0]);
+    fireEvent.click(screen.getByRole("button", { name: labels.deleteMessage }));
+    fireEvent.click(screen.getByRole("button", { name: labels.confirmModerationAction }));
+    expect(screen.getByText(labels.moderationReasonRequired)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(labels.reason), {
+      target: { value: "Policy violation" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: labels.confirmModerationAction }));
+
+    await waitFor(() =>
+      expect(onModerateMessage).toHaveBeenCalledWith("delete", "Policy violation"),
+    );
   });
 
   it("hides backend voice metadata from the visible message text", () => {

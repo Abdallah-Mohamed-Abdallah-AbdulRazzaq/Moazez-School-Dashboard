@@ -25,6 +25,7 @@ describe("getConversationPermissionFlags", () => {
       const flags = getConversationPermissionFlags({
         currentUserId: current.userId,
         participants: [current],
+        permissions: ["communication.participants.manage"],
       });
 
       expect(flags.canManageParticipants).toBe(true);
@@ -38,6 +39,7 @@ describe("getConversationPermissionFlags", () => {
     const flags = getConversationPermissionFlags({
       currentUserId: current.userId,
       participants: [current],
+      permissions: [],
     });
 
     expect(flags.canManageParticipants).toBe(false);
@@ -49,6 +51,7 @@ describe("getConversationPermissionFlags", () => {
     const flags = getConversationPermissionFlags({
       currentUserId: "outside-user",
       participants: [participant("member")],
+      permissions: ["communication.conversations.view"],
     });
 
     expect(flags.canCreateJoinRequest).toBe(true);
@@ -61,6 +64,7 @@ describe("getConversationPermissionFlags", () => {
       const flags = getConversationPermissionFlags({
         currentUserId: current.userId,
         participants: [current],
+        permissions: [],
       });
 
       expect(flags.isActiveParticipant).toBe(true);
@@ -74,6 +78,7 @@ describe("getConversationPermissionFlags", () => {
       currentUserId: current.userId,
       participants: [current],
       conversation: { id: "conversation-1", type: "group" },
+      permissions: [],
     });
 
     expect(flags.canLeaveConversation).toBe(true);
@@ -85,6 +90,7 @@ describe("getConversationPermissionFlags", () => {
       currentUserId: current.userId,
       participants: [current],
       conversation: { id: "conversation-1", type: "system" },
+      permissions: [],
     });
 
     expect(flags.canLeaveConversation).toBe(false);
@@ -101,6 +107,7 @@ describe("getConversationPermissionFlags", () => {
       currentUserId: current.userId,
       participants: [current],
       conversation: readOnlyConversation,
+      permissions: [],
     });
 
     expect(flags.canLeaveConversation).toBe(false);

@@ -8,26 +8,16 @@ import {
 } from "@/features/communication/api/communication.service";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
-import type {
-  Message,
-  MessageStatus,
-} from "@/features/communication/types/message.types";
+import type { Message } from "@/features/communication/types/message.types";
 import type {
   ModerationAction,
-  ModerationActionType,
+  SupportedModerationAction,
 } from "@/features/communication/types/safety.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
+import { messageFromRealtimePayload } from "@/features/communication/utils/realtime-message";
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
-
-const stringValue = (value: unknown): string | undefined =>
-  typeof value === "string" && value.trim() ? value : undefined;
-
-function messageStatus(value: unknown): MessageStatus {
-  if (value === "hidden" || value === "deleted") return value;
-  return "sent";
-}
 
 function unwrapItem<T>(response: unknown): T | null {
   if (!isRecord(response)) return (response ?? null) as T | null;
@@ -56,34 +46,6 @@ function unwrapList<T>(response: unknown): T[] {
     response.payload,
   ].find(Array.isArray);
   return arraySource ? (arraySource as T[]) : [];
-}
-
-function messageFromPayload(payload: unknown): Message | null {
-  if (!isRecord(payload)) return null;
-  const source = [payload.message, payload.data, payload.payload].find(isRecord) ??
-    payload;
-  if (!isRecord(source)) return null;
-
-  const id = stringValue(source.id);
-  if (!id) return null;
-
-  return {
-    ...(source as Message),
-    id,
-    conversationId:
-      stringValue(source.conversationId) ?? stringValue(payload.conversationId),
-    body:
-      stringValue(source.body) ??
-      stringValue(source.content) ??
-      stringValue(source.text) ??
-      "",
-    status: messageStatus(source.status),
-    createdAt: stringValue(source.createdAt),
-    updatedAt: stringValue(source.updatedAt),
-    deletedAt: stringValue(source.deletedAt) ?? null,
-    senderId: stringValue(source.senderId) ?? stringValue(source.userId),
-    sender: isRecord(source.sender) ? (source.sender as Message["sender"]) : undefined,
-  };
 }
 
 function sortActions(actions: ModerationAction[]) {
@@ -149,7 +111,7 @@ export function useModerationActions() {
   }, [messageId]);
 
   const runAction = useCallback(
-    async (action: ModerationActionType, reason?: string) => {
+    async (action: SupportedModerationAction, reason?: string) => {
       if (!message?.id) return;
       setIsMutating(true);
       setError(null);
@@ -173,8 +135,8 @@ export function useModerationActions() {
   useEffect(() => {
     if (!socket) return;
 
-    const patchMessage = (payload: unknown) => {
-      const nextMessage = messageFromPayload(payload);
+    const reconcileMessage = (payload: unknown) => {
+      const nextMessage = messageFromRealtimePayload(payload);
       if (!nextMessage || nextMessage.id !== message?.id) return;
       setMessage((current) => ({
         ...(current ?? nextMessage),
@@ -182,23 +144,11 @@ export function useModerationActions() {
       }));
     };
 
-    const deleteMessage = (payload: unknown) => {
-      const nextMessage = messageFromPayload(payload);
-      if (!nextMessage || nextMessage.id !== message?.id) return;
-      setMessage((current) => ({
-        ...(current ?? nextMessage),
-        ...nextMessage,
-        body: "",
-        status: "deleted",
-        deletedAt: nextMessage.deletedAt ?? new Date().toISOString(),
-      }));
-    };
-
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, patchMessage);
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, deleteMessage);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, reconcileMessage);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, reconcileMessage);
     return () => {
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, patchMessage);
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, deleteMessage);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, reconcileMessage);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, reconcileMessage);
     };
   }, [message?.id, socket]);
 

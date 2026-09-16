@@ -76,7 +76,7 @@ export const communicationTabs: CommunicationTabItem[] = [
     key: "safety",
     labelEn: "Safety",
     labelAr: "الأمان",
-    href: "/communication/moderation",
+    href: "/communication/safety/reports",
     icon: ShieldCheck,
   },
   {

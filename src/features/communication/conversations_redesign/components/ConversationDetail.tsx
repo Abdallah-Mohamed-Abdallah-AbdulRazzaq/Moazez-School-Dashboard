@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type {
   DetailTab,
@@ -88,6 +89,7 @@ import {
   archiveConversation,
   closeConversation,
   createMessageReport,
+  createModerationAction,
   getMessageInfo,
   markConversationRead,
   reopenConversation,
@@ -100,6 +102,7 @@ import type {
 } from "@/features/communication/types/message.types";
 import type { CreateMessageReportPayload } from "@/features/communication/types/safety.types";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+import { getCommunicationMessageCapabilities } from "@/features/communication/authorization/communication-capabilities";
 
 interface MessageInfoDialogState {
   messageId: string | null;
@@ -170,8 +173,9 @@ export default function ConversationDetail({
   onToast: (toast: ToastState) => void;
 }) {
   const locale = useLocale();
+  const router = useRouter();
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { grantedPermissions, hasPermission } = usePermissions();
   const conversationState = useConversation(conversationId);
   const messagesState = useConversationMessages(conversationId);
   const [activeTab, setActiveTab] = useState<DetailTab>("messages");
@@ -226,26 +230,23 @@ export default function ConversationDetail({
         conversation: conversationState.conversation,
         currentUserId: user?.id,
         participants: participantsState.participants,
+        permissions: grantedPermissions,
       }),
-    [conversationState.conversation, participantsState.participants, user?.id],
+    [
+      conversationState.conversation,
+      grantedPermissions,
+      participantsState.participants,
+      user?.id,
+    ],
   );
-  const canJoinRealtimeRoom =
-    permissions.isActiveParticipant ||
-    hasPermission("communication.messages.moderate") ||
-    hasPermission("communication.conversations.manage") ||
-    hasPermission("communication.admin.view") ||
-    hasPermission("communication.admin.manage");
+  const canJoinRealtimeRoom = permissions.canJoinRealtimeRoom;
   const invitesState = useConversationInvites(conversationId, {
     enabled:
       loadedTabs.invites &&
-      permissions.canManageInvites &&
-      hasPermission("communication.participants.manage"),
+      permissions.canManageInvites,
   });
   const canLoadJoinRequests =
-    (permissions.canReviewJoinRequests &&
-      hasPermission("communication.participants.manage")) ||
-    (permissions.canCreateJoinRequest &&
-      hasPermission("communication.conversations.view"));
+    permissions.canReviewJoinRequests || permissions.canCreateJoinRequest;
   const joinRequestsState = useConversationJoinRequests(conversationId, {
     enabled: loadedTabs.joinRequests && canLoadJoinRequests,
   });
@@ -560,35 +561,19 @@ export default function ConversationDetail({
   const conversation = conversationState.conversation;
   const readOnly = conversationIsReadOnly(conversation);
   const isCommunicationEnabled = policy?.isEnabled !== false;
-  const canManageConversation =
-    permissions.canManageConversation &&
-    hasPermission("communication.conversations.manage");
-  const canManageParticipants =
-    permissions.canManageParticipants &&
-    hasPermission("communication.participants.manage");
-  const canManageInvites =
-    permissions.canManageInvites &&
-    hasPermission("communication.participants.manage");
-  const canReviewJoinRequests =
-    permissions.canReviewJoinRequests &&
-    hasPermission("communication.participants.manage");
-  const canCreateJoinRequest =
-    permissions.canCreateJoinRequest &&
-    hasPermission("communication.conversations.view");
+  const canManageConversation = permissions.canManageConversation;
+  const canManageParticipants = permissions.canManageParticipants;
+  const canManageInvites = permissions.canManageInvites;
+  const canReviewJoinRequests = permissions.canReviewJoinRequests;
+  const canCreateJoinRequest = permissions.canCreateJoinRequest;
   const canLeaveConversation =
     permissions.canLeaveConversation &&
     hasPermission("communication.conversations.view");
   const canReactToMessages =
     policy?.allowReactions !== false &&
     hasPermission("communication.messages.react");
-  const canEditMessages =
-    policy?.allowMessageEdit !== false &&
-    policy?.allowMessageEditing !== false &&
-    hasPermission("communication.messages.edit");
-  const canDeleteMessages =
-    policy?.allowMessageDelete !== false &&
-    policy?.allowMessageDeleting !== false &&
-    hasPermission("communication.messages.delete");
+  const canEditMessages = hasPermission("communication.messages.edit");
+  const canDeleteMessages = hasPermission("communication.messages.delete");
   const canManageAttachments =
     policy?.allowAttachments !== false &&
     hasPermission("communication.messages.attachments.manage");
@@ -603,31 +588,21 @@ export default function ConversationDetail({
   ];
 
   // Determine current user's participant status
-  const currentUserParticipant = participantsState.participants.find((p) => {
-    const pUserId = p.userId ?? p.actor?.userId ?? p.actor?.id;
-    return pUserId === user?.id;
-  });
+  const currentUserParticipant = permissions.currentParticipant;
   const currentUserStatus = currentUserParticipant?.status;
   const mutedUntil = currentUserParticipant?.mutedUntil;
   const normUserStatus = normalizeStatus(currentUserStatus);
   const isMuted =
     normUserStatus === "muted" ||
     (mutedUntil != null && new Date(mutedUntil) > new Date());
-  const isBlocked =
-    normUserStatus === "blocked" || currentUserParticipant?.isBlocked === true;
-  const isRestricted = currentUserParticipant?.isRestricted === true;
   const isRemovedOrLeft =
     currentUserStatus === "left" || currentUserStatus === "removed";
   const hasMessageSendPermission = hasPermission("communication.messages.send");
   const canSendMessages =
-    !readOnly &&
     !isMuted &&
-    !isBlocked &&
-    !isRestricted &&
     !isRemovedOrLeft &&
     isCommunicationEnabled &&
-    permissions.isActiveParticipant &&
-    hasMessageSendPermission;
+    permissions.canSendMessage;
 
   const restrictionBanner = (() => {
     const normStatus = normalizeStatus(conversation?.status);
@@ -640,13 +615,7 @@ export default function ConversationDetail({
     if (policy?.isEnabled === false) {
       return labels.errorPolicyDisabled;
     }
-    if (isBlocked) {
-      return labels.errorUserBlocked;
-    }
-    if (isRestricted) {
-      return labels.errorUserRestricted;
-    }
-    if (conversation?.isReadOnly || conversation?.readOnly) {
+    if (readOnly && !canSendMessages) {
       return labels.bannerReadOnly;
     }
     if (
@@ -848,6 +817,16 @@ export default function ConversationDetail({
             labels={labels}
             locale={locale}
             messages={messagesState.messages}
+            getMessageCapabilities={(message) =>
+              getCommunicationMessageCapabilities({
+                permissions: grantedPermissions,
+                currentUserId: user?.id,
+                participant: permissions.currentParticipant,
+                conversation,
+                message,
+                allowAttachments: policy?.allowAttachments !== false,
+              })
+            }
             onAddReaction={(messageId, type) =>
               runMutation(
                 () => reactionsState.addReaction(messageId, type),
@@ -907,7 +886,26 @@ export default function ConversationDetail({
               });
             }}
             onInfo={(messageId) => void openMessageInfo(messageId)}
+            onModerateMessage={(messageId, action, reason) =>
+              runMutation(
+                async () => {
+                  const response = await createModerationAction(messageId, {
+                    action,
+                    reason,
+                  });
+                  await messagesState.refresh();
+                  return response;
+                },
+                labels.moderationActionComplete,
+                labels.unableToModerateMessage,
+              )
+            }
             onReport={setReportMessageId}
+            onViewModerationHistory={(messageId) =>
+              router.push(
+                `/${locale}/communication/safety/moderation?messageId=${encodeURIComponent(messageId)}`,
+              )
+            }
             onRetry={() => void messagesState.refresh()}
             reactionsByMessageId={reactionsState.reactionsByMessageId}
             typingUsers={typingState.typingUsers}

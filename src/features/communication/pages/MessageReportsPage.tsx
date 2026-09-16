@@ -9,6 +9,7 @@ import CommunicationPageHeader from "@/features/communication/components/layout/
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
 import ReportFilters from "@/features/communication/components/safety/ReportFilters";
 import ReportsTable from "@/features/communication/components/safety/ReportsTable";
+import SafetyNavigation from "@/features/communication/components/safety/SafetyNavigation";
 import { useMessageReports } from "@/features/communication/hooks/useMessageReports";
 
 const labels = {
@@ -173,6 +174,7 @@ export default function MessageReportsPage() {
         }
       />
       <CommunicationTabs />
+      <SafetyNavigation />
 
       <ReportFilters
         filters={filters}

@@ -8,6 +8,12 @@ Align the School Dashboard Communication UI with the backend's authorization cap
 
 The backend remains the final authorization authority. Frontend capabilities determine which controls are discoverable and which workflow to start; backend errors still decide whether a mutation succeeds.
 
+## Delivery status
+
+The supported frontend phase implements only behavior verified against backend baseline `8d30148527808dc24ede7a26f9a189a41eeb5d73`: centralized capabilities, permission-based conversation management, cross-user message edit/delete/attachment controls, read-only sending for eligible active participants, reports, and message hide/unhide/delete moderation.
+
+Restrictions, blocks, `restrict_sender`, client-side policy enforcement for ordinary edit/delete, and server-derived effective communication state are deferred. The required backend contracts are documented in [Communication Admin Authorization — Backend Requirements](../../communication-admin-authorization-backend-requirements.md). Sections below describe the delivered supported phase unless explicitly marked deferred.
+
 ## Scope
 
 This change covers:
@@ -16,7 +22,7 @@ This change covers:
 - Conversation, participant, invite, and join-request management visibility.
 - Own-message and cross-user message editing, deletion, and attachment management.
 - Read-only conversation sending for eligible administrators.
-- A discoverable Safety hub for reports, moderation, restrictions, and blocks.
+- A discoverable Safety hub for reports and message moderation.
 - Direct moderation actions from reported-message details.
 - Shared moderation dialogs, endpoint selection, error handling, and reconciliation.
 - Focused unit, component, hook, and API tests for the new behavior.
@@ -30,7 +36,7 @@ The current UI combines account permissions with ownership and participant-role 
 - `MessageBubble` restricts edit, delete, and attachment controls to the current user's own messages even when the session has moderation permissions.
 - Conversation management requires a manager participant role in addition to `communication.conversations.manage`, although the backend management routes rely on the permission and school scope.
 - The composer blocks every user in a read-only conversation, although the backend allows an active participant with moderation or admin management permission to bypass read-only mode.
-- Reports are discoverable, but the existing moderation, restrictions, and blocks pages have no visible navigation.
+- Reports are discoverable, but the supported moderation page has no visible navigation. Restrictions and blocks remain deferred because their records are not enforced by backend mutations.
 - Report details update report workflow status but do not expose message moderation actions.
 - The moderation form displays backend aliases as separate actions, producing eight buttons for four operations.
 
@@ -56,11 +62,14 @@ The module returns capabilities grouped by scope:
 interface CommunicationModuleCapabilities {
   canViewReports: boolean;
   canModerateMessages: boolean;
-  canManageRestrictions: boolean;
-  canManageBlocks: boolean;
+  canManageConversations: boolean;
+  canManageParticipants: boolean;
 }
 
 interface CommunicationConversationCapabilities {
+  currentParticipant?: ConversationParticipant;
+  isActiveParticipant: boolean;
+  hasParticipantAccess: boolean;
   canManageConversation: boolean;
   canManageParticipants: boolean;
   canManageInvites: boolean;
@@ -68,13 +77,13 @@ interface CommunicationConversationCapabilities {
   canSendMessage: boolean;
   canLeaveConversation: boolean;
   canJoinRealtimeRoom: boolean;
+  canCreateJoinRequest: boolean;
 }
 
 type MessageDeleteMode = "self" | "moderation" | null;
 
 interface CommunicationMessageCapabilities {
   canEditMessage: boolean;
-  canDeleteMessage: boolean;
   deleteMode: MessageDeleteMode;
   canAddAttachment: boolean;
   canRemoveAttachment: boolean;
@@ -82,7 +91,6 @@ interface CommunicationMessageCapabilities {
   canViewMessageInfo: boolean;
   canHideMessage: boolean;
   canUnhideMessage: boolean;
-  canRestrictSender: boolean;
   canViewModerationHistory: boolean;
 }
 ```
@@ -101,7 +109,7 @@ The existing `getConversationPermissionFlags` helper will be replaced or reduced
 - Global management permissions do not imply message sending. Sending still requires an active participant.
 - `communication.conversations.manage` enables same-school conversation metadata and lifecycle controls without requiring a manager participant role.
 - `communication.participants.manage` enables participant, invite, and join-request management without requiring a manager participant role. Backend owner-protection rules remain authoritative.
-- An active participant with `communication.messages.moderate` or `communication.admin.manage` may send in a read-only conversation when the communication policy is enabled and no mute, block, restriction, closed, or archived state prevents sending.
+- An active participant with a management participant role, `communication.messages.moderate`, or `communication.admin.manage` may send in a read-only conversation when the communication policy is enabled and the conversation is active.
 - Ordinary users may edit and delete only their own eligible messages.
 - A user with moderation authority may edit eligible text messages sent by another user.
 - Cross-user deletion uses moderation; it never silently falls back to ordinary deletion.
@@ -128,14 +136,13 @@ Eligible messages from other users expose:
 - Remove Attachment
 - Hide Message
 - Unhide Message, when currently hidden
-- Restrict Sender
 - View Moderation History
 
 Editing another user's message opens the existing editor with a warning confirmation before submission. The warning states that the original author's text will be changed. The update still uses the existing message PATCH endpoint and relies on its audit record.
 
 Deleting another user's message opens the shared moderation dialog. A non-empty reason is required, confirmation is required, and the frontend submits a moderation action with `action: "delete"` to `POST /api/v1/communication/messages/:messageId/moderation-actions`.
 
-Hide, Unhide, and Restrict Sender use the same dialog and endpoint with the supported canonical actions `hide`, `unhide`, and `restrict_sender`. Backend aliases such as `message_deleted` are accepted by the API but are not presented as separate UI operations.
+Hide and Unhide use the same dialog and endpoint with the supported canonical actions `hide` and `unhide`. Historical backend aliases remain readable in moderation history but are not accepted as new frontend commands.
 
 ### Attachment behavior
 
@@ -153,8 +160,8 @@ The composer remains unavailable to non-participants and inactive participants. 
 
 - Is an active participant.
 - Has `communication.messages.send`.
-- Has `communication.messages.moderate` or `communication.admin.manage`.
-- Is not muted, blocked, removed, restricted, or otherwise prevented by policy.
+- Has a participant role of Owner, Admin, or Moderator, or has `communication.messages.moderate` or `communication.admin.manage`.
+- Is not muted, removed, or otherwise inactive.
 - Is not in a closed or archived conversation.
 
 The existing read-only label must match this behavior.
@@ -163,18 +170,16 @@ The existing read-only label must match this behavior.
 
 ### Information architecture
 
-The Communication Safety tab becomes a hub with permission-filtered sub-navigation:
+The Communication Safety tab becomes a hub with sub-navigation for backend-supported administrative workflows:
 
 - Reports: `/communication/safety/reports`
 - Moderation: `/communication/safety/moderation`
-- Restrictions: `/communication/safety/restrictions`
-- Blocks: `/communication/safety/blocks`
 
 Unavailable sections are hidden. Every direct route retains its existing permission guard.
 
 The report list is the Safety landing destination. Existing localized `/communication/moderation` and `/communication/moderation/:reportId` entry points remain compatibility redirects to the canonical Safety report routes.
 
-The existing moderation, restrictions, and blocks pages are reused. A shared Safety sub-navigation component is rendered on all four sections so none becomes an orphaned route.
+The existing reports and moderation pages use a shared Safety sub-navigation component. Restrictions and blocks are intentionally not advertised until the backend enforces them.
 
 ### Report details moderation
 
@@ -183,19 +188,17 @@ Reported-message details add direct moderation controls for:
 - Hide
 - Unhide
 - Delete
-- Restrict Sender
 - View Moderation History
 
 Actions use the same capability calculation, dialog, validation, and dispatcher as conversation actions. A moderation action does not automatically resolve the report. Report status and resolution note remain an explicit, separate workflow.
 
 ### Moderation form cleanup
 
-The moderation form displays four semantic operations rather than backend aliases:
+The moderation form displays three supported semantic operations rather than backend aliases:
 
 - Hide
 - Unhide
 - Delete
-- Restrict Sender
 
 Availability depends on message state. For example, Unhide is available only for a hidden message, while mutation controls are removed for a deleted message.
 
@@ -221,7 +224,7 @@ The frontend must preserve and extend existing domain-error behavior for:
 - Invalid moderation transition.
 - Archived or closed conversations.
 - Disabled Communication or attachment policy.
-- Muted, blocked, restricted, removed, or read-only participants.
+- Muted, removed, or read-only participants.
 - Last-owner and participant lifecycle protections.
 - Stale message, report, or attachment state.
 
@@ -239,9 +242,8 @@ Use table-driven tests covering:
 - Owner, admin, moderator, member, read-only, muted, removed, and left participant states.
 - Active, read-only, closed, and archived conversations.
 - Sent, hidden, deleted, pending, and failed messages.
-- Policy-enabled and policy-disabled actions.
 - Own and other-user attachments.
-- Safety-section visibility by permission.
+- Supported Safety-section visibility.
 
 ### Component tests
 
@@ -263,7 +265,7 @@ Verify that:
 Verify:
 
 - Correct endpoint and payload selection for self deletion and moderation deletion.
-- Edit, attachment, hide, unhide, and restriction commands.
+- Edit, attachment, hide, unhide, and delete commands.
 - Reason validation.
 - Targeted refresh after mutation failure.
 - Realtime reconciliation after message and attachment state changes.
@@ -279,9 +281,9 @@ All changed production code receives a Clean Code Guard review. All changed test
 - Authorized administrators can edit another user's eligible text message after confirming the authorship warning.
 - Authorized administrators can add or remove attachments on another user's eligible message.
 - Own-message deletion uses ordinary DELETE; cross-user deletion uses moderation with a required reason.
-- Safety Reports, Moderation, Restrictions, and Blocks are reachable through visible permission-aware navigation.
+- Safety Reports and Moderation are reachable through visible navigation; Restrictions and Blocks remain unadvertised.
 - Report details expose direct moderation without implicitly resolving the report.
-- The moderation UI exposes four semantic actions with no alias duplicates.
+- The moderation UI exposes Hide, Unhide, and Delete with no alias duplicates.
 - Backend rejection restores consistent frontend state and displays a localized error.
 - Existing ordinary-user ownership restrictions and backend-protected participant rules remain intact.
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import CommunicationPageHeader from "@/features/communication/components/layout/CommunicationPageHeader";
 import CommunicationTabs from "@/features/communication/components/layout/CommunicationTabs";
@@ -10,7 +11,8 @@ import ModerationActionsPanel from "@/features/communication/components/safety/M
 import ModerationHistoryTable from "@/features/communication/components/safety/ModerationHistoryTable";
 import { useModerationActions } from "@/features/communication/hooks/useModerationActions";
 import { useToast } from "@/components/ui/toast/Toast";
-import type { ModerationActionType } from "@/features/communication/types/safety.types";
+import type { SupportedModerationAction } from "@/features/communication/types/safety.types";
+import SafetyNavigation from "@/features/communication/components/safety/SafetyNavigation";
 
 const labels = {
   en: {
@@ -37,11 +39,6 @@ const labels = {
     reasonPlaceholder: "Explain why this moderation action is needed.",
     hide: "Hide Message",
     unhide: "Unhide Message",
-    restrictSender: "Restrict Sender",
-    messageHidden: "Message Hidden",
-    messageUnhidden: "Message Unhidden",
-    messageDeleted: "Message Deleted",
-    userRestricted: "User Restricted",
     reasonRequired: "Add a reason before submitting.",
     historyTitle: "Moderation History",
     action: "Action",
@@ -77,11 +74,6 @@ const labels = {
     reasonPlaceholder: "اشرح سبب الحاجة لهذا الإجراء.",
     hide: "إخفاء الرسالة",
     unhide: "إظهار الرسالة",
-    restrictSender: "تقييد المرسل",
-    messageHidden: "تم إخفاء الرسالة",
-    messageUnhidden: "تم إظهار الرسالة",
-    messageDeleted: "تم حذف الرسالة",
-    userRestricted: "تم تقييد المستخدم",
     reasonRequired: "أضف سببا قبل الإرسال.",
     historyTitle: "سجل الإشراف",
     action: "الإجراء",
@@ -99,6 +91,7 @@ type LocaleKey = keyof typeof labels;
 
 export default function ModerationPage() {
   const locale = useLocale() as LocaleKey;
+  const searchParams = useSearchParams();
   const t = labels[locale] ?? labels.en;
   const { showSuccess, showError } = useToast();
   const [conversationId, setConversationId] = useState("");
@@ -114,8 +107,15 @@ export default function ModerationPage() {
     setMessageId,
   } = useModerationActions();
 
+  useEffect(() => {
+    const requestedMessageId = searchParams.get("messageId")?.trim();
+    if (!requestedMessageId) return;
+    setMessageId(requestedMessageId);
+    void load(requestedMessageId);
+  }, [load, searchParams, setMessageId]);
+
   const handleAction = async (
-    action: ModerationActionType,
+    action: SupportedModerationAction,
     reason?: string,
   ) => {
     try {
@@ -130,6 +130,7 @@ export default function ModerationPage() {
     <div className="space-y-6">
       <CommunicationPageHeader title={t.title} description={t.description} />
       <CommunicationTabs />
+      <SafetyNavigation />
 
       {error ? (
         <CommunicationErrorState title={t.errorTitle} message={error} />
@@ -182,21 +183,17 @@ export default function ModerationPage() {
         <ModerationActionForm
           disabled={!message}
           isSubmitting={isMutating}
+          messageStatus={message?.status}
           onSubmit={handleAction}
           labels={{
             title: t.actionTitle,
             reason: t.reason,
             reasonPlaceholder: t.reasonPlaceholder,
-              hide: t.hide,
-              unhide: t.unhide,
-              delete: t.delete,
-              restrictSender: t.restrictSender,
-              messageHidden: t.messageHidden,
-              messageUnhidden: t.messageUnhidden,
-              messageDeleted: t.messageDeleted,
-              userRestricted: t.userRestricted,
-              reasonRequired: t.reasonRequired,
-            }}
+            hide: t.hide,
+            unhide: t.unhide,
+            delete: t.delete,
+            reasonRequired: t.reasonRequired,
+          }}
         />
       </div>
     </div>
