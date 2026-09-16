@@ -202,6 +202,7 @@ export default function ModerationPage() {
             hide: t.hide,
             unhide: t.unhide,
             delete: t.delete,
+            deleted: t.deleted,
             reasonRequired: t.reasonRequired,
           }}
         />

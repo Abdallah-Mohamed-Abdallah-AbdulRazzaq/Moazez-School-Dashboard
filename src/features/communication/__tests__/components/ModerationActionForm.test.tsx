@@ -9,6 +9,7 @@ const labels = {
   hide: "Hide message",
   unhide: "Unhide message",
   delete: "Delete message",
+  deleted: "Message deleted",
   reasonRequired: "A reason is required",
 };
 
@@ -49,7 +50,7 @@ describe("ModerationActionForm", () => {
     );
   });
 
-  it("does not offer another moderation action for a deleted message", () => {
+  it("shows a deleted status without moderation controls for a deleted message", () => {
     render(
       <ModerationActionForm
         labels={labels}
@@ -58,6 +59,8 @@ describe("ModerationActionForm", () => {
       />,
     );
 
+    expect(screen.getByText(labels.deleted)).toBeInTheDocument();
+    expect(screen.queryByLabelText(labels.reason)).not.toBeInTheDocument();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
