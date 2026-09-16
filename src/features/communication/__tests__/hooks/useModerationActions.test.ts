@@ -39,15 +39,22 @@ describe("useModerationActions", () => {
     });
   });
 
-  it("loads sender and conversation display data for the selected message", async () => {
+  it("loads participants once on conversation selection and reuses them for the message", async () => {
     const { result } = renderHook(() => useModerationActions());
+
+    await act(async () => {
+      await result.current.loadConversation("conversation-1");
+    });
+    await waitFor(() =>
+      expect(result.current.conversation?.titleAr).toBe("محادثة الصف السادس"),
+    );
 
     await act(async () => {
       await result.current.load("message-1");
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.conversation?.titleAr).toBe("محادثة الصف السادس");
     expect(result.current.senderParticipant?.user?.displayName).toBe("آية حسن");
+    expect(serviceMocks.getParticipants).toHaveBeenCalledTimes(1);
   });
 });

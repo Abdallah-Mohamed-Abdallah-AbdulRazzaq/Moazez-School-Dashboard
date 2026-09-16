@@ -30,7 +30,7 @@ function unwrapItems<T>(response: unknown): T[] {
   return source ? (source.items as T[]) : [];
 }
 
-function participantForMessage(
+export function participantForMessage(
   message: Message,
   participants: ConversationParticipant[],
 ) {
@@ -47,6 +47,17 @@ function participantForMessage(
   );
 }
 
+export async function loadConversationDisplayContext(conversationId: string) {
+  const [conversationResponse, participantsResponse] = await Promise.all([
+    getConversation(conversationId),
+    getParticipants(conversationId),
+  ]);
+  return {
+    conversation: unwrapItem<Conversation>(conversationResponse),
+    participants: unwrapItems<ConversationParticipant>(participantsResponse),
+  };
+}
+
 export async function loadMessageDisplayContext(
   message: Message,
   fallbackConversationId?: string,
@@ -54,13 +65,9 @@ export async function loadMessageDisplayContext(
   const conversationId = message.conversationId ?? fallbackConversationId;
   if (!conversationId) return { conversation: null, senderParticipant: null };
 
-  const [conversationResponse, participantsResponse] = await Promise.all([
-    getConversation(conversationId),
-    getParticipants(conversationId),
-  ]);
-  const participants = unwrapItems<ConversationParticipant>(participantsResponse);
+  const context = await loadConversationDisplayContext(conversationId);
   return {
-    conversation: unwrapItem<Conversation>(conversationResponse),
-    senderParticipant: participantForMessage(message, participants),
+    conversation: context.conversation,
+    senderParticipant: participantForMessage(message, context.participants),
   };
 }

@@ -100,6 +100,7 @@ export default function ModerationPage() {
     error,
     isLoading,
     isMutating,
+    loadConversation,
     load,
     message,
     conversation,
@@ -147,7 +148,10 @@ export default function ModerationPage() {
             conversation={conversation}
             senderParticipant={senderParticipant}
             isLoading={isLoading}
-            onConversationIdChange={setConversationId}
+            onConversationIdChange={(nextConversationId) => {
+              setConversationId(nextConversationId);
+              void loadConversation(nextConversationId);
+            }}
             onMessageIdChange={setMessageId}
             onLoad={() => load()}
             labels={{
