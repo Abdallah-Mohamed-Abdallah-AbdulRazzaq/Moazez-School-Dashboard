@@ -12,6 +12,7 @@ import ModerationHistoryTable from "@/features/communication/components/safety/M
 import { useModerationActions } from "@/features/communication/hooks/useModerationActions";
 import { useToast } from "@/components/ui/toast/Toast";
 import type { SupportedModerationAction } from "@/features/communication/types/safety.types";
+import { normalizeStatus } from "@/features/communication/utils/communication-errors";
 import SafetyNavigation from "@/features/communication/components/safety/SafetyNavigation";
 
 const labels = {
@@ -130,6 +131,8 @@ export default function ModerationPage() {
     }
   };
 
+  const isDeletedMessage = normalizeStatus(message?.status) === "deleted";
+
   return (
     <div className="space-y-6">
       <CommunicationPageHeader title={t.title} description={t.description} />
@@ -140,7 +143,13 @@ export default function ModerationPage() {
         <CommunicationErrorState title={t.errorTitle} message={error} />
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div
+        className={
+          isDeletedMessage
+            ? "space-y-6"
+            : "grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]"
+        }
+      >
         <div className="space-y-6">
           <ModerationActionsPanel
             conversationId={conversationId}
