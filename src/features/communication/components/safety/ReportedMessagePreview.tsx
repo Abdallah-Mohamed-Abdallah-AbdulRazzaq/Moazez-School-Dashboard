@@ -3,11 +3,12 @@
 import { MessageSquareWarning } from "lucide-react";
 import { useLocale } from "next-intl";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
-import type {
-  Conversation,
-  ConversationParticipant,
-} from "@/features/communication/types/conversation.types";
+import type { Conversation, ConversationParticipant } from "@/features/communication/types/conversation.types";
 import type { Message } from "@/features/communication/types/message.types";
+import {
+  messageConversationTitle,
+  messageSenderName,
+} from "@/features/communication/utils/message-display-labels";
 
 export interface ReportedMessagePreviewLabels {
   title: string;
@@ -38,41 +39,6 @@ function formatDate(value?: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
-}
-
-function senderName(
-  message: Message,
-  participant: ConversationParticipant | null | undefined,
-  fallback: string,
-) {
-  return (
-    participant?.user?.displayName ||
-    participant?.actor?.displayName ||
-    participant?.actor?.name ||
-    participant?.actor?.nameEn ||
-    participant?.actor?.nameAr ||
-    message.sender?.displayName ||
-    message.sender?.name ||
-    message.sender?.nameEn ||
-    message.sender?.nameAr ||
-    fallback
-  );
-}
-
-function conversationTitle(
-  conversation: Conversation | null | undefined,
-  locale: string,
-  fallback: string,
-) {
-  return locale.startsWith("ar")
-    ? conversation?.titleAr ||
-        conversation?.title ||
-        conversation?.titleEn ||
-        fallback
-    : conversation?.titleEn ||
-        conversation?.title ||
-        conversation?.titleAr ||
-        fallback;
 }
 
 export default function ReportedMessagePreview({
@@ -136,13 +102,13 @@ export default function ReportedMessagePreview({
             <div>
               <dt className="text-xs text-slate-500">{labels.sender}</dt>
               <dd className="font-medium text-slate-800">
-                {senderName(message, senderParticipant, labels.unknown)}
+                {messageSenderName(message, senderParticipant, labels.unknown)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-slate-500">{labels.conversation}</dt>
               <dd className="font-medium text-slate-800">
-                {conversationTitle(conversation, locale, labels.unknown)}
+                {messageConversationTitle(conversation, locale, labels.unknown)}
               </dd>
             </div>
             <div>

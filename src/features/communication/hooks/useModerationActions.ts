@@ -8,6 +8,10 @@ import {
 } from "@/features/communication/api/communication.service";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
+import type {
+  Conversation,
+  ConversationParticipant,
+} from "@/features/communication/types/conversation.types";
 import type { Message } from "@/features/communication/types/message.types";
 import type {
   ModerationAction,
@@ -15,6 +19,7 @@ import type {
 } from "@/features/communication/types/safety.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
 import { messageFromRealtimePayload } from "@/features/communication/utils/realtime-message";
+import { loadMessageDisplayContext } from "@/features/communication/utils/message-display-context";
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -67,6 +72,8 @@ export function useModerationActions() {
   const mountedRef = useRef(false);
   const [messageId, setMessageId] = useState("");
   const [message, setMessage] = useState<Message | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [senderParticipant, setSenderParticipant] = useState<ConversationParticipant | null>(null);
   const [actions, setActions] = useState<ModerationAction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -95,15 +102,22 @@ export function useModerationActions() {
       const nextActions = sortActions(
         unwrapList<ModerationAction>(actionsResponse),
       );
+      const context = nextMessage
+        ? await loadMessageDisplayContext(nextMessage)
+        : { conversation: null, senderParticipant: null };
 
       if (!mountedRef.current) return;
       setMessageId(trimmed);
       setMessage(nextMessage);
+      setConversation(context.conversation);
+      setSenderParticipant(context.senderParticipant);
       setActions(nextActions);
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));
       setMessage(null);
+      setConversation(null);
+      setSenderParticipant(null);
       setActions([]);
     } finally {
       if (mountedRef.current) setIsLoading(false);
@@ -156,6 +170,8 @@ export function useModerationActions() {
     messageId,
     setMessageId,
     message,
+    conversation,
+    senderParticipant,
     actions,
     isLoading,
     isMutating,

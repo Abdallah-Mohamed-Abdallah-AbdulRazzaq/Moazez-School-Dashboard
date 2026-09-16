@@ -102,8 +102,10 @@ export default function ModerationPage() {
     isMutating,
     load,
     message,
+    conversation,
     messageId,
     runAction,
+    senderParticipant,
     setMessageId,
   } = useModerationActions();
 
@@ -142,6 +144,8 @@ export default function ModerationPage() {
             conversationId={conversationId}
             messageId={messageId}
             message={message}
+            conversation={conversation}
+            senderParticipant={senderParticipant}
             isLoading={isLoading}
             onConversationIdChange={setConversationId}
             onMessageIdChange={setMessageId}

@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  getConversation,
   getMessage,
   getMessageReport,
-  getParticipants,
   updateMessageReport,
 } from "@/features/communication/api/communication.service";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
@@ -21,6 +19,7 @@ import type {
 } from "@/features/communication/types/safety.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
 import { messageFromRealtimePayload } from "@/features/communication/utils/realtime-message";
+import { loadMessageDisplayContext } from "@/features/communication/utils/message-display-context";
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -33,69 +32,6 @@ function unwrapItem<T>(response: unknown): T | null {
   );
 
   return (item ?? response) as T;
-}
-
-function unwrapItems<T>(response: unknown): T[] {
-  if (Array.isArray(response)) return response as T[];
-  if (!isRecord(response)) return [];
-
-  const source = [
-    response,
-    response.data,
-    response.result,
-    response.payload,
-  ].find(
-    (candidate): candidate is CommunicationRecord & { items: unknown[] } =>
-      isRecord(candidate) && Array.isArray(candidate.items),
-  );
-
-  return source ? (source.items as T[]) : [];
-}
-
-function participantForSender(
-  message: Message,
-  participants: ConversationParticipant[],
-) {
-  const senderIds = [
-    message.senderUserId,
-    message.senderId,
-    message.sender?.userId,
-    message.sender?.id,
-  ].filter((id): id is string => Boolean(id));
-
-  return (
-    participants.find((participant) =>
-      senderIds.some((id) =>
-        [
-          participant.id,
-          participant.userId,
-          participant.user?.id,
-          participant.actor?.id,
-          participant.actor?.userId,
-        ].includes(id),
-      ),
-    ) ?? null
-  );
-}
-
-async function reportedMessageContext(
-  message: Message,
-  reportConversationId?: string,
-) {
-  const conversationId = message.conversationId ?? reportConversationId;
-  if (!conversationId) return { conversation: null, participant: null };
-
-  const [conversationResponse, participantsResponse] = await Promise.all([
-    getConversation(conversationId),
-    getParticipants(conversationId),
-  ]);
-  const conversation = unwrapItem<Conversation>(conversationResponse);
-  const participants = unwrapItems<ConversationParticipant>(participantsResponse);
-
-  return {
-    conversation,
-    participant: participantForSender(message, participants),
-  };
 }
 
 function errorMessageFromUnknown(error: unknown): string {
@@ -145,13 +81,13 @@ export function useMessageReport(reportId: string) {
       }
 
       if (mountedRef.current) setMessage(nextMessage);
-      const context = await reportedMessageContext(
+      const context = await loadMessageDisplayContext(
         nextMessage,
         reportConversationId,
       );
       if (mountedRef.current) {
         setConversation(context.conversation);
-        setParticipant(context.participant);
+        setParticipant(context.senderParticipant);
       }
     },
     [],
