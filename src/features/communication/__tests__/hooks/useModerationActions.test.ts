@@ -67,4 +67,19 @@ describe("useModerationActions", () => {
     expect(serviceMocks.getParticipants).toHaveBeenCalledTimes(1);
     expect(serviceMocks.getMessage).not.toHaveBeenCalled();
   });
+
+  it("hydrates the selected message conversation context from a direct message load", async () => {
+    const { result } = renderHook(() => useModerationActions());
+
+    await act(async () => {
+      await result.current.load("message-1");
+    });
+
+    await waitFor(() =>
+      expect(result.current.conversation?.titleAr).toBe("محادثة الصف السادس"),
+    );
+
+    expect(result.current.senderParticipant?.user?.displayName).toBe("آية حسن");
+    expect(serviceMocks.getParticipants).toHaveBeenCalledTimes(1);
+  });
 });

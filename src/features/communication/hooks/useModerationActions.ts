@@ -122,11 +122,19 @@ export function useModerationActions() {
       const nextActions = sortActions(
         unwrapList<ModerationAction>(actionsResponse),
       );
+      const conversationContext =
+        nextMessage?.conversationId && conversation?.id !== nextMessage.conversationId
+          ? await loadConversationDisplayContext(nextMessage.conversationId)
+          : null;
 
       if (!mountedRef.current) return;
       setMessageId(trimmed);
       setMessage(nextMessage);
       setActions(nextActions);
+      if (conversationContext) {
+        setConversation(conversationContext.conversation);
+        setParticipants(conversationContext.participants);
+      }
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));
@@ -135,7 +143,7 @@ export function useModerationActions() {
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
-  }, [message, messageId]);
+  }, [conversation?.id, message, messageId]);
 
   const loadConversation = useCallback(async (conversationId: string) => {
     if (!conversationId) {

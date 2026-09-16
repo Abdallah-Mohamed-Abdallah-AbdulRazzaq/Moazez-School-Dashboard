@@ -152,7 +152,7 @@ export default function ModerationPage() {
       >
         <div className="space-y-6">
           <ModerationActionsPanel
-            conversationId={conversationId}
+            conversationId={message?.conversationId ?? conversationId}
             messageId={messageId}
             message={message}
             conversation={conversation}
