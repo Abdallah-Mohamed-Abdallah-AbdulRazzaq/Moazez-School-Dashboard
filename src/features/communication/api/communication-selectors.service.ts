@@ -132,7 +132,8 @@ function formatMessageTimestamp(record: RecordLike, locale: string) {
   if (!timestamp) return undefined;
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return undefined;
-  return new Intl.DateTimeFormat(locale, {
+  const dateLocale = locale.startsWith("ar") ? "ar-EG" : locale;
+  return new Intl.DateTimeFormat(dateLocale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);

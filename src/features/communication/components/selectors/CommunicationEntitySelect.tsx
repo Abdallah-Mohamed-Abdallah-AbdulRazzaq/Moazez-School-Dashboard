@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import type { CommunicationSelectorOption } from "@/features/communication/api/communication-selectors.service";
 
@@ -22,9 +23,15 @@ export interface CommunicationEntitySelectProps {
   onOptionsChange?: (options: CommunicationSelectorOption[]) => void;
 }
 
-function toSelectOption(option: CommunicationSelectorOption): SelectOption {
+function toSelectOption(
+  option: CommunicationSelectorOption,
+  locale: string,
+): SelectOption {
+  const description = locale.startsWith("ar") && option.description
+    ? `\u2067${option.description}\u2069`
+    : option.description;
   const label = option.description
-    ? `${option.label} - ${option.description}`
+    ? `${option.label} - ${description}`
     : option.label;
 
   return {
@@ -47,6 +54,7 @@ export default function CommunicationEntitySelect({
   search,
   value,
 }: CommunicationEntitySelectProps) {
+  const locale = useLocale();
   const [options, setOptions] = useState<CommunicationSelectorOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -86,7 +94,7 @@ export default function CommunicationEntitySelect({
   }, [disabled, onOptionsChange, search]);
 
   const selectOptions = useMemo(() => {
-    const nextOptions = options.map(toSelectOption);
+    const nextOptions = options.map((option) => toSelectOption(option, locale));
 
     if (value && !nextOptions.some((option) => option.value === value)) {
       nextOptions.unshift({ value, label: value, searchText: value });
@@ -121,7 +129,16 @@ export default function CommunicationEntitySelect({
     }
 
     return nextOptions;
-  }, [clearable, hasSearched, isLoading, loadError, options, placeholder, value]);
+  }, [
+    clearable,
+    hasSearched,
+    isLoading,
+    loadError,
+    locale,
+    options,
+    placeholder,
+    value,
+  ]);
 
   const handleChange = (nextValue: string) => {
     if (

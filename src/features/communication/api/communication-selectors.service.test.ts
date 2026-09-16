@@ -51,4 +51,26 @@ describe("searchMessages", () => {
     expect(options[0].description).not.toContain("T12:30:00.000Z");
     expect(options[0].description).toContain("2026");
   });
+
+  // Regression: Arabic message dropdown dates previously displayed Latin digits.
+  it("uses Arabic digits for a timestamp in the Arabic locale", async () => {
+    apiMocks.apiGet.mockResolvedValue({
+      data: {
+        items: [
+          {
+            id: "message-arabic-date-id",
+            body: "رسالة",
+            type: "text",
+            status: "sent",
+            sentAt: "2026-09-16T12:30:00.000Z",
+          },
+        ],
+      },
+    });
+
+    const [option] = await searchMessages("conversation-1", "", "ar");
+
+    expect(option.description).toContain("٢٠٢٦");
+    expect(option.description).not.toContain("2026");
+  });
 });
