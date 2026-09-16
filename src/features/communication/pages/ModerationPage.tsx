@@ -114,10 +114,10 @@ export default function ModerationPage() {
 
   useEffect(() => {
     const requestedMessageId = searchParams.get("messageId")?.trim();
-    if (!requestedMessageId) return;
+    if (!requestedMessageId || messageId === requestedMessageId) return;
     setMessageId(requestedMessageId);
     void load(requestedMessageId);
-  }, [load, searchParams, setMessageId]);
+  }, [load, messageId, searchParams, setMessageId]);
 
   const handleAction = async (
     action: SupportedModerationAction,
