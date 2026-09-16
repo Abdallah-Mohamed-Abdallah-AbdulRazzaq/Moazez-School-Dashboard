@@ -127,6 +127,24 @@ function messageOptionLabel(record: RecordLike, locale: string): string {
     : labels.unknown;
 }
 
+function conversationOption(
+  record: RecordLike,
+  locale: string,
+): CommunicationSelectorOption | null {
+  const id = stringValue(record.id);
+  if (!id) return null;
+
+  const label = locale.startsWith("ar")
+    ? (stringValue(record.titleAr) ??
+      stringValue(record.title) ??
+      stringValue(record.titleEn))
+    : (stringValue(record.titleEn) ??
+      stringValue(record.title) ??
+      stringValue(record.titleAr));
+
+  return label ? { id, label } : null;
+}
+
 function formatMessageTimestamp(record: RecordLike, locale: string) {
   const timestamp = stringValue(record.sentAt) ?? stringValue(record.createdAt);
   if (!timestamp) return undefined;
@@ -240,9 +258,10 @@ export async function searchAnnouncements(
 
 export async function searchConversations(
   query = "",
+  locale = "en",
 ): Promise<CommunicationSelectorOption[]> {
   const response = await getConversations({ search: query, limit: 20 });
-  return unwrapItems(response).map(optionFromRecord).filter(isOption);
+  return unwrapItems(response).map((record) => conversationOption(record, locale)).filter(isOption);
 }
 
 export async function searchMessages(

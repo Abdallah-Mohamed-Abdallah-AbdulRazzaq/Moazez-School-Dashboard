@@ -6,7 +6,10 @@ const apiMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/api", () => apiMocks);
 
-import { searchMessages } from "./communication-selectors.service";
+import {
+  searchConversations,
+  searchMessages,
+} from "./communication-selectors.service";
 
 describe("searchMessages", () => {
   beforeEach(() => {
@@ -72,5 +75,37 @@ describe("searchMessages", () => {
 
     expect(option.description).toContain("٢٠٢٦");
     expect(option.description).not.toContain("2026");
+  });
+});
+
+describe("searchConversations", () => {
+  beforeEach(() => {
+    apiMocks.apiGet.mockReset();
+  });
+
+  // Regression: conversation labels previously fell back to internal UUIDs and descriptions.
+  it("returns the localized conversation title without extra dropdown text", async () => {
+    apiMocks.apiGet.mockResolvedValue({
+      data: {
+        items: [
+          {
+            id: "dda4cb2d-00b7-43d5-8be9-bc55e3fbdc27",
+            titleEn: "Grade 6 Parents",
+            titleAr: "أولياء أمور الصف السادس",
+            description: "Private group",
+          },
+        ],
+      },
+    });
+
+    await expect(searchConversations("", "en")).resolves.toEqual([
+      { id: "dda4cb2d-00b7-43d5-8be9-bc55e3fbdc27", label: "Grade 6 Parents" },
+    ]);
+    await expect(searchConversations("", "ar")).resolves.toEqual([
+      {
+        id: "dda4cb2d-00b7-43d5-8be9-bc55e3fbdc27",
+        label: "أولياء أمور الصف السادس",
+      },
+    ]);
   });
 });

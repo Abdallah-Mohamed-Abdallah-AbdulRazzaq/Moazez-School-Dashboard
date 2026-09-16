@@ -1,7 +1,12 @@
 "use client";
 
 import { MessageSquareWarning } from "lucide-react";
+import { useLocale } from "next-intl";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
+import type {
+  Conversation,
+  ConversationParticipant,
+} from "@/features/communication/types/conversation.types";
 import type { Message } from "@/features/communication/types/message.types";
 
 export interface ReportedMessagePreviewLabels {
@@ -20,6 +25,8 @@ export interface ReportedMessagePreviewLabels {
 
 export interface ReportedMessagePreviewProps {
   message?: Message | null;
+  conversation?: Conversation | null;
+  senderParticipant?: ConversationParticipant | null;
   labels: ReportedMessagePreviewLabels;
 }
 
@@ -33,21 +40,48 @@ function formatDate(value?: string) {
   }).format(date);
 }
 
-function senderName(message: Message, fallback: string) {
+function senderName(
+  message: Message,
+  participant: ConversationParticipant | null | undefined,
+  fallback: string,
+) {
   return (
+    participant?.user?.displayName ||
+    participant?.actor?.displayName ||
+    participant?.actor?.name ||
+    participant?.actor?.nameEn ||
+    participant?.actor?.nameAr ||
+    message.sender?.displayName ||
     message.sender?.name ||
     message.sender?.nameEn ||
     message.sender?.nameAr ||
-    message.senderId ||
-    message.senderUserId ||
     fallback
   );
 }
 
+function conversationTitle(
+  conversation: Conversation | null | undefined,
+  locale: string,
+  fallback: string,
+) {
+  return locale.startsWith("ar")
+    ? conversation?.titleAr ||
+        conversation?.title ||
+        conversation?.titleEn ||
+        fallback
+    : conversation?.titleEn ||
+        conversation?.title ||
+        conversation?.titleAr ||
+        fallback;
+}
+
 export default function ReportedMessagePreview({
+  conversation,
   labels,
   message,
+  senderParticipant,
 }: ReportedMessagePreviewProps) {
+  const locale = useLocale();
   const isDeleted = message?.status === "deleted" || Boolean(message?.deletedAt);
   const isHidden = !isDeleted && (message?.status === "hidden" || Boolean(message?.hiddenAt));
   const isUnavailable = isDeleted || isHidden;
@@ -102,13 +136,13 @@ export default function ReportedMessagePreview({
             <div>
               <dt className="text-xs text-slate-500">{labels.sender}</dt>
               <dd className="font-medium text-slate-800">
-                {senderName(message, labels.unknown)}
+                {senderName(message, senderParticipant, labels.unknown)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-slate-500">{labels.conversation}</dt>
               <dd className="font-medium text-slate-800">
-                {message.conversationId ?? labels.unknown}
+                {conversationTitle(conversation, locale, labels.unknown)}
               </dd>
             </div>
             <div>

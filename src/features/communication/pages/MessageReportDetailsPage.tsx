@@ -167,9 +167,11 @@ export default function MessageReportDetailsPage({
     isMutating,
     isRefreshing,
     message,
+    conversation,
     refresh,
     refreshMessage,
     report,
+    senderParticipant,
     updateStatus,
   } = useMessageReport(reportId);
 
@@ -196,7 +198,7 @@ export default function MessageReportDetailsPage({
         action,
         reason: reason.trim(),
       });
-      await refreshMessage(report.messageId);
+      await refreshMessage(report.messageId, report.conversationId);
       showSuccess(t.moderationComplete);
     } catch (error) {
       showError(t.mutationFailed);
@@ -264,6 +266,8 @@ export default function MessageReportDetailsPage({
         <div className="space-y-6">
           <ReportedMessagePreview
             message={message}
+            conversation={conversation}
+            senderParticipant={senderParticipant}
             labels={{
               title: t.messagePreview,
               noMessage: t.noMessage,
