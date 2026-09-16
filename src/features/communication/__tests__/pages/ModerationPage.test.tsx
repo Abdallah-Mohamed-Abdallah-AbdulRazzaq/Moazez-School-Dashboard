@@ -54,13 +54,14 @@ describe("ModerationPage", () => {
     moderationMocks.setMessageId.mockClear();
   });
 
-  it("loads a message from the URL only once after rerendering", async () => {
+  it("does not reapply the URL message after a different message is selected", async () => {
     const { rerender } = render(<ModerationPage />);
 
     await waitFor(() =>
       expect(moderationMocks.load).toHaveBeenCalledWith("message-1"),
     );
 
+    moderationMocks.state.messageId = "message-2";
     rerender(<ModerationPage />);
 
     expect(moderationMocks.load).toHaveBeenCalledTimes(1);

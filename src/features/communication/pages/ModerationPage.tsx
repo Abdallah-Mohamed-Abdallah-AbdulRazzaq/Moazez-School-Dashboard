@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
@@ -96,6 +96,7 @@ export default function ModerationPage() {
   const t = labels[locale] ?? labels.en;
   const { showSuccess, showError } = useToast();
   const [conversationId, setConversationId] = useState("");
+  const lastUrlMessageIdRef = useRef<string | null>(null);
   const {
     actions,
     error,
@@ -114,10 +115,16 @@ export default function ModerationPage() {
 
   useEffect(() => {
     const requestedMessageId = searchParams.get("messageId")?.trim();
-    if (!requestedMessageId || messageId === requestedMessageId) return;
+    if (!requestedMessageId) {
+      lastUrlMessageIdRef.current = null;
+      return;
+    }
+    if (lastUrlMessageIdRef.current === requestedMessageId) return;
+
+    lastUrlMessageIdRef.current = requestedMessageId;
     setMessageId(requestedMessageId);
     void load(requestedMessageId);
-  }, [load, messageId, searchParams, setMessageId]);
+  }, [load, searchParams, setMessageId]);
 
   const handleAction = async (
     action: SupportedModerationAction,
