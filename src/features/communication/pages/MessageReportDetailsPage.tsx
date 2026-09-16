@@ -322,7 +322,6 @@ export default function MessageReportDetailsPage({
               hide: t.hideMessage,
               unhide: t.unhideMessage,
               delete: t.deleteMessage,
-              deleted: t.deleted,
               reasonRequired: t.moderationReasonRequired,
             }}
           />
