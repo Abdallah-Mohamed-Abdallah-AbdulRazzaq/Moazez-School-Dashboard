@@ -29,6 +29,7 @@ export interface CommunicationTabItem {
   labelAr: string;
   href: string;
   activePath?: string;
+  exact?: boolean;
   icon: LucideIcon;
 }
 
@@ -43,6 +44,7 @@ export const communicationTabs: CommunicationTabItem[] = [
     labelEn: "Overview",
     labelAr: "نظرة عامة",
     href: "/communication",
+    exact: true,
     icon: LayoutDashboard,
   },
   {
@@ -90,8 +92,16 @@ export const communicationTabs: CommunicationTabItem[] = [
   },
 ];
 
-function isTabActive(pathname: string, href: string, activePath?: string) {
+function isTabActive(
+  pathname: string,
+  href: string,
+  activePath?: string,
+  exact?: boolean,
+) {
   const path = activePath ?? href;
+  if (exact) {
+    return pathname === path;
+  }
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
@@ -114,6 +124,7 @@ export default function CommunicationTabs({
           pathname,
           localizedHref,
           tab.activePath ? `/${locale}${tab.activePath}` : undefined,
+          tab.exact,
         );
         const label = locale === "ar" ? tab.labelAr : tab.labelEn;
 

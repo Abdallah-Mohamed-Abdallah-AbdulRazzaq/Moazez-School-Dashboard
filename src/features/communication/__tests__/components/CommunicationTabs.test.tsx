@@ -18,5 +18,8 @@ describe("CommunicationTabs", () => {
       "aria-current",
       "page",
     );
+    expect(screen.getByRole("link", { name: "نظرة عامة" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 });
