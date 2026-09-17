@@ -4,6 +4,7 @@ import type { TimetableValidationSummary } from "@/features/academics/timetable/
 import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
+import type { TimetableWorkspaceMode } from "@/features/academics/timetable/services/timetableWorkspaceState";
 
 export type TimetableCreationAction =
   | "scope"
@@ -48,6 +49,7 @@ export interface TimetableCreationProgressInput {
   conflicts: TimetableConflictDisplay[];
   publication: PublicationResponse | null;
   isReadOnly: boolean;
+  workspaceMode: TimetableWorkspaceMode;
   translateMessage?: TimetableBackendMessageTranslator;
 }
 
@@ -60,13 +62,15 @@ export function resolveTimetableCreationProgress({
   conflicts,
   publication,
   isReadOnly,
+  workspaceMode,
   translateMessage,
 }: TimetableCreationProgressInput): TimetableCreationProgress {
   if (isLoading) {
     return { state: "checking", steps: [] };
   }
 
-  const hasConfiguration = hasActiveDays(resolvedConfig);
+  const hasConfiguration =
+    workspaceMode !== "inherited" && hasActiveDays(resolvedConfig);
   const hasPeriods = hasInstructionalPeriod(resolvedConfig);
   const hasSchedule = hasSavedEntries(entries);
   const canBuildSchedule = hasConfiguration && hasPeriods;

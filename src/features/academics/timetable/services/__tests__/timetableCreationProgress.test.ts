@@ -64,6 +64,23 @@ describe("resolveTimetableCreationProgress", () => {
     });
   });
 
+  it("keeps configuration actionable when an inherited setup needs an override", () => {
+    const progress = resolveTimetableCreationProgress({
+      ...readyToPublishInput(),
+      workspaceMode: "inherited",
+    });
+
+    expect(step(progress, "configuration")).toMatchObject({
+      status: "current",
+      actionable: true,
+    });
+    expect(step(progress, "periods")).toMatchObject({
+      status: "blocked",
+      actionable: false,
+      prerequisiteKey: "configureTimetable",
+    });
+  });
+
   it("blocks publishing when validation has a blocking reason", () => {
     const progress = resolveTimetableCreationProgress({
       ...readyToPublishInput(),
@@ -151,6 +168,7 @@ function readyToPublishInput() {
     conflicts: [],
     publication: publication(),
     isReadOnly: false,
+    workspaceMode: "exact" as const,
   };
 }
 

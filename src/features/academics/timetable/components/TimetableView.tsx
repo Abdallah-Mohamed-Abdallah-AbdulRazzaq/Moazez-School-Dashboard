@@ -393,6 +393,9 @@ export default function TimetableView({
   const canCreateConfig = canWriteTimetable && !hasExactConfig;
   const canEditTimetable =
     canWriteTimetable && configIsDraft && workspaceState.canEdit;
+  const canConfigureTimetable = hasExactConfig
+    ? canEditTimetable
+    : canCreateConfig;
   const readOnlyBanner = readOnlyBannerMessage({
     configStatus: config?.status,
     termStatus,
@@ -1036,7 +1039,8 @@ export default function TimetableView({
         validationSummary,
         conflicts: backendConflicts,
         publication,
-        isReadOnly: !canWriteTimetable || workspaceState.isInherited,
+        isReadOnly: !canWriteTimetable,
+        workspaceMode: workspaceState.mode,
         translateMessage: translateBackendMessage,
       }),
     [
@@ -1050,7 +1054,7 @@ export default function TimetableView({
       timetableLoading,
       translateBackendMessage,
       validationSummary,
-      workspaceState.isInherited,
+      workspaceState.mode,
     ],
   );
 
@@ -1619,7 +1623,7 @@ export default function TimetableView({
                   </Button>
                   <Button
                     onClick={() => setConfigDialogOpen(true)}
-                    disabled={!canEditTimetable}
+                    disabled={!canConfigureTimetable}
                     variant="secondary"
                     leftIcon={<Settings className="w-4 h-4" />}
                   >
@@ -1739,7 +1743,7 @@ export default function TimetableView({
                 <>
                   <Button
                     onClick={() => setConfigDialogOpen(true)}
-                    disabled={!canEditTimetable}
+                    disabled={!canConfigureTimetable}
                     variant="secondary"
                     leftIcon={<Settings className="w-4 h-4" />}
                     size="sm"
@@ -2106,7 +2110,7 @@ export default function TimetableView({
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
-          readOnly={config ? !canEditTimetable : !canCreateConfig}
+          readOnly={!canConfigureTimetable}
           locale={locale}
         />
       )}
