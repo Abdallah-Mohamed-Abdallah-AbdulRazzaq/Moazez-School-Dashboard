@@ -219,9 +219,9 @@ export default function ValidationPanel({
                     title={publicationCategoryLabel(group.category, locale)}
                     count={group.reasons.length}
                   />
-                  {group.reasons.map((reason) => (
+                  {group.reasons.map((reason, index) => (
                     <PublicationReasonCard
-                      key={`${reason.code}-${reason.message}`}
+                      key={`${reason.code}-${index}`}
                       reason={reason}
                       locale={locale}
                     />

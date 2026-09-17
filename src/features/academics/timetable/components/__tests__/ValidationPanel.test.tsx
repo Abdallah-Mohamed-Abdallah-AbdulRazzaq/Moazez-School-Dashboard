@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import ValidationPanel from "@/features/academics/timetable/components/ValidationPanel";
 import { emptyValidationSummary } from "@/features/academics/timetable/services/timetableValidationSummary";
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import type { TimetablePublishReason } from "@/features/academics/timetable/services/timetableApiTypes";
 
 const knownPeriodConflict: TimetableConflictDisplay = {
   type: "TEACHER",
@@ -90,16 +91,46 @@ describe("ValidationPanel conflict display", () => {
 
     expect(screen.getByText("Classroom 1")).toBeInTheDocument();
   });
+
+  it("renders duplicate backend publication reasons without a React key warning", () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const duplicateReason = {
+      code: "under_scheduled_subject",
+      message: "Scheduled periods are below weekly hours.",
+    };
+
+    try {
+      renderPanel({
+        conflicts: [],
+        publicationReasons: [duplicateReason, duplicateReason],
+      });
+
+      expect(
+        screen.getAllByText(
+          "Scheduled periods are below the required weekly hours.",
+        ),
+      ).toHaveLength(2);
+      expect(consoleError.mock.calls.flat().join(" ")).not.toContain(
+        "Encountered two children with the same key",
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
 });
 
 function renderPanel({
   conflicts,
   classrooms = [],
+  publicationReasons = [],
   selectedConflict = null,
   onConflictSelect = vi.fn(),
 }: {
   conflicts: TimetableConflictDisplay[];
   classrooms?: Array<{ id: string; nameAr: string; nameEn: string }>;
+  publicationReasons?: TimetablePublishReason[];
   selectedConflict?: TimetableConflictDisplay | null;
   onConflictSelect?: (conflict: TimetableConflictDisplay) => void;
 }) {
@@ -117,6 +148,7 @@ function renderPanel({
       ]}
       rooms={[]}
       classrooms={classrooms}
+      publicationReasons={publicationReasons}
       selectedConflict={selectedConflict}
       onConflictSelect={onConflictSelect}
       onClose={vi.fn()}
