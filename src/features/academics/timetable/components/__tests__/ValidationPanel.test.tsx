@@ -32,6 +32,7 @@ describe("ValidationPanel conflict display", () => {
       selectedConflict: knownPeriodConflict,
       onConflictSelect,
     });
+    await user.click(screen.getByRole("button", { name: /review next blocker/i }));
 
     expect(screen.getByText("Period 2")).toBeInTheDocument();
     expect(screen.getByText("9:00 AM - 9:45 AM")).toBeInTheDocument();
@@ -45,7 +46,8 @@ describe("ValidationPanel conflict display", () => {
     expect(onConflictSelect).toHaveBeenCalledWith(knownPeriodConflict);
   });
 
-  it("uses only backend detail when a period cannot be resolved", () => {
+  it("uses only backend detail when a period cannot be resolved", async () => {
+    const user = userEvent.setup();
     renderPanel({
       conflicts: [
         {
@@ -61,6 +63,7 @@ describe("ValidationPanel conflict display", () => {
         },
       ],
     });
+    await user.click(screen.getByRole("tab", { name: /conflicts/i }));
 
     expect(
       screen.getByText("Backend detail for a removed period."),
@@ -69,7 +72,8 @@ describe("ValidationPanel conflict display", () => {
     expect(screen.queryByText(/Period 0/)).not.toBeInTheDocument();
   });
 
-  it("shows the localized classroom resource for classroom conflicts", () => {
+  it("shows the localized classroom resource for classroom conflicts", async () => {
+    const user = userEvent.setup();
     renderPanel({
       conflicts: [
         {
@@ -89,10 +93,11 @@ describe("ValidationPanel conflict display", () => {
       ],
     });
 
+    await user.click(screen.getByRole("tab", { name: /conflicts/i }));
     expect(screen.getByText("Classroom 1")).toBeInTheDocument();
   });
 
-  it("renders duplicate backend publication reasons without a React key warning", () => {
+  it("renders duplicate backend publication reasons without a React key warning", async () => {
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
@@ -102,10 +107,12 @@ describe("ValidationPanel conflict display", () => {
     };
 
     try {
+      const user = userEvent.setup();
       renderPanel({
         conflicts: [],
         publicationReasons: [duplicateReason, duplicateReason],
       });
+      await user.click(screen.getByRole("tab", { name: /publish blockers/i }));
 
       expect(
         screen.getAllByText(
@@ -118,6 +125,29 @@ describe("ValidationPanel conflict display", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  it("shows only publish blockers after selecting that navigation tab", async () => {
+    const user = userEvent.setup();
+    renderPanel({
+      conflicts: [knownPeriodConflict],
+      publicationReasons: [
+        {
+          code: "under_scheduled_subject",
+          message: "Scheduled periods are below weekly hours.",
+        },
+      ],
+    });
+    await user.click(screen.getByRole("tab", { name: /publish blockers/i }));
+
+    expect(
+      screen.getByText(
+        "Scheduled periods are below the required weekly hours.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Teacher intervals overlap."),
+    ).not.toBeInTheDocument();
   });
 });
 

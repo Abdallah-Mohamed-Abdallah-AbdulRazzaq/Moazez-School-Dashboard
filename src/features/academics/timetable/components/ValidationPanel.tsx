@@ -1,16 +1,17 @@
 "use client";
 
-import { Drawer } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Drawer, Tab, Tabs } from "@mui/material";
 import {
   AlertCircle,
   AlertTriangle,
   BookOpen,
   CheckCircle,
+  ChevronDown,
   Clock,
   School,
   X,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   validationIssueText,
   type TimetableValidationSummary,
@@ -53,6 +54,18 @@ interface ValidationSection {
   title: string;
   issues: TimetableValidationIssue[];
   severity: "warning" | "error";
+  tab: "conflicts" | "blockers";
+}
+
+type ValidationNavigationTab =
+  | "overview"
+  | "subjects"
+  | "conflicts"
+  | "blockers";
+
+interface SubjectIssueGroup {
+  title: string;
+  items: TimetableValidationItem[];
 }
 
 type ValidationStatus = TimetableValidationItem["status"];
@@ -78,6 +91,7 @@ export default function ValidationPanel({
   locale,
   publicationReasons = [],
 }: ValidationPanelProps) {
+  const [activeTab, setActiveTab] = useState<ValidationNavigationTab>("overview");
   const isRTL = locale === "ar";
   const copy = getCopy(isRTL);
   const summary = validationSummary.backendSummary;
@@ -90,6 +104,24 @@ export default function ValidationPanel({
     (total, section) => total + section.issues.length,
     0,
   );
+  const blockerSections = fallbackSections.filter(
+    (section) => section.tab === "blockers",
+  );
+  const conflictSections = fallbackSections.filter(
+    (section) => section.tab === "conflicts",
+  );
+  const subjectGroups = subjectIssueGroups(issueItems, copy);
+  const conflictCount =
+    conflicts.length +
+    conflictSections.reduce((total, section) => total + section.issues.length, 0);
+  const blockerCount =
+    publicationReasons.length +
+    blockerSections.reduce((total, section) => total + section.issues.length, 0);
+  const reviewTab = nextBlockingTab({
+    subjectIssueCount: issueItems.length,
+    conflictCount,
+    blockerCount,
+  });
   const hasIssues =
     issueItems.length > 0 ||
     conflicts.length > 0 ||
@@ -171,16 +203,46 @@ export default function ValidationPanel({
             </div>
           ) : (
             <>
-              {issueItems.length > 0 && (
-                <section className="space-y-3">
-                  <SectionTitle
-                    title={copy.subjectIssues}
-                    count={issueItems.length}
-                  />
-                  {issueItems.map((item) => (
-                    <ValidationItemCard
-                      key={`${item.classroomId}-${item.subjectId ?? "missing"}`}
-                      item={item}
+              <Tabs
+                value={activeTab}
+                onChange={(_event, nextTab) => setActiveTab(nextTab)}
+                variant="scrollable"
+                scrollButtons="auto"
+                aria-label={copy.navigationLabel}
+                sx={{
+                  minHeight: 44,
+                  "& .MuiTab-root": {
+                    minHeight: 44,
+                    minWidth: "auto",
+                    px: 1.5,
+                    textTransform: "none",
+                  },
+                }}
+              >
+                <Tab value="overview" label={tabLabel(copy.overview, 0)} />
+                <Tab value="subjects" label={tabLabel(copy.subjectIssues, issueItems.length)} />
+                <Tab value="conflicts" label={tabLabel(copy.conflicts, conflictCount)} />
+                <Tab value="blockers" label={tabLabel(copy.publishBlockers, blockerCount)} />
+              </Tabs>
+
+              {activeTab === "overview" && (
+                <ValidationOverview
+                  copy={copy}
+                  subjectIssueCount={issueItems.length}
+                  conflictCount={conflictCount}
+                  blockerCount={blockerCount}
+                  reviewTab={reviewTab}
+                  onReview={() => reviewTab && setActiveTab(reviewTab)}
+                />
+              )}
+
+              {activeTab === "subjects" && (
+                <section className="space-y-2">
+                  {subjectGroups.map((group, index) => (
+                    <SubjectIssueSection
+                      key={group.title}
+                      group={group}
+                      defaultExpanded={index === 0}
                       locale={locale}
                       copy={copy}
                     />
@@ -188,46 +250,62 @@ export default function ValidationPanel({
                 </section>
               )}
 
-              {conflicts.length > 0 && (
-                <section className="space-y-3">
-                  <SectionTitle
-                    title={copy.blockingConflicts}
-                    count={conflicts.length}
-                  />
-                  {conflicts.map((conflict, index) => (
-                    <ConflictCard
-                      key={`${conflict.code ?? conflict.type}-${conflict.dayKey}-${conflict.periodId ?? conflict.periodIndex}-${index}`}
-                      conflict={conflict}
-                      teachers={teachers}
-                      rooms={rooms}
-                      classrooms={classrooms}
-                      locale={locale}
-                      copy={copy}
-                      isSelected={selectedConflict === conflict}
-                      onSelect={onConflictSelect}
-                    />
+              {activeTab === "conflicts" && (
+                <section className="space-y-2">
+                  {conflicts.length > 0 && (
+                    <IssueAccordion
+                      title={copy.blockingConflicts}
+                      count={conflicts.length}
+                      defaultExpanded
+                    >
+                      <div className="space-y-3">
+                        {conflicts.map((conflict, index) => (
+                          <ConflictCard
+                            key={`${conflict.code ?? conflict.type}-${conflict.dayKey}-${conflict.periodId ?? conflict.periodIndex}-${index}`}
+                            conflict={conflict}
+                            teachers={teachers}
+                            rooms={rooms}
+                            classrooms={classrooms}
+                            locale={locale}
+                            copy={copy}
+                            isSelected={selectedConflict === conflict}
+                            onSelect={onConflictSelect}
+                          />
+                        ))}
+                      </div>
+                    </IssueAccordion>
+                  )}
+                  {conflictSections.map((section) => (
+                    <FallbackIssueSection key={section.title} section={section} />
                   ))}
                 </section>
               )}
 
-              {fallbackSections.map((section) => (
-                <FallbackIssueSection key={section.title} section={section} />
-              ))}
-              {publicationGroups.map((group) => (
-                <section key={group.category} className="space-y-2">
-                  <SectionTitle
-                    title={publicationCategoryLabel(group.category, locale)}
-                    count={group.reasons.length}
-                  />
-                  {group.reasons.map((reason, index) => (
-                    <PublicationReasonCard
-                      key={`${reason.code}-${index}`}
-                      reason={reason}
-                      locale={locale}
-                    />
+              {activeTab === "blockers" && (
+                <section className="space-y-2">
+                  {blockerSections.map((section) => (
+                    <FallbackIssueSection key={section.title} section={section} />
+                  ))}
+                  {publicationGroups.map((group, index) => (
+                    <IssueAccordion
+                      key={group.category}
+                      title={publicationCategoryLabel(group.category, locale)}
+                      count={group.reasons.length}
+                      defaultExpanded={index === 0}
+                    >
+                      <div className="space-y-2">
+                        {group.reasons.map((reason, reasonIndex) => (
+                          <PublicationReasonCard
+                            key={`${reason.code}-${reasonIndex}`}
+                            reason={reason}
+                            locale={locale}
+                          />
+                        ))}
+                      </div>
+                    </IssueAccordion>
                   ))}
                 </section>
-              ))}
+              )}
             </>
           )}
         </div>
@@ -258,6 +336,108 @@ function PublicationReasonCard({
         </dl>
       )}
     </div>
+  );
+}
+
+function ValidationOverview({
+  copy,
+  subjectIssueCount,
+  conflictCount,
+  blockerCount,
+  reviewTab,
+  onReview,
+}: {
+  copy: ValidationCopy;
+  subjectIssueCount: number;
+  conflictCount: number;
+  blockerCount: number;
+  reviewTab: ValidationNavigationTab | null;
+  onReview: () => void;
+}) {
+  return (
+    <section className="space-y-4">
+      <p className="text-sm text-slate-600">{copy.overviewDescription}</p>
+      <div className="grid grid-cols-3 gap-2">
+        <NavigationMetric label={copy.subjectIssues} count={subjectIssueCount} />
+        <NavigationMetric label={copy.conflicts} count={conflictCount} />
+        <NavigationMetric label={copy.publishBlockers} count={blockerCount} />
+      </div>
+      <Button
+        type="button"
+        variant="primary"
+        fullWidth
+        disabled={reviewTab === null}
+        onClick={onReview}
+      >
+        {copy.reviewBlockers}
+      </Button>
+    </section>
+  );
+}
+
+function NavigationMetric({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
+      <div className="text-xl font-semibold text-slate-950">{count}</div>
+      <div className="mt-1 text-xs font-medium text-slate-600">{label}</div>
+    </div>
+  );
+}
+
+function SubjectIssueSection({
+  group,
+  defaultExpanded,
+  locale,
+  copy,
+}: {
+  group: SubjectIssueGroup;
+  defaultExpanded: boolean;
+  locale: string;
+  copy: ValidationCopy;
+}) {
+  return (
+    <IssueAccordion
+      title={group.title}
+      count={group.items.length}
+      defaultExpanded={defaultExpanded}
+    >
+      <div className="space-y-3">
+        {group.items.map((item) => (
+          <ValidationItemCard
+            key={`${item.classroomId}-${item.subjectId ?? "missing"}`}
+            item={item}
+            locale={locale}
+            copy={copy}
+          />
+        ))}
+      </div>
+    </IssueAccordion>
+  );
+}
+
+function IssueAccordion({
+  title,
+  count,
+  defaultExpanded = false,
+  children,
+}: {
+  title: string;
+  count: number;
+  defaultExpanded?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Accordion
+      defaultExpanded={defaultExpanded}
+      disableGutters
+      elevation={0}
+      sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}
+    >
+      <AccordionSummary expandIcon={<ChevronDown className="h-4 w-4" />}>
+        <SectionTitle title={title} count={count} />
+      </AccordionSummary>
+      <AccordionDetails>{children}</AccordionDetails>
+    </Accordion>
   );
 }
 
@@ -452,18 +632,23 @@ function FallbackIssueSection({ section }: { section: ValidationSection }) {
       : "border-amber-200 bg-amber-50 text-amber-800";
 
   return (
-    <section className="space-y-2">
-      <SectionTitle title={section.title} count={section.issues.length} />
-      {section.issues.map((issue, index) => (
-        <div
-          key={`${section.title}-${index}`}
-          className={`flex gap-2 rounded-lg border p-3 text-sm ${colorClass}`}
-        >
-          <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{validationIssueText(issue)}</span>
-        </div>
-      ))}
-    </section>
+    <IssueAccordion
+      title={section.title}
+      count={section.issues.length}
+      defaultExpanded={section.severity === "error"}
+    >
+      <div className="space-y-2">
+        {section.issues.map((issue, index) => (
+          <div
+            key={`${section.title}-${index}`}
+            className={`flex gap-2 rounded-lg border p-3 text-sm ${colorClass}`}
+          >
+            <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{validationIssueText(issue)}</span>
+          </div>
+        ))}
+      </div>
+    </IssueAccordion>
   );
 }
 
@@ -610,38 +795,77 @@ function validationSections(
       title: copy.blockingReasons,
       issues: validationSummary.blockingReasons.map((message) => ({ message })),
       severity: "error",
+      tab: "blockers",
     },
     {
       title: copy.warnings,
       issues: validationSummary.warnings.map((message) => ({ message })),
       severity: "warning",
+      tab: "blockers",
     },
     {
       title: copy.teacherConflicts,
       issues: validationSummary.teacherConflicts,
       severity: "error",
+      tab: "conflicts",
     },
     {
       title: copy.classroomConflicts,
       issues: validationSummary.classroomConflicts,
       severity: "error",
+      tab: "conflicts",
     },
     {
       title: copy.roomConflicts,
       issues: validationSummary.roomConflicts,
       severity: "error",
+      tab: "conflicts",
     },
     {
       title: copy.roomIntegrity,
       issues: validationSummary.roomIntegrityIssues,
       severity: "error",
+      tab: "conflicts",
     },
     {
       title: copy.conflicts,
       issues: validationSummary.conflicts,
       severity: "error",
+      tab: "conflicts",
     },
   ];
+}
+
+function subjectIssueGroups(
+  issueItems: TimetableValidationItem[],
+  copy: ValidationCopy,
+): SubjectIssueGroup[] {
+  const groups = new Map<ValidationStatus, TimetableValidationItem[]>();
+  for (const item of issueItems) {
+    groups.set(item.status, [...(groups.get(item.status) ?? []), item]);
+  }
+  return Array.from(groups, ([status, items]) => ({
+    title: copy.status[status],
+    items,
+  }));
+}
+
+function nextBlockingTab({
+  subjectIssueCount,
+  conflictCount,
+  blockerCount,
+}: {
+  subjectIssueCount: number;
+  conflictCount: number;
+  blockerCount: number;
+}): ValidationNavigationTab | null {
+  if (conflictCount > 0) return "conflicts";
+  if (blockerCount > 0) return "blockers";
+  return subjectIssueCount > 0 ? "subjects" : null;
+}
+
+function tabLabel(label: string, count: number): string {
+  return `${label} (${count})`;
 }
 
 function validationIssueCount(
@@ -723,6 +947,11 @@ interface ValidationCopy {
   scheduledSlots: string;
   publishIssues: string;
   noIssues: string;
+  navigationLabel: string;
+  overview: string;
+  overviewDescription: string;
+  publishBlockers: string;
+  reviewBlockers: string;
   subjectIssues: string;
   noSubjectLabel: string;
   expected: string;
@@ -767,6 +996,11 @@ function getCopy(isRTL: boolean): ValidationCopy {
       scheduledSlots: "المجدول",
       publishIssues: "مشاكل النشر",
       noIssues: "لا توجد مشاكل تحقق أو تعارضات.",
+      navigationLabel: "أقسام التحقق",
+      overview: "نظرة عامة",
+      overviewDescription: "ابدأ بالقسم الذي يحتاج إلى المعالجة أولاً.",
+      publishBlockers: "موانع النشر",
+      reviewBlockers: "مراجعة أول مانع",
       subjectIssues: "مشاكل المواد والفصول",
       noSubjectLabel: "مادة غير محددة",
       expected: "المطلوب",
@@ -817,6 +1051,11 @@ function getCopy(isRTL: boolean): ValidationCopy {
     scheduledSlots: "Scheduled",
     publishIssues: "Publish issues",
     noIssues: "No validation issues or conflicts found.",
+    navigationLabel: "Validation sections",
+    overview: "Overview",
+    overviewDescription: "Start with the section that needs attention first.",
+    publishBlockers: "Publish blockers",
+    reviewBlockers: "Review next blocker",
     subjectIssues: "Subject scheduling issues",
     noSubjectLabel: "No subject",
     expected: "Expected",
