@@ -6919,6 +6919,8 @@
         "classroom_scope_mismatch": "The classroom does not match the selected timetable scope.",
         "allocation_mismatch": "The teacher allocation does not match this timetable slot.",
         "room_not_found": "The selected room no longer exists.",
+        "room_inactive": "The selected room is not available for timetable scheduling.",
+        "room_capacity_insufficient": "The selected room does not have enough capacity for this classroom.",
         "entry_not_mutable": "This timetable entry cannot be edited.",
         "invalid_time_range": "Start time must be before end time.",
         "period_overlap": "Periods cannot overlap.",

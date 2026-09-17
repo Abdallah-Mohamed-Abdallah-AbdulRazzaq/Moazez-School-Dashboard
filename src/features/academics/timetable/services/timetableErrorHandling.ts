@@ -18,6 +18,8 @@ export type TimetableErrorCode =
   | "academics.timetable.classroom_scope_mismatch"
   | "academics.timetable.allocation_mismatch"
   | "academics.timetable.room_not_found"
+  | "academics.timetable.room_inactive"
+  | "academics.timetable.room_capacity_insufficient"
   | "academics.timetable.entry_not_mutable"
   | "academics.timetable.invalid_time_range"
   | "academics.timetable.period_overlap"
@@ -58,6 +60,8 @@ const timetableErrorMessages: Record<TimetableErrorCode, string> = {
   "academics.timetable.classroom_scope_mismatch": "The classroom does not match the selected timetable scope.",
   "academics.timetable.allocation_mismatch": "The teacher allocation does not match this timetable slot.",
   "academics.timetable.room_not_found": "The selected room no longer exists.",
+  "academics.timetable.room_inactive": "The selected room is not available for timetable scheduling.",
+  "academics.timetable.room_capacity_insufficient": "The selected room does not have enough capacity for this classroom.",
   "academics.timetable.entry_not_mutable": "This timetable entry cannot be edited.",
   "academics.timetable.invalid_time_range": "Start time must be before end time.",
   "academics.timetable.period_overlap": "Periods cannot overlap.",

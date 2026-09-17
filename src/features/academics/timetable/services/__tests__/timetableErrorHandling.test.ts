@@ -26,6 +26,14 @@ describe("timetableErrorHandling", () => {
       "academics.timetable.publication_not_found",
       "No timetable publication exists for this scope.",
     ],
+    [
+      "academics.timetable.room_inactive",
+      "The selected room is not available for timetable scheduling.",
+    ],
+    [
+      "academics.timetable.room_capacity_insufficient",
+      "The selected room does not have enough capacity for this classroom.",
+    ],
   ])("maps %s to a friendly timetable message", (code, message) => {
     const error = new ApiError("Backend message", 400, code);
 
