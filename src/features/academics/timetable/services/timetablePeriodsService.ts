@@ -3,6 +3,7 @@ import type {
   BackendTimetablePeriodDto,
   CreatePeriodRequest,
   ListResponse,
+  TimetableDeleteResponse,
   UpdatePeriodRequest,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
@@ -77,6 +78,8 @@ export async function updateTimetablePeriodDto(
   return period;
 }
 
-export async function deleteTimetablePeriod(periodId: string): Promise<void> {
-  await apiDelete<void>(`${BASE}/periods/${periodId}`);
+export function deleteTimetablePeriod(
+  periodId: string,
+): Promise<TimetableDeleteResponse> {
+  return apiDelete<TimetableDeleteResponse>(`${BASE}/periods/${periodId}`);
 }

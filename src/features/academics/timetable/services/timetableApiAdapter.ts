@@ -11,6 +11,7 @@ import type {
   PublicationResponse,
   TimetableConflictCheckResponse,
   TimetableDashboardAllResponseDto,
+  TimetableDeleteResponse,
   TimetableGenerationResponse,
   TimetablePersistedConflictsResponse,
   TimetableScopeType,
@@ -146,8 +147,10 @@ export const updatePeriod = (
     payload,
   ).then(unwrap);
 
-export const deletePeriod = (periodId: string): Promise<void> =>
-  apiDelete<void>(`${BASE}/periods/${periodId}`);
+export const deletePeriod = (
+  periodId: string,
+): Promise<TimetableDeleteResponse> =>
+  apiDelete<TimetableDeleteResponse>(`${BASE}/periods/${periodId}`);
 
 export const listEntries = (
   params: EntryListParams,
@@ -184,8 +187,10 @@ export const updateEntry = (
     payload,
   ).then(unwrap);
 
-export const deleteEntry = (entryId: string): Promise<void> =>
-  apiDelete<void>(`${BASE}/entries/${entryId}`);
+export const deleteEntry = (
+  entryId: string,
+): Promise<TimetableDeleteResponse> =>
+  apiDelete<TimetableDeleteResponse>(`${BASE}/entries/${entryId}`);
 
 export const bulkSaveEntries = (
   payload: BulkSaveTimetableRequest,

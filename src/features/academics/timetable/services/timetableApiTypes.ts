@@ -130,6 +130,10 @@ export interface ListResponse<T> {
   items: T[];
 }
 
+export interface TimetableDeleteResponse {
+  ok: boolean;
+}
+
 export interface PublicationResponse {
   timetableConfigId: string;
   status: BackendTimetablePublicationStatus | string;
