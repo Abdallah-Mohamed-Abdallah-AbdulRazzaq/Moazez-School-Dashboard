@@ -35,6 +35,10 @@ import {
   unpublish,
   validate,
 } from "@/features/academics/timetable/services/timetableApiAdapter";
+import {
+  dashboardConfigScopeId,
+  resolveEffectiveDashboardTimetable,
+} from "@/features/academics/timetable/services/timetableDashboardContract";
 import type {
   BackendTimetableConfigDto,
   BackendTimetableEntryDto,
@@ -216,7 +220,7 @@ const dashboardConfigToResolvedConfig = (
   periods: periodDtosToUi(backendPeriods),
   source: {
     scope: config.scopeType.toUpperCase() as TimetableScopeType,
-    id: timetableConfigScopeId(config),
+    id: dashboardConfigScopeId(config),
   },
 });
 
@@ -525,17 +529,21 @@ export function useTimetableData({
         return true;
       }
 
-      const effectiveConfig = nextWorkspaceState.effectiveConfig;
-      if (nextWorkspaceState.isInherited && dashboardItem && effectiveConfig) {
+      const inheritedTimetable = dashboardItem
+        ? resolveEffectiveDashboardTimetable(dashboardItem)
+        : null;
+      if (nextWorkspaceState.isInherited && inheritedTimetable) {
         const publicationResponse = (await getPublication(
           nextWorkspaceState.displayConfigId,
         )) as PublicationResponse;
         if (requestId !== timetableRequestIdRef.current) return false;
 
-        const mappedEntries = mapBackendEntriesToUi(dashboardItem.entries);
+        const mappedEntries = mapBackendEntriesToUi(
+          inheritedTimetable.entries,
+        );
         setConfig(null);
         setWorkspaceState(nextWorkspaceState);
-        setPeriods(dashboardItem.periods);
+        setPeriods(inheritedTimetable.periods);
         setPublication(publicationResponse);
         setConflicts([]);
         setValidationSummary(emptyValidationSummary());
@@ -544,8 +552,8 @@ export function useTimetableData({
         setConfigs([]);
         setResolvedConfig(
           dashboardConfigToResolvedConfig(
-            effectiveConfig,
-            dashboardItem.periods,
+            inheritedTimetable.config,
+            inheritedTimetable.periods,
           ),
         );
         return true;

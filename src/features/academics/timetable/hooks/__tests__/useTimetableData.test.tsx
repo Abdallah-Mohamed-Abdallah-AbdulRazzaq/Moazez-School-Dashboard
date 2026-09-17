@@ -441,7 +441,7 @@ describe("useTimetableData", () => {
     expect(result.current.apiError).toBeNull();
   });
 
-  it("displays a backend-selected stage timetable when the classroom has no exact config", async () => {
+  it("uses only the backend-selected inherited config records", async () => {
     mockedGetConfig.mockRejectedValueOnce(
       new ApiError(
         "Config not found",
@@ -465,17 +465,39 @@ describe("useTimetableData", () => {
             nameEn: "Grade 1",
           },
           effectiveConfig: {
-            id: "stage-config",
-            name: "Stage timetable",
-            scopeType: "stage",
-            scopeKey: "stage-1",
+            id: "grade-config",
+            name: "Grade timetable",
+            scopeType: "grade",
+            scopeKey: "grade:grade-1",
             stageId: "stage-1",
             status: "published",
             activeDays: [0, 1, 2, 3, 4],
           },
           configs: [],
-          periods: [{ ...backendPeriod, timetableConfigId: "stage-config" }],
-          entries: [{ ...backendEntry, timetableConfigId: "stage-config" }],
+          periods: [
+            {
+              ...backendPeriod,
+              id: "grade-period",
+              timetableConfigId: "grade-config",
+            },
+            {
+              ...backendPeriod,
+              id: "unrelated-period",
+              timetableConfigId: "classroom-draft",
+            },
+          ],
+          entries: [
+            {
+              ...backendEntry,
+              id: "grade-entry",
+              timetableConfigId: "grade-config",
+            },
+            {
+              ...backendEntry,
+              id: "unrelated-entry",
+              timetableConfigId: "classroom-draft",
+            },
+          ],
         },
       ],
     });
@@ -486,16 +508,22 @@ describe("useTimetableData", () => {
     expect(result.current.config).toBeNull();
     expect(result.current.workspaceState).toMatchObject({
       mode: "inherited",
-      displayConfigId: "stage-config",
+      displayConfigId: "grade-config",
       isInherited: true,
       canEdit: false,
     });
     expect(result.current.resolvedConfig?.source).toEqual({
-      scope: "STAGE",
-      id: "stage-1",
+      scope: "GRADE",
+      id: "grade-1",
     });
-    expect(result.current.timetableEntries).toEqual([
-      expect.objectContaining({ id: "entry-1" }),
+    expect(result.current.periods.map((period) => period.id)).toEqual([
+      "grade-period",
+    ]);
+    expect(result.current.timetableEntries.map((entry) => entry.id)).toEqual([
+      "grade-entry",
+    ]);
+    expect(result.current.allTermEntries.map((entry) => entry.id)).toEqual([
+      "grade-entry",
     ]);
   });
 
