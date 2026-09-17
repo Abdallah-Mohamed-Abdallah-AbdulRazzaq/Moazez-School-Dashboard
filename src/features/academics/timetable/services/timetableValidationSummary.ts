@@ -9,6 +9,7 @@ import {
   type TimetableConflictNormalizationContext,
   type TimetableConflictPeriod,
 } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 export interface TimetableValidationSummary {
   canPublish: boolean;
@@ -46,14 +47,18 @@ export const emptyValidationSummary = (): TimetableValidationSummary => ({
 
 export function validationSummaryFromResponse(
   response: TimetableValidationResponse,
+  translateMessage?: TimetableBackendMessageTranslator,
 ): TimetableValidationSummary {
   const backendItems = response.items;
-  const itemBuckets = bucketIssuesFromValidationItems(backendItems);
+  const itemBuckets = bucketIssuesFromValidationItems(
+    backendItems,
+    translateMessage,
+  );
   return {
     canPublish: !hasSummaryBlockingCounts(response),
     backendSummary: response.summary,
     items: backendItems,
-    blockingReasons: blockingReasonsFromSummary(response),
+    blockingReasons: blockingReasonsFromSummary(response, translateMessage),
     warnings: [],
     missingTeacherAllocations: itemBuckets.missingTeacherAllocations,
     underScheduledSubjects: itemBuckets.underScheduledSubjects,
@@ -137,7 +142,10 @@ export function hasBlockingValidation(summary: TimetableValidationSummary) {
   );
 }
 
-function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
+function bucketIssuesFromValidationItems(
+  items: TimetableValidationItem[],
+  translateMessage?: TimetableBackendMessageTranslator,
+) {
   const buckets = {
     missingTeacherAllocations: [] as TimetableValidationIssue[],
     underScheduledSubjects: [] as TimetableValidationIssue[],
@@ -148,7 +156,7 @@ function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
 
   for (const item of items) {
     const normalizedIssues = item.issues.map((issue) =>
-      enrichValidationIssue(issue, item),
+      enrichValidationIssue(issue, item, translateMessage),
     );
     if (item.status === "missing_subject_allocation") {
       buckets.missingSubjectAllocationRows.push(...normalizedIssues);
@@ -175,9 +183,11 @@ function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
 function enrichValidationIssue(
   issue: TimetableValidationItem["issues"][number],
   item: TimetableValidationItem,
+  translateMessage?: TimetableBackendMessageTranslator,
 ): TimetableValidationIssue {
   return {
     ...issue,
+    message: translateMessage?.(issue.code, issue.message) ?? issue.message,
     subjectId: item.subjectId ?? undefined,
     subjectName: item.subject?.nameEn ?? item.subject?.nameAr,
     classroomId: item.classroomId,
@@ -212,8 +222,14 @@ function hasSummaryBlockingCounts(
 
 function blockingReasonsFromSummary(
   response: TimetableValidationResponse,
+  translateMessage?: TimetableBackendMessageTranslator,
 ): string[] {
   return hasSummaryBlockingCounts(response)
-    ? ["Resolve timetable validation issues before publishing."]
+    ? [
+        translateMessage?.(
+          "validation_blocked",
+          "Resolve timetable validation issues before publishing.",
+        ) ?? "Resolve timetable validation issues before publishing.",
+      ]
     : [];
 }

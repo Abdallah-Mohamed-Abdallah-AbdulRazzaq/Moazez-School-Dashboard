@@ -4,6 +4,7 @@ import {
   type TimetableCreationProgress,
 } from "@/features/academics/timetable/services/timetableCreationProgress";
 import { emptyValidationSummary } from "@/features/academics/timetable/services/timetableValidationSummary";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { PublicationResponse } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
@@ -115,6 +116,24 @@ describe("resolveTimetableCreationProgress", () => {
 
     expect(step(progress, "publish")?.prerequisiteMessage).toBe(
       "Add a second period",
+    );
+  });
+
+  it("localizes a known backend publication reason", () => {
+    const progress = resolveTimetableCreationProgress({
+      ...readyToPublishInput(),
+      publication: publication({
+        canPublish: false,
+        blockingReasons: [
+          { code: "room_inactive", message: "Room is inactive" },
+        ],
+      }),
+      translateMessage: (code, fallback) =>
+        timetableBackendMessage(code, "ar", fallback),
+    });
+
+    expect(step(progress, "publish")?.prerequisiteMessage).toBe(
+      "توجد حصة مجدولة في غرفة غير نشطة.",
     );
   });
 });

@@ -54,6 +54,7 @@ import { useTimetableData } from "@/features/academics/timetable/hooks/useTimeta
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
 import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import {
   resolveTimetableConflictTargetEntry,
   type TimetableConflictDisplay,
@@ -129,6 +130,11 @@ export default function TimetableView({
     (code: TimetableErrorCode) =>
       t(`errors.${code.replace("academics.timetable.", "")}`),
     [t],
+  );
+  const translateBackendMessage = useCallback(
+    (code: string, fallback?: string) =>
+      timetableBackendMessage(code, locale, fallback),
+    [locale],
   );
   const timetableMessages = useMemo(
     () => ({
@@ -305,6 +311,7 @@ export default function TimetableView({
     isScopeSelectionNormalized,
     showToast,
     translateErrorCode: translateTimetableError,
+    translateBackendMessage,
     messages: timetableMessages,
   });
 
@@ -614,9 +621,13 @@ export default function TimetableView({
   };
 
   const readinessReasonText = (
-    reason: string | { message?: string } | undefined,
+    reason: string | { code: string; message: string } | undefined,
   ): string | undefined =>
-    typeof reason === "string" ? reason : reason?.message;
+    typeof reason === "string"
+      ? reason
+      : reason
+        ? translateBackendMessage(reason.code, reason.message)
+        : undefined;
 
   const confirmPublish = async () => {
     if (!hasTimetableScope || !canWriteTimetable) return;
@@ -997,6 +1008,7 @@ export default function TimetableView({
         conflicts: backendConflicts,
         publication,
         isReadOnly: !canWriteTimetable || workspaceState.isInherited,
+        translateMessage: translateBackendMessage,
       }),
     [
       backendConflicts,
@@ -1007,6 +1019,7 @@ export default function TimetableView({
       resolvedConfig,
       timetableEntries,
       timetableLoading,
+      translateBackendMessage,
       validationSummary,
       workspaceState.isInherited,
     ],

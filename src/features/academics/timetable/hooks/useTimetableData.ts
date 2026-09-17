@@ -79,6 +79,7 @@ import {
   publicationBlockingReason,
   type TimetableErrorTranslator,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import {
   type ResolvedTimetableConfig,
@@ -106,6 +107,7 @@ interface UseTimetableDataParams {
     type?: "success" | "error" | "info" | "warning",
   ) => void;
   translateErrorCode?: TimetableErrorTranslator;
+  translateBackendMessage?: TimetableBackendMessageTranslator;
   messages?: {
     loadFailed: string;
     saveFailed: string;
@@ -236,16 +238,23 @@ const isPublicationActive = (
 const publishReadinessMessage = (
   publication: PublicationResponse,
   validation: TimetableValidationSummary,
+  translateMessage?: TimetableBackendMessageTranslator,
 ): string =>
   [
-    ...(publication.blockingReasons ?? []).map(readinessReasonText),
+    ...(publication.blockingReasons ?? []).map((reason) =>
+      readinessReasonText(reason, translateMessage),
+    ),
     ...validation.blockingReasons,
     ...validation.warnings,
   ][0] ?? "Backend publication readiness is not satisfied.";
 
 const readinessReasonText = (
   reason: string | TimetablePublishReason,
-): string => (typeof reason === "string" ? reason : reason.message);
+  translateMessage?: TimetableBackendMessageTranslator,
+): string =>
+  typeof reason === "string"
+    ? reason
+    : (translateMessage?.(reason.code, reason.message) ?? reason.message);
 
 const mapActiveDays = (activeDays: number[]): TimetableDay[] =>
   dayNames.map((dayName, index) => ({
@@ -286,6 +295,7 @@ export function useTimetableData({
   isScopeSelectionNormalized,
   showToast,
   translateErrorCode,
+  translateBackendMessage,
   messages,
 }: UseTimetableDataParams) {
   const [stages, setStages] = useState<Stage[]>([]);
@@ -647,10 +657,11 @@ export function useTimetableData({
     const response = await getConflicts(config.id);
     const nextConflicts = normalizePersistedConflicts(response, periods, {
       entries: allTermEntries,
+      translateMessage: translateBackendMessage,
     }).conflicts;
     setConflicts(nextConflicts);
     return nextConflicts;
-  }, [allTermEntries, config, periods]);
+  }, [allTermEntries, config, periods, translateBackendMessage]);
 
   const loadValidation =
     useCallback(async (): Promise<TimetableValidationSummary> => {
@@ -659,10 +670,18 @@ export function useTimetableData({
         gradeId: selectedGradeId || undefined,
         classroomId: selectedClassroomId || undefined,
       });
-      const nextValidationSummary = validationSummaryFromResponse(response);
+      const nextValidationSummary = validationSummaryFromResponse(
+        response,
+        translateBackendMessage,
+      );
       setValidationSummary(nextValidationSummary);
       return nextValidationSummary;
-    }, [selectedClassroomId, selectedGradeId, termId]);
+    }, [
+      selectedClassroomId,
+      selectedGradeId,
+      termId,
+      translateBackendMessage,
+    ]);
 
   const loadPublication =
     useCallback(async (): Promise<PublicationResponse | null> => {
@@ -745,6 +764,7 @@ export function useTimetableData({
             {
               entries: allTermEntries,
               proposedEntries: entries.filter((entry) => entry.subjectId),
+              translateMessage: translateBackendMessage,
             },
           ).conflicts;
           setConflicts(nextConflicts);
@@ -787,6 +807,7 @@ export function useTimetableData({
         const conflict = conflictFromTimetableError(error, periods, {
           entries: allTermEntries,
           proposedEntries: entries.filter((entry) => entry.subjectId),
+          translateMessage: translateBackendMessage,
         });
         if (conflict) {
           setConflicts([conflict]);
@@ -830,6 +851,7 @@ export function useTimetableData({
       termId,
       messages,
       translateErrorCode,
+      translateBackendMessage,
       loadTimetableForScope,
     ],
   );
@@ -858,6 +880,7 @@ export function useTimetableData({
             error: publishReadinessMessage(
               nextPublication,
               nextValidationSummary,
+              translateBackendMessage,
             ),
           };
         }
@@ -867,6 +890,7 @@ export function useTimetableData({
             error: publishReadinessMessage(
               nextPublication,
               nextValidationSummary,
+              translateBackendMessage,
             ),
           };
         }
@@ -904,6 +928,7 @@ export function useTimetableData({
           {
             entries: allTermEntries,
             proposedEntries: entries.filter((entry) => entry.subjectId),
+            translateMessage: translateBackendMessage,
           },
         ).conflicts;
         setConflicts(nextConflicts);
@@ -924,12 +949,13 @@ export function useTimetableData({
         const conflict = conflictFromTimetableError(error, periods, {
           entries: allTermEntries,
           proposedEntries: entries.filter((entry) => entry.subjectId),
+          translateMessage: translateBackendMessage,
         });
         if (conflict) {
           setConflicts([conflict]);
         }
         const message =
-          publicationBlockingReason(error) ??
+          publicationBlockingReason(error, translateBackendMessage) ??
           timetableErrorMessage(
             error,
             messages?.publishFailed ?? "Failed to publish timetable.",
@@ -950,6 +976,7 @@ export function useTimetableData({
       teacherAllocations,
       termId,
       translateErrorCode,
+      translateBackendMessage,
       loadTimetableForScope,
     ],
   );

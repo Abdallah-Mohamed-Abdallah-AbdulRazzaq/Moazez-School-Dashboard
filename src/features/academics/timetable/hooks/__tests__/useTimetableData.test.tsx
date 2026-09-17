@@ -36,6 +36,7 @@ import type {
   TimetableValidationResponse,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import { validationSummaryFromResponse } from "@/features/academics/timetable/services/timetableValidationSummary";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 vi.mock(
   "@/features/academics/academic-structure-tree/services/structureService",
@@ -584,7 +585,13 @@ describe("useTimetableData", () => {
         },
       ],
     });
-    const { result } = renderHook(() => useTimetableData(hookParams));
+    const { result } = renderHook(() =>
+      useTimetableData({
+        ...hookParams,
+        translateBackendMessage: (code, fallback) =>
+          timetableBackendMessage(code, "ar", fallback),
+      }),
+    );
 
     await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
 
@@ -601,6 +608,7 @@ describe("useTimetableData", () => {
       periodLabel: "Period 1",
       startTime: "08:00",
       endTime: "08:45",
+      message: "المعلم مجدول بالفعل في هذا الوقت.",
     });
     expect(mockedPublish).not.toHaveBeenCalled();
   });

@@ -18,6 +18,11 @@ export interface PublicationReasonPresentation {
   details: Array<{ label: string; value: string }>;
 }
 
+export type TimetableBackendMessageTranslator = (
+  code: string,
+  fallback?: string,
+) => string | undefined;
+
 const categories: PublicationReasonCategory[] = [
   "configuration",
   "curriculum",
@@ -137,6 +142,37 @@ const messages: Record<string, { ar: string; en: string }> = {
     "سعة إحدى الغرف أقل من سعة الفصل الدراسي.",
     "A scheduled room is too small for its classroom.",
   ),
+  entry_conflict: bilingual(
+    "تتعارض حصة الجدول مع حصة أخرى.",
+    "The timetable entry conflicts with another entry.",
+  ),
+  teacher_conflict: bilingual(
+    "المعلم مجدول بالفعل في هذا الوقت.",
+    "The teacher is already scheduled at this time.",
+  ),
+  classroom_conflict: bilingual(
+    "الفصل لديه حصة أخرى في هذا الوقت.",
+    "The classroom already has another entry at this time.",
+  ),
+  room_conflict: bilingual(
+    "الغرفة محجوزة بالفعل في هذا الوقت.",
+    "The room is already booked at this time.",
+  ),
+  duplicate_slot: bilingual(
+    "تحتوي بيانات الجدول على حصة مكررة.",
+    "The timetable payload contains a duplicate slot.",
+  ),
+  validation_blocked: bilingual(
+    "يجب حل مشاكل التحقق قبل نشر الجدول.",
+    "Resolve timetable validation issues before publishing.",
+  ),
+};
+
+const messageCodeAliases: Record<string, string> = {
+  teacher: "teacher_conflict",
+  classroom: "classroom_conflict",
+  classroom_slot: "classroom_conflict",
+  room: "room_conflict",
 };
 
 const detailLabels: Record<string, { ar: string; en: string }> = {
@@ -182,7 +218,9 @@ export function publicationReasonPresentation(
 ): PublicationReasonPresentation {
   const language = locale === "ar" ? "ar" : "en";
   return {
-    message: messages[reason.code]?.[language] ?? reason.message,
+    message:
+      timetableBackendMessage(reason.code, locale, reason.message) ??
+      reason.message,
     details: Object.entries(reason.details ?? {}).flatMap(
       ([detailName, detailValue]) => {
         const value = displayedDetailValue(detailValue);
@@ -197,6 +235,18 @@ export function publicationReasonPresentation(
       },
     ),
   };
+}
+
+export function timetableBackendMessage(
+  code: string,
+  locale: string,
+  fallback?: string,
+): string | undefined {
+  const unprefixedCode = code.replace(/^academics\.timetable\./, "");
+  const normalizedCode = unprefixedCode.toLowerCase();
+  const messageCode = messageCodeAliases[normalizedCode] ?? normalizedCode;
+  const language = locale === "ar" ? "ar" : "en";
+  return messages[messageCode]?.[language] ?? fallback;
 }
 
 function displayedDetailValue(detailValue: unknown): string | null {

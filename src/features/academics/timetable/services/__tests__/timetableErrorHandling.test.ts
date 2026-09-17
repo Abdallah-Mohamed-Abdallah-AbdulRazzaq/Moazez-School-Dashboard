@@ -7,6 +7,7 @@ import {
   timetableErrorMessage,
   timetableFormErrors,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 describe("timetableErrorHandling", () => {
   it.each([
@@ -153,6 +154,10 @@ describe("timetableErrorHandling", () => {
       },
     );
 
-    expect(publicationBlockingReason(error)).toBe("Monday is inactive.");
+    expect(
+      publicationBlockingReason(error, (code, fallback) =>
+        timetableBackendMessage(code, "ar", fallback),
+      ),
+    ).toBe("توجد حصة في يوم غير مفعّل في إعدادات الجدول.");
   });
 });

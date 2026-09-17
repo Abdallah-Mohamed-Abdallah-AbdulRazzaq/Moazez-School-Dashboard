@@ -5,6 +5,7 @@ import {
   type TimetableConflictNormalizationContext,
   type TimetableConflictPeriod,
 } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 export type TimetableErrorCode =
   | "academics.timetable.config_not_found"
@@ -124,15 +125,18 @@ export function timetableErrorCode(error: unknown): string | undefined {
   return backendErrorPayload(error)?.code;
 }
 
-export function publicationBlockingReason(error: unknown): string | undefined {
+export function publicationBlockingReason(
+  error: unknown,
+  translateMessage?: TimetableBackendMessageTranslator,
+): string | undefined {
   const details = timetableErrorDetails(error);
   if (!isRecord(details) || !Array.isArray(details.blockingReasons)) {
     return undefined;
   }
   const firstReason = details.blockingReasons.find(isRecord);
-  return typeof firstReason?.message === "string"
-    ? firstReason.message
-    : undefined;
+  const message = stringField(firstReason, "message");
+  const code = stringField(firstReason, "code");
+  return code ? (translateMessage?.(code, message) ?? message) : message;
 }
 
 export function isTimetableErrorCode(
@@ -264,6 +268,14 @@ function numberField(
 ): number | undefined {
   const value = record[field];
   return typeof value === "number" ? value : undefined;
+}
+
+function stringField(
+  record: Record<string, unknown> | undefined,
+  field: string,
+): string | undefined {
+  const fieldValue = record?.[field];
+  return typeof fieldValue === "string" ? fieldValue : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

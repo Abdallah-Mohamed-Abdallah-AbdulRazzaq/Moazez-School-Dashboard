@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyPublicationReasons,
+  timetableBackendMessage,
   publicationReasonPresentation,
 } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
@@ -68,5 +69,18 @@ describe("classifyPublicationReasons", () => {
       message: "Backend detail",
       details: [{ label: "futureReference", value: "reference-1" }],
     });
+  });
+
+  it.each([
+    ["teacher_conflict", "المعلم مجدول بالفعل في هذا الوقت."],
+    ["CLASSROOM_SLOT", "الفصل لديه حصة أخرى في هذا الوقت."],
+    [
+      "academics.timetable.room_conflict",
+      "الغرفة محجوزة بالفعل في هذا الوقت.",
+    ],
+  ])("localizes backend conflict code %s", (code, expectedMessage) => {
+    expect(timetableBackendMessage(code, "ar", "Backend message")).toBe(
+      expectedMessage,
+    );
   });
 });
