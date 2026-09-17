@@ -5,6 +5,7 @@ import ValidationPanel from "@/features/academics/timetable/components/Validatio
 import { emptyValidationSummary } from "@/features/academics/timetable/services/timetableValidationSummary";
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import type { TimetablePublishReason } from "@/features/academics/timetable/services/timetableApiTypes";
+import type { PublicationReasonReferenceNames } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 const knownPeriodConflict: TimetableConflictDisplay = {
   type: "TEACHER",
@@ -149,18 +150,41 @@ describe("ValidationPanel conflict display", () => {
       screen.queryByText("Teacher intervals overlap."),
     ).not.toBeInTheDocument();
   });
+
+  it("shows a real resource name instead of a publication reason UUID", async () => {
+    const user = userEvent.setup();
+    const roomId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+    renderPanel({
+      conflicts: [],
+      publicationReasons: [
+        {
+          code: "room_capacity_insufficient",
+          message: "Scheduled room capacity is insufficient.",
+          details: { roomId },
+        },
+      ],
+      publicationReferenceNames: { roomId: { [roomId]: "Science Lab" } },
+    });
+
+    await user.click(screen.getByRole("tab", { name: /publish blockers/i }));
+
+    expect(screen.getByText("Science Lab")).toBeInTheDocument();
+    expect(screen.queryByText(roomId)).not.toBeInTheDocument();
+  });
 });
 
 function renderPanel({
   conflicts,
   classrooms = [],
   publicationReasons = [],
+  publicationReferenceNames = {},
   selectedConflict = null,
   onConflictSelect = vi.fn(),
 }: {
   conflicts: TimetableConflictDisplay[];
   classrooms?: Array<{ id: string; nameAr: string; nameEn: string }>;
   publicationReasons?: TimetablePublishReason[];
+  publicationReferenceNames?: PublicationReasonReferenceNames;
   selectedConflict?: TimetableConflictDisplay | null;
   onConflictSelect?: (conflict: TimetableConflictDisplay) => void;
 }) {
@@ -179,6 +203,7 @@ function renderPanel({
       rooms={[]}
       classrooms={classrooms}
       publicationReasons={publicationReasons}
+      publicationReferenceNames={publicationReferenceNames}
       selectedConflict={selectedConflict}
       onConflictSelect={onConflictSelect}
       onClose={vi.fn()}

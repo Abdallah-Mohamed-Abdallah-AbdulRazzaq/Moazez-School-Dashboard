@@ -27,6 +27,7 @@ import {
   classifyPublicationReasons,
   publicationReasonPresentation,
   type PublicationReasonCategory,
+  type PublicationReasonReferenceNames,
 } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { TimetablePublishReason } from "@/features/academics/timetable/services/timetableApiTypes";
 
@@ -42,6 +43,7 @@ interface ValidationPanelProps {
   onClose: () => void;
   locale: string;
   publicationReasons?: TimetablePublishReason[];
+  publicationReferenceNames?: PublicationReasonReferenceNames;
 }
 
 type NamedEntity = {
@@ -90,6 +92,7 @@ export default function ValidationPanel({
   onClose,
   locale,
   publicationReasons = [],
+  publicationReferenceNames = {},
 }: ValidationPanelProps) {
   const [activeTab, setActiveTab] = useState<ValidationNavigationTab>("overview");
   const isRTL = locale === "ar";
@@ -299,6 +302,7 @@ export default function ValidationPanel({
                             key={`${reason.code}-${reasonIndex}`}
                             reason={reason}
                             locale={locale}
+                            referenceNames={publicationReferenceNames}
                           />
                         ))}
                       </div>
@@ -317,11 +321,13 @@ export default function ValidationPanel({
 function PublicationReasonCard({
   reason,
   locale,
+  referenceNames,
 }: {
   reason: TimetablePublishReason;
   locale: string;
+  referenceNames: PublicationReasonReferenceNames;
 }) {
-  const presentation = publicationReasonPresentation(reason, locale);
+  const presentation = publicationReasonPresentation(reason, locale, referenceNames);
   return (
     <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
       <div className="font-medium">{presentation.message}</div>

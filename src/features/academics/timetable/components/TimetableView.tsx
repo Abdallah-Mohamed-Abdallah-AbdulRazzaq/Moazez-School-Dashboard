@@ -54,7 +54,10 @@ import { useTimetableData } from "@/features/academics/timetable/hooks/useTimeta
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
 import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
-import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
+import {
+  timetableBackendMessage,
+  type PublicationReasonReferenceNames,
+} from "@/features/academics/timetable/services/timetablePublicationReasons";
 import {
   resolveTimetableConflictTargetEntry,
   type TimetableConflictDisplay,
@@ -314,6 +317,32 @@ export default function TimetableView({
     translateBackendMessage,
     messages: timetableMessages,
   });
+
+  const publicationReasonReferenceNames = useMemo(
+    () =>
+      buildPublicationReasonReferenceNames({
+        config,
+        classrooms,
+        subjects,
+        rooms,
+        periods,
+        teachers,
+        teacherAllocations,
+        entries: allTermEntries,
+        locale,
+      }),
+    [
+      allTermEntries,
+      classrooms,
+      config,
+      locale,
+      periods,
+      rooms,
+      subjects,
+      teacherAllocations,
+      teachers,
+    ],
+  );
 
   const currentPublishFingerprint = useMemo(
     () =>
@@ -1993,6 +2022,7 @@ export default function TimetableView({
           onClose={() => setValidationPanelOpen(false)}
           locale={locale}
           publicationReasons={publication?.blockingReasons}
+          publicationReferenceNames={publicationReasonReferenceNames}
         />
       )}
 
@@ -2147,6 +2177,154 @@ export default function TimetableView({
       />
     </div>
   );
+}
+
+type LocalizedReference = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+};
+
+type PublicationReasonEntry = {
+  id: string;
+  classroomId?: string;
+  subjectId: string | null;
+  periodIndex: number;
+};
+
+type PublicationReasonAllocation = {
+  id: string;
+  teacherId: string | null;
+  subjectId: string;
+  classroomId?: string;
+};
+
+type PeriodReference = {
+  id: string;
+  index: number;
+  label: string;
+};
+
+function buildPublicationReasonReferenceNames({
+  config,
+  classrooms,
+  subjects,
+  rooms,
+  periods,
+  teachers,
+  teacherAllocations,
+  entries,
+  locale,
+}: {
+  config: { id: string; name: string } | null;
+  classrooms: LocalizedReference[];
+  subjects: LocalizedReference[];
+  rooms: LocalizedReference[];
+  periods: PeriodReference[];
+  teachers: LocalizedReference[];
+  teacherAllocations: PublicationReasonAllocation[];
+  entries: PublicationReasonEntry[];
+  locale: string;
+}): PublicationReasonReferenceNames {
+  const classroomNames = localizedReferenceNames(classrooms, locale);
+  const subjectNames = localizedReferenceNames(subjects, locale);
+  const roomNames = localizedReferenceNames(rooms, locale);
+  const periodNames = Object.fromEntries(
+    periods.map((period) => [period.id, period.label]),
+  );
+  const teacherNames = localizedReferenceNames(teachers, locale);
+
+  return {
+    ...(config ? { timetableConfigId: { [config.id]: config.name } } : {}),
+    classroomId: classroomNames,
+    subjectId: subjectNames,
+    roomId: roomNames,
+    periodId: periodNames,
+    teacherSubjectAllocationId: allocationReferenceNames({
+      allocations: teacherAllocations,
+      teacherNames,
+      subjectNames,
+      classroomNames,
+    }),
+    entryId: entryReferenceNames({
+      entries,
+      subjectNames,
+      classroomNames,
+      periodNames: Object.fromEntries(
+        periods.map((period) => [period.index, period.label]),
+      ),
+    }),
+  };
+}
+
+function localizedReferenceNames(
+  references: LocalizedReference[],
+  locale: string,
+): Record<string, string> {
+  return Object.fromEntries(
+    references.map((reference) => [
+      reference.id,
+      localizedReferenceName(reference, locale),
+    ]),
+  );
+}
+
+function localizedReferenceName(reference: LocalizedReference, locale: string) {
+  return locale === "ar"
+    ? reference.nameAr || reference.nameEn
+    : reference.nameEn || reference.nameAr;
+}
+
+function allocationReferenceNames({
+  allocations,
+  teacherNames,
+  subjectNames,
+  classroomNames,
+}: {
+  allocations: PublicationReasonAllocation[];
+  teacherNames: Record<string, string>;
+  subjectNames: Record<string, string>;
+  classroomNames: Record<string, string>;
+}): Record<string, string> {
+  return Object.fromEntries(
+    allocations.flatMap((allocation) => {
+      const name = referenceName([
+        allocation.teacherId ? teacherNames[allocation.teacherId] : undefined,
+        subjectNames[allocation.subjectId],
+        allocation.classroomId
+          ? classroomNames[allocation.classroomId]
+          : undefined,
+      ]);
+      return name ? [[allocation.id, name]] : [];
+    }),
+  );
+}
+
+function entryReferenceNames({
+  entries,
+  subjectNames,
+  classroomNames,
+  periodNames,
+}: {
+  entries: PublicationReasonEntry[];
+  subjectNames: Record<string, string>;
+  classroomNames: Record<string, string>;
+  periodNames: Record<number, string>;
+}): Record<string, string> {
+  return Object.fromEntries(
+    entries.flatMap((entry) => {
+      const name = referenceName([
+        entry.subjectId ? subjectNames[entry.subjectId] : undefined,
+        entry.classroomId ? classroomNames[entry.classroomId] : undefined,
+        periodNames[entry.periodIndex],
+      ]);
+      return name ? [[entry.id, name]] : [];
+    }),
+  );
+}
+
+function referenceName(parts: Array<string | undefined>) {
+  return parts.filter(Boolean).join(" · ");
 }
 
 function readOnlyBannerMessage({

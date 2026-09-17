@@ -18,6 +18,10 @@ export interface PublicationReasonPresentation {
   details: Array<{ label: string; value: string }>;
 }
 
+export type PublicationReasonReferenceNames = Partial<
+  Record<string, Record<string, string>>
+>;
+
 export type TimetableBackendMessageTranslator = (
   code: string,
   fallback?: string,
@@ -181,10 +185,19 @@ const exactUuidPattern =
   /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 const detailLabels: Record<string, { ar: string; en: string }> = {
+  timetableConfigId: bilingual("إعداد الجدول", "Timetable configuration"),
   status: bilingual("الحالة", "Status"),
   count: bilingual("العدد", "Count"),
+  academicYearId: bilingual("السنة الدراسية", "Academic year"),
+  termId: bilingual("الفصل الدراسي", "Term"),
+  entryId: bilingual("الحصة", "Entry"),
+  periodId: bilingual("الفترة", "Period"),
   dayOfWeek: bilingual("اليوم", "Day"),
   activeDays: bilingual("الأيام النشطة", "Active days"),
+  classroomId: bilingual("الفصل", "Classroom"),
+  teacherSubjectAllocationId: bilingual("تخصيص المعلم", "Teacher allocation"),
+  subjectId: bilingual("المادة", "Subject"),
+  roomId: bilingual("الغرفة", "Room"),
   roomCapacity: bilingual("سعة الغرفة", "Room capacity"),
   classroomCapacity: bilingual("سعة الفصل", "Classroom capacity"),
   expectedWeeklyHours: bilingual("الساعات المطلوبة", "Expected weekly hours"),
@@ -211,6 +224,7 @@ export function classifyPublicationReasons(
 export function publicationReasonPresentation(
   reason: TimetablePublishReason,
   locale: string,
+  referenceNames: PublicationReasonReferenceNames = {},
 ): PublicationReasonPresentation {
   const language = locale === "ar" ? "ar" : "en";
   return {
@@ -219,6 +233,18 @@ export function publicationReasonPresentation(
       reason.message,
     details: Object.entries(reason.details ?? {}).flatMap(
       ([detailName, detailValue]) => {
+        const referenceName =
+          typeof detailValue === "string"
+            ? referenceNames[detailName]?.[detailValue]
+            : undefined;
+        if (referenceName) {
+          return [
+            {
+              label: detailLabels[detailName]?.[language] ?? detailName,
+              value: referenceName,
+            },
+          ];
+        }
         if (isInternalIdentifier(detailName)) return [];
         const value = displayedDetailValue(detailValue);
         return value === null

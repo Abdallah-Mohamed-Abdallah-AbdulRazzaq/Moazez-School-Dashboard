@@ -31,7 +31,7 @@ describe("classifyPublicationReasons", () => {
     ]);
   });
 
-  it("localizes known reasons without exposing internal identifiers", () => {
+  it("localizes known reasons with real names for internal identifiers", () => {
     expect(
       publicationReasonPresentation(
         {
@@ -44,10 +44,16 @@ describe("classifyPublicationReasons", () => {
           },
         },
         "ar",
+        {
+          roomId: {
+            "f47ac10b-58cc-4372-a567-0e02b2c3d479": "معمل العلوم",
+          },
+        },
       ),
     ).toEqual({
       message: "سعة إحدى الغرف أقل من سعة الفصل الدراسي.",
       details: [
+        { label: "الغرفة", value: "معمل العلوم" },
         { label: "سعة الغرفة", value: "20" },
         { label: "سعة الفصل", value: "30" },
       ],
