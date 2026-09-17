@@ -175,20 +175,16 @@ const messageCodeAliases: Record<string, string> = {
   room: "room_conflict",
 };
 
+const uuidPattern =
+  /\b[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\b/gi;
+const exactUuidPattern =
+  /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+
 const detailLabels: Record<string, { ar: string; en: string }> = {
-  timetableConfigId: bilingual("إعداد الجدول", "Timetable configuration"),
   status: bilingual("الحالة", "Status"),
   count: bilingual("العدد", "Count"),
-  academicYearId: bilingual("السنة الدراسية", "Academic year"),
-  termId: bilingual("الفصل الدراسي", "Term"),
-  entryId: bilingual("الحصة", "Entry"),
-  periodId: bilingual("الفترة", "Period"),
   dayOfWeek: bilingual("اليوم", "Day"),
   activeDays: bilingual("الأيام النشطة", "Active days"),
-  classroomId: bilingual("الفصل", "Classroom"),
-  teacherSubjectAllocationId: bilingual("تخصيص المعلم", "Teacher allocation"),
-  subjectId: bilingual("المادة", "Subject"),
-  roomId: bilingual("الغرفة", "Room"),
   roomCapacity: bilingual("سعة الغرفة", "Room capacity"),
   classroomCapacity: bilingual("سعة الفصل", "Classroom capacity"),
   expectedWeeklyHours: bilingual("الساعات المطلوبة", "Expected weekly hours"),
@@ -223,6 +219,7 @@ export function publicationReasonPresentation(
       reason.message,
     details: Object.entries(reason.details ?? {}).flatMap(
       ([detailName, detailValue]) => {
+        if (isInternalIdentifier(detailName)) return [];
         const value = displayedDetailValue(detailValue);
         return value === null
           ? []
@@ -246,20 +243,36 @@ export function timetableBackendMessage(
   const normalizedCode = unprefixedCode.toLowerCase();
   const messageCode = messageCodeAliases[normalizedCode] ?? normalizedCode;
   const language = locale === "ar" ? "ar" : "en";
-  return messages[messageCode]?.[language] ?? fallback;
+  const message = messages[messageCode]?.[language] ?? fallback;
+  return message ? redactUuids(message) : message;
 }
 
 function displayedDetailValue(detailValue: unknown): string | null {
   if (typeof detailValue === "string" || typeof detailValue === "number") {
-    return String(detailValue);
+    return typeof detailValue === "string" && exactUuidPattern.test(detailValue)
+      ? null
+      : typeof detailValue === "string"
+        ? redactUuids(detailValue)
+        : String(detailValue);
   }
   if (!Array.isArray(detailValue)) return null;
 
-  const displayableValues = detailValue.filter(
-    (value): value is string | number =>
-      typeof value === "string" || typeof value === "number",
-  );
+  const displayableValues = detailValue.flatMap((value) => {
+    if (typeof value === "number") return [String(value)];
+    if (typeof value !== "string" || exactUuidPattern.test(value)) return [];
+    return [redactUuids(value)];
+  });
   return displayableValues.length > 0 ? displayableValues.join(", ") : null;
+}
+
+function isInternalIdentifier(detailName: string) {
+  return /(?:^|[_-])(?:id|uuid)$/i.test(detailName) ||
+    detailName.endsWith("Id") ||
+    detailName.endsWith("Uuid");
+}
+
+function redactUuids(text: string) {
+  return text.replace(uuidPattern, "…");
 }
 
 function bilingual(ar: string, en: string) {
