@@ -262,7 +262,7 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "academics-rooms": "academics.structure.view",
     "academics-subjects": "academics.subjects.view",
     "academics-teacher-allocation": "academics.structure.view",
-    "academics-timetable": "academics.timetable.view",
+    "academics-timetable": "academics.structure.view",
     "academics-calendar": "academics.calendar.view",
     "academics-curriculum": "academics.curriculum.view",
     "academics-lesson-plans": "academics.lesson_plans.view",
