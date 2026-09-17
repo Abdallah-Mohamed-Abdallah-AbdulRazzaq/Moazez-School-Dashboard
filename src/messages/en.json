@@ -6824,6 +6824,7 @@
         "name": "Name",
         "scopeLabel": "Scope",
         "scopeLockedHelp": "This configuration applies to the timetable selected above. Change the timetable filters to configure a different scope.",
+        "scopeSelectHelp": "Choose Term for the whole term, or use an available level from the selected timetable filters.",
         "weekStartDay": "Week start day",
         "activeDays": "Active days",
         "periodsSection": "Periods",
