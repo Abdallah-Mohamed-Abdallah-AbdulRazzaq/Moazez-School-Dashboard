@@ -14,3 +14,4 @@ export * from "./attachment-list-item";
 export * from "./bilingual-text-field";
 export * from "./filter-panel";
 export * from "./access-denied";
+export * from "./skeleton";

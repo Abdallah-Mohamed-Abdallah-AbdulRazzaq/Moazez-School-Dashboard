@@ -7,7 +7,7 @@ import { Tabs, Tab } from "@mui/material";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
 import TimetableView from "../components/TimetableView";
 import RoomsView from "../../rooms/components/RoomsView";
-import MainLoader from "@/components/ui/loaders/MainLoader";
+import { TimetablePageLoadingSkeleton } from "../components/TimetableLoadingSkeletons";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { DEFAULT_SCHOOL_ID } from "@/features/academics/constants/school";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -250,11 +250,7 @@ export default function TimetablePageContent() {
   );
 
   if (isInitializing) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <MainLoader />
-      </div>
-    );
+    return <TimetablePageLoadingSkeleton label={t("loadingLabel")} />;
   }
 
   if (!academicYearId || !termId) {

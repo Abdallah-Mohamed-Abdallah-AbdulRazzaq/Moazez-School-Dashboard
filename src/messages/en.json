@@ -6418,6 +6418,7 @@
     },
     "timetable": {
       "title": "Timetable",
+      "loadingLabel": "Loading timetable",
       "tabs": {
         "timetable": "Timetable",
         "rooms": "Rooms"

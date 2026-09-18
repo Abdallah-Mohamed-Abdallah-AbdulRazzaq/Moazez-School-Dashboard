@@ -2,6 +2,7 @@
 
 import { Check, Circle, Lock, Send } from "lucide-react";
 import { Button } from "@/components/ui";
+import { TimetableProgressLoadingSkeleton } from "./TimetableLoadingSkeletons";
 import type {
   TimetableCreationAction,
   TimetableCreationPrerequisite,
@@ -32,11 +33,13 @@ export default function TimetableCreationStepper({
   if (progress.state === "checking") {
     return (
       <section
+        role="status"
+        aria-label={copy.checking}
         aria-busy="true"
         aria-live="polite"
-        className="border-b border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 lg:px-6"
       >
-        {copy.checking}
+        <span className="sr-only">{copy.checking}</span>
+        <TimetableProgressLoadingSkeleton />
       </section>
     );
   }

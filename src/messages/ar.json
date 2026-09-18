@@ -6169,6 +6169,7 @@
     },
     "timetable": {
       "title": "الجدول",
+      "loadingLabel": "جارٍ تحميل الجدول",
       "tabs": {
         "timetable": "الجدول",
         "rooms": "الغرف"

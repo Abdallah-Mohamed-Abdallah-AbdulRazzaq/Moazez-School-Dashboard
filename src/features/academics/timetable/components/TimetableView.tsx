@@ -25,6 +25,11 @@ import ValidationPanel from "./ValidationPanel";
 import EditSlotDialog from "./EditSlotDialog";
 import GenerateDialog from "./GenerateDialog";
 import TimetableConfigDialog from "./TimetableConfigDialog";
+import {
+  TimetableActionBarLoadingSkeleton,
+  TimetableContentLoadingSkeleton,
+  TimetableGridLoadingSkeleton,
+} from "./TimetableLoadingSkeletons";
 import { AccessDenied, Button } from "@/components/ui";
 import { PrintButton, usePrint } from "@/components/print";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -1262,7 +1267,7 @@ export default function TimetableView({
   }
 
   if (isLoading) {
-    return <TimetableLoadingSkeleton />;
+    return <TimetableContentLoadingSkeleton label={t("loadingLabel")} />;
   }
 
   if (grades.length === 0 && stages.length === 0) {
@@ -1571,7 +1576,7 @@ export default function TimetableView({
         </div>
       )}
 
-      {hasTimetableScope && resolvedConfig && (
+      {hasTimetableScope && !timetableLoading && resolvedConfig && (
         <TimetableSourceBanner
           workspaceState={workspaceState}
           sourceName={configSourceLabel}
@@ -1590,7 +1595,7 @@ export default function TimetableView({
         />
       )}
 
-      {hasTimetableScope && readOnlyBanner && (
+      {hasTimetableScope && !timetableLoading && readOnlyBanner && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 lg:px-6">
           <div className="flex items-start gap-2">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1609,7 +1614,10 @@ export default function TimetableView({
       )}
 
       {/* Action Bar */}
-      {hasTimetableScope && (
+      {hasTimetableScope && timetableLoading && (
+        <TimetableActionBarLoadingSkeleton />
+      )}
+      {hasTimetableScope && !timetableLoading && (
         <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 print:hidden">
           {/* Desktop: Horizontal layout */}
           <div className="hidden lg:flex items-center justify-between">
@@ -1857,7 +1865,9 @@ export default function TimetableView({
         tabIndex={-1}
         className="flex-1 min-h-full overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0"
       >
-        {!hasTimetableScope ? (
+        {timetableLoading ? (
+          <TimetableGridLoadingSkeleton label={t("loadingLabel")} />
+        ) : !hasTimetableScope ? (
           <AcademicModuleEmptyState
             icon={AlertCircle}
             title={tEmpty("no_timetable_selection.title")}
@@ -1865,19 +1875,15 @@ export default function TimetableView({
             className="h-full"
           />
         ) : !resolvedConfig ? (
-          timetableLoading ? (
-            <TimetableLoadingSkeleton />
-          ) : (
-            <AcademicModuleEmptyState
-              icon={Settings}
-              title={tEmpty("no_timetable_config.title")}
-              description={tEmpty("no_timetable_config.description")}
-              ctaLabel={tEmpty("no_timetable_config.cta")}
-              ctaDisabled={!canCreateConfig}
-              onCtaClick={() => setConfigDialogOpen(true)}
-              className="h-full"
-            />
-          )
+          <AcademicModuleEmptyState
+            icon={Settings}
+            title={tEmpty("no_timetable_config.title")}
+            description={tEmpty("no_timetable_config.description")}
+            ctaLabel={tEmpty("no_timetable_config.cta")}
+            ctaDisabled={!canCreateConfig}
+            onCtaClick={() => setConfigDialogOpen(true)}
+            className="h-full"
+          />
         ) : periods.length === 0 ? (
           <AcademicModuleEmptyState
             icon={Settings}
@@ -2366,21 +2372,4 @@ function readOnlyBannerMessage({
     return publishedLockedMessage;
   }
   return null;
-}
-
-function TimetableLoadingSkeleton() {
-  return (
-    <div className="space-y-4 p-3 lg:p-6" aria-label="Loading timetable">
-      <div className="h-10 animate-pulse rounded-lg bg-gray-200" />
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="h-12 animate-pulse bg-gray-200" />
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-20 animate-pulse border-t border-gray-200 bg-gray-50"
-          />
-        ))}
-      </div>
-    </div>
-  );
 }
