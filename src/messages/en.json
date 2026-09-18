@@ -6423,6 +6423,12 @@
         "rooms": "Rooms"
       },
       "filters": {
+        "selectScope": "Scope",
+        "scopeTerm": "Term",
+        "scopeStage": "Stage",
+        "scopeGrade": "Grade",
+        "scopeSection": "Section",
+        "scopeClassroom": "Classroom",
         "selectStage": "Select Stage",
         "selectGrade": "Select Grade",
         "selectSection": "Select Section",

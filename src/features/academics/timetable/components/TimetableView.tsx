@@ -41,6 +41,8 @@ import { subjectOptionsForGradeAllocations } from "@/features/academics/timetabl
 import { hasBlockingValidation } from "@/features/academics/timetable/services/timetableValidationSummary";
 import { createTimetablePublishFingerprint } from "@/features/academics/timetable/services/timetablePublishFingerprint";
 import { getTimetableConfigSourceName } from "@/features/academics/timetable/services/timetableConfigSource";
+import { resolveTimetableScopeSelection } from "@/features/academics/timetable/services/timetableScope";
+import type { TimetableScopeType } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
   resolveTimetableCreationProgress,
   type TimetableCreationAction,
@@ -128,6 +130,19 @@ export default function TimetableView({
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
   const { profile: brandingProfile } = useBrandingProfile();
+  const selectedScopeType = resolveTimetableScopeSelection({
+    stageId: selectedStageId,
+    gradeId: selectedGradeId,
+    sectionId: selectedSectionId,
+    classroomId: selectedClassroomId,
+  }).scopeType;
+
+  const changeScope = (scopeType: TimetableScopeType) => {
+    if (scopeType === "TERM") return onStageChange("");
+    if (scopeType === "STAGE") return onGradeChange("");
+    if (scopeType === "GRADE") return onSectionChange("");
+    if (scopeType === "SECTION") return onClassroomChange("");
+  };
   const canViewTimetable = hasPermission("academics.structure.view");
   const translateTimetableError = useCallback(
     (code: TimetableErrorCode) =>
@@ -1508,6 +1523,8 @@ export default function TimetableView({
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
+          selectedScopeType={selectedScopeType}
+          onScopeChange={changeScope}
           onStageChange={onStageChange}
           onGradeChange={onGradeChange}
           onSectionChange={onSectionChange}

@@ -6174,6 +6174,12 @@
         "rooms": "الغرف"
       },
       "filters": {
+        "selectScope": "النطاق",
+        "scopeTerm": "الترم",
+        "scopeStage": "المرحلة",
+        "scopeGrade": "الصف",
+        "scopeSection": "الشعبة",
+        "scopeClassroom": "الفصل",
         "selectStage": "اختر المرحلة",
         "selectGrade": "اختر الصف",
         "selectSection": "اختر الشعبة",
