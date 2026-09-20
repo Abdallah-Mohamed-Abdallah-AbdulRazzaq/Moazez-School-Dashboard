@@ -166,7 +166,19 @@ describe("LessonPlansBoard timetable metadata", () => {
       activeDays: [2],
       weekStartDay: 0,
     } as never);
-    vi.mocked(getDashboardTimetable).mockReset();
+    vi.mocked(getDashboardTimetable).mockReset().mockResolvedValue({
+      termId: "term-1",
+      academicYearId: "year-1",
+      publishedAt: "2026-09-01T00:00:00.000Z",
+      isPublished: true,
+      items: [
+        {
+          classroomId: "classroom-1",
+          effectiveConfig: { id: "config-1" },
+          entries: [],
+        },
+      ],
+    } as never);
   });
 
   it("blocks drag creation and reports metadata load errors accurately", async () => {
