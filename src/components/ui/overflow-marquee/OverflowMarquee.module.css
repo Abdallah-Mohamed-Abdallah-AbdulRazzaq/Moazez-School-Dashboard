@@ -1,0 +1,13 @@
+.label:hover .text {
+  transform: translateX(var(--sidebar-label-overflow));
+}
+
+.text {
+  transition: transform 1.2s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text {
+    transition: none;
+  }
+}

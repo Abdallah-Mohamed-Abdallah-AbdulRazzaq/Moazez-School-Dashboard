@@ -42,6 +42,24 @@ describe("Students & Guardians navigation", () => {
   });
 });
 
+describe("Academic Content Hub navigation", () => {
+  it("links to the upcoming Academic Content Hub page", () => {
+    expect(menuItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "academic-content-hub",
+          href_en: "/en/academic-content-hub",
+          href_ar: "/ar/academic-content-hub",
+          statusBadge: {
+            label_en: "Coming soon",
+            label_ar: "قريبًا",
+          },
+        }),
+      ]),
+    );
+  });
+});
+
 describe("Nedaa navigation", () => {
   it("exposes only backend dismissal contract pages", () => {
     const nedaa = menuItems.find((menuItem) => menuItem.key === "nedaa");
