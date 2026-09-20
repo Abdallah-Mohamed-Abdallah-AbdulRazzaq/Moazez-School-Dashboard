@@ -1,4 +1,5 @@
 import { dayIndexToKey } from "@/features/academics/timetable/services/timetableMappers";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 export type TimetableConflictSource = "persisted" | "proposed";
 
@@ -40,6 +41,7 @@ export interface TimetableConflictEntryReference {
 export interface TimetableConflictNormalizationContext {
   entries?: TimetableConflictEntryReference[];
   proposedEntries?: TimetableConflictEntryReference[];
+  translateMessage?: TimetableBackendMessageTranslator;
 }
 
 export function normalizeTimetableConflicts(
@@ -104,11 +106,15 @@ function normalizeConflict(
     (source === "proposed" && targetEntry
       ? periods.find((candidate) => candidate.index === targetEntry.periodIndex)
       : undefined);
+  const backendMessage = stringField(conflict, "message");
+  const localizedMessage = code
+    ? context.translateMessage?.(code, backendMessage)
+    : undefined;
 
   return {
     type: conflictType(code),
     code,
-    message: stringField(conflict, "message") ?? "Timetable conflict",
+    message: localizedMessage ?? backendMessage ?? "Timetable conflict",
     severity: stringField(conflict, "severity") ?? "blocking",
     dayOfWeek,
     ...(dayOfWeek === null ? {} : { dayKey: dayIndexToKey(dayOfWeek) }),

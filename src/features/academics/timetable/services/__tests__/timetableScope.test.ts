@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isTimetableUnpublishScopeSupported,
   resolveTimetableScopeSelection,
   timetableConfigScopeId,
 } from "@/features/academics/timetable/services/timetableScope";
@@ -98,5 +99,16 @@ describe("timetable scope", () => {
     ],
   ] as const)("uses the identifier belonging to the config scope", (config, expected) => {
     expect(timetableConfigScopeId(config)).toBe(expected);
+  });
+
+  it.each([
+    ["term", true],
+    ["grade", true],
+    ["classroom", true],
+    ["stage", false],
+    ["section", false],
+    ["future-scope", false],
+  ])("reports whether %s scope can be unpublished", (scopeType, expected) => {
+    expect(isTimetableUnpublishScopeSupported(scopeType)).toBe(expected);
   });
 });

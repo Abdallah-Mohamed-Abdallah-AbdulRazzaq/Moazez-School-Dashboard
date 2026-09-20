@@ -6418,11 +6418,18 @@
     },
     "timetable": {
       "title": "Timetable",
+      "loadingLabel": "Loading timetable",
       "tabs": {
         "timetable": "Timetable",
         "rooms": "Rooms"
       },
       "filters": {
+        "selectScope": "Scope",
+        "scopeTerm": "Term",
+        "scopeStage": "Stage",
+        "scopeGrade": "Grade",
+        "scopeSection": "Section",
+        "scopeClassroom": "Classroom",
         "selectStage": "Select Stage",
         "selectGrade": "Select Grade",
         "selectSection": "Select Section",
@@ -6564,6 +6571,8 @@
         "roomSourceManual": "manual selection",
         "roomOptionalWarning": "Room is optional, but this slot will save without a room.",
         "roomConflictWarning": "This room is already used in another slot at this time.",
+        "roomInactive": "This room is inactive and cannot be selected.",
+        "roomCapacityInsufficient": "Room capacity ({roomCapacity}) is below classroom capacity ({classroomCapacity}).",
         "breakLabelPlaceholderAr": "فسحة",
         "breakLabelPlaceholderEn": "Break"
       },
@@ -6824,6 +6833,7 @@
         "name": "Name",
         "scopeLabel": "Scope",
         "scopeLockedHelp": "This configuration applies to the timetable selected above. Change the timetable filters to configure a different scope.",
+        "scopeSelectHelp": "Choose Term for the whole term, or use an available level from the selected timetable filters.",
         "weekStartDay": "Week start day",
         "activeDays": "Active days",
         "periodsSection": "Periods",
@@ -6919,6 +6929,8 @@
         "classroom_scope_mismatch": "The classroom does not match the selected timetable scope.",
         "allocation_mismatch": "The teacher allocation does not match this timetable slot.",
         "room_not_found": "The selected room no longer exists.",
+        "room_inactive": "The selected room is not available for timetable scheduling.",
+        "room_capacity_insufficient": "The selected room does not have enough capacity for this classroom.",
         "entry_not_mutable": "This timetable entry cannot be edited.",
         "invalid_time_range": "Start time must be before end time.",
         "period_overlap": "Periods cannot overlap.",

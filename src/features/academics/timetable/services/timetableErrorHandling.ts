@@ -5,6 +5,7 @@ import {
   type TimetableConflictNormalizationContext,
   type TimetableConflictPeriod,
 } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 export type TimetableErrorCode =
   | "academics.timetable.config_not_found"
@@ -18,6 +19,8 @@ export type TimetableErrorCode =
   | "academics.timetable.classroom_scope_mismatch"
   | "academics.timetable.allocation_mismatch"
   | "academics.timetable.room_not_found"
+  | "academics.timetable.room_inactive"
+  | "academics.timetable.room_capacity_insufficient"
   | "academics.timetable.entry_not_mutable"
   | "academics.timetable.invalid_time_range"
   | "academics.timetable.period_overlap"
@@ -58,6 +61,8 @@ const timetableErrorMessages: Record<TimetableErrorCode, string> = {
   "academics.timetable.classroom_scope_mismatch": "The classroom does not match the selected timetable scope.",
   "academics.timetable.allocation_mismatch": "The teacher allocation does not match this timetable slot.",
   "academics.timetable.room_not_found": "The selected room no longer exists.",
+  "academics.timetable.room_inactive": "The selected room is not available for timetable scheduling.",
+  "academics.timetable.room_capacity_insufficient": "The selected room does not have enough capacity for this classroom.",
   "academics.timetable.entry_not_mutable": "This timetable entry cannot be edited.",
   "academics.timetable.invalid_time_range": "Start time must be before end time.",
   "academics.timetable.period_overlap": "Periods cannot overlap.",
@@ -120,15 +125,18 @@ export function timetableErrorCode(error: unknown): string | undefined {
   return backendErrorPayload(error)?.code;
 }
 
-export function publicationBlockingReason(error: unknown): string | undefined {
+export function publicationBlockingReason(
+  error: unknown,
+  translateMessage?: TimetableBackendMessageTranslator,
+): string | undefined {
   const details = timetableErrorDetails(error);
   if (!isRecord(details) || !Array.isArray(details.blockingReasons)) {
     return undefined;
   }
   const firstReason = details.blockingReasons.find(isRecord);
-  return typeof firstReason?.message === "string"
-    ? firstReason.message
-    : undefined;
+  const message = stringField(firstReason, "message");
+  const code = stringField(firstReason, "code");
+  return code ? (translateMessage?.(code, message) ?? message) : message;
 }
 
 export function isTimetableErrorCode(
@@ -260,6 +268,14 @@ function numberField(
 ): number | undefined {
   const value = record[field];
   return typeof value === "number" ? value : undefined;
+}
+
+function stringField(
+  record: Record<string, unknown> | undefined,
+  field: string,
+): string | undefined {
+  const fieldValue = record?.[field];
+  return typeof fieldValue === "string" ? fieldValue : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

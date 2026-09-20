@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import Select from "@/components/ui/input/Select";
 import { Classroom, Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { TimetableScopeType } from "@/features/academics/timetable/services/timetableApiTypes";
 
 interface FilterBarProps {
   stages: Stage[];
@@ -13,6 +14,8 @@ interface FilterBarProps {
   selectedGradeId: string;
   selectedSectionId: string;
   selectedClassroomId: string;
+  selectedScopeType: TimetableScopeType;
+  onScopeChange: (scopeType: TimetableScopeType) => void;
   onStageChange: (stageId: string) => void;
   onGradeChange: (gradeId: string) => void;
   onSectionChange: (sectionId: string) => void;
@@ -29,6 +32,8 @@ export default function FilterBar({
   selectedGradeId,
   selectedSectionId,
   selectedClassroomId,
+  selectedScopeType,
+  onScopeChange,
   onStageChange,
   onGradeChange,
   onSectionChange,
@@ -36,6 +41,30 @@ export default function FilterBar({
   locale,
 }: FilterBarProps) {
   const t = useTranslations("academics.timetable.filters");
+
+  const scopeOptions = [
+    { value: "TERM", label: t("scopeTerm") },
+    {
+      value: "STAGE",
+      label: t("scopeStage"),
+      disabled: !selectedStageId,
+    },
+    {
+      value: "GRADE",
+      label: t("scopeGrade"),
+      disabled: !selectedGradeId,
+    },
+    {
+      value: "SECTION",
+      label: t("scopeSection"),
+      disabled: !selectedSectionId,
+    },
+    {
+      value: "CLASSROOM",
+      label: t("scopeClassroom"),
+      disabled: !selectedClassroomId,
+    },
+  ];
 
   const stageOptions = stages.map((stage) => ({
     value: stage.id,
@@ -83,8 +112,14 @@ export default function FilterBar({
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4">
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-4">
-        <div className="w-full lg:w-64">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5 xl:gap-4">
+        <Select
+          label={t("selectScope")}
+          value={selectedScopeType}
+          onChange={(value) => onScopeChange(value as TimetableScopeType)}
+          options={scopeOptions}
+        />
+        <div className="w-full">
           <Select
             label={t("selectStage")}
             value={selectedStageId}
@@ -93,7 +128,7 @@ export default function FilterBar({
             placeholder={t("selectStage")}
           />
         </div>
-        <div className="w-full lg:w-64">
+        <div className="w-full">
           <Select
             label={t("selectGrade")}
             value={selectedGradeId}
@@ -103,7 +138,7 @@ export default function FilterBar({
             disabled={!selectedStageId}
           />
         </div>
-        <div className="w-full lg:w-64">
+        <div className="w-full">
           <Select
             label={t("selectSection")}
             value={selectedSectionId}
@@ -113,7 +148,7 @@ export default function FilterBar({
             disabled={!selectedGradeId}
           />
         </div>
-        <div className="w-full lg:w-64">
+        <div className="w-full">
           <Select
             label={t("selectClassroom")}
             value={selectedClassroomId}

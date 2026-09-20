@@ -1,8 +1,10 @@
 import type { PublicationResponse } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import type { TimetableValidationSummary } from "@/features/academics/timetable/services/timetableValidationSummary";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
+import type { TimetableWorkspaceMode } from "@/features/academics/timetable/services/timetableWorkspaceState";
 
 export type TimetableCreationAction =
   | "scope"
@@ -47,6 +49,8 @@ export interface TimetableCreationProgressInput {
   conflicts: TimetableConflictDisplay[];
   publication: PublicationResponse | null;
   isReadOnly: boolean;
+  workspaceMode: TimetableWorkspaceMode;
+  translateMessage?: TimetableBackendMessageTranslator;
 }
 
 export function resolveTimetableCreationProgress({
@@ -58,12 +62,15 @@ export function resolveTimetableCreationProgress({
   conflicts,
   publication,
   isReadOnly,
+  workspaceMode,
+  translateMessage,
 }: TimetableCreationProgressInput): TimetableCreationProgress {
   if (isLoading) {
     return { state: "checking", steps: [] };
   }
 
-  const hasConfiguration = hasActiveDays(resolvedConfig);
+  const hasConfiguration =
+    workspaceMode !== "inherited" && hasActiveDays(resolvedConfig);
   const hasPeriods = hasInstructionalPeriod(resolvedConfig);
   const hasSchedule = hasSavedEntries(entries);
   const canBuildSchedule = hasConfiguration && hasPeriods;
@@ -112,6 +119,7 @@ export function resolveTimetableCreationProgress({
         publication,
         isReadOnly,
         reviewPrerequisite,
+        translateMessage,
       }),
     ],
   };
@@ -137,12 +145,14 @@ function publicationStep({
   publication,
   isReadOnly,
   reviewPrerequisite,
+  translateMessage,
 }: {
   reviewComplete: boolean;
   published: boolean;
   publication: PublicationResponse | null;
   isReadOnly: boolean;
   reviewPrerequisite: TimetableCreationPrerequisite;
+  translateMessage?: TimetableBackendMessageTranslator;
 }): TimetableCreationStep {
   if (published) {
     return creationStep("publish", "published", isReadOnly);
@@ -153,6 +163,7 @@ function publicationStep({
   }
 
   if (publication?.canPublish !== true) {
+    const reason = publication?.blockingReasons[0];
     return {
       ...creationStep(
         "publish",
@@ -160,7 +171,9 @@ function publicationStep({
         isReadOnly,
         "publicationNotReady",
       ),
-      prerequisiteMessage: publication?.blockingReasons[0]?.message,
+      prerequisiteMessage: reason
+        ? (translateMessage?.(reason.code, reason.message) ?? reason.message)
+        : undefined,
     };
   }
 

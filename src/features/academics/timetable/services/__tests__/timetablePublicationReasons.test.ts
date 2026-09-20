@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyPublicationReasons,
+  timetableBackendMessage,
   publicationReasonPresentation,
 } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
@@ -30,24 +31,29 @@ describe("classifyPublicationReasons", () => {
     ]);
   });
 
-  it("localizes known reasons and labels backend details", () => {
+  it("localizes known reasons with real names for internal identifiers", () => {
     expect(
       publicationReasonPresentation(
         {
           code: "room_capacity_insufficient",
           message: "Scheduled room capacity is insufficient.",
           details: {
-            roomId: "room-1",
+            roomId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
             roomCapacity: 20,
             classroomCapacity: 30,
           },
         },
         "ar",
+        {
+          roomId: {
+            "f47ac10b-58cc-4372-a567-0e02b2c3d479": "معمل العلوم",
+          },
+        },
       ),
     ).toEqual({
       message: "سعة إحدى الغرف أقل من سعة الفصل الدراسي.",
       details: [
-        { label: "الغرفة", value: "room-1" },
+        { label: "الغرفة", value: "معمل العلوم" },
         { label: "سعة الغرفة", value: "20" },
         { label: "سعة الفصل", value: "30" },
       ],
@@ -68,5 +74,43 @@ describe("classifyPublicationReasons", () => {
       message: "Backend detail",
       details: [{ label: "futureReference", value: "reference-1" }],
     });
+  });
+
+  it("removes UUIDs from unknown backend reason messages and details", () => {
+    expect(
+      publicationReasonPresentation(
+        {
+          code: "future_backend_reason",
+          message:
+            "Entry f47ac10b-58cc-4372-a567-0e02b2c3d479 could not be scheduled.",
+          details: {
+            futureReference: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            futureDetail:
+              "Assignment f47ac10b-58cc-4372-a567-0e02b2c3d479 is unavailable.",
+            count: 2,
+          },
+        },
+        "en",
+      ),
+    ).toEqual({
+      message: "Entry … could not be scheduled.",
+      details: [
+        { label: "futureDetail", value: "Assignment … is unavailable." },
+        { label: "Count", value: "2" },
+      ],
+    });
+  });
+
+  it.each([
+    ["teacher_conflict", "المعلم مجدول بالفعل في هذا الوقت."],
+    ["CLASSROOM_SLOT", "الفصل لديه حصة أخرى في هذا الوقت."],
+    [
+      "academics.timetable.room_conflict",
+      "الغرفة محجوزة بالفعل في هذا الوقت.",
+    ],
+  ])("localizes backend conflict code %s", (code, expectedMessage) => {
+    expect(timetableBackendMessage(code, "ar", "Backend message")).toBe(
+      expectedMessage,
+    );
   });
 });

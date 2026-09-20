@@ -36,6 +36,7 @@ import type {
   TimetableValidationResponse,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import { validationSummaryFromResponse } from "@/features/academics/timetable/services/timetableValidationSummary";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 vi.mock(
   "@/features/academics/academic-structure-tree/services/structureService",
@@ -441,7 +442,7 @@ describe("useTimetableData", () => {
     expect(result.current.apiError).toBeNull();
   });
 
-  it("displays a backend-selected stage timetable when the classroom has no exact config", async () => {
+  it("uses only the backend-selected inherited config records", async () => {
     mockedGetConfig.mockRejectedValueOnce(
       new ApiError(
         "Config not found",
@@ -465,17 +466,39 @@ describe("useTimetableData", () => {
             nameEn: "Grade 1",
           },
           effectiveConfig: {
-            id: "stage-config",
-            name: "Stage timetable",
-            scopeType: "stage",
-            scopeKey: "stage-1",
+            id: "grade-config",
+            name: "Grade timetable",
+            scopeType: "grade",
+            scopeKey: "grade:grade-1",
             stageId: "stage-1",
             status: "published",
             activeDays: [0, 1, 2, 3, 4],
           },
           configs: [],
-          periods: [{ ...backendPeriod, timetableConfigId: "stage-config" }],
-          entries: [{ ...backendEntry, timetableConfigId: "stage-config" }],
+          periods: [
+            {
+              ...backendPeriod,
+              id: "grade-period",
+              timetableConfigId: "grade-config",
+            },
+            {
+              ...backendPeriod,
+              id: "unrelated-period",
+              timetableConfigId: "classroom-draft",
+            },
+          ],
+          entries: [
+            {
+              ...backendEntry,
+              id: "grade-entry",
+              timetableConfigId: "grade-config",
+            },
+            {
+              ...backendEntry,
+              id: "unrelated-entry",
+              timetableConfigId: "classroom-draft",
+            },
+          ],
         },
       ],
     });
@@ -486,16 +509,22 @@ describe("useTimetableData", () => {
     expect(result.current.config).toBeNull();
     expect(result.current.workspaceState).toMatchObject({
       mode: "inherited",
-      displayConfigId: "stage-config",
+      displayConfigId: "grade-config",
       isInherited: true,
       canEdit: false,
     });
     expect(result.current.resolvedConfig?.source).toEqual({
-      scope: "STAGE",
-      id: "stage-1",
+      scope: "GRADE",
+      id: "grade-1",
     });
-    expect(result.current.timetableEntries).toEqual([
-      expect.objectContaining({ id: "entry-1" }),
+    expect(result.current.periods.map((period) => period.id)).toEqual([
+      "grade-period",
+    ]);
+    expect(result.current.timetableEntries.map((entry) => entry.id)).toEqual([
+      "grade-entry",
+    ]);
+    expect(result.current.allTermEntries.map((entry) => entry.id)).toEqual([
+      "grade-entry",
     ]);
   });
 
@@ -556,7 +585,13 @@ describe("useTimetableData", () => {
         },
       ],
     });
-    const { result } = renderHook(() => useTimetableData(hookParams));
+    const { result } = renderHook(() =>
+      useTimetableData({
+        ...hookParams,
+        translateBackendMessage: (code, fallback) =>
+          timetableBackendMessage(code, "ar", fallback),
+      }),
+    );
 
     await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
 
@@ -573,6 +608,7 @@ describe("useTimetableData", () => {
       periodLabel: "Period 1",
       startTime: "08:00",
       endTime: "08:45",
+      message: "المعلم مجدول بالفعل في هذا الوقت.",
     });
     expect(mockedPublish).not.toHaveBeenCalled();
   });
@@ -593,12 +629,54 @@ describe("useTimetableData", () => {
       isPublished: false,
     });
 
+    let unpublishResult: Awaited<
+      ReturnType<typeof result.current.unpublishCurrentTimetable>
+    >;
     await act(async () => {
-      await result.current.unpublishCurrentTimetable();
+      unpublishResult = await result.current.unpublishCurrentTimetable();
     });
 
+    expect(unpublishResult!).toEqual({ ok: true });
     expect(result.current.config?.status).toBe("draft");
     expect(result.current.isPublished).toBe(false);
+  });
+
+  it("returns the localized API error when unpublishing fails", async () => {
+    mockedGetConfig.mockResolvedValue({
+      ...backendConfig,
+      status: "active",
+    });
+    mockedUnpublish.mockRejectedValueOnce(
+      new ApiError(
+        "The term is closed.",
+        409,
+        "academics.timetable.closed_term",
+      ),
+    );
+    const translateErrorCode = (code: string) =>
+      code === "academics.timetable.closed_term"
+        ? "Localized closed-term message"
+        : undefined;
+    const { result } = renderHook(() =>
+      useTimetableData({
+        ...hookParams,
+        translateErrorCode,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.config?.status).toBe("active"));
+    let unpublishResult: Awaited<
+      ReturnType<typeof result.current.unpublishCurrentTimetable>
+    >;
+    await act(async () => {
+      unpublishResult = await result.current.unpublishCurrentTimetable();
+    });
+
+    expect(unpublishResult!).toEqual({
+      ok: false,
+      error: "Localized closed-term message",
+    });
+    expect(result.current.apiError).toBe("Localized closed-term message");
   });
 
   it.each([
@@ -618,11 +696,19 @@ describe("useTimetableData", () => {
       await waitFor(() =>
         expect(result.current.config?.scopeType).toBe(scopeType),
       );
+      let unpublishResult: Awaited<
+        ReturnType<typeof result.current.unpublishCurrentTimetable>
+      >;
       await act(async () => {
-        await result.current.unpublishCurrentTimetable();
+        unpublishResult = await result.current.unpublishCurrentTimetable();
       });
 
       expect(mockedUnpublish).not.toHaveBeenCalled();
+      expect(unpublishResult!).toEqual({
+        ok: false,
+        error:
+          "Unpublish is unavailable for stage and section timetables.",
+      });
       expect(result.current.apiError).toBe(
         "Unpublish is unavailable for stage and section timetables.",
       );

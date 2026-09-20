@@ -19,6 +19,13 @@ interface TimetableConfigScopeIdentity extends TimetableScopeIds {
   scopeType: string;
 }
 
+export function isTimetableUnpublishScopeSupported(
+  scopeType: string,
+): boolean {
+  const normalizedScope = scopeType.toUpperCase();
+  return ["TERM", "GRADE", "CLASSROOM"].includes(normalizedScope);
+}
+
 export function resolveTimetableScopeSelection(
   scopeIds: TimetableScopeIds,
 ): TimetableScopeSelection {

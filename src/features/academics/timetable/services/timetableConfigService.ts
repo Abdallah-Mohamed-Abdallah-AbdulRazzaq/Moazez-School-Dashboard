@@ -25,7 +25,7 @@ const BASE = "/academics/timetable";
 type QueryParamValue = string | number | undefined;
 
 export interface FetchTimetableConfigParams {
-  academicYearId?: string;
+  academicYearId: string;
   termId: string;
   scopeType?: TimetableScopeType;
   stageId?: string;
@@ -35,7 +35,7 @@ export interface FetchTimetableConfigParams {
 }
 
 export interface FetchTimetableConfigsParams {
-  academicYearId?: string;
+  academicYearId: string;
   termId: string;
   stageId?: string;
   gradeId?: string;
@@ -155,22 +155,7 @@ const buildConfigRequest = (
 
 export async function fetchTimetableConfig(
   params: FetchTimetableConfigParams,
-): Promise<TimetableConfig | null>;
-export async function fetchTimetableConfig(
-  termId: string,
-  scopeType: TimetableConfigScope,
-  scopeId?: string,
-): Promise<TimetableConfig | null>;
-export async function fetchTimetableConfig(
-  paramsOrTermId: FetchTimetableConfigParams | string,
-  scopeType?: TimetableConfigScope,
-  scopeId?: string,
 ): Promise<TimetableConfig | null> {
-  const params =
-    typeof paramsOrTermId === "string"
-      ? legacyConfigParams(paramsOrTermId, scopeType, scopeId)
-      : paramsOrTermId;
-
   try {
     const configResponse = await apiGet<
       BackendTimetableConfigDto | TimetableConfigEnvelopeDto
@@ -199,18 +184,7 @@ export async function fetchTimetableConfig(
 
 export async function fetchTimetableConfigs(
   params: FetchTimetableConfigsParams,
-): Promise<TimetableConfig[]>;
-export async function fetchTimetableConfigs(
-  termId: string,
-): Promise<TimetableConfig[]>;
-export async function fetchTimetableConfigs(
-  paramsOrTermId: FetchTimetableConfigsParams | string,
 ): Promise<TimetableConfig[]> {
-  const params =
-    typeof paramsOrTermId === "string"
-      ? { termId: paramsOrTermId }
-      : paramsOrTermId;
-
   const configRequests = [
     fetchTimetableConfig({
       academicYearId: params.academicYearId,
@@ -259,21 +233,6 @@ export async function fetchTimetableConfigs(
 
   const configs = await Promise.all(configRequests);
   return configs.filter((config): config is TimetableConfig => config !== null);
-}
-
-function legacyConfigParams(
-  termId: string,
-  scopeType: TimetableConfigScope = "TERM",
-  scopeId?: string,
-): FetchTimetableConfigParams {
-  return {
-    termId,
-    scopeType,
-    stageId: scopeType === "STAGE" ? scopeId : undefined,
-    gradeId: scopeType === "GRADE" ? scopeId : undefined,
-    sectionId: scopeType === "SECTION" ? scopeId : undefined,
-    classroomId: scopeType === "CLASSROOM" ? scopeId : undefined,
-  };
 }
 
 export async function upsertTimetableConfig(
