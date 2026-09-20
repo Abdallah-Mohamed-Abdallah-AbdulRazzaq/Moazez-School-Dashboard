@@ -226,7 +226,10 @@ export const reinforcementNavigationPermissionByKey: Partial<
   "hero-journey-missions": "reinforcement.hero.view",
 };
 
-const navigationKeysWithoutPermission = new Set(["system-health"]);
+const navigationKeysWithoutPermission = new Set([
+  "academic-content-hub",
+  "system-health",
+]);
 
 type NavigationItem = (typeof menuItems)[number];
 
