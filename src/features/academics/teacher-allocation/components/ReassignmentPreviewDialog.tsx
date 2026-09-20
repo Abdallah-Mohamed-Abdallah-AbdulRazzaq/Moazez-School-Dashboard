@@ -66,6 +66,7 @@ export default function ReassignmentPreviewDialog({
 }: ReassignmentPreviewDialogProps) {
   const t = useTranslations("academics.teacherAllocation");
   const allReady =
+    !error &&
     reassignments.length > 0 &&
     reassignments.every(({ preview }) => preview.canReassign);
 

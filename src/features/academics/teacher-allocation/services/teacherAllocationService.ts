@@ -315,13 +315,6 @@ export async function bulkCreateTeacherAllocations(
   await bulkSaveTeacherAllocations(payload);
 }
 
-export async function saveTeacherAllocationChanges(
-  input: SaveTeacherAllocationChangesInput,
-): Promise<void> {
-  const plan = await prepareTeacherAllocationSave(input);
-  await commitTeacherAllocationSave(plan);
-}
-
 export async function prepareTeacherAllocationSave(
   input: SaveTeacherAllocationChangesInput,
 ): Promise<TeacherAllocationSavePlan> {
