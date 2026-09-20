@@ -1,6 +1,7 @@
 "use client";
 
 import { Accordion, AccordionDetails, AccordionSummary, Drawer, Tab, Tabs } from "@mui/material";
+import RtlProvider from "@mui/system/RtlProvider";
 import {
   AlertCircle,
   AlertTriangle,
@@ -206,27 +207,40 @@ export default function ValidationPanel({
             </div>
           ) : (
             <>
-              <Tabs
-                value={activeTab}
-                onChange={(_event, nextTab) => setActiveTab(nextTab)}
-                variant="scrollable"
-                scrollButtons="auto"
-                aria-label={copy.navigationLabel}
-                sx={{
-                  minHeight: 44,
-                  "& .MuiTab-root": {
+              <RtlProvider value={isRTL}>
+                <Tabs
+                  dir={isRTL ? "rtl" : "ltr"}
+                  value={activeTab}
+                  onChange={(_event, nextTab) => setActiveTab(nextTab)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  allowScrollButtonsMobile
+                  aria-label={copy.navigationLabel}
+                  sx={{
                     minHeight: 44,
-                    minWidth: "auto",
-                    px: 1.5,
-                    textTransform: "none",
-                  },
-                }}
-              >
-                <Tab value="overview" label={tabLabel(copy.overview, 0)} />
-                <Tab value="subjects" label={tabLabel(copy.subjectIssues, issueItems.length)} />
-                <Tab value="conflicts" label={tabLabel(copy.conflicts, conflictCount)} />
-                <Tab value="blockers" label={tabLabel(copy.publishBlockers, blockerCount)} />
-              </Tabs>
+                    "& .MuiTab-root": {
+                      minHeight: 44,
+                      minWidth: "auto",
+                      px: 1.5,
+                      textTransform: "none",
+                    },
+                  }}
+                >
+                  <Tab value="overview" label={tabLabel(copy.overview, 0)} />
+                  <Tab
+                    value="subjects"
+                    label={tabLabel(copy.subjectIssues, issueItems.length)}
+                  />
+                  <Tab
+                    value="conflicts"
+                    label={tabLabel(copy.conflicts, conflictCount)}
+                  />
+                  <Tab
+                    value="blockers"
+                    label={tabLabel(copy.publishBlockers, blockerCount)}
+                  />
+                </Tabs>
+              </RtlProvider>
 
               {activeTab === "overview" && (
                 <ValidationOverview

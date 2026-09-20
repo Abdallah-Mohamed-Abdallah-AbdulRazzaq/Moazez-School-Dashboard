@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import ValidationPanel from "@/features/academics/timetable/components/ValidationPanel";
@@ -25,6 +25,36 @@ const knownPeriodConflict: TimetableConflictDisplay = {
 };
 
 describe("ValidationPanel conflict display", () => {
+  it.each([
+    {
+      locale: "en",
+      forwardKey: "{ArrowRight}",
+      subjectsLabel: /subject scheduling issues/i,
+    },
+    {
+      locale: "ar",
+      forwardKey: "{ArrowLeft}",
+      subjectsLabel: /مشاكل المواد والفصول/i,
+    },
+  ])(
+    "moves forward through validation tabs in $locale",
+    async ({ locale, forwardKey, subjectsLabel }) => {
+      const user = userEvent.setup();
+      renderPanel({
+        conflicts: [knownPeriodConflict],
+        locale,
+      });
+      const overviewTab = screen.getByRole("tab", {
+        name: locale === "ar" ? /نظرة عامة/i : /overview/i,
+      });
+
+      act(() => overviewTab.focus());
+      await user.keyboard(forwardKey);
+
+      expect(screen.getByRole("tab", { name: subjectsLabel })).toHaveFocus();
+    },
+  );
+
   it("shows canonical period details and selects a conflict accessibly", async () => {
     const user = userEvent.setup();
     const onConflictSelect = vi.fn();
@@ -180,6 +210,7 @@ function renderPanel({
   publicationReferenceNames = {},
   selectedConflict = null,
   onConflictSelect = vi.fn(),
+  locale = "en",
 }: {
   conflicts: TimetableConflictDisplay[];
   classrooms?: Array<{ id: string; nameAr: string; nameEn: string }>;
@@ -187,6 +218,7 @@ function renderPanel({
   publicationReferenceNames?: PublicationReasonReferenceNames;
   selectedConflict?: TimetableConflictDisplay | null;
   onConflictSelect?: (conflict: TimetableConflictDisplay) => void;
+  locale?: string;
 }) {
   render(
     <ValidationPanel
@@ -207,7 +239,7 @@ function renderPanel({
       selectedConflict={selectedConflict}
       onConflictSelect={onConflictSelect}
       onClose={vi.fn()}
-      locale="en"
+      locale={locale}
     />,
   );
 }
