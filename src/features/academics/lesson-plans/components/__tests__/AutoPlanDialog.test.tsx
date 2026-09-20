@@ -1,8 +1,13 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api-error";
+import { getDashboardTimetable } from "@/features/academics/timetable/services/timetableApiAdapter";
 import AutoPlanDialog from "../AutoPlanDialog";
+
+vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
+  getDashboardTimetable: vi.fn(),
+}));
 
 const scope = {
   academicYearId: "year-1",
@@ -37,7 +42,81 @@ const previewResponse = {
   items: [],
 };
 
+const timetableEntry = (id: string) => ({
+  id,
+  timetableConfigId: "config-1",
+  periodId: "period-1",
+  dayOfWeek: 2,
+  period: {
+    id: "period-1",
+    index: 1,
+    label: "Period 1",
+    startTime: "08:00",
+    endTime: "08:45",
+  },
+  classroom: {
+    id: "classroom-1",
+    nameAr: "الفصل الأول",
+    nameEn: "Classroom 1",
+  },
+  subject: {
+    id: "subject-1",
+    nameAr: "الرياضيات",
+    nameEn: "Mathematics",
+  },
+  teacher: { userId: "teacher-1", fullName: "Teacher One" },
+  room: null,
+  teacherSubjectAllocationId: "allocation-1",
+  notes: null,
+  status: "active",
+  createdAt: "2026-09-01T00:00:00.000Z",
+  updatedAt: "2026-09-01T00:00:00.000Z",
+});
+
+const timetableDashboard = (entryId?: string) => ({
+  termId: "term-1",
+  academicYearId: "year-1",
+  publishedAt: "2026-09-01T00:00:00.000Z",
+  isPublished: true,
+  items: entryId
+    ? [
+        {
+          classroomId: "classroom-1",
+          classroom: {
+            id: "classroom-1",
+            nameAr: "الفصل الأول",
+            nameEn: "Classroom 1",
+          },
+          gradeId: "grade-1",
+          grade: {
+            id: "grade-1",
+            nameAr: "الصف الأول",
+            nameEn: "Grade 1",
+          },
+          effectiveConfig: {
+            id: "config-1",
+            name: "Published timetable",
+            scopeType: "classroom",
+            scopeKey: "classroom-1",
+            stageId: null,
+            status: "active",
+            activeDays: [2],
+          },
+          configs: [],
+          periods: [],
+          entries: [timetableEntry(entryId)],
+        },
+      ]
+    : [],
+});
+
 describe("AutoPlanDialog missing-data actions", () => {
+  beforeEach(() => {
+    vi.mocked(getDashboardTimetable)
+      .mockReset()
+      .mockResolvedValue(timetableDashboard());
+  });
+
   it.each([
     [
       "academics.lesson_plan.auto_plan_no_slots",
@@ -163,6 +242,50 @@ describe("AutoPlanDialog missing-data actions", () => {
       to: "2026-12-31",
       overwrite: false,
     });
+  });
+
+  it("shows the real timetable period instead of its UUID", async () => {
+    const timetableEntryId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+    vi.mocked(getDashboardTimetable).mockResolvedValue(
+      timetableDashboard(timetableEntryId),
+    );
+    const onPreview = vi.fn().mockResolvedValue({
+      ...previewResponse,
+      items: [
+        {
+          lessonId: "lesson-1",
+          title: "Fractions",
+          plannedDate: "2026-09-02",
+          timetableEntryId,
+          weekIndex: 1,
+          status: "proposed",
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    render(
+      <AutoPlanDialog
+        isOpen
+        termStartDate="2026-09-01"
+        termEndDate="2026-12-31"
+        onClose={vi.fn()}
+        onPreview={onPreview}
+        onApply={vi.fn()}
+        showError={vi.fn()}
+        readiness={ready}
+        previewBlockedMessage="preview blocked"
+        applyBlockedMessage="apply blocked"
+        hasVisibleLessons
+        locale="en"
+        scope={scope}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "actions.preview" }));
+
+    expect(await screen.findByText(/Period 1.*Mathematics/)).toBeInTheDocument();
+    expect(screen.queryByText(timetableEntryId)).not.toBeInTheDocument();
   });
 
   it("discards a preview response when the form changes before it resolves", async () => {

@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, Tab } from "@mui/material";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
 import TimetableView from "../components/TimetableView";
 import RoomsView from "../../rooms/components/RoomsView";
-import MainLoader from "@/components/ui/loaders/MainLoader";
+import { TimetablePageLoadingSkeleton } from "../components/TimetableLoadingSkeletons";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { DEFAULT_SCHOOL_ID } from "@/features/academics/constants/school";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -16,11 +16,18 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 export default function TimetablePageContent() {
   const t = useTranslations("academics.timetable");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { markDirty, clearDirty, isDirty } = useDirtyKey("timetable");
-  const { academicYearId, termId, termStatus, isInitializing } =
-    useAcademicYearTermLayoutContext();
+  const {
+    academicYearId,
+    termId,
+    termStatus,
+    selectedAcademicYear,
+    selectedTerm,
+    isInitializing,
+  } = useAcademicYearTermLayoutContext();
   const { hasPermission } = usePermissions();
   const canManageStructure = hasPermission("academics.structure.manage");
   const pendingViewChangeRef = useRef<(() => void) | null>(null);
@@ -250,11 +257,7 @@ export default function TimetablePageContent() {
   );
 
   if (isInitializing) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <MainLoader />
-      </div>
-    );
+    return <TimetablePageLoadingSkeleton label={t("loadingLabel")} />;
   }
 
   if (!academicYearId || !termId) {
@@ -299,7 +302,12 @@ export default function TimetablePageContent() {
           <TimetableView
             schoolId={schoolId}
             academicYearId={academicYearId}
+            academicYearName={localizedContextName(
+              selectedAcademicYear,
+              locale,
+            )}
             termId={termId}
+            termName={localizedContextName(selectedTerm, locale)}
             termStatus={termStatus}
             isReadOnly={isReadOnly}
             isDirty={isDirty}
@@ -337,4 +345,19 @@ export default function TimetablePageContent() {
       />
     </div>
   );
+}
+
+function localizedContextName(
+  context:
+    | { name?: string; nameAr?: string; nameEn?: string }
+    | null
+    | undefined,
+  locale: string,
+): string {
+  if (!context) return "";
+  const candidates =
+    locale === "ar"
+      ? [context.nameAr, context.nameEn, context.name]
+      : [context.nameEn, context.nameAr, context.name];
+  return candidates.find((name) => name?.trim())?.trim() ?? "";
 }

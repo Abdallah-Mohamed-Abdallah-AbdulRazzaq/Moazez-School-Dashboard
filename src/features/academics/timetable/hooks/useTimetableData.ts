@@ -35,6 +35,10 @@ import {
   unpublish,
   validate,
 } from "@/features/academics/timetable/services/timetableApiAdapter";
+import {
+  dashboardConfigScopeId,
+  resolveEffectiveDashboardTimetable,
+} from "@/features/academics/timetable/services/timetableDashboardContract";
 import type {
   BackendTimetableConfigDto,
   BackendTimetableEntryDto,
@@ -47,6 +51,7 @@ import type {
   TimetableScopeType,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
+  isTimetableUnpublishScopeSupported,
   resolveTimetableScopeSelection,
   timetableConfigScopeId,
 } from "@/features/academics/timetable/services/timetableScope";
@@ -75,6 +80,7 @@ import {
   publicationBlockingReason,
   type TimetableErrorTranslator,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import {
   type ResolvedTimetableConfig,
@@ -102,6 +108,7 @@ interface UseTimetableDataParams {
     type?: "success" | "error" | "info" | "warning",
   ) => void;
   translateErrorCode?: TimetableErrorTranslator;
+  translateBackendMessage?: TimetableBackendMessageTranslator;
   messages?: {
     loadFailed: string;
     saveFailed: string;
@@ -129,6 +136,10 @@ type SaveTimetableResult =
       changesWereNotSaved?: boolean;
       partialMutation?: boolean;
     };
+
+type UnpublishTimetableResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
 const dayNames = [
   { key: "sun", nameAr: "\u0627\u0644\u0623\u062d\u062f", nameEn: "Sunday" },
@@ -216,7 +227,7 @@ const dashboardConfigToResolvedConfig = (
   periods: periodDtosToUi(backendPeriods),
   source: {
     scope: config.scopeType.toUpperCase() as TimetableScopeType,
-    id: timetableConfigScopeId(config),
+    id: dashboardConfigScopeId(config),
   },
 });
 
@@ -232,16 +243,23 @@ const isPublicationActive = (
 const publishReadinessMessage = (
   publication: PublicationResponse,
   validation: TimetableValidationSummary,
+  translateMessage?: TimetableBackendMessageTranslator,
 ): string =>
   [
-    ...(publication.blockingReasons ?? []).map(readinessReasonText),
+    ...(publication.blockingReasons ?? []).map((reason) =>
+      readinessReasonText(reason, translateMessage),
+    ),
     ...validation.blockingReasons,
     ...validation.warnings,
   ][0] ?? "Backend publication readiness is not satisfied.";
 
 const readinessReasonText = (
   reason: string | TimetablePublishReason,
-): string => (typeof reason === "string" ? reason : reason.message);
+  translateMessage?: TimetableBackendMessageTranslator,
+): string =>
+  typeof reason === "string"
+    ? reason
+    : (translateMessage?.(reason.code, reason.message) ?? reason.message);
 
 const mapActiveDays = (activeDays: number[]): TimetableDay[] =>
   dayNames.map((dayName, index) => ({
@@ -282,6 +300,7 @@ export function useTimetableData({
   isScopeSelectionNormalized,
   showToast,
   translateErrorCode,
+  translateBackendMessage,
   messages,
 }: UseTimetableDataParams) {
   const [stages, setStages] = useState<Stage[]>([]);
@@ -525,17 +544,21 @@ export function useTimetableData({
         return true;
       }
 
-      const effectiveConfig = nextWorkspaceState.effectiveConfig;
-      if (nextWorkspaceState.isInherited && dashboardItem && effectiveConfig) {
+      const inheritedTimetable = dashboardItem
+        ? resolveEffectiveDashboardTimetable(dashboardItem)
+        : null;
+      if (nextWorkspaceState.isInherited && inheritedTimetable) {
         const publicationResponse = (await getPublication(
           nextWorkspaceState.displayConfigId,
         )) as PublicationResponse;
         if (requestId !== timetableRequestIdRef.current) return false;
 
-        const mappedEntries = mapBackendEntriesToUi(dashboardItem.entries);
+        const mappedEntries = mapBackendEntriesToUi(
+          inheritedTimetable.entries,
+        );
         setConfig(null);
         setWorkspaceState(nextWorkspaceState);
-        setPeriods(dashboardItem.periods);
+        setPeriods(inheritedTimetable.periods);
         setPublication(publicationResponse);
         setConflicts([]);
         setValidationSummary(emptyValidationSummary());
@@ -544,8 +567,8 @@ export function useTimetableData({
         setConfigs([]);
         setResolvedConfig(
           dashboardConfigToResolvedConfig(
-            effectiveConfig,
-            dashboardItem.periods,
+            inheritedTimetable.config,
+            inheritedTimetable.periods,
           ),
         );
         return true;
@@ -639,10 +662,11 @@ export function useTimetableData({
     const response = await getConflicts(config.id);
     const nextConflicts = normalizePersistedConflicts(response, periods, {
       entries: allTermEntries,
+      translateMessage: translateBackendMessage,
     }).conflicts;
     setConflicts(nextConflicts);
     return nextConflicts;
-  }, [allTermEntries, config, periods]);
+  }, [allTermEntries, config, periods, translateBackendMessage]);
 
   const loadValidation =
     useCallback(async (): Promise<TimetableValidationSummary> => {
@@ -651,10 +675,18 @@ export function useTimetableData({
         gradeId: selectedGradeId || undefined,
         classroomId: selectedClassroomId || undefined,
       });
-      const nextValidationSummary = validationSummaryFromResponse(response);
+      const nextValidationSummary = validationSummaryFromResponse(
+        response,
+        translateBackendMessage,
+      );
       setValidationSummary(nextValidationSummary);
       return nextValidationSummary;
-    }, [selectedClassroomId, selectedGradeId, termId]);
+    }, [
+      selectedClassroomId,
+      selectedGradeId,
+      termId,
+      translateBackendMessage,
+    ]);
 
   const loadPublication =
     useCallback(async (): Promise<PublicationResponse | null> => {
@@ -737,6 +769,7 @@ export function useTimetableData({
             {
               entries: allTermEntries,
               proposedEntries: entries.filter((entry) => entry.subjectId),
+              translateMessage: translateBackendMessage,
             },
           ).conflicts;
           setConflicts(nextConflicts);
@@ -779,6 +812,7 @@ export function useTimetableData({
         const conflict = conflictFromTimetableError(error, periods, {
           entries: allTermEntries,
           proposedEntries: entries.filter((entry) => entry.subjectId),
+          translateMessage: translateBackendMessage,
         });
         if (conflict) {
           setConflicts([conflict]);
@@ -822,6 +856,7 @@ export function useTimetableData({
       termId,
       messages,
       translateErrorCode,
+      translateBackendMessage,
       loadTimetableForScope,
     ],
   );
@@ -850,6 +885,7 @@ export function useTimetableData({
             error: publishReadinessMessage(
               nextPublication,
               nextValidationSummary,
+              translateBackendMessage,
             ),
           };
         }
@@ -859,6 +895,7 @@ export function useTimetableData({
             error: publishReadinessMessage(
               nextPublication,
               nextValidationSummary,
+              translateBackendMessage,
             ),
           };
         }
@@ -896,6 +933,7 @@ export function useTimetableData({
           {
             entries: allTermEntries,
             proposedEntries: entries.filter((entry) => entry.subjectId),
+            translateMessage: translateBackendMessage,
           },
         ).conflicts;
         setConflicts(nextConflicts);
@@ -916,12 +954,13 @@ export function useTimetableData({
         const conflict = conflictFromTimetableError(error, periods, {
           entries: allTermEntries,
           proposedEntries: entries.filter((entry) => entry.subjectId),
+          translateMessage: translateBackendMessage,
         });
         if (conflict) {
           setConflicts([conflict]);
         }
         const message =
-          publicationBlockingReason(error) ??
+          publicationBlockingReason(error, translateBackendMessage) ??
           timetableErrorMessage(
             error,
             messages?.publishFailed ?? "Failed to publish timetable.",
@@ -942,50 +981,57 @@ export function useTimetableData({
       teacherAllocations,
       termId,
       translateErrorCode,
+      translateBackendMessage,
       loadTimetableForScope,
     ],
   );
 
-  const unpublishCurrentTimetable = useCallback(async () => {
-    if (!config) {
-      return false;
-    }
-    const scope = configScope(config);
-    if (scope === "STAGE" || scope === "SECTION") {
-      setApiError(
-        messages?.unpublishUnsupportedScope ??
-          "Unpublish is unavailable for stage and section timetables.",
-      );
-      return false;
-    }
+  const unpublishCurrentTimetable = useCallback(
+    async (): Promise<UnpublishTimetableResult> => {
+      if (!config) {
+        const message =
+          messages?.noConfigSelected ?? "No timetable config selected.";
+        setApiError(message);
+        return { ok: false, error: message };
+      }
+      const scope = configScope(config);
+      if (!isTimetableUnpublishScopeSupported(scope)) {
+        const message =
+          messages?.unpublishUnsupportedScope ??
+          "Unpublish is unavailable for stage and section timetables.";
+        setApiError(message);
+        return { ok: false, error: message };
+      }
 
-    try {
-      await unpublish({
-        termId,
-        gradeId: selectedGradeId || undefined,
-        classroomId: selectedClassroomId || undefined,
-      });
-      await loadTimetableForScope();
-      return true;
-    } catch (error) {
-      const message = timetableErrorMessage(
-        error,
-        messages?.unpublishFailed ?? "Failed to unpublish timetable.",
-        translateErrorCode,
-      );
-      setApiError(message);
-      console.error("Failed to unpublish timetable:", error);
-      return false;
-    }
-  }, [
-    config,
-    messages,
-    selectedClassroomId,
-    selectedGradeId,
-    termId,
-    translateErrorCode,
-    loadTimetableForScope,
-  ]);
+      try {
+        await unpublish({
+          termId,
+          gradeId: selectedGradeId || undefined,
+          classroomId: selectedClassroomId || undefined,
+        });
+        await loadTimetableForScope();
+        return { ok: true };
+      } catch (error) {
+        const message = timetableErrorMessage(
+          error,
+          messages?.unpublishFailed ?? "Failed to unpublish timetable.",
+          translateErrorCode,
+        );
+        setApiError(message);
+        console.error("Failed to unpublish timetable:", error);
+        return { ok: false, error: message };
+      }
+    },
+    [
+      config,
+      messages,
+      selectedClassroomId,
+      selectedGradeId,
+      termId,
+      translateErrorCode,
+      loadTimetableForScope,
+    ],
+  );
 
   useEffect(() => {
     void Promise.resolve().then(loadAcademicDependencies);

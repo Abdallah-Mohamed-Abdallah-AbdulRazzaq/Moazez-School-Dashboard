@@ -184,4 +184,28 @@ describe("TimetableConfigDialog", () => {
       );
     });
   });
+
+  it("creates a term config when term scope is selected from a narrower context", async () => {
+    const user = userEvent.setup();
+    vi.mocked(upsertBackendTimetableConfig).mockResolvedValue(timetableConfig);
+    renderDialog({
+      mode: "config",
+      config: null,
+      periods: [],
+      selectedStageId: "stage-1",
+    });
+
+    await user.click(screen.getByLabelText("config.scopeLabel"));
+    await user.click(
+      screen.getByRole("button", { name: "config.scopeOptions.term" }),
+    );
+    await user.click(screen.getByRole("button", { name: "config.saveConfig" }));
+
+    await waitFor(() => {
+      expect(upsertBackendTimetableConfig).toHaveBeenCalledOnce();
+    });
+    const payload = vi.mocked(upsertBackendTimetableConfig).mock.calls[0][0];
+    expect(payload).toMatchObject({ scopeType: "TERM" });
+    expect(payload).not.toHaveProperty("stageId");
+  });
 });

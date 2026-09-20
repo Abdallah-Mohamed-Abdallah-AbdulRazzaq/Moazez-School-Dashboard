@@ -4,6 +4,7 @@ import {
   type TimetableCreationProgress,
 } from "@/features/academics/timetable/services/timetableCreationProgress";
 import { emptyValidationSummary } from "@/features/academics/timetable/services/timetableValidationSummary";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { PublicationResponse } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
@@ -63,6 +64,23 @@ describe("resolveTimetableCreationProgress", () => {
     });
   });
 
+  it("keeps configuration actionable when an inherited setup needs an override", () => {
+    const progress = resolveTimetableCreationProgress({
+      ...readyToPublishInput(),
+      workspaceMode: "inherited",
+    });
+
+    expect(step(progress, "configuration")).toMatchObject({
+      status: "current",
+      actionable: true,
+    });
+    expect(step(progress, "periods")).toMatchObject({
+      status: "blocked",
+      actionable: false,
+      prerequisiteKey: "configureTimetable",
+    });
+  });
+
   it("blocks publishing when validation has a blocking reason", () => {
     const progress = resolveTimetableCreationProgress({
       ...readyToPublishInput(),
@@ -117,6 +135,24 @@ describe("resolveTimetableCreationProgress", () => {
       "Add a second period",
     );
   });
+
+  it("localizes a known backend publication reason", () => {
+    const progress = resolveTimetableCreationProgress({
+      ...readyToPublishInput(),
+      publication: publication({
+        canPublish: false,
+        blockingReasons: [
+          { code: "room_inactive", message: "Room is inactive" },
+        ],
+      }),
+      translateMessage: (code, fallback) =>
+        timetableBackendMessage(code, "ar", fallback),
+    });
+
+    expect(step(progress, "publish")?.prerequisiteMessage).toBe(
+      "توجد حصة مجدولة في غرفة غير نشطة.",
+    );
+  });
 });
 
 function readyToPublishInput() {
@@ -132,6 +168,7 @@ function readyToPublishInput() {
     conflicts: [],
     publication: publication(),
     isReadOnly: false,
+    workspaceMode: "exact" as const,
   };
 }
 

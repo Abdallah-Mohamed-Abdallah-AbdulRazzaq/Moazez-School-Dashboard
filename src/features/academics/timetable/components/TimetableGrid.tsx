@@ -8,8 +8,10 @@ import {
   ChevronDown,
   ChevronUp,
   Coffee,
+  MapPin,
   Plus,
   Sparkles,
+  UserRound,
   Users,
 } from "lucide-react";
 import { TimetableEntry } from "@/features/academics/timetable/types/timetable";
@@ -241,23 +243,29 @@ export default function TimetableGrid({
             )}
           </div>
           {entry.teacherId && (
-            <div className="text-xs text-gray-600 line-clamp-1 mb-0.5">
-              👤 {getTeacherName(entry.teacherId)}
+            <div className="mb-0.5 flex items-center gap-1 text-xs text-gray-600">
+              <UserRound className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <span className="line-clamp-1">
+                {getTeacherName(entry.teacherId)}
+              </span>
             </div>
           )}
           {entry.roomId && (
-            <div className="text-xs text-gray-500 line-clamp-1">
-              📍 {getRoomName(entry.roomId)}
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <span className="line-clamp-1">{getRoomName(entry.roomId)}</span>
             </div>
           )}
           {!entry.teacherId && (
-            <div className="text-xs text-orange-600 mt-1">
-              ⚠️ {t("validation.missingTeacher")}
+            <div className="mt-1 flex items-center gap-1 text-xs text-orange-600">
+              <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <span>{t("validation.missingTeacher")}</span>
             </div>
           )}
           {!entry.roomId && (
-            <div className="text-xs text-orange-600 mt-0.5">
-              ⚠️ {t("validation.missingRoom")}
+            <div className="mt-0.5 flex items-center gap-1 text-xs text-orange-600">
+              <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <span>{t("validation.missingRoom")}</span>
             </div>
           )}
         </div>
@@ -536,25 +544,37 @@ export default function TimetableGrid({
                             </div>
                             {entry.teacherId && (
                               <div className="text-sm text-gray-600 flex items-center gap-1.5">
-                                <span>👤</span>
+                                <UserRound
+                                  className="h-4 w-4 shrink-0"
+                                  aria-hidden="true"
+                                />
                                 <span>{getTeacherName(entry.teacherId)}</span>
                               </div>
                             )}
                             {entry.roomId && (
                               <div className="text-sm text-gray-500 flex items-center gap-1.5">
-                                <span>📍</span>
+                                <MapPin
+                                  className="h-4 w-4 shrink-0"
+                                  aria-hidden="true"
+                                />
                                 <span>{getRoomName(entry.roomId)}</span>
                               </div>
                             )}
                             {!entry.teacherId && (
                               <div className="text-xs text-orange-600 flex items-center gap-1">
-                                <span>⚠️</span>
+                                <AlertTriangle
+                                  className="h-3 w-3 shrink-0"
+                                  aria-hidden="true"
+                                />
                                 <span>{t("validation.missingTeacher")}</span>
                               </div>
                             )}
                             {!entry.roomId && (
                               <div className="text-xs text-orange-600 flex items-center gap-1">
-                                <span>⚠️</span>
+                                <AlertTriangle
+                                  className="h-3 w-3 shrink-0"
+                                  aria-hidden="true"
+                                />
                                 <span>{t("validation.missingRoom")}</span>
                               </div>
                             )}

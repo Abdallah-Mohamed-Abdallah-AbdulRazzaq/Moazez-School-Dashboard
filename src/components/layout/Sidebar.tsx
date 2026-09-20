@@ -19,6 +19,7 @@ import {
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import GuardedLink from "@/components/navigation/GuardedLink";
+import { NavigationStatusBadge, OverflowMarquee } from "@/components/ui";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
@@ -617,7 +618,7 @@ export default function Sidebar({
                               : item.label_en
                             : undefined
                         }
-                        className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 text-left ${
+                        className={`group w-full flex items-center gap-2 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 ${isArabic ? "text-right" : "text-left"} ${
                           isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                         } ${
                           isActive || pendingHref === itemNavigationHref
@@ -651,9 +652,20 @@ export default function Sidebar({
                         )}
                         {isOpen && (
                           <>
-                            <span className="font-semibold text-[16px] truncate">
-                              {isArabic ? item.label_ar : item.label_en}
-                            </span>
+                            <OverflowMarquee
+                              className="flex-1 text-[15px] font-semibold"
+                              isRTL={isArabic}
+                              label={isArabic ? item.label_ar : item.label_en}
+                            />
+                            {item.statusBadge ? (
+                              <NavigationStatusBadge
+                                label={
+                                  isArabic
+                                    ? item.statusBadge.label_ar
+                                    : item.statusBadge.label_en
+                                }
+                              />
+                            ) : null}
                             {pendingHref === itemNavigationHref && (
                               <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                             )}

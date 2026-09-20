@@ -54,7 +54,7 @@ vi.mock("next/image", () => ({
 }));
 
 describe("Sidebar toggle control", () => {
-  it("shows System Health without a membership permission", () => {
+  it("shows public navigation destinations without a membership permission", () => {
     navigationState.grantedPermissions = new Set();
 
     try {
@@ -63,6 +63,12 @@ describe("Sidebar toggle control", () => {
       expect(
         screen.getByRole("link", { name: "System Health" }),
       ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", {
+          name: "Academic Content Hub Coming soon",
+        }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Coming soon")).toBeInTheDocument();
     } finally {
       navigationState.grantedPermissions = null;
     }

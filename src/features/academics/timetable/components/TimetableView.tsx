@@ -25,6 +25,11 @@ import ValidationPanel from "./ValidationPanel";
 import EditSlotDialog from "./EditSlotDialog";
 import GenerateDialog from "./GenerateDialog";
 import TimetableConfigDialog from "./TimetableConfigDialog";
+import {
+  TimetableActionBarLoadingSkeleton,
+  TimetableContentLoadingSkeleton,
+  TimetableGridLoadingSkeleton,
+} from "./TimetableLoadingSkeletons";
 import { AccessDenied, Button } from "@/components/ui";
 import { PrintButton, usePrint } from "@/components/print";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -42,6 +47,11 @@ import { hasBlockingValidation } from "@/features/academics/timetable/services/t
 import { createTimetablePublishFingerprint } from "@/features/academics/timetable/services/timetablePublishFingerprint";
 import { getTimetableConfigSourceName } from "@/features/academics/timetable/services/timetableConfigSource";
 import {
+  isTimetableUnpublishScopeSupported,
+  resolveTimetableScopeSelection,
+} from "@/features/academics/timetable/services/timetableScope";
+import type { TimetableScopeType } from "@/features/academics/timetable/services/timetableApiTypes";
+import {
   resolveTimetableCreationProgress,
   type TimetableCreationAction,
 } from "@/features/academics/timetable/services/timetableCreationProgress";
@@ -54,6 +64,10 @@ import { useTimetableData } from "@/features/academics/timetable/hooks/useTimeta
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
 import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
+import {
+  timetableBackendMessage,
+  type PublicationReasonReferenceNames,
+} from "@/features/academics/timetable/services/timetablePublicationReasons";
 import {
   resolveTimetableConflictTargetEntry,
   type TimetableConflictDisplay,
@@ -82,6 +96,8 @@ interface TimetableViewProps {
   isDirty: boolean;
   onDirtyChange: (dirty: boolean) => void;
   academicYearId?: string;
+  academicYearName: string;
+  termName: string;
   selectedStageId: string;
   selectedGradeId: string;
   selectedSectionId: string;
@@ -106,6 +122,8 @@ export default function TimetableView({
   isDirty,
   onDirtyChange,
   academicYearId = "",
+  academicYearName,
+  termName,
   selectedStageId,
   selectedGradeId,
   selectedSectionId,
@@ -124,11 +142,29 @@ export default function TimetableView({
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
   const { profile: brandingProfile } = useBrandingProfile();
+  const selectedScopeType = resolveTimetableScopeSelection({
+    stageId: selectedStageId,
+    gradeId: selectedGradeId,
+    sectionId: selectedSectionId,
+    classroomId: selectedClassroomId,
+  }).scopeType;
+
+  const changeScope = (scopeType: TimetableScopeType) => {
+    if (scopeType === "TERM") return onStageChange("");
+    if (scopeType === "STAGE") return onGradeChange("");
+    if (scopeType === "GRADE") return onSectionChange("");
+    if (scopeType === "SECTION") return onClassroomChange("");
+  };
   const canViewTimetable = hasPermission("academics.structure.view");
   const translateTimetableError = useCallback(
     (code: TimetableErrorCode) =>
       t(`errors.${code.replace("academics.timetable.", "")}`),
     [t],
+  );
+  const translateBackendMessage = useCallback(
+    (code: string, fallback?: string) =>
+      timetableBackendMessage(code, locale, fallback),
+    [locale],
   );
   const timetableMessages = useMemo(
     () => ({
@@ -305,8 +341,35 @@ export default function TimetableView({
     isScopeSelectionNormalized,
     showToast,
     translateErrorCode: translateTimetableError,
+    translateBackendMessage,
     messages: timetableMessages,
   });
+
+  const publicationReasonReferenceNames = useMemo(
+    () =>
+      buildPublicationReasonReferenceNames({
+        config,
+        classrooms,
+        subjects,
+        rooms,
+        periods,
+        teachers,
+        teacherAllocations,
+        entries: allTermEntries,
+        locale,
+      }),
+    [
+      allTermEntries,
+      classrooms,
+      config,
+      locale,
+      periods,
+      rooms,
+      subjects,
+      teacherAllocations,
+      teachers,
+    ],
+  );
 
   const currentPublishFingerprint = useMemo(
     () =>
@@ -357,6 +420,18 @@ export default function TimetableView({
   const canCreateConfig = canWriteTimetable && !hasExactConfig;
   const canEditTimetable =
     canWriteTimetable && configIsDraft && workspaceState.canEdit;
+  const canConfigureTimetable = hasExactConfig
+    ? canEditTimetable
+    : canCreateConfig;
+  const isUnpublishScopeSupported = Boolean(
+    config && isTimetableUnpublishScopeSupported(config.scopeType),
+  );
+  const canUnpublishTimetable =
+    canWriteTimetable &&
+    hasExactConfig &&
+    !isDirty &&
+    Boolean(resolvedConfig) &&
+    isUnpublishScopeSupported;
   const readOnlyBanner = readOnlyBannerMessage({
     configStatus: config?.status,
     termStatus,
@@ -614,9 +689,13 @@ export default function TimetableView({
   };
 
   const readinessReasonText = (
-    reason: string | { message?: string } | undefined,
+    reason: string | { code: string; message: string } | undefined,
   ): string | undefined =>
-    typeof reason === "string" ? reason : reason?.message;
+    typeof reason === "string"
+      ? reason
+      : reason
+        ? translateBackendMessage(reason.code, reason.message)
+        : undefined;
 
   const confirmPublish = async () => {
     if (!hasTimetableScope || !canWriteTimetable) return;
@@ -662,24 +741,24 @@ export default function TimetableView({
   };
 
   const handleUnpublish = async () => {
-    if (!hasTimetableScope || !canWriteTimetable) return;
+    if (!hasTimetableScope || !canUnpublishTimetable) return;
 
     setIsUnpublishing(true);
     try {
-      const unpublished = await unpublishCurrentTimetable();
-      if (!unpublished) {
-        throw new Error("UNPUBLISH_FAILED");
+      const result = await unpublishCurrentTimetable();
+      if (!result.ok) {
+        showToast(result.error, "error");
+        return;
       }
       showToast(t("unpublish.success"), "success");
     } catch (error) {
       console.error("Failed to unpublish timetable:", error);
       showToast(
-        apiError ??
-          timetableErrorMessage(
-            error,
-            t("unpublish.error"),
-            translateTimetableError,
-          ),
+        timetableErrorMessage(
+          error,
+          t("unpublish.error"),
+          translateTimetableError,
+        ),
         "error",
       );
     } finally {
@@ -996,7 +1075,9 @@ export default function TimetableView({
         validationSummary,
         conflicts: backendConflicts,
         publication,
-        isReadOnly: !canWriteTimetable || workspaceState.isInherited,
+        isReadOnly: !canWriteTimetable,
+        workspaceMode: workspaceState.mode,
+        translateMessage: translateBackendMessage,
       }),
     [
       backendConflicts,
@@ -1007,8 +1088,9 @@ export default function TimetableView({
       resolvedConfig,
       timetableEntries,
       timetableLoading,
+      translateBackendMessage,
       validationSummary,
-      workspaceState.isInherited,
+      workspaceState.mode,
     ],
   );
 
@@ -1121,11 +1203,18 @@ export default function TimetableView({
           }),
         ),
     );
+    const exportTermName = termName || t("config.scopeOptions.term");
+    const exportScopeName =
+      getDisplayName(selectedClassroom) ||
+      getDisplayName(selectedSection) ||
+      getDisplayName(selectedGrade) ||
+      getDisplayName(selectedStage) ||
+      t("config.scopeOptions.term");
 
     const metadata: ExportMetadata = {
-      yearName: academicYearId || undefined,
+      yearName: academicYearName || undefined,
       stageName: getDisplayName(selectedStage) || undefined,
-      termName: termId,
+      termName: exportTermName,
       gradeName: getDisplayName(selectedGrade) || undefined,
       sectionName: getDisplayName(selectedSection) || undefined,
       classroomName: getDisplayName(selectedClassroom) || undefined,
@@ -1138,11 +1227,8 @@ export default function TimetableView({
       metadata,
       filename: generateExportFilename(
         "timetable",
-        termId,
-        selectedClassroomId ||
-          selectedSectionId ||
-          selectedGradeId ||
-          undefined,
+        exportTermName,
+        exportScopeName,
       ),
       format,
       columns,
@@ -1201,7 +1287,7 @@ export default function TimetableView({
   }
 
   if (isLoading) {
-    return <TimetableLoadingSkeleton />;
+    return <TimetableContentLoadingSkeleton label={t("loadingLabel")} />;
   }
 
   if (grades.length === 0 && stages.length === 0) {
@@ -1462,6 +1548,8 @@ export default function TimetableView({
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
+          selectedScopeType={selectedScopeType}
+          onScopeChange={changeScope}
           onStageChange={onStageChange}
           onGradeChange={onGradeChange}
           onSectionChange={onSectionChange}
@@ -1508,7 +1596,7 @@ export default function TimetableView({
         </div>
       )}
 
-      {hasTimetableScope && resolvedConfig && (
+      {hasTimetableScope && !timetableLoading && resolvedConfig && (
         <TimetableSourceBanner
           workspaceState={workspaceState}
           sourceName={configSourceLabel}
@@ -1527,7 +1615,7 @@ export default function TimetableView({
         />
       )}
 
-      {hasTimetableScope && readOnlyBanner && (
+      {hasTimetableScope && !timetableLoading && readOnlyBanner && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 lg:px-6">
           <div className="flex items-start gap-2">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1546,7 +1634,10 @@ export default function TimetableView({
       )}
 
       {/* Action Bar */}
-      {hasTimetableScope && (
+      {hasTimetableScope && timetableLoading && (
+        <TimetableActionBarLoadingSkeleton />
+      )}
+      {hasTimetableScope && !timetableLoading && (
         <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 print:hidden">
           {/* Desktop: Horizontal layout */}
           <div className="hidden lg:flex items-center justify-between">
@@ -1577,7 +1668,7 @@ export default function TimetableView({
                   </Button>
                   <Button
                     onClick={() => setConfigDialogOpen(true)}
-                    disabled={!canEditTimetable}
+                    disabled={!canConfigureTimetable}
                     variant="secondary"
                     leftIcon={<Settings className="w-4 h-4" />}
                   >
@@ -1613,11 +1704,12 @@ export default function TimetableView({
                     <Button
                       onClick={handleUnpublish}
                       disabled={
-                        !canWriteTimetable ||
-                        !hasExactConfig ||
-                        isDirty ||
-                        !resolvedConfig ||
-                        config?.scopeType.toUpperCase() === "SECTION"
+                        !canUnpublishTimetable
+                      }
+                      title={
+                        config && !isUnpublishScopeSupported
+                          ? t("errors.unpublishUnsupportedScope")
+                          : undefined
                       }
                       variant="secondary"
                       loading={isUnpublishing}
@@ -1697,7 +1789,7 @@ export default function TimetableView({
                 <>
                   <Button
                     onClick={() => setConfigDialogOpen(true)}
-                    disabled={!canEditTimetable}
+                    disabled={!canConfigureTimetable}
                     variant="secondary"
                     leftIcon={<Settings className="w-4 h-4" />}
                     size="sm"
@@ -1737,11 +1829,12 @@ export default function TimetableView({
                     <Button
                       onClick={handleUnpublish}
                       disabled={
-                        !canWriteTimetable ||
-                        !hasExactConfig ||
-                        isDirty ||
-                        !resolvedConfig ||
-                        config?.scopeType.toUpperCase() === "SECTION"
+                        !canUnpublishTimetable
+                      }
+                      title={
+                        config && !isUnpublishScopeSupported
+                          ? t("errors.unpublishUnsupportedScope")
+                          : undefined
                       }
                       variant="secondary"
                       loading={isUnpublishing}
@@ -1794,7 +1887,9 @@ export default function TimetableView({
         tabIndex={-1}
         className="flex-1 min-h-full overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0"
       >
-        {!hasTimetableScope ? (
+        {timetableLoading ? (
+          <TimetableGridLoadingSkeleton label={t("loadingLabel")} />
+        ) : !hasTimetableScope ? (
           <AcademicModuleEmptyState
             icon={AlertCircle}
             title={tEmpty("no_timetable_selection.title")}
@@ -1802,19 +1897,15 @@ export default function TimetableView({
             className="h-full"
           />
         ) : !resolvedConfig ? (
-          timetableLoading ? (
-            <TimetableLoadingSkeleton />
-          ) : (
-            <AcademicModuleEmptyState
-              icon={Settings}
-              title={tEmpty("no_timetable_config.title")}
-              description={tEmpty("no_timetable_config.description")}
-              ctaLabel={tEmpty("no_timetable_config.cta")}
-              ctaDisabled={!canCreateConfig}
-              onCtaClick={() => setConfigDialogOpen(true)}
-              className="h-full"
-            />
-          )
+          <AcademicModuleEmptyState
+            icon={Settings}
+            title={tEmpty("no_timetable_config.title")}
+            description={tEmpty("no_timetable_config.description")}
+            ctaLabel={tEmpty("no_timetable_config.cta")}
+            ctaDisabled={!canCreateConfig}
+            onCtaClick={() => setConfigDialogOpen(true)}
+            className="h-full"
+          />
         ) : periods.length === 0 ? (
           <AcademicModuleEmptyState
             icon={Settings}
@@ -1980,6 +2071,7 @@ export default function TimetableView({
           onClose={() => setValidationPanelOpen(false)}
           locale={locale}
           publicationReasons={publication?.blockingReasons}
+          publicationReferenceNames={publicationReasonReferenceNames}
         />
       )}
 
@@ -2063,7 +2155,7 @@ export default function TimetableView({
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
-          readOnly={config ? !canEditTimetable : !canCreateConfig}
+          readOnly={!canConfigureTimetable}
           locale={locale}
         />
       )}
@@ -2136,6 +2228,154 @@ export default function TimetableView({
   );
 }
 
+type LocalizedReference = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+};
+
+type PublicationReasonEntry = {
+  id: string;
+  classroomId?: string;
+  subjectId: string | null;
+  periodIndex: number;
+};
+
+type PublicationReasonAllocation = {
+  id: string;
+  teacherId: string | null;
+  subjectId: string;
+  classroomId?: string;
+};
+
+type PeriodReference = {
+  id: string;
+  index: number;
+  label: string;
+};
+
+function buildPublicationReasonReferenceNames({
+  config,
+  classrooms,
+  subjects,
+  rooms,
+  periods,
+  teachers,
+  teacherAllocations,
+  entries,
+  locale,
+}: {
+  config: { id: string; name: string } | null;
+  classrooms: LocalizedReference[];
+  subjects: LocalizedReference[];
+  rooms: LocalizedReference[];
+  periods: PeriodReference[];
+  teachers: LocalizedReference[];
+  teacherAllocations: PublicationReasonAllocation[];
+  entries: PublicationReasonEntry[];
+  locale: string;
+}): PublicationReasonReferenceNames {
+  const classroomNames = localizedReferenceNames(classrooms, locale);
+  const subjectNames = localizedReferenceNames(subjects, locale);
+  const roomNames = localizedReferenceNames(rooms, locale);
+  const periodNames = Object.fromEntries(
+    periods.map((period) => [period.id, period.label]),
+  );
+  const teacherNames = localizedReferenceNames(teachers, locale);
+
+  return {
+    ...(config ? { timetableConfigId: { [config.id]: config.name } } : {}),
+    classroomId: classroomNames,
+    subjectId: subjectNames,
+    roomId: roomNames,
+    periodId: periodNames,
+    teacherSubjectAllocationId: allocationReferenceNames({
+      allocations: teacherAllocations,
+      teacherNames,
+      subjectNames,
+      classroomNames,
+    }),
+    entryId: entryReferenceNames({
+      entries,
+      subjectNames,
+      classroomNames,
+      periodNames: Object.fromEntries(
+        periods.map((period) => [period.index, period.label]),
+      ),
+    }),
+  };
+}
+
+function localizedReferenceNames(
+  references: LocalizedReference[],
+  locale: string,
+): Record<string, string> {
+  return Object.fromEntries(
+    references.map((reference) => [
+      reference.id,
+      localizedReferenceName(reference, locale),
+    ]),
+  );
+}
+
+function localizedReferenceName(reference: LocalizedReference, locale: string) {
+  return locale === "ar"
+    ? reference.nameAr || reference.nameEn
+    : reference.nameEn || reference.nameAr;
+}
+
+function allocationReferenceNames({
+  allocations,
+  teacherNames,
+  subjectNames,
+  classroomNames,
+}: {
+  allocations: PublicationReasonAllocation[];
+  teacherNames: Record<string, string>;
+  subjectNames: Record<string, string>;
+  classroomNames: Record<string, string>;
+}): Record<string, string> {
+  return Object.fromEntries(
+    allocations.flatMap((allocation) => {
+      const name = referenceName([
+        allocation.teacherId ? teacherNames[allocation.teacherId] : undefined,
+        subjectNames[allocation.subjectId],
+        allocation.classroomId
+          ? classroomNames[allocation.classroomId]
+          : undefined,
+      ]);
+      return name ? [[allocation.id, name]] : [];
+    }),
+  );
+}
+
+function entryReferenceNames({
+  entries,
+  subjectNames,
+  classroomNames,
+  periodNames,
+}: {
+  entries: PublicationReasonEntry[];
+  subjectNames: Record<string, string>;
+  classroomNames: Record<string, string>;
+  periodNames: Record<number, string>;
+}): Record<string, string> {
+  return Object.fromEntries(
+    entries.flatMap((entry) => {
+      const name = referenceName([
+        entry.subjectId ? subjectNames[entry.subjectId] : undefined,
+        entry.classroomId ? classroomNames[entry.classroomId] : undefined,
+        periodNames[entry.periodIndex],
+      ]);
+      return name ? [[entry.id, name]] : [];
+    }),
+  );
+}
+
+function referenceName(parts: Array<string | undefined>) {
+  return parts.filter(Boolean).join(" · ");
+}
+
 function readOnlyBannerMessage({
   configStatus,
   termStatus,
@@ -2154,21 +2394,4 @@ function readOnlyBannerMessage({
     return publishedLockedMessage;
   }
   return null;
-}
-
-function TimetableLoadingSkeleton() {
-  return (
-    <div className="space-y-4 p-3 lg:p-6" aria-label="Loading timetable">
-      <div className="h-10 animate-pulse rounded-lg bg-gray-200" />
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="h-12 animate-pulse bg-gray-200" />
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-20 animate-pulse border-t border-gray-200 bg-gray-50"
-          />
-        ))}
-      </div>
-    </div>
-  );
 }

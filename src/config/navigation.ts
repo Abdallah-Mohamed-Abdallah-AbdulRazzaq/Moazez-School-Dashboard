@@ -34,10 +34,16 @@ import {
   BarChart3,
   Gauge,
   PanelsTopLeft,
+  LibraryBig,
 } from "lucide-react";
 
 export interface SubgroupDefinition {
   key: string;
+  label_en: string;
+  label_ar: string;
+}
+
+interface NavigationStatusBadge {
   label_en: string;
   label_ar: string;
 }
@@ -53,6 +59,7 @@ interface MenuItem {
   subgroup?: string;
   subgroups?: SubgroupDefinition[];
   badge?: () => number; // Function to get dynamic badge count
+  statusBadge?: NavigationStatusBadge;
   buttonVariant?: "default" | "highlight";
   buttonBackgroundImage?: string;
 }
@@ -561,6 +568,15 @@ export const menuItems: MenuItem[] = [
       },
     ],
   },
+  {
+    key: "academic-content-hub",
+    label_en: "Academic Content Hub",
+    label_ar: "مركز المحتوى الأكاديمي",
+    href_en: "/en/academic-content-hub",
+    href_ar: "/ar/academic-content-hub",
+    icon: LibraryBig,
+    statusBadge: { label_en: "Coming soon", label_ar: "قريبًا" },
+  },
 
   {
     key: "grades",
@@ -831,15 +847,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/reinforcement",
         href_ar: "/ar/reinforcement",
         icon: LayoutDashboard,
-      },
-      {
-        key: "reinforcement-templates",
-        subgroup: "programs",
-        label_en: "Templates",
-        label_ar: "القوالب",
-        href_en: "/en/reinforcement/templates",
-        href_ar: "/ar/reinforcement/templates",
-        icon: FileText,
       },
       {
         key: "reinforcement-tasks",

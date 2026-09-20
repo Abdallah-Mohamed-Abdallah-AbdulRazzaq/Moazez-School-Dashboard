@@ -6,7 +6,12 @@ import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import { DatePicker } from "@/components/ui/input";
 import { ApiError } from "@/lib/api-error";
+import { getDashboardTimetable } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type { AutoPlanLessonPlanResponseDto } from "../services/lessonPlansService";
+import {
+  effectiveDashboardEntries,
+  timetableEntryDisplayLabel,
+} from "../services/lessonPlanTimetable";
 import { lessonPlansUiError } from "../services/lessonPlansErrors";
 import type { AutoPlanReadiness } from "../services/autoPlanReadiness";
 import LessonPlansMissingDataCta from "./LessonPlansMissingDataCta";
@@ -54,6 +59,7 @@ interface AutoPlanRequest {
 interface PreviewState {
   response: AutoPlanLessonPlanResponseDto;
   request: AutoPlanRequest;
+  timetableEntryLabels: Record<string, string>;
 }
 
 export default function AutoPlanDialog({
@@ -175,7 +181,13 @@ export default function AutoPlanDialog({
       if (apply) {
         closeDialog();
       } else {
-        setPreviewState({ response, request });
+        const timetableEntryLabels = await loadTimetableEntryLabels({
+          response,
+          scope,
+          locale,
+        });
+        if (currentRequest !== operationRequestId.current) return;
+        setPreviewState({ response, request, timetableEntryLabels });
       }
     } catch (error) {
       if (currentRequest !== operationRequestId.current) return;
@@ -387,7 +399,13 @@ export default function AutoPlanDialog({
                   <div>
                     {item.plannedDate} ·{" "}
                     {t("week.label", { index: item.weekIndex })}
-                    {item.timetableEntryId ? ` · ${item.timetableEntryId}` : ""}
+                    {item.timetableEntryId
+                      ? ` · ${
+                          previewState?.timetableEntryLabels[
+                            item.timetableEntryId
+                          ] || t("timetableSlotOptions.label")
+                        }`
+                      : ""}
                   </div>
                 </div>
               ))}
@@ -397,4 +415,42 @@ export default function AutoPlanDialog({
       </div>
     </Modal>
   );
+}
+
+async function loadTimetableEntryLabels({
+  response,
+  scope,
+  locale,
+}: {
+  response: AutoPlanLessonPlanResponseDto;
+  scope: LessonPlansMissingDataScope;
+  locale: string;
+}): Promise<Record<string, string>> {
+  const timetableEntryIds = new Set(
+    response.items.flatMap((previewItem) =>
+      previewItem.timetableEntryId ? [previewItem.timetableEntryId] : [],
+    ),
+  );
+  if (
+    timetableEntryIds.size === 0 ||
+    !scope.termId ||
+    !scope.classroomId
+  ) {
+    return {};
+  }
+
+  try {
+    const dashboard = await getDashboardTimetable({
+      termId: scope.termId,
+      classroomId: scope.classroomId,
+    });
+    return Object.fromEntries(
+      effectiveDashboardEntries(dashboard, scope.classroomId)
+        .filter((entry) => timetableEntryIds.has(entry.id))
+        .map((entry) => [entry.id, timetableEntryDisplayLabel(entry, locale)]),
+    );
+  } catch (error) {
+    console.error("Failed to load auto-plan timetable labels:", error);
+    return {};
+  }
 }

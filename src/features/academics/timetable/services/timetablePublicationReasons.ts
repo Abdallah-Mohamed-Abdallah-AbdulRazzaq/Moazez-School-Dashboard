@@ -18,6 +18,15 @@ export interface PublicationReasonPresentation {
   details: Array<{ label: string; value: string }>;
 }
 
+export type PublicationReasonReferenceNames = Partial<
+  Record<string, Record<string, string>>
+>;
+
+export type TimetableBackendMessageTranslator = (
+  code: string,
+  fallback?: string,
+) => string | undefined;
+
 const categories: PublicationReasonCategory[] = [
   "configuration",
   "curriculum",
@@ -137,7 +146,43 @@ const messages: Record<string, { ar: string; en: string }> = {
     "سعة إحدى الغرف أقل من سعة الفصل الدراسي.",
     "A scheduled room is too small for its classroom.",
   ),
+  entry_conflict: bilingual(
+    "تتعارض حصة الجدول مع حصة أخرى.",
+    "The timetable entry conflicts with another entry.",
+  ),
+  teacher_conflict: bilingual(
+    "المعلم مجدول بالفعل في هذا الوقت.",
+    "The teacher is already scheduled at this time.",
+  ),
+  classroom_conflict: bilingual(
+    "الفصل لديه حصة أخرى في هذا الوقت.",
+    "The classroom already has another entry at this time.",
+  ),
+  room_conflict: bilingual(
+    "الغرفة محجوزة بالفعل في هذا الوقت.",
+    "The room is already booked at this time.",
+  ),
+  duplicate_slot: bilingual(
+    "تحتوي بيانات الجدول على حصة مكررة.",
+    "The timetable payload contains a duplicate slot.",
+  ),
+  validation_blocked: bilingual(
+    "يجب حل مشاكل التحقق قبل نشر الجدول.",
+    "Resolve timetable validation issues before publishing.",
+  ),
 };
+
+const messageCodeAliases: Record<string, string> = {
+  teacher: "teacher_conflict",
+  classroom: "classroom_conflict",
+  classroom_slot: "classroom_conflict",
+  room: "room_conflict",
+};
+
+const uuidPattern =
+  /\b[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\b/gi;
+const exactUuidPattern =
+  /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 const detailLabels: Record<string, { ar: string; en: string }> = {
   timetableConfigId: bilingual("إعداد الجدول", "Timetable configuration"),
@@ -179,12 +224,28 @@ export function classifyPublicationReasons(
 export function publicationReasonPresentation(
   reason: TimetablePublishReason,
   locale: string,
+  referenceNames: PublicationReasonReferenceNames = {},
 ): PublicationReasonPresentation {
   const language = locale === "ar" ? "ar" : "en";
   return {
-    message: messages[reason.code]?.[language] ?? reason.message,
+    message:
+      timetableBackendMessage(reason.code, locale, reason.message) ??
+      reason.message,
     details: Object.entries(reason.details ?? {}).flatMap(
       ([detailName, detailValue]) => {
+        const referenceName =
+          typeof detailValue === "string"
+            ? referenceNames[detailName]?.[detailValue]
+            : undefined;
+        if (referenceName) {
+          return [
+            {
+              label: detailLabels[detailName]?.[language] ?? detailName,
+              value: referenceName,
+            },
+          ];
+        }
+        if (isInternalIdentifier(detailName)) return [];
         const value = displayedDetailValue(detailValue);
         return value === null
           ? []
@@ -199,17 +260,45 @@ export function publicationReasonPresentation(
   };
 }
 
+export function timetableBackendMessage(
+  code: string,
+  locale: string,
+  fallback?: string,
+): string | undefined {
+  const unprefixedCode = code.replace(/^academics\.timetable\./, "");
+  const normalizedCode = unprefixedCode.toLowerCase();
+  const messageCode = messageCodeAliases[normalizedCode] ?? normalizedCode;
+  const language = locale === "ar" ? "ar" : "en";
+  const message = messages[messageCode]?.[language] ?? fallback;
+  return message ? redactUuids(message) : message;
+}
+
 function displayedDetailValue(detailValue: unknown): string | null {
   if (typeof detailValue === "string" || typeof detailValue === "number") {
-    return String(detailValue);
+    return typeof detailValue === "string" && exactUuidPattern.test(detailValue)
+      ? null
+      : typeof detailValue === "string"
+        ? redactUuids(detailValue)
+        : String(detailValue);
   }
   if (!Array.isArray(detailValue)) return null;
 
-  const displayableValues = detailValue.filter(
-    (value): value is string | number =>
-      typeof value === "string" || typeof value === "number",
-  );
+  const displayableValues = detailValue.flatMap((value) => {
+    if (typeof value === "number") return [String(value)];
+    if (typeof value !== "string" || exactUuidPattern.test(value)) return [];
+    return [redactUuids(value)];
+  });
   return displayableValues.length > 0 ? displayableValues.join(", ") : null;
+}
+
+function isInternalIdentifier(detailName: string) {
+  return /(?:^|[_-])(?:id|uuid)$/i.test(detailName) ||
+    detailName.endsWith("Id") ||
+    detailName.endsWith("Uuid");
+}
+
+function redactUuids(text: string) {
+  return text.replace(uuidPattern, "…");
 }
 
 function bilingual(ar: string, en: string) {

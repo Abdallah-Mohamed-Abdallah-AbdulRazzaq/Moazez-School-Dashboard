@@ -8,3 +8,11 @@ describe("attendance navigation permissions", () => {
     );
   });
 });
+
+describe("timetable navigation permissions", () => {
+  it("uses the dashboard timetable read permission required by the backend", () => {
+    expect(navigationPermissionByKey["academics-timetable"]).toBe(
+      "academics.structure.view",
+    );
+  });
+});

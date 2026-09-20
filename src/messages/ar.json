@@ -6169,11 +6169,18 @@
     },
     "timetable": {
       "title": "الجدول",
+      "loadingLabel": "جارٍ تحميل الجدول",
       "tabs": {
         "timetable": "الجدول",
         "rooms": "الغرف"
       },
       "filters": {
+        "selectScope": "النطاق",
+        "scopeTerm": "الترم",
+        "scopeStage": "المرحلة",
+        "scopeGrade": "الصف",
+        "scopeSection": "الشعبة",
+        "scopeClassroom": "الفصل",
         "selectStage": "اختر المرحلة",
         "selectGrade": "اختر الصف",
         "selectSection": "اختر الشعبة",
@@ -6315,6 +6322,8 @@
         "roomSourceManual": "اختيار يدوي",
         "roomOptionalWarning": "الغرفة اختيارية، لكن سيتم حفظ هذه الحصة بدون غرفة.",
         "roomConflictWarning": "هذه الغرفة مستخدمة بالفعل في حصة أخرى في نفس الوقت.",
+        "roomInactive": "هذه الغرفة غير نشطة ولا يمكن اختيارها.",
+        "roomCapacityInsufficient": "سعة الغرفة ({roomCapacity}) أقل من سعة الفصل ({classroomCapacity}).",
         "breakLabelPlaceholderAr": "فسحة",
         "breakLabelPlaceholderEn": "Break"
       },
@@ -6575,6 +6584,7 @@
         "name": "الاسم",
         "scopeLabel": "النطاق",
         "scopeLockedHelp": "ينطبق هذا الإعداد على الجدول المحدد أعلاه. غيّر عوامل تصفية الجدول لإعداد نطاق مختلف.",
+        "scopeSelectHelp": "اختر الترم لتطبيق الإعداد على الترم بالكامل، أو اختر نطاقًا متاحًا من عوامل تصفية الجدول المحددة.",
         "weekStartDay": "بداية الأسبوع",
         "activeDays": "الأيام النشطة",
         "periodsSection": "الحصص",
@@ -6670,6 +6680,8 @@
         "classroom_scope_mismatch": "الفصل لا يطابق نطاق الجدول المحدد.",
         "allocation_mismatch": "توزيع المعلم لا يطابق خانة الجدول هذه.",
         "room_not_found": "الغرفة المحددة لم تعد موجودة.",
+        "room_inactive": "الغرفة المحددة غير متاحة للجدول الدراسي.",
+        "room_capacity_insufficient": "سعة الغرفة المحددة غير كافية لهذا الفصل.",
         "entry_not_mutable": "لا يمكن تعديل إدخال الجدول هذا.",
         "invalid_time_range": "وقت البداية يجب أن يكون قبل وقت النهاية.",
         "period_overlap": "لا يمكن أن تتداخل الحصص.",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeTimetableConflicts } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 const periods = [
   {
@@ -35,12 +36,16 @@ describe("normalizeTimetableConflicts", () => {
       },
       "persisted",
       periods,
+      {
+        translateMessage: (code, fallback) =>
+          timetableBackendMessage(code, "ar", fallback),
+      },
     );
 
     expect(conflict).toMatchObject({
       type: "TEACHER",
       code: "TEACHER",
-      message: "Teacher intervals overlap.",
+      message: "المعلم مجدول بالفعل في هذا الوقت.",
       severity: "blocking",
       dayOfWeek: 2,
       dayKey: "tue",

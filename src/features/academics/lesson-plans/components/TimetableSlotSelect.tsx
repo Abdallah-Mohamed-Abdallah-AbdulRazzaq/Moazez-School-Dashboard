@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import Select from "@/components/ui/input/Select";
 import {
   getConfig,
@@ -13,6 +14,7 @@ import type {
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
   dashboardEntriesForScope,
+  timetableEntryDisplayLabel,
   timetableConfigCandidates,
   type TimetableSlotScope,
 } from "../services/lessonPlanTimetable";
@@ -75,11 +77,34 @@ export function useTimetableConfigForScope(
     });
 
     void (async () => {
+      let effectiveConfigId: string | undefined;
+      try {
+        const dashboard = await getDashboardTimetable({
+          termId: scope.termId,
+          classroomId: scope.classroomId,
+        });
+        effectiveConfigId = dashboard.items.find(
+          (dashboardItem) =>
+            dashboardItem.classroomId === scope.classroomId,
+        )?.effectiveConfig?.id;
+      } catch (dashboardError) {
+        if (active) setError(dashboardError);
+        return;
+      }
+      if (!active) return;
+
+      if (!effectiveConfigId) {
+        if (active) setIsMissing(true);
+        return;
+      }
+
       for (const candidate of timetableConfigCandidates(scope)) {
         try {
           const resolved = await getConfig(candidate);
-          if (active) setConfig(resolved);
-          return;
+          if (resolved.id === effectiveConfigId) {
+            if (active) setConfig(resolved);
+            return;
+          }
         } catch (lookupError) {
           if (!isTimetableConfigNotFound(lookupError)) {
             if (active) setError(lookupError);
@@ -118,26 +143,6 @@ export function activeTimetableDates(
     });
 }
 
-function entryOptionLabel(entry: BackendTimetableEntryDto): string {
-  const subject = entry.subject?.nameEn || entry.subject?.nameAr;
-  const teacher = entry.teacher as
-    | (NonNullable<BackendTimetableEntryDto["teacher"]> & {
-        name?: string;
-        nameEn?: string;
-        nameAr?: string;
-      })
-    | null;
-  const teacherName =
-    teacher?.fullName || teacher?.name || teacher?.nameEn || teacher?.nameAr;
-  const time =
-    entry.period?.startTime && entry.period?.endTime
-      ? `${entry.period.startTime} - ${entry.period.endTime}`
-      : undefined;
-  return [entry.period?.label, time, subject, teacherName]
-    .filter(Boolean)
-    .join(" · ") || entry.id;
-}
-
 export default function TimetableSlotSelect({
   plannedDate,
   value,
@@ -157,6 +162,7 @@ export default function TimetableSlotSelect({
   subjectId,
   teacherSubjectAllocationId,
 }: TimetableSlotSelectProps) {
+  const locale = useLocale();
   const [entries, setEntries] = useState<BackendTimetableEntryDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<unknown>(null);
@@ -247,7 +253,7 @@ export default function TimetableSlotSelect({
         { value: "", label: isLoading ? loadingMessage : emptyOptionLabel },
         ...entries.map((entry) => ({
           value: entry.id,
-          label: entryOptionLabel(entry),
+          label: timetableEntryDisplayLabel(entry, locale) || label,
         })),
       ]}
       helperText={

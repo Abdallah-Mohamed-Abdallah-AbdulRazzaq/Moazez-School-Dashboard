@@ -11,6 +11,24 @@ const routerMocks = vi.hoisted(() => ({
 const navigationMocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams("stage=stage-1"),
 }));
+const academicContextMocks = vi.hoisted(() => ({
+  academicYearId: "year-1",
+  termId: "term-1",
+  termStatus: "open" as const,
+  selectedAcademicYear: {
+    id: "year-1",
+    name: "2026/2027",
+    nameAr: "٢٠٢٦/٢٠٢٧",
+    nameEn: "2026/2027",
+  },
+  selectedTerm: {
+    id: "term-1",
+    name: "First term",
+    nameAr: "الفصل الدراسي الأول",
+    nameEn: "First term",
+  },
+  isInitializing: false,
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => routerMocks,
@@ -27,12 +45,7 @@ vi.mock("@/hooks/usePermissions", () => ({
 }));
 
 vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
-  useAcademicYearTermLayoutContext: () => ({
-    academicYearId: "year-1",
-    termId: "term-1",
-    termStatus: "open",
-    isInitializing: false,
-  }),
+  useAcademicYearTermLayoutContext: () => academicContextMocks,
 }));
 
 vi.mock("../../components/TimetableView", () => ({
@@ -65,6 +78,21 @@ describe("TimetablePageContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigationMocks.searchParams = new URLSearchParams("stage=stage-1");
+    academicContextMocks.isInitializing = false;
+  });
+
+  it("shows a timetable skeleton while the academic context loads", () => {
+    academicContextMocks.isInitializing = true;
+
+    render(
+      <UnsavedChangesProvider>
+        <TimetablePageContent />
+      </UnsavedChangesProvider>,
+    );
+
+    expect(
+      screen.getByRole("status", { name: "loadingLabel" }),
+    ).toHaveAttribute("aria-busy", "true");
   });
 
   it("keeps timetable edits until a filter change is confirmed", async () => {

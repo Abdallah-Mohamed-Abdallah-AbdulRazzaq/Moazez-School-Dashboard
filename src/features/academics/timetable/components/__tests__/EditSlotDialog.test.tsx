@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import arabicMessages from "@/messages/ar.json";
+import englishMessages from "@/messages/en.json";
 import EditSlotDialog from "@/features/academics/timetable/components/EditSlotDialog";
 import type { Subject } from "@/features/academics/subjects/services/subjectsService";
 import type { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
@@ -26,6 +28,16 @@ const teachers: Teacher[] = [
 ];
 
 describe("EditSlotDialog", () => {
+  it("includes localized room eligibility messages after the missing Arabic message incident", () => {
+    const englishEditSlot = englishMessages.academics.timetable.editSlot;
+    const arabicEditSlot = arabicMessages.academics.timetable.editSlot;
+
+    expect(englishEditSlot.roomInactive).toBeTruthy();
+    expect(englishEditSlot.roomCapacityInsufficient).toContain("{roomCapacity}");
+    expect(arabicEditSlot.roomInactive).toBeTruthy();
+    expect(arabicEditSlot.roomCapacityInsufficient).toContain("{classroomCapacity}");
+  });
+
   it("explains why teacher selection is unavailable without a classroom teacher allocation", async () => {
     render(
       <EditSlotDialog
