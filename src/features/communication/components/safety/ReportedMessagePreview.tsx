@@ -1,8 +1,14 @@
 "use client";
 
 import { MessageSquareWarning } from "lucide-react";
+import { useLocale } from "next-intl";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
+import type { Conversation, ConversationParticipant } from "@/features/communication/types/conversation.types";
 import type { Message } from "@/features/communication/types/message.types";
+import {
+  messageConversationTitle,
+  messageSenderName,
+} from "@/features/communication/utils/message-display-labels";
 
 export interface ReportedMessagePreviewLabels {
   title: string;
@@ -20,6 +26,8 @@ export interface ReportedMessagePreviewLabels {
 
 export interface ReportedMessagePreviewProps {
   message?: Message | null;
+  conversation?: Conversation | null;
+  senderParticipant?: ConversationParticipant | null;
   labels: ReportedMessagePreviewLabels;
 }
 
@@ -33,21 +41,13 @@ function formatDate(value?: string) {
   }).format(date);
 }
 
-function senderName(message: Message, fallback: string) {
-  return (
-    message.sender?.name ||
-    message.sender?.nameEn ||
-    message.sender?.nameAr ||
-    message.senderId ||
-    message.senderUserId ||
-    fallback
-  );
-}
-
 export default function ReportedMessagePreview({
+  conversation,
   labels,
   message,
+  senderParticipant,
 }: ReportedMessagePreviewProps) {
+  const locale = useLocale();
   const isDeleted = message?.status === "deleted" || Boolean(message?.deletedAt);
   const isHidden = !isDeleted && (message?.status === "hidden" || Boolean(message?.hiddenAt));
   const isUnavailable = isDeleted || isHidden;
@@ -102,13 +102,13 @@ export default function ReportedMessagePreview({
             <div>
               <dt className="text-xs text-slate-500">{labels.sender}</dt>
               <dd className="font-medium text-slate-800">
-                {senderName(message, labels.unknown)}
+                {messageSenderName(message, senderParticipant, labels.unknown)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-slate-500">{labels.conversation}</dt>
               <dd className="font-medium text-slate-800">
-                {message.conversationId ?? labels.unknown}
+                {messageConversationTitle(conversation, locale, labels.unknown)}
               </dd>
             </div>
             <div>

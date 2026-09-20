@@ -1,54 +1,38 @@
 import type {
   Conversation,
   ConversationParticipant,
-  ParticipantRole,
 } from "@/features/communication/types/conversation.types";
-
-const MANAGEMENT_ROLES = new Set<ParticipantRole>([
-  "owner",
-  "admin",
-  "moderator",
-]);
-
-function participantUserId(participant: ConversationParticipant) {
-  return participant.userId || participant.actor?.userId || participant.actor?.id || "";
-}
+import type { PermissionKey } from "@/hooks/usePermissions";
+import { getCommunicationConversationCapabilities } from "@/features/communication/authorization/communication-capabilities";
 
 export interface ConversationPermissionInput {
   currentUserId?: string | null;
   participants: ConversationParticipant[];
   conversation?: Conversation | null;
+  permissions?: readonly PermissionKey[];
+  communicationEnabled?: boolean;
 }
 
 export function getConversationPermissionFlags({
   conversation,
   currentUserId,
   participants,
+  permissions = [],
+  communicationEnabled,
 }: ConversationPermissionInput) {
-  const currentParticipant = currentUserId
-    ? participants.find((participant) => participantUserId(participant) === currentUserId)
-    : undefined;
-  const currentParticipantRole = currentParticipant?.role;
-  const isActiveParticipant =
-    currentParticipant?.status === "active" ||
-    currentParticipant?.status === "muted";
-  const canManageConversation = currentParticipantRole
-    ? MANAGEMENT_ROLES.has(currentParticipantRole)
-    : false;
-  const isSystemConversation = conversation?.type === "system";
-  const isReadOnlyConversation = Boolean(conversation?.isReadOnly);
+  const capabilities = getCommunicationConversationCapabilities({
+    permissions,
+    currentUserId,
+    participants,
+    conversation,
+    communicationEnabled,
+  });
 
   return {
-    currentParticipant,
-    currentParticipantId: currentParticipant?.id,
-    currentParticipantRole,
-    isActiveParticipant,
-    canManageConversation,
-    canManageParticipants: canManageConversation,
-    canManageInvites: canManageConversation,
-    canReviewJoinRequests: canManageConversation,
-    canCreateJoinRequest: !isActiveParticipant,
-    canLeaveConversation:
-      Boolean(currentParticipant) && !isSystemConversation && !isReadOnlyConversation,
+    ...capabilities,
+    // Preserve the legacy flag's "current member" meaning for existing UI.
+    isActiveParticipant: capabilities.hasParticipantAccess,
+    currentParticipantId: capabilities.currentParticipant?.id,
+    currentParticipantRole: capabilities.currentParticipant?.role,
   };
 }

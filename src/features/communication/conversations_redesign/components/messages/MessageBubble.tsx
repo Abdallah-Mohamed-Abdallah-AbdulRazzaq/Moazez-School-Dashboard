@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Reply, ShieldAlert, Trash2 } from "lucide-react";
+import { Eye, EyeOff, History, Reply, ShieldAlert, Trash2 } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
 import {
@@ -36,6 +36,9 @@ import { LinkPreviewCard } from "./LinkPreviewCard";
 import { MessageStatusIcon } from "./MessageStatusIcon";
 import { MessageText } from "./MessageText";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+import MessageModerationDialog from "@/features/communication/components/safety/MessageModerationDialog";
+import type { CommunicationMessageCapabilities } from "@/features/communication/authorization/communication-capabilities";
+import type { SupportedModerationAction } from "@/features/communication/types/safety.types";
 
 const SWIPE_REPLY_THRESHOLD = 64;
 const SWIPE_REPLY_MAX_OFFSET = 88;
@@ -60,6 +63,7 @@ export function MessageBubble({
   canManageAttachments = true,
   canReplyMessages = true,
   canReportMessages = true,
+  capabilities,
   attachments,
   currentUserId,
   currentUserName,
@@ -75,9 +79,11 @@ export function MessageBubble({
   onDeleteMessage,
   onStartEdit,
   onInfo,
+  onModerateMessage = async () => undefined,
   onRemoveReaction,
   onReply,
   onReport,
+  onViewModerationHistory = () => undefined,
   allMessages,
   reactions,
   userDisplayNames,
@@ -89,6 +95,7 @@ export function MessageBubble({
   canManageAttachments?: boolean;
   canReplyMessages?: boolean;
   canReportMessages?: boolean;
+  capabilities?: CommunicationMessageCapabilities;
   attachments: MessageAttachment[];
   currentUserId?: string | null;
   currentUserName: string;
@@ -104,15 +111,23 @@ export function MessageBubble({
   onDeleteMessage: () => Promise<unknown>;
   onStartEdit: () => void;
   onInfo: (messageId: string) => void;
+  onModerateMessage?: (
+    action: SupportedModerationAction,
+    reason: string,
+  ) => Promise<unknown>;
   onRemoveReaction: () => Promise<unknown>;
   onReply: (message: ConversationMessage) => void;
   onReport: (messageId: string) => void;
+  onViewModerationHistory?: (messageId: string) => void;
   allMessages: ConversationMessage[];
   reactions: MessageReaction[];
   userDisplayNames: UserDisplayNameMap;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isEditConfirmOpen, setIsEditConfirmOpen] = useState(false);
+  const [moderationAction, setModerationAction] =
+    useState<SupportedModerationAction | null>(null);
   const [isActionPending, setIsActionPending] = useState(false);
   const senderName = isOwn
     ? currentUserName || labels.you
@@ -135,17 +150,25 @@ export function MessageBubble({
       (message.updatedAt && message.updatedAt !== message.createdAt),
   );
   const normStatus = normalizeStatus(message.status);
-  const deleted = normStatus === "deleted" || normStatus === "hidden";
+  const deleted = normStatus === "deleted";
+  const contentUnavailable = deleted || normStatus === "hidden";
   const visibleMessageBody = messageBodyForDisplay(message.body);
   const canMutateOwnMessage =
     isOwn &&
-    !deleted &&
+    !contentUnavailable &&
     message.deliveryStatus !== "pending" &&
     message.deliveryStatus !== "failed";
-  const canDeleteMessage = canMutateOwnMessage && canDeleteMessages;
-  const canEditMessage = canMutateOwnMessage && canEditMessages;
+  const canDeleteMessage = capabilities
+    ? capabilities.deleteMode !== null
+    : canMutateOwnMessage && canDeleteMessages;
+  const canEditMessage = capabilities
+    ? capabilities.canEditMessage
+    : canMutateOwnMessage && canEditMessages;
   const canManageMessageAttachments =
-    canMutateOwnMessage && canManageAttachments;
+    capabilities?.canAddAttachment ??
+    (canMutateOwnMessage && canManageAttachments);
+  const canRemoveMessageAttachments =
+    capabilities?.canRemoveAttachment ?? canManageMessageAttachments;
   const readByOthersCount = (message.readByUserIds ?? []).filter(
     (id) => id !== currentUserId,
   ).length;
@@ -164,7 +187,16 @@ export function MessageBubble({
   };
 
   const handleDelete = () => {
+    if (capabilities?.deleteMode === "moderation") {
+      setModerationAction("delete");
+      return;
+    }
     setIsConfirmOpen(true);
+  };
+
+  const startEdit = () => {
+    if (isOwn) onStartEdit();
+    else setIsEditConfirmOpen(true);
   };
 
   const executeDelete = async () => {
@@ -239,9 +271,10 @@ export function MessageBubble({
   const canSwipeReply =
     allowActions &&
     canReplyMessages &&
-    !deleted &&
+    !contentUnavailable &&
     message.deliveryStatus !== "pending";
-  const canOpenMessageActions = allowActions && !deleted;
+  const canOpenMessageActions =
+    allowActions && (!deleted || Boolean(capabilities?.canViewModerationHistory));
 
   const handleTouchStart = useCallback((event: TouchEvent<HTMLElement>) => {
     clearLongPressTimer();
@@ -386,12 +419,12 @@ export function MessageBubble({
         {/* Bubble */}
         <div
           onDoubleClick={() => {
-            if (!deleted && canReplyMessages) {
+            if (!contentUnavailable && canReplyMessages) {
               onReply(message);
             }
           }}
           className={`relative min-w-0 max-w-full rounded-2xl px-2.5 py-1.5 shadow-sm ${
-            deleted
+            contentUnavailable
               ? "border border-dashed border-slate-300 bg-slate-100 text-slate-600"
               : isOwn
                 ? `${isFirstInGroup ? "rounded-ee-md" : ""} bg-primary text-white`
@@ -399,17 +432,20 @@ export function MessageBubble({
           }`}
         >
           {/* Chevron dropdown — appears on hover at top-end corner */}
-          {allowActions && !deleted ? (
+          {canOpenMessageActions ? (
             <BubbleContextMenu
-              allowReactions={allowReactions}
+              allowReactions={allowReactions && !contentUnavailable}
               canAttach={canManageMessageAttachments}
               canEdit={canEditMessage}
               canDelete={canDeleteMessage}
-              canReply={canReplyMessages}
-              canReport={canReportMessages}
+              canReply={canReplyMessages && !contentUnavailable}
+              canReport={capabilities?.canReportMessage ?? canReportMessages}
+              canHide={capabilities?.canHideMessage}
+              canUnhide={capabilities?.canUnhideMessage}
+              canViewModerationHistory={capabilities?.canViewModerationHistory}
               isOwn={isOwn}
               labels={labels}
-              messageBody={message.body}
+              messageBody={contentUnavailable ? undefined : message.body}
               onAddReaction={handleReaction}
               onAttach={() => fileInputRef.current?.click()}
               onCopy={() => {
@@ -418,15 +454,18 @@ export function MessageBubble({
                 }
               }}
               onDelete={() => void handleDelete()}
-              onEdit={() => onStartEdit()}
+              onEdit={startEdit}
+              onHide={() => setModerationAction("hide")}
               onInfo={() => onInfo(message.id)}
               onReply={() => onReply(message)}
               onReport={() => onReport(message.id)}
+              onUnhide={() => setModerationAction("unhide")}
+              onViewModerationHistory={() => onViewModerationHistory(message.id)}
             />
           ) : null}
 
           {/* Reaction trigger button — smiley face beside the bubble */}
-          {allowReactions && !deleted ? (
+          {allowReactions && !contentUnavailable ? (
             <FloatingReactionBar
               isOwn={isOwn}
               isActionPending={isActionPending}
@@ -434,7 +473,7 @@ export function MessageBubble({
             />
           ) : null}
 
-          {!deleted && message.replyToMessageId ? (() => {
+          {!contentUnavailable && message.replyToMessageId ? (() => {
             const originalMsg = allMessages.find((m) => m.id === message.replyToMessageId);
             const originalSender = originalMsg
               ? (originalMsg.sender?.name as string) ||
@@ -476,7 +515,7 @@ export function MessageBubble({
             );
           })() : null}
 
-          {normStatus === "deleted" || normStatus === "hidden" ? (
+          {contentUnavailable ? (
             <p
               dir="auto"
               className="flex items-center gap-2 whitespace-pre-wrap break-words text-sm italic leading-6 [overflow-wrap:anywhere]"
@@ -504,13 +543,13 @@ export function MessageBubble({
             </>
           ) : null}
 
-          {!deleted && attachments.length > 0 ? (
+          {!contentUnavailable && attachments.length > 0 ? (
             <div className="mt-3 space-y-2">
               {attachments.map((attachment) => (
                 <AttachmentCard
                   key={attachment.id}
                   attachment={attachment}
-                  canDelete={canManageMessageAttachments}
+                  canDelete={canRemoveMessageAttachments}
                   isOwn={isOwn}
                   labels={labels}
                   onDelete={() => onDeleteAttachment(attachment.id)}
@@ -520,16 +559,16 @@ export function MessageBubble({
           ) : null}
           <div
             className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
-              deleted
+              contentUnavailable
                 ? "text-slate-500"
                 : isOwn
                   ? "text-white/80"
                   : "text-slate-400"
             }`}
           >
-            {!deleted && edited ? <span>{labels.edited}</span> : null}
+            {!contentUnavailable && edited ? <span>{labels.edited}</span> : null}
             <span className="italic mt-auto">{formatTime(message.createdAt, locale)}</span>
-            {isOwn && !deleted ? (
+            {isOwn && !contentUnavailable ? (
               <MessageStatusIcon
                 deliveryStatus={message.deliveryStatus}
                 isRead={isRead}
@@ -541,7 +580,7 @@ export function MessageBubble({
         </div>
 
         {/* Reaction badges at bottom-corner of bubble */}
-        {!deleted && Object.keys(groupedReactions).length > 0 ? (
+        {!contentUnavailable && Object.keys(groupedReactions).length > 0 ? (
           <div className={`mt-1 flex flex-wrap items-center gap-0.5`}>
             {Object.entries(groupedReactions).map(([type, items]) => {
               const meta = REACTION_OPTIONS.find((r) => r.type === type);
@@ -602,7 +641,7 @@ export function MessageBubble({
         <div className="absolute inset-0 bg-black/30" />
 
         {/* Reaction bar at top of sheet */}
-        {allowReactions && !deleted ? (
+        {allowReactions && !contentUnavailable ? (
           <div className="relative z-10 mx-auto mb-2 flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-lg">
             {[
               { emoji: "👍", type: "thumbs_up" as ReactionType },
@@ -638,7 +677,7 @@ export function MessageBubble({
           <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300" />
           <div className="space-y-0.5 px-2">
             {/* Reply */}
-            {canReplyMessages ? (
+            {canReplyMessages && !contentUnavailable ? (
               <button
               type="button"
               onClick={() => { setShowMobileMenu(false); onReply(message); }}
@@ -649,7 +688,7 @@ export function MessageBubble({
               </button>
             ) : null}
             {/* Copy */}
-            {message.body ? (
+            {!contentUnavailable && message.body ? (
               <button
                 type="button"
                 onClick={() => {
@@ -662,11 +701,11 @@ export function MessageBubble({
                 {labels.copy}
               </button>
             ) : null}
-            {/* Edit (own only) */}
+            {/* Edit */}
             {canEditMessage ? (
               <button
                 type="button"
-                onClick={() => { setShowMobileMenu(false); onStartEdit(); }}
+                onClick={() => { setShowMobileMenu(false); startEdit(); }}
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
               >
                 <span className="text-lg">✏️</span>
@@ -698,7 +737,7 @@ export function MessageBubble({
               </button>
             ) : null}
             {/* Report (others only) */}
-            {!isOwn && canReportMessages ? (
+            {!isOwn && (capabilities?.canReportMessage ?? canReportMessages) ? (
               <button
                 type="button"
                 onClick={() => { setShowMobileMenu(false); onReport(message.id); }}
@@ -708,7 +747,46 @@ export function MessageBubble({
                 {labels.report}
               </button>
             ) : null}
-            {/* Delete (own only) */}
+            {capabilities?.canHideMessage ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  setModerationAction("hide");
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-amber-700 active:bg-amber-50"
+              >
+                <EyeOff className="h-5 w-5" aria-hidden="true" />
+                {labels.hideMessage}
+              </button>
+            ) : null}
+            {capabilities?.canUnhideMessage ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  setModerationAction("unhide");
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
+              >
+                <Eye className="h-5 w-5" aria-hidden="true" />
+                {labels.unhideMessage}
+              </button>
+            ) : null}
+            {capabilities?.canViewModerationHistory ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  onViewModerationHistory(message.id);
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
+              >
+                <History className="h-5 w-5" aria-hidden="true" />
+                {labels.moderationHistory}
+              </button>
+            ) : null}
+            {/* Delete */}
             {canDeleteMessage ? (
               <button
                 type="button"
@@ -724,6 +802,41 @@ export function MessageBubble({
       </div>
     ) : null}
     {confirmDialogElement}
+    <ConfirmDialog
+      isOpen={isEditConfirmOpen}
+      onClose={() => setIsEditConfirmOpen(false)}
+      onConfirm={() => {
+        setIsEditConfirmOpen(false);
+        onStartEdit();
+      }}
+      title={labels.editMessage}
+      description={labels.editOtherMessageConfirm}
+      confirmLabel={labels.editMessage}
+      cancelLabel={labels.cancel}
+      severity="warning"
+    />
+    <MessageModerationDialog
+      action={moderationAction}
+      isSubmitting={isActionPending}
+      labels={{
+        cancel: labels.cancel,
+        confirm: labels.confirmModerationAction,
+        reason: labels.reason,
+        reasonRequired: labels.moderationReasonRequired,
+        title: labels.moderationActionTitle,
+      }}
+      onClose={() => setModerationAction(null)}
+      onConfirm={async (reason) => {
+        if (!moderationAction) return;
+        setIsActionPending(true);
+        try {
+          await onModerateMessage(moderationAction, reason);
+          setModerationAction(null);
+        } finally {
+          setIsActionPending(false);
+        }
+      }}
+    />
     </>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { Eye, EyeOff, Trash2, UserX } from "lucide-react";
+import { Eye, EyeOff, Trash2 } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import TextArea from "@/components/ui/input/TextArea";
-import type { ModerationActionType } from "@/features/communication/types/safety.types";
+import type { SupportedModerationAction } from "@/features/communication/types/safety.types";
+import { normalizeStatus } from "@/features/communication/utils/communication-errors";
 
 export interface ModerationActionFormLabels {
   title: string;
@@ -14,11 +15,6 @@ export interface ModerationActionFormLabels {
   hide: string;
   unhide: string;
   delete: string;
-  restrictSender: string;
-  messageHidden: string;
-  messageUnhidden: string;
-  messageDeleted: string;
-  userRestricted: string;
   reasonRequired: string;
 }
 
@@ -26,8 +22,9 @@ export interface ModerationActionFormProps {
   disabled?: boolean;
   isSubmitting?: boolean;
   labels: ModerationActionFormLabels;
+  messageStatus?: string;
   onSubmit: (
-    action: ModerationActionType,
+    action: SupportedModerationAction,
     reason?: string,
   ) => Promise<void> | void;
 }
@@ -36,13 +33,16 @@ export default function ModerationActionForm({
   disabled,
   isSubmitting,
   labels,
+  messageStatus,
   onSubmit,
 }: ModerationActionFormProps) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const normalizedMessageStatus = normalizeStatus(messageStatus);
+  const isDeleted = normalizedMessageStatus === "deleted";
   const actions = useMemo<
     Array<{
-      action: ModerationActionType;
+      action: SupportedModerationAction;
       label: string;
       variant?: "primary" | "secondary" | "danger";
       icon: React.ReactNode;
@@ -50,65 +50,46 @@ export default function ModerationActionForm({
   >(
     () => [
       {
-        action: "hide",
+        action: "hide" as const,
         label: labels.hide,
-        variant: "secondary",
+        variant: "secondary" as const,
         icon: <EyeOff className="h-4 w-4" aria-hidden="true" />,
       },
       {
-        action: "unhide",
+        action: "unhide" as const,
         label: labels.unhide,
         icon: <Eye className="h-4 w-4" aria-hidden="true" />,
       },
       {
-        action: "delete",
+        action: "delete" as const,
         label: labels.delete,
-        variant: "danger",
+        variant: "danger" as const,
         icon: <Trash2 className="h-4 w-4" aria-hidden="true" />,
       },
-      {
-        action: "restrict_sender",
-        label: labels.restrictSender,
-        variant: "secondary",
-        icon: <UserX className="h-4 w-4" aria-hidden="true" />,
-      },
-      {
-        action: "message_hidden",
-        label: labels.messageHidden,
-        variant: "secondary",
-        icon: <EyeOff className="h-4 w-4" aria-hidden="true" />,
-      },
-      {
-        action: "message_unhidden",
-        label: labels.messageUnhidden,
-        variant: "secondary",
-        icon: <Eye className="h-4 w-4" aria-hidden="true" />,
-      },
-      {
-        action: "message_deleted",
-        label: labels.messageDeleted,
-        variant: "danger",
-        icon: <Trash2 className="h-4 w-4" aria-hidden="true" />,
-      },
-      {
-        action: "user_restricted",
-        label: labels.userRestricted,
-        variant: "secondary",
-        icon: <UserX className="h-4 w-4" aria-hidden="true" />,
-      },
-    ],
-    [labels],
+    ].filter(({ action }) => {
+      if (normalizedMessageStatus === "hidden") return action !== "hide";
+      return action !== "unhide";
+    }),
+    [labels, normalizedMessageStatus],
   );
 
-  const submit = async (action: ModerationActionType) => {
+  const submit = async (action: SupportedModerationAction) => {
     if (!reason.trim()) {
       setError(labels.reasonRequired);
       return;
     }
     setError(null);
-    await onSubmit(action, reason);
-    setReason("");
+    try {
+      await onSubmit(action, reason.trim());
+      setReason("");
+    } catch {
+      // The page owns error presentation; keep the reason for retry.
+    }
   };
+
+  if (isDeleted) {
+    return null;
+  }
 
   return (
     <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">

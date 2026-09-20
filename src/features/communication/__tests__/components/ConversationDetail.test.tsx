@@ -144,9 +144,30 @@ vi.mock("@/hooks/use-auth", () => ({
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
-  usePermissions: () => ({
-    hasPermission: hasPermissionMock,
-  }),
+  usePermissions: () => {
+    const communicationPermissions = [
+      "communication.admin.view",
+      "communication.admin.manage",
+      "communication.conversations.view",
+      "communication.conversations.manage",
+      "communication.messages.view",
+      "communication.messages.send",
+      "communication.messages.edit",
+      "communication.messages.delete",
+      "communication.messages.react",
+      "communication.messages.attachments.manage",
+      "communication.messages.report",
+      "communication.messages.moderate",
+      "communication.participants.manage",
+    ];
+
+    return {
+      grantedPermissions: communicationPermissions.filter((permission) =>
+        hasPermissionMock(permission),
+      ),
+      hasPermission: hasPermissionMock,
+    };
+  },
 }));
 
 vi.mock("next-intl", () => ({
@@ -1147,6 +1168,11 @@ describe("ConversationDetail", () => {
     });
 
     it("shows restriction banner when conversation has isReadOnly flag", () => {
+      hasPermissionMock.mockImplementation(
+        (permission: string) =>
+          permission !== "communication.messages.moderate" &&
+          permission !== "communication.admin.manage",
+      );
       const readOnlyConversation = createConversation({
         id: TEST_CONVERSATION_ID,
         status: "active",
@@ -1200,7 +1226,7 @@ describe("ConversationDetail", () => {
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
 
-    it("shows restriction banner when current user is blocked", () => {
+    it("treats an unsupported blocked participant status as inactive", () => {
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -1224,7 +1250,9 @@ describe("ConversationDetail", () => {
       });
 
       renderConversationDetail();
-      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
+      expect(
+        screen.getByText(labels.errorConversationNotMember),
+      ).toBeInTheDocument();
       expect(
         screen.queryByTestId("read-only-composer"),
       ).not.toBeInTheDocument();
@@ -1463,6 +1491,10 @@ describe("ConversationDetail", () => {
     });
 
     it("hides management actions when user has member role (no management permissions)", () => {
+      hasPermissionMock.mockImplementation(
+        (permission: string) =>
+          permission !== "communication.participants.manage",
+      );
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -1781,7 +1813,7 @@ describe("ConversationDetail", () => {
       expect(screen.getByText(labels.errorPolicyDisabled)).toBeInTheDocument();
     });
 
-    it("renders blocked banner when current participant status is blocked", () => {
+    it("treats an unsupported blocked participant status as inactive", () => {
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -1801,16 +1833,20 @@ describe("ConversationDetail", () => {
       renderConversationDetail();
 
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
-      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
+      expect(
+        screen.getByText(labels.errorConversationNotMember),
+      ).toBeInTheDocument();
     });
 
-    it("renders blocked banner when current participant has isBlocked flag", () => {
+    it.each(["isBlocked", "isRestricted"] as const)(
+      "does not trust the unsupported %s participant field",
+      (field) => {
       const participant = createParticipant({
         userId: TEST_USER_ID,
         role: "member",
         status: "active",
         actor: { id: TEST_USER_ID, name: "Test User" },
-        isBlocked: true,
+        [field]: true,
       });
 
       useConversationParticipantsMock.mockReturnValue({
@@ -1824,35 +1860,16 @@ describe("ConversationDetail", () => {
 
       renderConversationDetail();
 
-      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
-      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
-    });
-
-    it("renders restricted banner when current participant has isRestricted flag", () => {
-      const participant = createParticipant({
-        userId: TEST_USER_ID,
-        role: "member",
-        status: "active",
-        actor: { id: TEST_USER_ID, name: "Test User" },
-        isRestricted: true,
-      });
-
-      useConversationParticipantsMock.mockReturnValue({
-        participants: [participant],
-        isLoading: false,
-        isMutating: false,
-        total: 1,
-        error: null,
-        refresh: vi.fn(),
-      });
-
-      renderConversationDetail();
-
-      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
-      expect(screen.getByText(labels.errorUserRestricted)).toBeInTheDocument();
-    });
+        expect(screen.getByTestId("message-composer")).toBeInTheDocument();
+      },
+    );
 
     it("renders read-only banner when conversation is read-only", () => {
+      hasPermissionMock.mockImplementation(
+        (permission: string) =>
+          permission !== "communication.messages.moderate" &&
+          permission !== "communication.admin.manage",
+      );
       const conv = createConversation({
         id: TEST_CONVERSATION_ID,
         status: "active",

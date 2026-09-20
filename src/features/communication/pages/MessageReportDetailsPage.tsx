@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import { useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/button/Button";
@@ -15,6 +16,10 @@ import ReportStatusActions from "@/features/communication/components/safety/Repo
 import ReportedMessagePreview from "@/features/communication/components/safety/ReportedMessagePreview";
 import { useMessageReport } from "@/features/communication/hooks/useMessageReport";
 import type { MessageReportStatus } from "@/features/communication/types/safety.types";
+import SafetyNavigation from "@/features/communication/components/safety/SafetyNavigation";
+import ModerationActionForm from "@/features/communication/components/safety/ModerationActionForm";
+import { createModerationAction } from "@/features/communication/api/communication.service";
+import type { SupportedModerationAction } from "@/features/communication/types/safety.types";
 
 interface MessageReportDetailsPageProps {
   reportId: string;
@@ -68,6 +73,13 @@ const labels = {
     alreadyResolved: "This report is resolved.",
     updated: "Report status updated.",
     mutationFailed: "Action failed. Please try again.",
+    moderateMessage: "Moderate Message",
+    hideMessage: "Hide Message",
+    unhideMessage: "Unhide Message",
+    deleteMessage: "Delete Message",
+    moderationReasonPlaceholder: "Explain why this action is required.",
+    moderationReasonRequired: "Add a reason before submitting.",
+    moderationComplete: "Moderation action completed.",
   },
   ar: {
     hidden: "رسالة مخفية",
@@ -115,6 +127,13 @@ const labels = {
     alreadyResolved: "تم حل هذا البلاغ.",
     updated: "تم تحديث حالة البلاغ.",
     mutationFailed: "فشل الإجراء. حاول مرة أخرى.",
+    moderateMessage: "إدارة الرسالة",
+    hideMessage: "إخفاء الرسالة",
+    unhideMessage: "إظهار الرسالة",
+    deleteMessage: "حذف الرسالة",
+    moderationReasonPlaceholder: "اشرح سبب الحاجة لهذا الإجراء.",
+    moderationReasonRequired: "أضف سبباً قبل الإرسال.",
+    moderationComplete: "تم تنفيذ إجراء الإشراف.",
   },
 };
 
@@ -141,14 +160,18 @@ export default function MessageReportDetailsPage({
   const locale = useLocale() as LocaleKey;
   const t = labels[locale] ?? labels.en;
   const { showSuccess, showError } = useToast();
+  const [isModerating, setIsModerating] = useState(false);
   const {
     error,
     isLoading,
     isMutating,
     isRefreshing,
     message,
+    conversation,
     refresh,
+    refreshMessage,
     report,
+    senderParticipant,
     updateStatus,
   } = useMessageReport(reportId);
 
@@ -164,6 +187,27 @@ export default function MessageReportDetailsPage({
     }
   };
 
+  const moderateReportedMessage = async (
+    action: SupportedModerationAction,
+    reason?: string,
+  ) => {
+    if (!report?.messageId || !reason?.trim()) return;
+    setIsModerating(true);
+    try {
+      await createModerationAction(report.messageId, {
+        action,
+        reason: reason.trim(),
+      });
+      await refreshMessage(report.messageId, report.conversationId);
+      showSuccess(t.moderationComplete);
+    } catch (error) {
+      showError(t.mutationFailed);
+      throw error;
+    } finally {
+      setIsModerating(false);
+    }
+  };
+
   if (isLoading) {
     return <CommunicationLoadingState label={t.loading} />;
   }
@@ -171,7 +215,7 @@ export default function MessageReportDetailsPage({
   return (
     <div className="space-y-6">
       <Link
-        href={`/${locale}/communication/moderation`}
+        href={`/${locale}/communication/safety/reports`}
         className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-primary-700"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -200,6 +244,7 @@ export default function MessageReportDetailsPage({
         }
       />
       <CommunicationTabs />
+      <SafetyNavigation />
 
       {error ? (
         <CommunicationErrorState
@@ -221,6 +266,8 @@ export default function MessageReportDetailsPage({
         <div className="space-y-6">
           <ReportedMessagePreview
             message={message}
+            conversation={conversation}
+            senderParticipant={senderParticipant}
             labels={{
               title: t.messagePreview,
               noMessage: t.noMessage,
@@ -262,20 +309,37 @@ export default function MessageReportDetailsPage({
             }}
           />
         </div>
-        <ReportStatusActions
-          status={report?.status}
-          isSubmitting={isMutating}
-          onUpdateStatus={handleUpdateStatus}
-          labels={{
-            title: t.actionsTitle,
-            markInReview: t.markInReview,
-            resolve: t.resolve,
-            resolutionNote: t.resolutionNote,
-            resolutionPlaceholder: t.resolutionPlaceholder,
-            noteRequired: t.noteRequired,
-            resolved: t.alreadyResolved,
-          }}
-        />
+        <div className="space-y-6">
+          <ModerationActionForm
+            disabled={!message || message.status === "deleted"}
+            isSubmitting={isModerating}
+            messageStatus={message?.status}
+            onSubmit={moderateReportedMessage}
+            labels={{
+              title: t.moderateMessage,
+              reason: t.reason,
+              reasonPlaceholder: t.moderationReasonPlaceholder,
+              hide: t.hideMessage,
+              unhide: t.unhideMessage,
+              delete: t.deleteMessage,
+              reasonRequired: t.moderationReasonRequired,
+            }}
+          />
+          <ReportStatusActions
+            status={report?.status}
+            isSubmitting={isMutating}
+            onUpdateStatus={handleUpdateStatus}
+            labels={{
+              title: t.actionsTitle,
+              markInReview: t.markInReview,
+              resolve: t.resolve,
+              resolutionNote: t.resolutionNote,
+              resolutionPlaceholder: t.resolutionPlaceholder,
+              noteRequired: t.noteRequired,
+              resolved: t.alreadyResolved,
+            }}
+          />
+        </div>
       </div>
     </div>
   );

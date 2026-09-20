@@ -145,10 +145,6 @@ export default function AnnouncementsPage() {
     }
   };
 
-  if (isLoading) {
-    return <CommunicationLoadingState label={t.loading} />;
-  }
-
   return (
     <div className="space-y-6">
       <CommunicationPageHeader
@@ -180,101 +176,107 @@ export default function AnnouncementsPage() {
       />
       <CommunicationTabs />
 
-      <AnnouncementFilters
-        filters={filters}
-        onChange={setFilters}
-        labels={{
-          search: t.search,
-          searchPlaceholder: t.searchPlaceholder,
-          status: t.status,
-          all: t.all,
-          draft: t.draft,
-          published: t.published,
-          archived: t.archived,
-          clear: t.clear,
-        }}
-      />
+      {isLoading ? (
+        <CommunicationLoadingState label={t.loading} />
+      ) : (
+        <>
+          <AnnouncementFilters
+            filters={filters}
+            onChange={setFilters}
+            labels={{
+              search: t.search,
+              searchPlaceholder: t.searchPlaceholder,
+              status: t.status,
+              all: t.all,
+              draft: t.draft,
+              published: t.published,
+              archived: t.archived,
+              clear: t.clear,
+            }}
+          />
 
-      {error ? (
-        <CommunicationErrorState
-          title={t.errorTitle}
-          message={announcementErrorMessage(error, locale)}
-          action={
-            <Button type="button" variant="secondary" onClick={() => void refresh()}>
-              {t.retry}
-            </Button>
-          }
-        />
-      ) : null}
+          {error ? (
+            <CommunicationErrorState
+              title={t.errorTitle}
+              message={announcementErrorMessage(error, locale)}
+              action={
+                <Button type="button" variant="secondary" onClick={() => void refresh()}>
+                  {t.retry}
+                </Button>
+              }
+            />
+          ) : null}
 
-      <div className="text-sm text-slate-500">
-        {total} {total === 1 ? t.countLabel : t.countLabelPlural}
-      </div>
+          <div className="text-sm text-slate-500">
+            {total} {total === 1 ? t.countLabel : t.countLabelPlural}
+          </div>
 
-      <AnnouncementList
-        announcements={announcements}
-        canManageActions={canManageAnnouncements}
-        locale={locale}
-        disabled={isMutating}
-        labels={{
-          emptyTitle: t.emptyTitle,
-          emptyDescription: t.emptyDescription,
-          untitled: t.untitled,
-          noBody: t.noBody,
-          draft: t.draft,
-          published: t.published,
-          archived: t.archived,
-          priority: t.priority,
-          view: t.view,
-          edit: t.edit,
-          publish: t.publish,
-          archive: t.archive,
-        }}
-        onPublish={setPublishingAnnouncement}
-        onArchive={setArchivingAnnouncement}
-      />
+          <AnnouncementList
+            announcements={announcements}
+            canManageActions={canManageAnnouncements}
+            locale={locale}
+            disabled={isMutating}
+            labels={{
+              emptyTitle: t.emptyTitle,
+              emptyDescription: t.emptyDescription,
+              untitled: t.untitled,
+              noBody: t.noBody,
+              draft: t.draft,
+              published: t.published,
+              archived: t.archived,
+              priority: t.priority,
+              view: t.view,
+              edit: t.edit,
+              publish: t.publish,
+              archive: t.archive,
+            }}
+            onPublish={setPublishingAnnouncement}
+            onArchive={setArchivingAnnouncement}
+          />
 
-      <PublishAnnouncementDialog
-        open={Boolean(publishingAnnouncement)}
-        isSubmitting={isMutating}
-        onClose={() => setPublishingAnnouncement(null)}
-        onConfirm={() =>
-          publishingAnnouncement
-            ? runMutation(
-                () => publish(publishingAnnouncement.id),
-                t.publishedDone,
-                () => setPublishingAnnouncement(null),
-              )
-            : undefined
-        }
-        labels={{
-          title: t.publishTitle,
-          description: t.publishDescription,
-          cancel: t.cancel,
-          publish: t.publish,
-        }}
-      />
+          <PublishAnnouncementDialog
+            open={Boolean(publishingAnnouncement)}
+            isSubmitting={isMutating}
+            onClose={() => setPublishingAnnouncement(null)}
+            onConfirm={() =>
+              publishingAnnouncement
+                ? runMutation(
+                    () => publish(publishingAnnouncement.id),
+                    t.publishedDone,
+                    () => setPublishingAnnouncement(null),
+                  )
+                : undefined
+            }
+            labels={{
+              title: t.publishTitle,
+              description: t.publishDescription,
+              cancel: t.cancel,
+              publish: t.publish,
+            }}
+          />
 
-      <ArchiveAnnouncementDialog
-        open={Boolean(archivingAnnouncement)}
-        isSubmitting={isMutating}
-        onClose={() => setArchivingAnnouncement(null)}
-        onConfirm={() =>
-          archivingAnnouncement
-            ? runMutation(
-                () => archive(archivingAnnouncement.id),
-                t.archivedDone,
-                () => setArchivingAnnouncement(null),
-              )
-            : undefined
-        }
-        labels={{
-          title: t.archiveTitle,
-          description: t.archiveDescription,
-          cancel: t.cancel,
-          archive: t.archive,
-        }}
-      />
+          <ArchiveAnnouncementDialog
+            open={Boolean(archivingAnnouncement)}
+            isSubmitting={isMutating}
+            onClose={() => setArchivingAnnouncement(null)}
+            onConfirm={() =>
+              archivingAnnouncement
+                ? runMutation(
+                    () => archive(archivingAnnouncement.id),
+                    t.archivedDone,
+                    () => setArchivingAnnouncement(null),
+                  )
+                : undefined
+            }
+            labels={{
+              title: t.archiveTitle,
+              description: t.archiveDescription,
+              cancel: t.cancel,
+              archive: t.archive,
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createModerationAction,
   getMessage,
@@ -9,25 +9,23 @@ import {
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
 import type {
-  Message,
-  MessageStatus,
-} from "@/features/communication/types/message.types";
+  Conversation,
+  ConversationParticipant,
+} from "@/features/communication/types/conversation.types";
+import type { Message } from "@/features/communication/types/message.types";
 import type {
   ModerationAction,
-  ModerationActionType,
+  SupportedModerationAction,
 } from "@/features/communication/types/safety.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
+import { messageFromRealtimePayload } from "@/features/communication/utils/realtime-message";
+import {
+  loadConversationDisplayContext,
+  participantForMessage,
+} from "@/features/communication/utils/message-display-context";
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
-
-const stringValue = (value: unknown): string | undefined =>
-  typeof value === "string" && value.trim() ? value : undefined;
-
-function messageStatus(value: unknown): MessageStatus {
-  if (value === "hidden" || value === "deleted") return value;
-  return "sent";
-}
 
 function unwrapItem<T>(response: unknown): T | null {
   if (!isRecord(response)) return (response ?? null) as T | null;
@@ -58,34 +56,6 @@ function unwrapList<T>(response: unknown): T[] {
   return arraySource ? (arraySource as T[]) : [];
 }
 
-function messageFromPayload(payload: unknown): Message | null {
-  if (!isRecord(payload)) return null;
-  const source = [payload.message, payload.data, payload.payload].find(isRecord) ??
-    payload;
-  if (!isRecord(source)) return null;
-
-  const id = stringValue(source.id);
-  if (!id) return null;
-
-  return {
-    ...(source as Message),
-    id,
-    conversationId:
-      stringValue(source.conversationId) ?? stringValue(payload.conversationId),
-    body:
-      stringValue(source.body) ??
-      stringValue(source.content) ??
-      stringValue(source.text) ??
-      "",
-    status: messageStatus(source.status),
-    createdAt: stringValue(source.createdAt),
-    updatedAt: stringValue(source.updatedAt),
-    deletedAt: stringValue(source.deletedAt) ?? null,
-    senderId: stringValue(source.senderId) ?? stringValue(source.userId),
-    sender: isRecord(source.sender) ? (source.sender as Message["sender"]) : undefined,
-  };
-}
-
 function sortActions(actions: ModerationAction[]) {
   return [...actions].sort((left, right) => {
     const leftDate = left.createdAt ?? "";
@@ -100,15 +70,25 @@ function errorMessageFromUnknown(error: unknown): string {
     : "Unable to load moderation data.";
 }
 
+type LoadOptions = {
+  refreshMessage?: true;
+};
+
 export function useModerationActions() {
   const { socket } = useCommunicationSocket();
   const mountedRef = useRef(false);
   const [messageId, setMessageId] = useState("");
   const [message, setMessage] = useState<Message | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [participants, setParticipants] = useState<ConversationParticipant[]>([]);
   const [actions, setActions] = useState<ModerationAction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const senderParticipant = useMemo(
+    () => (message ? participantForMessage(message, participants) : null),
+    [message, participants],
+  );
 
   useEffect(() => {
     mountedRef.current = true;
@@ -117,7 +97,12 @@ export function useModerationActions() {
     };
   }, []);
 
-  const load = useCallback(async (nextMessageId = messageId) => {
+  const selectMessage = useCallback((nextMessage: Message | null) => {
+    setMessage(nextMessage);
+    setActions([]);
+  }, []);
+
+  const load = useCallback(async (nextMessageId = messageId, options?: LoadOptions) => {
     const trimmed = nextMessageId.trim();
     if (!trimmed) return;
 
@@ -125,19 +110,31 @@ export function useModerationActions() {
     setError(null);
 
     try {
-      const [messageResponse, actionsResponse] = await Promise.all([
-        getMessage(trimmed),
+      const [actionsResponse, messageResponse] = await Promise.all([
         getModerationActions(trimmed),
+        options?.refreshMessage || message?.id !== trimmed
+          ? getMessage(trimmed)
+          : undefined,
       ]);
-      const nextMessage = unwrapItem<Message>(messageResponse);
+      const nextMessage = messageResponse
+        ? unwrapItem<Message>(messageResponse)
+        : message;
       const nextActions = sortActions(
         unwrapList<ModerationAction>(actionsResponse),
       );
+      const conversationContext =
+        nextMessage?.conversationId && conversation?.id !== nextMessage.conversationId
+          ? await loadConversationDisplayContext(nextMessage.conversationId)
+          : null;
 
       if (!mountedRef.current) return;
       setMessageId(trimmed);
       setMessage(nextMessage);
       setActions(nextActions);
+      if (conversationContext) {
+        setConversation(conversationContext.conversation);
+        setParticipants(conversationContext.participants);
+      }
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessageFromUnknown(nextError));
@@ -146,10 +143,35 @@ export function useModerationActions() {
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
-  }, [messageId]);
+  }, [conversation?.id, message, messageId]);
+
+  const loadConversation = useCallback(async (conversationId: string) => {
+    if (!conversationId) {
+      setConversation(null);
+      setParticipants([]);
+      setMessage(null);
+      setActions([]);
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+    setActions([]);
+    try {
+      const context = await loadConversationDisplayContext(conversationId);
+      if (!mountedRef.current) return;
+      setConversation(context.conversation);
+      setParticipants(context.participants);
+    } catch (nextError) {
+      if (!mountedRef.current) return;
+      setError(errorMessageFromUnknown(nextError));
+      setConversation(null);
+      setParticipants([]);
+    }
+  }, []);
 
   const runAction = useCallback(
-    async (action: ModerationActionType, reason?: string) => {
+    async (action: SupportedModerationAction, reason?: string) => {
       if (!message?.id) return;
       setIsMutating(true);
       setError(null);
@@ -159,7 +181,7 @@ export function useModerationActions() {
           action,
           ...(reason?.trim() ? { reason: reason.trim() } : {}),
         });
-        await load(message.id);
+        await load(message.id, { refreshMessage: true });
       } catch (nextError) {
         setError(errorMessageFromUnknown(nextError));
         throw nextError;
@@ -173,8 +195,8 @@ export function useModerationActions() {
   useEffect(() => {
     if (!socket) return;
 
-    const patchMessage = (payload: unknown) => {
-      const nextMessage = messageFromPayload(payload);
+    const reconcileMessage = (payload: unknown) => {
+      const nextMessage = messageFromRealtimePayload(payload);
       if (!nextMessage || nextMessage.id !== message?.id) return;
       setMessage((current) => ({
         ...(current ?? nextMessage),
@@ -182,34 +204,26 @@ export function useModerationActions() {
       }));
     };
 
-    const deleteMessage = (payload: unknown) => {
-      const nextMessage = messageFromPayload(payload);
-      if (!nextMessage || nextMessage.id !== message?.id) return;
-      setMessage((current) => ({
-        ...(current ?? nextMessage),
-        ...nextMessage,
-        body: "",
-        status: "deleted",
-        deletedAt: nextMessage.deletedAt ?? new Date().toISOString(),
-      }));
-    };
-
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, patchMessage);
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, deleteMessage);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, reconcileMessage);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, reconcileMessage);
     return () => {
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, patchMessage);
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, deleteMessage);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, reconcileMessage);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, reconcileMessage);
     };
   }, [message?.id, socket]);
 
   return {
     messageId,
     setMessageId,
+    selectMessage,
     message,
+    conversation,
+    senderParticipant,
     actions,
     isLoading,
     isMutating,
     error,
+    loadConversation,
     load,
     runAction,
   };

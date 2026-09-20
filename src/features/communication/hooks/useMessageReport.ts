@@ -9,25 +9,20 @@ import {
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 import type { CommunicationRecord } from "@/features/communication/types/communication.types";
 import type {
-  Message,
-  MessageStatus,
-} from "@/features/communication/types/message.types";
+  Conversation,
+  ConversationParticipant,
+} from "@/features/communication/types/conversation.types";
+import type { Message } from "@/features/communication/types/message.types";
 import type {
   MessageReport,
   MessageReportStatus,
 } from "@/features/communication/types/safety.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
+import { messageFromRealtimePayload } from "@/features/communication/utils/realtime-message";
+import { loadMessageDisplayContext } from "@/features/communication/utils/message-display-context";
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
-
-const stringValue = (value: unknown): string | undefined =>
-  typeof value === "string" && value.trim() ? value : undefined;
-
-function messageStatus(value: unknown): MessageStatus {
-  if (value === "hidden" || value === "deleted") return value;
-  return "sent";
-}
 
 function unwrapItem<T>(response: unknown): T | null {
   if (!isRecord(response)) return (response ?? null) as T | null;
@@ -39,34 +34,6 @@ function unwrapItem<T>(response: unknown): T | null {
   return (item ?? response) as T;
 }
 
-function messageFromPayload(payload: unknown): Message | null {
-  if (!isRecord(payload)) return null;
-  const source = [payload.message, payload.data, payload.payload].find(isRecord) ??
-    payload;
-  if (!isRecord(source)) return null;
-
-  const id = stringValue(source.id);
-  if (!id) return null;
-
-  return {
-    ...(source as Message),
-    id,
-    conversationId:
-      stringValue(source.conversationId) ?? stringValue(payload.conversationId),
-    body:
-      stringValue(source.body) ??
-      stringValue(source.content) ??
-      stringValue(source.text) ??
-      "",
-    status: messageStatus(source.status),
-    createdAt: stringValue(source.createdAt),
-    updatedAt: stringValue(source.updatedAt),
-    deletedAt: stringValue(source.deletedAt) ?? null,
-    senderId: stringValue(source.senderId) ?? stringValue(source.userId),
-    sender: isRecord(source.sender) ? (source.sender as Message["sender"]) : undefined,
-  };
-}
-
 function errorMessageFromUnknown(error: unknown): string {
   return error instanceof Error ? error.message : "Unable to load report.";
 }
@@ -76,6 +43,8 @@ export function useMessageReport(reportId: string) {
   const mountedRef = useRef(false);
   const [report, setReport] = useState<MessageReport | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [participant, setParticipant] = useState<ConversationParticipant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -89,20 +58,40 @@ export function useMessageReport(reportId: string) {
     return nextReport;
   }, [reportId]);
 
-  const refreshMessage = useCallback(async (messageId?: string) => {
-    if (!messageId) {
-      if (mountedRef.current) setMessage(null);
-      return;
-    }
+  const refreshMessage = useCallback(
+    async (messageId?: string, reportConversationId?: string) => {
+      if (!messageId) {
+        if (mountedRef.current) {
+          setMessage(null);
+          setConversation(null);
+          setParticipant(null);
+        }
+        return;
+      }
 
-    try {
       const response = await getMessage(messageId);
       const nextMessage = unwrapItem<Message>(response);
+      if (!nextMessage) {
+        if (mountedRef.current) {
+          setMessage(null);
+          setConversation(null);
+          setParticipant(null);
+        }
+        return;
+      }
+
       if (mountedRef.current) setMessage(nextMessage);
-    } catch {
-      if (mountedRef.current) setMessage(null);
-    }
-  }, []);
+      const context = await loadMessageDisplayContext(
+        nextMessage,
+        reportConversationId,
+      );
+      if (mountedRef.current) {
+        setConversation(context.conversation);
+        setParticipant(context.senderParticipant);
+      }
+    },
+    [],
+  );
 
   const refresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -110,7 +99,7 @@ export function useMessageReport(reportId: string) {
 
     try {
       const nextReport = await refreshReport();
-      await refreshMessage(nextReport?.messageId);
+      await refreshMessage(nextReport?.messageId, nextReport?.conversationId);
     } catch (nextError) {
       if (mountedRef.current) setError(errorMessageFromUnknown(nextError));
     } finally {
@@ -134,8 +123,8 @@ export function useMessageReport(reportId: string) {
   useEffect(() => {
     if (!socket) return;
 
-    const patchMessage = (payload: unknown) => {
-      const nextMessage = messageFromPayload(payload);
+    const reconcileMessage = (payload: unknown) => {
+      const nextMessage = messageFromRealtimePayload(payload);
       if (!nextMessage || nextMessage.id !== report?.messageId) return;
       setMessage((current) => ({
         ...(current ?? nextMessage),
@@ -143,23 +132,11 @@ export function useMessageReport(reportId: string) {
       }));
     };
 
-    const deleteMessage = (payload: unknown) => {
-      const nextMessage = messageFromPayload(payload);
-      if (!nextMessage || nextMessage.id !== report?.messageId) return;
-      setMessage((current) => ({
-        ...(current ?? nextMessage),
-        ...nextMessage,
-        body: "",
-        status: "deleted",
-        deletedAt: nextMessage.deletedAt ?? new Date().toISOString(),
-      }));
-    };
-
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, patchMessage);
-    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, deleteMessage);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageUpdated, reconcileMessage);
+    socket.on(COMMUNICATION_SOCKET_EVENTS.messageDeleted, reconcileMessage);
     return () => {
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, patchMessage);
-      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, deleteMessage);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, reconcileMessage);
+      socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, reconcileMessage);
     };
   }, [report?.messageId, socket]);
 
@@ -192,6 +169,8 @@ export function useMessageReport(reportId: string) {
   return {
     report,
     message,
+    conversation,
+    senderParticipant: participant,
     isLoading,
     isRefreshing,
     isMutating,

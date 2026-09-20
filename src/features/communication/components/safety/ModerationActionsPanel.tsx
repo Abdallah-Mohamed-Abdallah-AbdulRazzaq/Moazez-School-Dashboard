@@ -5,7 +5,16 @@ import Button from "@/components/ui/button/Button";
 import ConversationSearchSelect from "@/features/communication/components/selectors/ConversationSearchSelect";
 import MessageSearchSelect from "@/features/communication/components/selectors/MessageSearchSelect";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
+import { useLocale } from "next-intl";
+import type {
+  Conversation,
+  ConversationParticipant,
+} from "@/features/communication/types/conversation.types";
 import type { Message } from "@/features/communication/types/message.types";
+import {
+  messageConversationTitle,
+  messageSenderName,
+} from "@/features/communication/utils/message-display-labels";
 
 export interface ModerationActionsPanelLabels {
   title: string;
@@ -28,21 +37,14 @@ export interface ModerationActionsPanelProps {
   conversationId: string;
   messageId: string;
   message?: Message | null;
+  conversation?: Conversation | null;
+  senderParticipant?: ConversationParticipant | null;
   isLoading?: boolean;
   onConversationIdChange: (conversationId: string) => void;
   labels: ModerationActionsPanelLabels;
   onMessageIdChange: (messageId: string) => void;
+  onMessageChange: (message: Message | null) => void;
   onLoad: () => Promise<void> | void;
-}
-
-function senderName(message: Message, fallback: string) {
-  return (
-    message.sender?.name ||
-    message.sender?.nameEn ||
-    message.sender?.nameAr ||
-    message.senderId ||
-    fallback
-  );
 }
 
 function statusLabel(
@@ -64,14 +66,18 @@ function statusTone(message?: Message | null) {
 
 export default function ModerationActionsPanel({
   conversationId,
+  conversation,
   isLoading,
   labels,
   message,
   messageId,
   onConversationIdChange,
   onLoad,
+  onMessageChange,
   onMessageIdChange,
+  senderParticipant,
 }: ModerationActionsPanelProps) {
+  const locale = useLocale();
   return (
     <section className="space-y-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-2">
@@ -97,6 +103,7 @@ export default function ModerationActionsPanel({
             !conversationId ? labels.selectConversationFirst : undefined
           }
           onChange={onMessageIdChange}
+          onMessageChange={onMessageChange}
         />
         <Button type="button" loading={isLoading} onClick={() => void onLoad()}>
           {labels.load}
@@ -122,13 +129,13 @@ export default function ModerationActionsPanel({
             <div>
               <dt className="text-xs text-slate-500">{labels.sender}</dt>
               <dd className="font-medium text-slate-800">
-                {senderName(message, labels.unknown)}
+                {messageSenderName(message, senderParticipant, labels.unknown)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-slate-500">{labels.conversation}</dt>
-              <dd className="break-all font-medium text-slate-800">
-                {message.conversationId ?? labels.unknown}
+              <dd className="font-medium text-slate-800">
+                {messageConversationTitle(conversation, locale, labels.unknown)}
               </dd>
             </div>
           </dl>
