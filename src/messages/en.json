@@ -6571,6 +6571,8 @@
         "roomSourceManual": "manual selection",
         "roomOptionalWarning": "Room is optional, but this slot will save without a room.",
         "roomConflictWarning": "This room is already used in another slot at this time.",
+        "roomInactive": "This room is inactive and cannot be selected.",
+        "roomCapacityInsufficient": "Room capacity ({roomCapacity}) is below classroom capacity ({classroomCapacity}).",
         "breakLabelPlaceholderAr": "فسحة",
         "breakLabelPlaceholderEn": "Break"
       },

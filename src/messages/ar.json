@@ -6322,6 +6322,8 @@
         "roomSourceManual": "اختيار يدوي",
         "roomOptionalWarning": "الغرفة اختيارية، لكن سيتم حفظ هذه الحصة بدون غرفة.",
         "roomConflictWarning": "هذه الغرفة مستخدمة بالفعل في حصة أخرى في نفس الوقت.",
+        "roomInactive": "هذه الغرفة غير نشطة ولا يمكن اختيارها.",
+        "roomCapacityInsufficient": "سعة الغرفة ({roomCapacity}) أقل من سعة الفصل ({classroomCapacity}).",
         "breakLabelPlaceholderAr": "فسحة",
         "breakLabelPlaceholderEn": "Break"
       },
