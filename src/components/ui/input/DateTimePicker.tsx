@@ -85,6 +85,12 @@ export default function DateTimePicker({
             maxDateTime={maxDateTime ? dayjs(maxDateTime) : undefined}
             format={dateTimeFormat}
             slotProps={{
+              dialog: {
+                sx: { zIndex: 1500 },
+              },
+              popper: {
+                sx: { zIndex: 1500 },
+              },
               textField: {
                 placeholder,
                 fullWidth: true,
