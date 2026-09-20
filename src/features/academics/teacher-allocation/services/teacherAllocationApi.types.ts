@@ -50,6 +50,123 @@ export interface CreateTeacherAllocationRequest {
   termId: string;
 }
 
+export interface PreviewTeacherAllocationReassignmentRequest {
+  newTeacherUserId: string;
+}
+
+export interface ReassignTeacherAllocationRequest
+  extends PreviewTeacherAllocationReassignmentRequest {
+  impactFingerprint: string;
+  reasonCode?: string;
+}
+
+export interface TeacherAllocationReassignmentBlocker {
+  domain: "allocation" | "timetable" | "reinforcement" | "announcements";
+  code:
+    | "target_is_current_teacher"
+    | "target_already_allocated"
+    | "target_teacher_conflict"
+    | "active_reinforcement_tasks"
+    | "mutable_teacher_announcements";
+  count: number;
+  statuses?: Record<string, number>;
+}
+
+export interface TeacherAllocationReassignmentPreviewResponse {
+  allocation: {
+    id: string;
+    subjectId: string;
+    classroomId: string;
+    termId: string;
+  };
+  currentTeacher: {
+    userId: string;
+    fullName: string;
+  };
+  targetTeacher: {
+    userId: string;
+    fullName: string;
+  };
+  decision: "ready" | "blocked";
+  canReassign: boolean;
+  impactFingerprint: string;
+  impact: {
+    timetable: {
+      draft: number;
+      active: number;
+      cancelled: number;
+      targetTeacherConflicts: number;
+    };
+    lessonPlans: {
+      draft: number;
+      active: number;
+      archived: number;
+    };
+    homework: {
+      draft: number;
+      published: number;
+      closed: number;
+      cancelled: number;
+      archived: number;
+    };
+    reinforcement: {
+      notCompleted: number;
+      inProgress: number;
+      underReview: number;
+      completed: number;
+      cancelled: number;
+    };
+    announcements: {
+      draft: number;
+      scheduled: number;
+      published: number;
+      archived: number;
+      cancelled: number;
+    };
+    assessments: { policy: "contextual_access_no_rewrite" };
+    curriculum: { policy: "no_mutation" };
+    attendance: { policy: "historical_preserve" };
+    messages: { policy: "no_history_rewrite" };
+  };
+  blockers: TeacherAllocationReassignmentBlocker[];
+  automaticActions: Array<{
+    domain: "timetable" | "lesson_plans" | "homework";
+    action: "handoff_current_responsibility";
+    count: number;
+  }>;
+  historicalRecords: Array<{
+    domain:
+      | "timetable"
+      | "lesson_plans"
+      | "homework"
+      | "reinforcement"
+      | "announcements";
+    action: "preserve_historical_authorship";
+    count: number;
+  }>;
+}
+
+export interface TeacherAllocationReassignmentResponse {
+  allocation: {
+    id: string;
+    teacherUserId: string;
+  };
+  previousTeacherUserId: string;
+  newTeacherUserId: string;
+  transferred: {
+    timetableEntries: number;
+    lessonPlans: number;
+    homeworkAssignments: number;
+  };
+  preservedHistorical: {
+    cancelledTimetableEntries: number;
+    archivedLessonPlans: number;
+    cancelledOrArchivedHomeworkAssignments: number;
+    completedOrCancelledReinforcementTasks: number;
+    publishedArchivedOrCancelledAnnouncements: number;
+  };
+}
+
 export interface BulkTeacherAllocationRequest {
   termId: string;
   items: Array<{
