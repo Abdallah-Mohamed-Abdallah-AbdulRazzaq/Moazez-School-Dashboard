@@ -3,10 +3,9 @@
 import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import DateTimePicker from "@/components/ui/input/DateTimePicker";
+import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import AnnouncementSearchSelect from "@/features/communication/components/selectors/AnnouncementSearchSelect";
-import ConversationSearchSelect from "@/features/communication/components/selectors/ConversationSearchSelect";
-import MessageSearchSelect from "@/features/communication/components/selectors/MessageSearchSelect";
 import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import type {
   NotificationFiltersState,
@@ -54,7 +53,6 @@ const notificationTypes: NotificationType[] = [
   "message_mention",
   "attendance_absence",
   "attendance_late",
-  "attendance_early_leave",
   "grade_posted",
   "behavior_record_created",
   "reinforcement_reward_granted",
@@ -74,7 +72,37 @@ const sourceModules: NotificationSourceModule[] = [
 ];
 
 const priorities: NotificationPriority[] = ["low", "normal", "high", "urgent"];
-const sourceTypes = ["announcement", "conversation", "message"] as const;
+const sourceTypes: Array<{
+  value: string;
+  label: string;
+  sourceModule: NotificationSourceModule | null;
+}> = [
+  {
+    value: "communication_announcement",
+    label: "announcement",
+    sourceModule: "announcements",
+  },
+  {
+    value: "communication_message",
+    label: "message",
+    sourceModule: "communication",
+  },
+  {
+    value: "school_support_message",
+    label: "school_support_message",
+    sourceModule: "communication",
+  },
+  {
+    value: "attendance_absence_submit",
+    label: "attendance_absence",
+    sourceModule: "attendance",
+  },
+  {
+    value: "dismissal_request",
+    label: "dismissal_request",
+    sourceModule: null,
+  },
+];
 
 const emptyFilters: NotificationFiltersState = {
   status: "all",
@@ -88,12 +116,19 @@ const emptyFilters: NotificationFiltersState = {
   createdTo: "",
 };
 
-function sourceKind(sourceModule?: string, sourceType?: string) {
-  const value = `${sourceModule ?? ""} ${sourceType ?? ""}`.toLowerCase();
-  if (value.includes("announcement")) return "announcement";
-  if (value.includes("conversation") || value.includes("chat")) return "conversation";
-  if (value.includes("message")) return "message";
-  return "";
+function sourceTypeOptions(sourceModule: "" | NotificationSourceModule) {
+  if (!sourceModule) return sourceTypes;
+  return sourceTypes.filter((option) => option.sourceModule === sourceModule);
+}
+
+function isAnnouncementSource(
+  sourceModule: "" | NotificationSourceModule,
+  sourceType: string,
+) {
+  return (
+    sourceModule === "announcements" ||
+    sourceType === "communication_announcement"
+  );
 }
 
 export default function NotificationFilters({
@@ -158,6 +193,7 @@ export default function NotificationFilters({
           onChange({
             ...filters,
             sourceModule: value as "" | NotificationSourceModule,
+            sourceType: "",
             sourceId: "",
           })
         }
@@ -173,38 +209,36 @@ export default function NotificationFilters({
         onChange={(value) => onChange({ ...filters, sourceType: value, sourceId: "" })}
         options={[
           { value: "", label: labels.all },
-          ...sourceTypes.map((sourceType) => ({
-            value: sourceType,
-            label: sourceType,
+          ...sourceTypeOptions(filters.sourceModule).map((sourceType) => ({
+            value: sourceType.value,
+            label: sourceType.label,
           })),
         ]}
       />
-      {sourceKind(filters.sourceModule, filters.sourceType) === "announcement" ? (
+      {isAnnouncementSource(filters.sourceModule, filters.sourceType) ? (
         <AnnouncementSearchSelect
           label={labels.sourceId}
           value={filters.sourceId}
           onChange={(sourceId) => onChange({ ...filters, sourceId })}
         />
-      ) : sourceKind(filters.sourceModule, filters.sourceType) === "conversation" ? (
-        <ConversationSearchSelect
-          label={labels.sourceId}
-          value={filters.sourceId}
-          onChange={(sourceId) => onChange({ ...filters, sourceId })}
-        />
-      ) : sourceKind(filters.sourceModule, filters.sourceType) === "message" ? (
-        <MessageSearchSelect
-          label={labels.sourceId}
-          value={filters.sourceId}
-          helperText={labels.selectSourceTypeFirst}
-          onChange={(sourceId) => onChange({ ...filters, sourceId })}
-        />
       ) : (
-        <ConversationSearchSelect
+        <Input
+          key={`${filters.sourceModule}:${filters.sourceType}:${filters.sourceId}`}
           label={labels.sourceId}
-          value=""
-          disabled
-          helperText={labels.selectSourceTypeFirst}
-          onChange={() => undefined}
+          defaultValue={filters.sourceId}
+          dir="ltr"
+          disabled={!filters.sourceModule && !filters.sourceType}
+          helperText={
+            !filters.sourceModule && !filters.sourceType
+              ? labels.selectSourceTypeFirst
+              : undefined
+          }
+          onBlur={(event) => {
+            const sourceId = event.target.value.trim();
+            if (sourceId !== filters.sourceId) {
+              onChange({ ...filters, sourceId });
+            }
+          }}
         />
       )}
       <UserSearchSelect
