@@ -716,9 +716,7 @@ function ConflictCard({
     (entity) => entity.id === conflict.resourceId,
   );
   const resourceName =
-    localizedName(resource ?? null, locale) ||
-    conflict.resourceId ||
-    copy.unknownResource;
+    localizedName(resource ?? null, locale) || copy.unknownResource;
   const hasScheduleMetadata = Boolean(conflict.dayKey || conflict.periodLabel);
 
   return (

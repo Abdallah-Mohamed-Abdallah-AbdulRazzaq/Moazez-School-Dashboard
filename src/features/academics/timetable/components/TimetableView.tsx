@@ -46,7 +46,10 @@ import { subjectOptionsForGradeAllocations } from "@/features/academics/timetabl
 import { hasBlockingValidation } from "@/features/academics/timetable/services/timetableValidationSummary";
 import { createTimetablePublishFingerprint } from "@/features/academics/timetable/services/timetablePublishFingerprint";
 import { getTimetableConfigSourceName } from "@/features/academics/timetable/services/timetableConfigSource";
-import { resolveTimetableScopeSelection } from "@/features/academics/timetable/services/timetableScope";
+import {
+  isTimetableUnpublishScopeSupported,
+  resolveTimetableScopeSelection,
+} from "@/features/academics/timetable/services/timetableScope";
 import type { TimetableScopeType } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
   resolveTimetableCreationProgress,
@@ -93,6 +96,8 @@ interface TimetableViewProps {
   isDirty: boolean;
   onDirtyChange: (dirty: boolean) => void;
   academicYearId?: string;
+  academicYearName: string;
+  termName: string;
   selectedStageId: string;
   selectedGradeId: string;
   selectedSectionId: string;
@@ -117,6 +122,8 @@ export default function TimetableView({
   isDirty,
   onDirtyChange,
   academicYearId = "",
+  academicYearName,
+  termName,
   selectedStageId,
   selectedGradeId,
   selectedSectionId,
@@ -416,6 +423,15 @@ export default function TimetableView({
   const canConfigureTimetable = hasExactConfig
     ? canEditTimetable
     : canCreateConfig;
+  const isUnpublishScopeSupported = Boolean(
+    config && isTimetableUnpublishScopeSupported(config.scopeType),
+  );
+  const canUnpublishTimetable =
+    canWriteTimetable &&
+    hasExactConfig &&
+    !isDirty &&
+    Boolean(resolvedConfig) &&
+    isUnpublishScopeSupported;
   const readOnlyBanner = readOnlyBannerMessage({
     configStatus: config?.status,
     termStatus,
@@ -725,24 +741,24 @@ export default function TimetableView({
   };
 
   const handleUnpublish = async () => {
-    if (!hasTimetableScope || !canWriteTimetable) return;
+    if (!hasTimetableScope || !canUnpublishTimetable) return;
 
     setIsUnpublishing(true);
     try {
-      const unpublished = await unpublishCurrentTimetable();
-      if (!unpublished) {
-        throw new Error("UNPUBLISH_FAILED");
+      const result = await unpublishCurrentTimetable();
+      if (!result.ok) {
+        showToast(result.error, "error");
+        return;
       }
       showToast(t("unpublish.success"), "success");
     } catch (error) {
       console.error("Failed to unpublish timetable:", error);
       showToast(
-        apiError ??
-          timetableErrorMessage(
-            error,
-            t("unpublish.error"),
-            translateTimetableError,
-          ),
+        timetableErrorMessage(
+          error,
+          t("unpublish.error"),
+          translateTimetableError,
+        ),
         "error",
       );
     } finally {
@@ -1187,11 +1203,18 @@ export default function TimetableView({
           }),
         ),
     );
+    const exportTermName = termName || t("config.scopeOptions.term");
+    const exportScopeName =
+      getDisplayName(selectedClassroom) ||
+      getDisplayName(selectedSection) ||
+      getDisplayName(selectedGrade) ||
+      getDisplayName(selectedStage) ||
+      t("config.scopeOptions.term");
 
     const metadata: ExportMetadata = {
-      yearName: academicYearId || undefined,
+      yearName: academicYearName || undefined,
       stageName: getDisplayName(selectedStage) || undefined,
-      termName: termId,
+      termName: exportTermName,
       gradeName: getDisplayName(selectedGrade) || undefined,
       sectionName: getDisplayName(selectedSection) || undefined,
       classroomName: getDisplayName(selectedClassroom) || undefined,
@@ -1204,11 +1227,8 @@ export default function TimetableView({
       metadata,
       filename: generateExportFilename(
         "timetable",
-        termId,
-        selectedClassroomId ||
-          selectedSectionId ||
-          selectedGradeId ||
-          undefined,
+        exportTermName,
+        exportScopeName,
       ),
       format,
       columns,
@@ -1684,11 +1704,12 @@ export default function TimetableView({
                     <Button
                       onClick={handleUnpublish}
                       disabled={
-                        !canWriteTimetable ||
-                        !hasExactConfig ||
-                        isDirty ||
-                        !resolvedConfig ||
-                        config?.scopeType.toUpperCase() === "SECTION"
+                        !canUnpublishTimetable
+                      }
+                      title={
+                        config && !isUnpublishScopeSupported
+                          ? t("errors.unpublishUnsupportedScope")
+                          : undefined
                       }
                       variant="secondary"
                       loading={isUnpublishing}
@@ -1808,11 +1829,12 @@ export default function TimetableView({
                     <Button
                       onClick={handleUnpublish}
                       disabled={
-                        !canWriteTimetable ||
-                        !hasExactConfig ||
-                        isDirty ||
-                        !resolvedConfig ||
-                        config?.scopeType.toUpperCase() === "SECTION"
+                        !canUnpublishTimetable
+                      }
+                      title={
+                        config && !isUnpublishScopeSupported
+                          ? t("errors.unpublishUnsupportedScope")
+                          : undefined
                       }
                       variant="secondary"
                       loading={isUnpublishing}

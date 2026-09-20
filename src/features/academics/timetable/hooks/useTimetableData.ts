@@ -51,6 +51,7 @@ import type {
   TimetableScopeType,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
+  isTimetableUnpublishScopeSupported,
   resolveTimetableScopeSelection,
   timetableConfigScopeId,
 } from "@/features/academics/timetable/services/timetableScope";
@@ -135,6 +136,10 @@ type SaveTimetableResult =
       changesWereNotSaved?: boolean;
       partialMutation?: boolean;
     };
+
+type UnpublishTimetableResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
 const dayNames = [
   { key: "sun", nameAr: "\u0627\u0644\u0623\u062d\u062f", nameEn: "Sunday" },
@@ -981,46 +986,52 @@ export function useTimetableData({
     ],
   );
 
-  const unpublishCurrentTimetable = useCallback(async () => {
-    if (!config) {
-      return false;
-    }
-    const scope = configScope(config);
-    if (scope === "STAGE" || scope === "SECTION") {
-      setApiError(
-        messages?.unpublishUnsupportedScope ??
-          "Unpublish is unavailable for stage and section timetables.",
-      );
-      return false;
-    }
+  const unpublishCurrentTimetable = useCallback(
+    async (): Promise<UnpublishTimetableResult> => {
+      if (!config) {
+        const message =
+          messages?.noConfigSelected ?? "No timetable config selected.";
+        setApiError(message);
+        return { ok: false, error: message };
+      }
+      const scope = configScope(config);
+      if (!isTimetableUnpublishScopeSupported(scope)) {
+        const message =
+          messages?.unpublishUnsupportedScope ??
+          "Unpublish is unavailable for stage and section timetables.";
+        setApiError(message);
+        return { ok: false, error: message };
+      }
 
-    try {
-      await unpublish({
-        termId,
-        gradeId: selectedGradeId || undefined,
-        classroomId: selectedClassroomId || undefined,
-      });
-      await loadTimetableForScope();
-      return true;
-    } catch (error) {
-      const message = timetableErrorMessage(
-        error,
-        messages?.unpublishFailed ?? "Failed to unpublish timetable.",
-        translateErrorCode,
-      );
-      setApiError(message);
-      console.error("Failed to unpublish timetable:", error);
-      return false;
-    }
-  }, [
-    config,
-    messages,
-    selectedClassroomId,
-    selectedGradeId,
-    termId,
-    translateErrorCode,
-    loadTimetableForScope,
-  ]);
+      try {
+        await unpublish({
+          termId,
+          gradeId: selectedGradeId || undefined,
+          classroomId: selectedClassroomId || undefined,
+        });
+        await loadTimetableForScope();
+        return { ok: true };
+      } catch (error) {
+        const message = timetableErrorMessage(
+          error,
+          messages?.unpublishFailed ?? "Failed to unpublish timetable.",
+          translateErrorCode,
+        );
+        setApiError(message);
+        console.error("Failed to unpublish timetable:", error);
+        return { ok: false, error: message };
+      }
+    },
+    [
+      config,
+      messages,
+      selectedClassroomId,
+      selectedGradeId,
+      termId,
+      translateErrorCode,
+      loadTimetableForScope,
+    ],
+  );
 
   useEffect(() => {
     void Promise.resolve().then(loadAcademicDependencies);

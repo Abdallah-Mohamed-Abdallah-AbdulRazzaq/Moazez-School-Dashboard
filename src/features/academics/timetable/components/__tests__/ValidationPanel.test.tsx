@@ -128,6 +128,19 @@ describe("ValidationPanel conflict display", () => {
     expect(screen.getByText("Classroom 1")).toBeInTheDocument();
   });
 
+  it("does not expose an unresolved resource UUID", async () => {
+    const user = userEvent.setup();
+    const resourceId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+    renderPanel({
+      conflicts: [{ ...knownPeriodConflict, resourceId }],
+    });
+
+    await user.click(screen.getByRole("tab", { name: /conflicts/i }));
+
+    expect(screen.getByText("Unknown resource")).toBeInTheDocument();
+    expect(screen.queryByText(resourceId)).not.toBeInTheDocument();
+  });
+
   it("renders duplicate backend publication reasons without a React key warning", async () => {
     const consoleError = vi
       .spyOn(console, "error")

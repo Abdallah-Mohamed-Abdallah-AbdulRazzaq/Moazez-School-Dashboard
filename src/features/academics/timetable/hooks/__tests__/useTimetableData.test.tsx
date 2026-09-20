@@ -629,12 +629,54 @@ describe("useTimetableData", () => {
       isPublished: false,
     });
 
+    let unpublishResult: Awaited<
+      ReturnType<typeof result.current.unpublishCurrentTimetable>
+    >;
     await act(async () => {
-      await result.current.unpublishCurrentTimetable();
+      unpublishResult = await result.current.unpublishCurrentTimetable();
     });
 
+    expect(unpublishResult!).toEqual({ ok: true });
     expect(result.current.config?.status).toBe("draft");
     expect(result.current.isPublished).toBe(false);
+  });
+
+  it("returns the localized API error when unpublishing fails", async () => {
+    mockedGetConfig.mockResolvedValue({
+      ...backendConfig,
+      status: "active",
+    });
+    mockedUnpublish.mockRejectedValueOnce(
+      new ApiError(
+        "The term is closed.",
+        409,
+        "academics.timetable.closed_term",
+      ),
+    );
+    const translateErrorCode = (code: string) =>
+      code === "academics.timetable.closed_term"
+        ? "Localized closed-term message"
+        : undefined;
+    const { result } = renderHook(() =>
+      useTimetableData({
+        ...hookParams,
+        translateErrorCode,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.config?.status).toBe("active"));
+    let unpublishResult: Awaited<
+      ReturnType<typeof result.current.unpublishCurrentTimetable>
+    >;
+    await act(async () => {
+      unpublishResult = await result.current.unpublishCurrentTimetable();
+    });
+
+    expect(unpublishResult!).toEqual({
+      ok: false,
+      error: "Localized closed-term message",
+    });
+    expect(result.current.apiError).toBe("Localized closed-term message");
   });
 
   it.each([
@@ -654,11 +696,19 @@ describe("useTimetableData", () => {
       await waitFor(() =>
         expect(result.current.config?.scopeType).toBe(scopeType),
       );
+      let unpublishResult: Awaited<
+        ReturnType<typeof result.current.unpublishCurrentTimetable>
+      >;
       await act(async () => {
-        await result.current.unpublishCurrentTimetable();
+        unpublishResult = await result.current.unpublishCurrentTimetable();
       });
 
       expect(mockedUnpublish).not.toHaveBeenCalled();
+      expect(unpublishResult!).toEqual({
+        ok: false,
+        error:
+          "Unpublish is unavailable for stage and section timetables.",
+      });
       expect(result.current.apiError).toBe(
         "Unpublish is unavailable for stage and section timetables.",
       );
