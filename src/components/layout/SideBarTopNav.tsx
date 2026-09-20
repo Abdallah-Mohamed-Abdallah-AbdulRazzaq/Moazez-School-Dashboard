@@ -99,7 +99,6 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           userName={userName}
           userRole={userRole}
           schoolName={shortSchoolName}
-          onSearchChange={(value) => console.log("Search:", value)}
           onProfileClick={() => console.log("Profile clicked")}
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}

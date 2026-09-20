@@ -833,15 +833,6 @@ export const menuItems: MenuItem[] = [
         icon: LayoutDashboard,
       },
       {
-        key: "reinforcement-templates",
-        subgroup: "programs",
-        label_en: "Templates",
-        label_ar: "القوالب",
-        href_en: "/en/reinforcement/templates",
-        href_ar: "/ar/reinforcement/templates",
-        icon: FileText,
-      },
-      {
         key: "reinforcement-tasks",
         subgroup: "programs",
         label_en: "Tasks",
