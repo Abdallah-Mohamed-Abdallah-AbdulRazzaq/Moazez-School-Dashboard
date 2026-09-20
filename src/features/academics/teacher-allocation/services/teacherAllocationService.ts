@@ -11,11 +11,12 @@ import {
   applyTeacherToGrade as applyTeacherToGradeRequest,
   bulkSaveTeacherAllocations,
   clearSubjectAllocations as clearSubjectAllocationsRequest,
-  createTeacherAllocation,
   deleteTeacherAllocation as deleteTeacherAllocationRequest,
   getTeacherAllocationValidation,
   getTeacherLoads,
   listTeacherAllocations,
+  previewTeacherAllocationReassignment,
+  reassignTeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationApiAdapter";
 import type {
   ApplyTeacherToGradeRequest,
@@ -23,7 +24,7 @@ import type {
   BulkTeacherAllocationRequest,
   ClearSubjectAllocationsRequest,
   ClearSubjectAllocationsResponse,
-  CreateTeacherAllocationRequest,
+  TeacherAllocationReassignmentPreviewResponse,
   TeacherAllocationValidationResponse,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationApi.types";
 import {
@@ -73,6 +74,19 @@ export interface SaveTeacherAllocationChangesInput {
   termId: string;
   localAllocations: TeacherAllocation[];
   originalAllocations: TeacherAllocation[];
+}
+
+export interface PreparedTeacherAllocationReassignment {
+  originalAllocation: TeacherAllocation;
+  nextAllocation: TeacherAllocation;
+  preview: TeacherAllocationReassignmentPreviewResponse;
+}
+
+export interface TeacherAllocationSavePlan {
+  termId: string;
+  creations: TeacherAllocation[];
+  removals: TeacherAllocation[];
+  reassignments: PreparedTeacherAllocationReassignment[];
 }
 
 interface ReplacementTeacherAssignment {
@@ -255,6 +269,17 @@ function replacementTeacherAssignments({
   });
 }
 
+async function previewTeacherReplacement({
+  originalAllocation,
+  nextAllocation,
+}: ReplacementTeacherAssignment): Promise<PreparedTeacherAllocationReassignment> {
+  const preview = await previewTeacherAllocationReassignment(
+    originalAllocation.id,
+    { newTeacherUserId: nextAllocation.teacherId as string },
+  );
+  return { originalAllocation, nextAllocation, preview };
+}
+
 export async function fetchTeachers(): Promise<Teacher[]> {
   return fetchTeacherAllocationTeachers();
 }
@@ -293,33 +318,43 @@ export async function bulkCreateTeacherAllocations(
 export async function saveTeacherAllocationChanges(
   input: SaveTeacherAllocationChangesInput,
 ): Promise<void> {
-  const removedAllocations = removedTeacherAssignments(input);
-  const replacementAllocations = replacementTeacherAssignments(input);
-  const createAllocations = [
-    ...newTeacherAssignments(input.localAllocations),
-    ...replacementAllocations.map(({ nextAllocation }) => nextAllocation),
-  ];
-
-  await Promise.all(
-    removedAllocations.map((allocation) =>
-      deleteTeacherAllocationRequest(allocation.id),
-    ),
-  );
-
-  for (const { originalAllocation } of replacementAllocations) {
-    await deleteTeacherAllocationRequest(originalAllocation.id);
-  }
-
-  await bulkCreateTeacherAllocations(input.termId, createAllocations);
+  const plan = await prepareTeacherAllocationSave(input);
+  await commitTeacherAllocationSave(plan);
 }
 
-export async function replaceTeacherAllocation(
-  allocationId: string,
-  payload: CreateTeacherAllocationRequest,
-): Promise<TeacherAllocation> {
-  await deleteTeacherAllocationRequest(allocationId);
-  const createdAllocation = await createTeacherAllocation(payload);
-  return mapAllocationDtoToUi(createdAllocation);
+export async function prepareTeacherAllocationSave(
+  input: SaveTeacherAllocationChangesInput,
+): Promise<TeacherAllocationSavePlan> {
+  const replacements = replacementTeacherAssignments(input);
+  const reassignments = await Promise.all(
+    replacements.map(previewTeacherReplacement),
+  );
+
+  return {
+    termId: input.termId,
+    creations: newTeacherAssignments(input.localAllocations),
+    removals: removedTeacherAssignments(input),
+    reassignments,
+  };
+}
+
+export async function commitTeacherAllocationSave(
+  plan: TeacherAllocationSavePlan,
+): Promise<void> {
+  if (plan.reassignments.some(({ preview }) => !preview.canReassign)) {
+    throw new Error("Blocked teacher reassignments must not be committed");
+  }
+
+  for (const reassignment of plan.reassignments) {
+    await reassignTeacherAllocation(reassignment.originalAllocation.id, {
+      newTeacherUserId: reassignment.nextAllocation.teacherId as string,
+      impactFingerprint: reassignment.preview.impactFingerprint,
+    });
+  }
+  for (const removal of plan.removals) {
+    await deleteTeacherAllocationRequest(removal.id);
+  }
+  await bulkCreateTeacherAllocations(plan.termId, plan.creations);
 }
 
 export async function clearSubjectAllocations(

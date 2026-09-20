@@ -7,18 +7,22 @@ import {
   getTeacherAllocationValidation,
   getTeacherLoads,
   listTeacherAllocations,
+  previewTeacherAllocationReassignment,
+  reassignTeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationApiAdapter";
 import {
   applyTeacherToGrade as applyTeacherToGradeService,
   bulkCreateTeacherAllocations,
   clearSubjectAllocations as clearSubjectAllocationsService,
+  commitTeacherAllocationSave,
   fetchTeacherAllocationValidation,
   fetchTeacherAllocations,
   fetchTeacherAllocationsByClassroom,
   fetchTeacherLoads,
   isTeacherAllocationClearConflict,
-  saveTeacherAllocationChanges,
+  prepareTeacherAllocationSave,
   teacherAllocationConflictDetails,
+  type SaveTeacherAllocationChangesInput,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { ApiError } from "@/lib/api-error";
 
@@ -32,6 +36,8 @@ vi.mock(
     getTeacherAllocationValidation: vi.fn(),
     getTeacherLoads: vi.fn(),
     listTeacherAllocations: vi.fn(),
+    previewTeacherAllocationReassignment: vi.fn(),
+    reassignTeacherAllocation: vi.fn(),
   }),
 );
 
@@ -42,6 +48,10 @@ const mockedDeleteTeacherAllocation = vi.mocked(deleteTeacherAllocation);
 const mockedGetTeacherAllocationValidation = vi.mocked(getTeacherAllocationValidation);
 const mockedGetTeacherLoads = vi.mocked(getTeacherLoads);
 const mockedListTeacherAllocations = vi.mocked(listTeacherAllocations);
+const mockedPreviewTeacherAllocationReassignment = vi.mocked(
+  previewTeacherAllocationReassignment,
+);
+const mockedReassignTeacherAllocation = vi.mocked(reassignTeacherAllocation);
 
 const backendAllocation = {
   id: "allocation-1",
@@ -68,6 +78,70 @@ const backendAllocation = {
     status: "open",
   },
   createdAt: "2026-01-01T00:00:00.000Z",
+};
+
+const replacementInput: SaveTeacherAllocationChangesInput = {
+  termId: "term-1",
+  originalAllocations: [
+    {
+      id: "allocation-1",
+      termId: "term-1",
+      sectionId: "section-1",
+      classroomId: "classroom-1",
+      subjectId: "subject-1",
+      teacherId: "teacher-user-1",
+    },
+  ],
+  localAllocations: [
+    {
+      id: "allocation-1",
+      termId: "term-1",
+      sectionId: "section-1",
+      classroomId: "classroom-1",
+      subjectId: "subject-1",
+      teacherId: "teacher-user-2",
+    },
+  ],
+};
+
+const readyReassignmentPreview = {
+  allocation: {
+    id: "allocation-1",
+    subjectId: "subject-1",
+    classroomId: "classroom-1",
+    termId: "term-1",
+  },
+  currentTeacher: { userId: "teacher-user-1", fullName: "Teacher One" },
+  targetTeacher: { userId: "teacher-user-2", fullName: "Teacher Two" },
+  decision: "ready" as const,
+  canReassign: true,
+  impactFingerprint: "a".repeat(64),
+  impact: {
+    timetable: { draft: 1, active: 0, cancelled: 0, targetTeacherConflicts: 0 },
+    lessonPlans: { draft: 0, active: 0, archived: 0 },
+    homework: { draft: 0, published: 0, closed: 0, cancelled: 0, archived: 0 },
+    reinforcement: {
+      notCompleted: 0,
+      inProgress: 0,
+      underReview: 0,
+      completed: 0,
+      cancelled: 0,
+    },
+    announcements: { draft: 0, scheduled: 0, published: 0, archived: 0, cancelled: 0 },
+    assessments: { policy: "contextual_access_no_rewrite" as const },
+    curriculum: { policy: "no_mutation" as const },
+    attendance: { policy: "historical_preserve" as const },
+    messages: { policy: "no_history_rewrite" as const },
+  },
+  blockers: [],
+  automaticActions: [
+    {
+      domain: "timetable" as const,
+      action: "handoff_current_responsibility" as const,
+      count: 1,
+    },
+  ],
+  historicalRecords: [],
 };
 
 describe("teacherAllocationService", () => {
@@ -157,7 +231,7 @@ describe("teacherAllocationService", () => {
       summary: { requestedCount: 1, createdCount: 1, existingCount: 0 },
     });
 
-    await saveTeacherAllocationChanges({
+    const plan = await prepareTeacherAllocationSave({
       termId: "term-1",
       originalAllocations: [],
       localAllocations: [
@@ -171,6 +245,7 @@ describe("teacherAllocationService", () => {
         },
       ],
     });
+    await commitTeacherAllocationSave(plan);
 
     expect(mockedBulkSaveTeacherAllocations).toHaveBeenCalledWith({
       termId: "term-1",
@@ -186,7 +261,7 @@ describe("teacherAllocationService", () => {
   });
 
   it("deletes removed assignments without sending null teachers to bulk save", async () => {
-    await saveTeacherAllocationChanges({
+    const plan = await prepareTeacherAllocationSave({
       termId: "term-1",
       originalAllocations: [
         {
@@ -209,91 +284,88 @@ describe("teacherAllocationService", () => {
         },
       ],
     });
+    await commitTeacherAllocationSave(plan);
 
     expect(mockedDeleteTeacherAllocation).toHaveBeenCalledWith("allocation-1");
     expect(mockedBulkSaveTeacherAllocations).not.toHaveBeenCalled();
   });
 
-  it("deletes changed assignments before bulk creating replacements", async () => {
-    mockedBulkSaveTeacherAllocations.mockResolvedValueOnce({
-      items: [],
-      summary: { requestedCount: 1, createdCount: 1, existingCount: 0 },
-    });
-
-    await saveTeacherAllocationChanges({
-      termId: "term-1",
-      originalAllocations: [
-        {
-          id: "allocation-1",
-          termId: "term-1",
-          sectionId: "section-1",
-          classroomId: "classroom-1",
-          subjectId: "subject-1",
-          teacherId: "teacher-user-1",
-        },
-      ],
-      localAllocations: [
-        {
-          id: "allocation-1",
-          termId: "term-1",
-          sectionId: "section-1",
-          classroomId: "classroom-1",
-          subjectId: "subject-1",
-          teacherId: "teacher-user-2",
-        },
-      ],
-    });
-
-    expect(mockedDeleteTeacherAllocation).toHaveBeenCalledWith("allocation-1");
-    expect(mockedBulkSaveTeacherAllocations).toHaveBeenCalledWith({
-      termId: "term-1",
-      items: [
-        {
-          teacherUserId: "teacher-user-2",
-          subjectId: "subject-1",
-          classroomId: "classroom-1",
-        },
-      ],
-    });
-  });
-
-  it("does not create a replacement when deleting the old assignment conflicts", async () => {
-    mockedDeleteTeacherAllocation.mockRejectedValueOnce(
-      new ApiError(
-        "Allocation has dependencies",
-        409,
-        "academics.allocation.delete_conflict",
-      ),
+  it("previews every persisted allocation whose teacher changes before writing", async () => {
+    mockedPreviewTeacherAllocationReassignment.mockResolvedValueOnce(
+      readyReassignmentPreview,
     );
 
-    await expect(
-      saveTeacherAllocationChanges({
-        termId: "term-1",
-        originalAllocations: [
-          {
-            id: "allocation-1",
-            termId: "term-1",
-            sectionId: "section-1",
-            classroomId: "classroom-1",
-            subjectId: "subject-1",
-            teacherId: "teacher-user-1",
-          },
-        ],
-        localAllocations: [
-          {
-            id: "allocation-1",
-            termId: "term-1",
-            sectionId: "section-1",
-            classroomId: "classroom-1",
-            subjectId: "subject-1",
-            teacherId: "teacher-user-2",
-          },
-        ],
-      }),
-    ).rejects.toMatchObject({
-      code: "academics.allocation.delete_conflict",
+    const plan = await prepareTeacherAllocationSave(replacementInput);
+
+    expect(mockedPreviewTeacherAllocationReassignment).toHaveBeenCalledWith(
+      "allocation-1",
+      { newTeacherUserId: "teacher-user-2" },
+    );
+    expect(plan.reassignments[0]?.preview.impactFingerprint).toBe(
+      "a".repeat(64),
+    );
+    expect(mockedReassignTeacherAllocation).not.toHaveBeenCalled();
+    expect(mockedDeleteTeacherAllocation).not.toHaveBeenCalled();
+    expect(mockedBulkSaveTeacherAllocations).not.toHaveBeenCalled();
+  });
+
+  it("commits a teacher replacement atomically without delete or create", async () => {
+    mockedPreviewTeacherAllocationReassignment.mockResolvedValueOnce(
+      readyReassignmentPreview,
+    );
+    mockedReassignTeacherAllocation.mockResolvedValueOnce({
+      allocation: { id: "allocation-1", teacherUserId: "teacher-user-2" },
+      previousTeacherUserId: "teacher-user-1",
+      newTeacherUserId: "teacher-user-2",
+      transferred: {
+        timetableEntries: 1,
+        lessonPlans: 0,
+        homeworkAssignments: 0,
+      },
+      preservedHistorical: {
+        cancelledTimetableEntries: 0,
+        archivedLessonPlans: 0,
+        cancelledOrArchivedHomeworkAssignments: 0,
+        completedOrCancelledReinforcementTasks: 0,
+        publishedArchivedOrCancelledAnnouncements: 0,
+      },
     });
 
+    const plan = await prepareTeacherAllocationSave(replacementInput);
+    await commitTeacherAllocationSave(plan);
+
+    expect(mockedReassignTeacherAllocation).toHaveBeenCalledWith(
+      "allocation-1",
+      {
+        newTeacherUserId: "teacher-user-2",
+        impactFingerprint: "a".repeat(64),
+      },
+    );
+    expect(mockedDeleteTeacherAllocation).not.toHaveBeenCalled();
+    expect(mockedBulkSaveTeacherAllocations).not.toHaveBeenCalled();
+  });
+
+  it("rejects a blocked reassignment plan without writing", async () => {
+    mockedPreviewTeacherAllocationReassignment.mockResolvedValueOnce({
+      ...readyReassignmentPreview,
+      decision: "blocked",
+      canReassign: false,
+      blockers: [
+        {
+          domain: "timetable",
+          code: "target_teacher_conflict",
+          count: 1,
+        },
+      ],
+    });
+
+    const plan = await prepareTeacherAllocationSave(replacementInput);
+
+    await expect(commitTeacherAllocationSave(plan)).rejects.toThrow(
+      "Blocked teacher reassignments must not be committed",
+    );
+    expect(mockedReassignTeacherAllocation).not.toHaveBeenCalled();
+    expect(mockedDeleteTeacherAllocation).not.toHaveBeenCalled();
     expect(mockedBulkSaveTeacherAllocations).not.toHaveBeenCalled();
   });
 
