@@ -77,26 +77,30 @@ const entry = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const dashboard = (entries: ReturnType<typeof entry>[]) => ({
+const dashboard = (
+  entries: ReturnType<typeof entry>[],
+  effectiveConfigId = "config-1",
+  classroomId = "classroom-1",
+) => ({
   termId: "term-1",
   academicYearId: "year-1",
   publishedAt: null,
   isPublished: false,
   items: [
     {
-      classroomId: "classroom-1",
+      classroomId,
       classroom: {
-        id: "classroom-1",
+        id: classroomId,
         nameAr: "Classroom",
         nameEn: "Class A",
       },
       gradeId: "grade-1",
       grade: { id: "grade-1", nameAr: "Grade 1", nameEn: "Grade 1" },
       effectiveConfig: {
-        id: "config-1",
+        id: effectiveConfigId,
         name: "Classroom timetable",
         scopeType: "classroom",
-        scopeKey: "classroom-1",
+        scopeKey: classroomId,
         stageId: null,
         status: "active",
         activeDays: [3],
@@ -141,7 +145,9 @@ const renderSelect = (onChange = vi.fn()) =>
 describe("useTimetableConfigForScope", () => {
   beforeEach(() => {
     vi.mocked(getConfig).mockReset();
-    vi.mocked(getDashboardTimetable).mockReset();
+    vi.mocked(getDashboardTimetable)
+      .mockReset()
+      .mockResolvedValue(dashboard([]) as never);
   });
 
   it("sends the full ancestor chain and stops at the first resolved config", async () => {
@@ -206,8 +212,37 @@ describe("useTimetableConfigForScope", () => {
     expect(getConfig).toHaveBeenCalledTimes(5);
   });
 
+  it("uses the published effective config instead of a narrower draft", async () => {
+    const draftConfig = {
+      ...config,
+      id: "draft-config",
+      activeDays: [2],
+      status: "draft",
+    };
+    const publishedConfig = {
+      ...config,
+      activeDays: [3],
+      status: "active",
+    };
+    vi.mocked(getConfig)
+      .mockResolvedValueOnce(draftConfig as never)
+      .mockResolvedValueOnce(publishedConfig as never);
+
+    const { result } = renderHook(() =>
+      useTimetableConfigForScope(scope, true),
+    );
+
+    await waitFor(() => expect(result.current.config).toEqual(publishedConfig));
+    expect(result.current.config?.activeDays).toEqual([3]);
+  });
+
   it("ignores an obsolete config response after the scope changes", async () => {
     const obsolete = deferred<typeof config>();
+    vi.mocked(getDashboardTimetable)
+      .mockResolvedValueOnce(dashboard([]) as never)
+      .mockResolvedValueOnce(
+        dashboard([], "config-2", "classroom-2") as never,
+      );
     vi.mocked(getConfig)
       .mockReturnValueOnce(obsolete.promise as never)
       .mockResolvedValueOnce({ ...config, id: "config-2" } as never);
@@ -217,6 +252,7 @@ describe("useTimetableConfigForScope", () => {
       { initialProps: { currentScope: scope } },
     );
 
+    await waitFor(() => expect(getConfig).toHaveBeenCalledTimes(1));
     rerender({
       currentScope: { ...scope, classroomId: "classroom-2" },
     });
