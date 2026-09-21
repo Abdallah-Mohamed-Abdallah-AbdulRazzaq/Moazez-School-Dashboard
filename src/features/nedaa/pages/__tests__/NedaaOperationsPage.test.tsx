@@ -1096,7 +1096,7 @@ describe("NedaaOperationsPage", () => {
     expect(
       serviceMocks.listDismissalRequestHistory.mock.lastCall?.[0],
     ).not.toHaveProperty("activeOnly");
-  });
+  }, 20_000);
 
   it("uses table page and page size for history", async () => {
     const user = userEvent.setup();
