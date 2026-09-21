@@ -398,7 +398,11 @@ export default function Sidebar({
       {/* Sidebar */}
       <aside
         onMouseLeave={() => setHoveredCollapsedItemKey(null)}
-        className={`group/sidebar fixed z-50 h-screen bg-[#065769] flex flex-col transition-all duration-300 ease-in-out
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(7, 28, 33, 0.46), rgba(7, 28, 33, 0.46)), url('/images/sidebar/sidebar-background.svg')",
+        }}
+        className={`group/sidebar fixed z-50 h-screen bg-[#065769] bg-cover bg-center bg-no-repeat flex flex-col transition-all duration-300 ease-in-out
       ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-white/10
       ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
       ${isOpen ? "w-[260px] max-w-[80vw]" : "lg:w-20 lg:px-3"}`}
@@ -446,7 +450,7 @@ export default function Sidebar({
             className="flex items-center justify-center rounded-lg text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#065769]"
           >
             <Image
-              src="/images/logo/moazez_white_logo.svg"
+              src="/images/logo/moazez_white_logo.png"
               alt="Logo"
               width={isOpen ? 120 : 40}
               height={isOpen ? 30 : 40}
