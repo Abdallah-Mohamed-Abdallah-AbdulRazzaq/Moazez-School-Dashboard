@@ -525,7 +525,7 @@ describe("ConversationDetail - Property 17: ReadOnly Composer for Restricted Use
       let expectedText = "";
       if (restrictedState === "closed") expectedText = labels.bannerClosed;
       else if (restrictedState === "muted") expectedText = labels.bannerMuted;
-      else if (restrictedState === "blocked") expectedText = labels.errorUserBlocked;
+      else if (restrictedState === "blocked") expectedText = labels.errorConversationNotMember;
       else if (restrictedState === "disabled_policy") expectedText = labels.errorPolicyDisabled;
       else if (restrictedState === "removed") expectedText = labels.errorConversationNotMember;
 

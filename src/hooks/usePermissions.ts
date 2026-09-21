@@ -315,16 +315,21 @@ export function filterNavigationItemsByPermission<
   });
 }
 
-function getFirstNavigationHref(
+function getFirstAuthorizedNavigationHref(
   items: readonly NavigationItem[],
   isArabic: boolean,
 ): string | null {
   for (const item of items) {
     const childHref = item.children
-      ? getFirstNavigationHref(item.children, isArabic)
+      ? getFirstAuthorizedNavigationHref(item.children, isArabic)
       : null;
     if (childHref) return childHref;
-    if (!item.children) return isArabic ? item.href_ar : item.href_en;
+    if (
+      !item.children &&
+      !navigationKeysWithoutPermission.has(item.key)
+    ) {
+      return isArabic ? item.href_ar : item.href_en;
+    }
   }
 
   return null;
@@ -348,7 +353,7 @@ export function getDefaultAuthorizedNavigationPath(
   );
 
   return (
-    getFirstNavigationHref(visibleItems, isArabic) ??
+    getFirstAuthorizedNavigationHref(visibleItems, isArabic) ??
     `/${locale}/settings/health`
   );
 }
