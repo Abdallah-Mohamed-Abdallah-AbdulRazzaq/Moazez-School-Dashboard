@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import RehireTeacherDialog from "../RehireTeacherDialog";
@@ -9,12 +9,24 @@ describe("RehireTeacherDialog", () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<RehireTeacherDialog isOpen isSubmitting={false} onClose={vi.fn()} onSubmit={onSubmit} />);
 
-    await user.type(screen.getByLabelText(/rehire\.archived_teacher_id/), "archived-teacher-1");
-    await user.type(screen.getByLabelText(/fields.code/), "tch 001");
-    await user.type(screen.getByLabelText(/fields\.first_name \(arabic\)/), "نور");
-    await user.type(screen.getByLabelText(/fields\.first_name \(english\)/), "Nour");
-    await user.type(screen.getByLabelText(/fields\.last_name \(arabic\)/), "علي");
-    await user.type(screen.getByLabelText(/fields\.last_name \(english\)/), "Ali");
+    fireEvent.change(screen.getByLabelText(/rehire\.archived_teacher_id/), {
+      target: { value: "archived-teacher-1" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields.code/), {
+      target: { value: "tch 001" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields\.first_name \(arabic\)/), {
+      target: { value: "نور" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields\.first_name \(english\)/), {
+      target: { value: "Nour" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields\.last_name \(arabic\)/), {
+      target: { value: "علي" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields\.last_name \(english\)/), {
+      target: { value: "Ali" },
+    });
     await user.click(screen.getByLabelText(/fields.gender/));
     await user.click(screen.getByRole("button", { name: "gender.female" }));
     await user.click(screen.getByRole("button", { name: "actions.rehire" }));
