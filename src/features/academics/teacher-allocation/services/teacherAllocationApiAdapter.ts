@@ -9,7 +9,11 @@ import type {
   CreateTeacherAllocationRequest,
   DeleteTeacherAllocationResponse,
   ListTeacherAllocationsResponse,
+  PreviewTeacherAllocationReassignmentRequest,
+  ReassignTeacherAllocationRequest,
   TeacherAllocationDto,
+  TeacherAllocationReassignmentPreviewResponse,
+  TeacherAllocationReassignmentResponse,
   TeacherAllocationValidationResponse,
   TeacherLoadsResponse,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationApi.types";
@@ -27,6 +31,26 @@ export function createTeacherAllocation(
   payload: CreateTeacherAllocationRequest,
 ) {
   return apiPost<TeacherAllocationDto>(BASE, payload);
+}
+
+export function previewTeacherAllocationReassignment(
+  allocationId: string,
+  payload: PreviewTeacherAllocationReassignmentRequest,
+) {
+  return apiPost<TeacherAllocationReassignmentPreviewResponse>(
+    `${BASE}/${allocationId}/reassignment-preview`,
+    payload,
+  );
+}
+
+export function reassignTeacherAllocation(
+  allocationId: string,
+  payload: ReassignTeacherAllocationRequest,
+) {
+  return apiPost<TeacherAllocationReassignmentResponse>(
+    `${BASE}/${allocationId}/reassign`,
+    payload,
+  );
 }
 
 export function bulkSaveTeacherAllocations(

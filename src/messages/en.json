@@ -6201,9 +6201,73 @@
         "clearSelection": "Clear",
         "save": "Save Changes",
         "saving": "Saving...",
+        "saveSuccess": "Teacher allocations saved successfully.",
         "reset": "Reset",
         "export": "Export",
         "retry": "Retry"
+      },
+      "reassignment": {
+        "title": "Review teacher reassignment",
+        "description": "Review the responsibilities that will move to the new teacher before confirming.",
+        "currentTeacher": "Current teacher",
+        "targetTeacher": "New teacher",
+        "status": {
+          "ready": "Ready",
+          "blocked": "Blocked"
+        },
+        "sections": {
+          "transfers": "Responsibilities to transfer",
+          "history": "Historical records preserved",
+          "policies": "Records that will not be rewritten",
+          "blockers": "Resolve before reassigning"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "confirm": "Confirm reassignment",
+          "confirming": "Reassigning...",
+          "handoff": {
+            "timetable": "{count, plural, one {# current timetable entry will move} other {# current timetable entries will move}}",
+            "lessonPlans": "{count, plural, one {# current lesson plan will move} other {# current lesson plans will move}}",
+            "homework": "{count, plural, one {# current homework assignment will move} other {# current homework assignments will move}}"
+          }
+        },
+        "history": {
+          "timetable": "{count, plural, one {# historical timetable entry will remain unchanged} other {# historical timetable entries will remain unchanged}}",
+          "lessonPlans": "{count, plural, one {# historical lesson plan will remain unchanged} other {# historical lesson plans will remain unchanged}}",
+          "homework": "{count, plural, one {# historical homework assignment will remain unchanged} other {# historical homework assignments will remain unchanged}}",
+          "reinforcement": "{count, plural, one {# completed or cancelled reinforcement task will remain unchanged} other {# completed or cancelled reinforcement tasks will remain unchanged}}",
+          "announcements": "{count, plural, one {# published, archived, or cancelled announcement will remain unchanged} other {# published, archived, or cancelled announcements will remain unchanged}}"
+        },
+        "blockers": {
+          "targetIsCurrentTeacher": "The selected teacher is already assigned.",
+          "targetAlreadyAllocated": "The selected teacher already has this allocation.",
+          "targetTeacherConflict": "{count, plural, one {The selected teacher has # timetable conflict.} other {The selected teacher has # timetable conflicts.}}",
+          "activeReinforcementTasks": "{count, plural, one {# active reinforcement task must be resolved.} other {# active reinforcement tasks must be resolved.}}",
+          "mutableTeacherAnnouncements": "{count, plural, one {# editable teacher announcement must be resolved.} other {# editable teacher announcements must be resolved.}}"
+        },
+        "errors": {
+          "targetNotFound": "The selected teacher could not be found. Refresh the page and choose a teacher again.",
+          "targetIneligible": "The selected teacher is not eligible for this reassignment.",
+          "blocked": "This reassignment is blocked by current academic records.",
+          "stalePreview": "The allocation changed after this review. The latest data has been loaded; review it again before confirming.",
+          "concurrentChange": "Another change was saved at the same time. The latest data has been loaded; review it again before confirming.",
+          "unknown": "The reassignment could not be completed. Review the latest allocation data and try again.",
+          "traceId": "Reference: {traceId}"
+        },
+        "eligibility": {
+          "incompatibleIdentity": "The selected account is not a compatible teacher identity.",
+          "accountStatusIneligible": "The selected teacher account is not active and eligible.",
+          "membershipIneligible": "The selected teacher does not have an eligible school membership.",
+          "profileMissing": "The selected teacher does not have a teacher profile.",
+          "employmentInactive": "The selected teacher's employment is inactive.",
+          "profileIncomplete": "The selected teacher's profile is incomplete."
+        },
+        "policies": {
+          "assessments": "Assessment access follows the new teacher's current classroom context.",
+          "curriculum": "Curriculum records are not changed.",
+          "attendance": "Historical attendance records keep their original teacher attribution.",
+          "messages": "Message history and authorship are not rewritten."
+        }
       },
       "summaryCards": {
         "totalClassrooms": "Total classrooms",
