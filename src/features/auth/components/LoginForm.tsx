@@ -22,6 +22,7 @@ import {
   localeFromPathname,
   safeAuthReturnPath,
 } from "@/features/auth/utils/authRedirect";
+import { Button, Input } from "@/components/ui";
 
 const INITIAL_VALUES: LoginFormValues = {
   email: "",
@@ -147,22 +148,39 @@ export function LoginForm({ currentYear }: LoginFormProps) {
   }
 
   return (
-    <div className="space-y-7" dir={isRTL ? "rtl" : "ltr"}>
-      <div>
+    <div className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+      <div className="space-y-4">
         <Image
-          src="/images/logo/moazzez_logo.svg"
-          alt="Logo"
-          width={128}
-          height={128}
-          className="mx-auto mb-10"
+          src="/images/national-day/moazez-national-day-logo.png"
+          alt={t("brand.badge")}
+          width={1254}
+          height={1254}
+          className="mx-auto h-28 w-28 rounded-[1.4rem] object-cover shadow-[0_14px_30px_rgba(4,43,40,0.18)] lg:hidden"
         />
+
+        <div className="hidden items-center gap-3 lg:flex">
+          <Image
+            src="/images/national-day/moazez-national-day-logo.png"
+            alt={t("brand.badge")}
+            width={1254}
+            height={1254}
+            className="h-[4.625rem] w-[4.625rem] rounded-2xl object-cover shadow-[0_10px_22px_rgba(4,43,40,0.14)]"
+          />
+          <div className="h-9 w-px bg-[#d8e4dc]" aria-hidden="true" />
+          <p className="max-w-[12rem] text-xs font-semibold leading-5 text-[#08714d]">
+            {t("nationalDay.formBadge")}
+          </p>
+        </div>
       </div>
 
-      <header className={`space-y-5 ${isRTL ? "text-right" : "text-left"}`}>
-        <h1 className="text-[2rem] font-bold tracking-[-0.03em] text-[var(--foreground)]">
+      <header className={`space-y-2.5 ${isRTL ? "text-right" : "text-left"}`}>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#07804f]">
+          {t("nationalDay.welcome")}
+        </p>
+        <h1 className="text-[2rem] font-bold tracking-[-0.035em] text-[#102d28]">
           {t("title")}
         </h1>
-        <p className="max-w-sm text-sm leading-6 text-[color-mix(in_oklab,var(--foreground)_66%,white)]">
+        <p className="max-w-sm text-sm leading-6 text-[#667872]">
           {t("subtitle")}
         </p>
       </header>
@@ -183,94 +201,44 @@ export function LoginForm({ currentYear }: LoginFormProps) {
           </div>
         ) : null}
 
-        <div className="space-y-2">
-          <label
-            htmlFor="login-email"
-            className={`block text-sm font-semibold text-[color-mix(in_oklab,var(--foreground)_84%,white)] ${
-              isRTL ? "text-right" : "text-left"
-            }`}
-          >
-            {t("emailLabel")}
-          </label>
-          <input
-            id="login-email"
-            name="email"
-            type="email"
-            inputMode="email"
-            autoComplete="username"
-            value={values.email}
-            onChange={(event) => handleFieldChange("email", event.target.value)}
-            onBlur={() => handleFieldBlur("email")}
-            placeholder={t("emailPlaceholder")}
-            disabled={isSubmitting}
-            aria-invalid={Boolean(errors.email)}
-            aria-describedby={errors.email ? "login-email-error" : undefined}
-            className={`w-full rounded-full border bg-[var(--background)] px-5 py-3.5 text-sm text-[var(--foreground)] shadow-[0_4px_12px_rgba(0,0,0,0.03)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-[color-mix(in_oklab,var(--foreground)_40%,white)] focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[color-mix(in_oklab,var(--primary-color)_14%,white)] disabled:cursor-not-allowed disabled:bg-[color-mix(in_oklab,var(--background)_96%,black)] ${
-              isRTL ? "text-right" : "text-left"
-            }`}
-            style={{
-              borderColor: errors.email
-                ? "var(--accent-color)"
-                : "color-mix(in oklab, var(--border-color) 78%, white)",
-              boxShadow: errors.email
-                ? "0 0 0 4px color-mix(in oklab, var(--accent-color) 12%, transparent)"
-                : undefined,
-            }}
-          />
-          {errors.email ? (
-            <p
-              id="login-email-error"
-              className="text-sm text-[color-mix(in_oklab,var(--accent-color)_78%,black)]"
-            >
-              {errors.email}
-            </p>
-          ) : null}
-        </div>
+        <Input
+          id="login-email"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="username"
+          label={t("emailLabel")}
+          value={values.email}
+          onChange={(event) => handleFieldChange("email", event.target.value)}
+          onBlur={() => handleFieldBlur("email")}
+          placeholder={t("emailPlaceholder")}
+          disabled={isSubmitting}
+          error={errors.email}
+          inputSize="lg"
+          className="rounded-2xl border-[#dce7e0] bg-[#fbfcfb] text-[#102d28] shadow-[0_5px_16px_rgba(5,55,44,0.04)] focus:border-[#008c57] focus:ring-[#d5f2e2]"
+        />
 
-        <div className="space-y-2">
-          <label
-            htmlFor="login-password"
-            className={`block text-sm font-semibold text-[color-mix(in_oklab,var(--foreground)_84%,white)] ${
-              isRTL ? "text-right" : "text-left"
-            }`}
-          >
-            {t("passwordLabel")}
-          </label>
-          <div className="relative">
-            <input
-              id="login-password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              value={values.password}
-              onChange={(event) =>
-                handleFieldChange("password", event.target.value)
-              }
-              onBlur={() => handleFieldBlur("password")}
-              placeholder={t("passwordPlaceholder")}
-              disabled={isSubmitting}
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={
-                errors.password ? "login-password-error" : undefined
-              }
-              className={`w-full rounded-full border bg-[var(--background)] py-3.5 text-sm text-[var(--foreground)] shadow-[0_4px_12px_rgba(0,0,0,0.03)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-[color-mix(in_oklab,var(--foreground)_40%,white)] focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[color-mix(in_oklab,var(--primary-color)_14%,white)] disabled:cursor-not-allowed disabled:bg-[color-mix(in_oklab,var(--background)_96%,black)] ${
-                isRTL ? "ps-12 pe-5 text-right" : "pe-12 ps-5 text-left"
-              }`}
-              style={{
-                borderColor: errors.password
-                  ? "var(--accent-color)"
-                  : "color-mix(in oklab, var(--border-color) 78%, white)",
-                boxShadow: errors.password
-                  ? "0 0 0 4px color-mix(in oklab, var(--accent-color) 12%, transparent)"
-                  : undefined,
-              }}
-            />
+        <Input
+          id="login-password"
+          name="password"
+          type={showPassword ? "text" : "password"}
+          autoComplete="current-password"
+          label={t("passwordLabel")}
+          value={values.password}
+          onChange={(event) =>
+            handleFieldChange("password", event.target.value)
+          }
+          onBlur={() => handleFieldBlur("password")}
+          placeholder={t("passwordPlaceholder")}
+          disabled={isSubmitting}
+          error={errors.password}
+          inputSize="lg"
+          className="rounded-2xl border-[#dce7e0] bg-[#fbfcfb] text-[#102d28] shadow-[0_5px_16px_rgba(5,55,44,0.04)] focus:border-[#008c57] focus:ring-[#d5f2e2]"
+          rightIcon={
             <button
               type="button"
               onClick={() => setShowPassword((currentValue) => !currentValue)}
-              className={`absolute inset-y-1 flex w-12 items-center justify-center rounded-full text-[color-mix(in_oklab,var(--foreground)_58%,white)] transition hover:text-[var(--primary-color)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-color)] focus-visible:ring-inset ${
-                isRTL ? "start-1" : "end-1"
-              }`}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-[#61756e] transition hover:bg-[#e7f5ed] hover:text-[#007f4e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008c57]"
               aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               disabled={isSubmitting}
               aria-pressed={showPassword}
@@ -281,41 +249,21 @@ export function LoginForm({ currentYear }: LoginFormProps) {
                 <Eye className="h-4 w-4" aria-hidden="true" />
               )}
             </button>
-          </div>
-          {errors.password ? (
-            <p
-              id="login-password-error"
-              className="text-sm text-[color-mix(in_oklab,var(--accent-color)_78%,black)]"
-            >
-              {errors.password}
-            </p>
-          ) : null}
-        </div>
+          }
+        />
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-full px-4 py-3 text-sm font-semibold text-[var(--background)] transition-[background-color,box-shadow] duration-200 hover:bg-[var(--hover-color)] hover:shadow-[0_16px_28px_color-mix(in_oklab,var(--primary-color)_22%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:cursor-not-allowed disabled:opacity-70"
-          style={{
-            backgroundColor: "var(--primary-color)",
-            boxShadow:
-              "0 12px 24px color-mix(in oklab, var(--primary-color) 18%, transparent)",
-          }}
+          loading={isSubmitting}
+          fullWidth
+          size="lg"
+          className="min-h-12 rounded-2xl bg-gradient-to-r from-[#008b55] to-[#006d46] font-bold shadow-[0_14px_28px_rgba(0,123,75,0.22)] hover:from-[#007a4b] hover:to-[#07543f] hover:shadow-[0_18px_32px_rgba(0,123,75,0.28)] focus-visible:ring-2 focus-visible:ring-[#008c57] focus-visible:ring-offset-2"
         >
-          {isSubmitting ? (
-            <>
-              <span
-                className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
-                aria-hidden="true"
-              />
-              <span>{t("submitting")}</span>
-            </>
-          ) : (
-            <span>{t("submit")}</span>
-          )}
-        </button>
+          {isSubmitting ? t("submitting") : t("submit")}
+        </Button>
 
-        <div className="pt-2 text-center text-[11px] text-[color-mix(in_oklab,var(--foreground)_40%,white)]">
+        <div className="pt-1 text-center text-[11px] text-[#8a9994]">
           {`All rights reserved to Moazez ${currentYear} ©`}
         </div>
       </form>

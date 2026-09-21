@@ -749,6 +749,14 @@
           }
         }
       },
+      "nationalDay": {
+        "badge": "Saudi National Day",
+        "title": "Our pride is in our nature, and our future grows with knowledge.",
+        "description": "Moazez celebrates the Kingdom and everyone shaping a generation that learns with confidence and builds with ambition.",
+        "logoAlt": "Saudi National Day and Moazez",
+        "formBadge": "Celebrating Saudi National Day",
+        "welcome": "A proud national welcome"
+      },
       "title": "Welcome back",
       "subtitle": "Sign in to continue to your school dashboard.",
       "emailLabel": "Email address",

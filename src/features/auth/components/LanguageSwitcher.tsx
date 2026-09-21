@@ -52,7 +52,7 @@ export function LanguageSwitcher() {
 
   return (
     <div
-      className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--border-color)_84%,var(--primary-color))] bg-[color-mix(in_oklab,var(--background)_94%,var(--primary-color))] p-1 shadow-[0_8px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm"
+      className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--border-color)_88%,var(--primary-color))] bg-white p-1"
       role="group"
       aria-label={t("ariaLabel")}
     >
@@ -71,13 +71,12 @@ export function LanguageSwitcher() {
             disabled={isPending}
             aria-pressed={isActive}
             aria-busy={isPending && !isActive}
-            className="min-w-11 rounded-full px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:cursor-wait disabled:opacity-80 sm:px-4"
+            className="min-w-11 rounded-full px-3 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-wait disabled:opacity-80 sm:px-4"
             style={{
-              backgroundColor: isActive ? "var(--primary-color)" : "transparent",
-              color: isActive ? "var(--background)" : "var(--foreground)",
-              boxShadow: isActive
-                ? "0 10px 20px color-mix(in oklab, var(--primary-color) 28%, transparent)"
-                : "none",
+              backgroundColor: isActive
+                ? "var(--primary-color)"
+                : "transparent",
+              color: isActive ? "#FFFFFF" : "var(--foreground)",
             }}
           >
             {item === "en" ? t("english") : t("arabic")}

@@ -131,7 +131,7 @@ export default function TopNav({
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
       <div className="px-4 sm:px-6 py-3 sm:py-4">
-        <div className="flex items-center gap-3 sm:gap-6 lg:justify-between">
+        <div className="relative flex items-center gap-3 sm:gap-6 lg:justify-between">
           {/* Mobile Menu Toggle */}
           <button
             onClick={onMenuToggle}
@@ -158,6 +158,15 @@ export default function TopNav({
               {t("lead_new_generation")}
             </p>
           </div>
+
+          <Image
+            src="/images/logo/national-day-navbar.png"
+            alt="Moazez Saudi National Day"
+            width={301}
+            height={54}
+            priority
+            className="pointer-events-none absolute left-1/2 top-1/2 hidden h-auto w-[220px] -translate-x-1/2 -translate-y-1/2 xl:block 2xl:w-[260px]"
+          />
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
