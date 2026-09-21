@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
+import { communicationAttachmentErrorMessage } from "@/features/communication/utils/communication-errors";
 
 import { EmojiPickerButton } from "./EmojiPickerButton";
 
@@ -44,6 +45,21 @@ function audioExtension(mimeType: string) {
   if (mimeType.includes("mp4")) return "m4a";
   if (mimeType.includes("mpeg")) return "mp3";
   return "ogg";
+}
+
+function attachmentSizeError(
+  files: File[],
+  maxAttachmentSizeMb: number,
+  labels: ConversationRedesignLabels,
+): string | null {
+  return files.some(
+    (file) => file.size > maxAttachmentSizeMb * 1024 * 1024,
+  )
+    ? labels.errorAttachmentSizeLimit.replace(
+        "{size}",
+        String(maxAttachmentSizeMb),
+      )
+    : null;
 }
 
 export function MessageComposer({
@@ -136,6 +152,15 @@ export function MessageComposer({
     if (allowAttachments && pendingFiles.length > 0) {
       const filesToSend = [...pendingFiles];
       const captionToSend = body.trim();
+      const sizeError = attachmentSizeError(
+        filesToSend,
+        attachmentSizeLimitMb ?? 10,
+        labels,
+      );
+      if (sizeError) {
+        setFileError(sizeError);
+        return;
+      }
       setFileError(null);
       setIsSubmitting(true);
       try {
@@ -143,8 +168,8 @@ export function MessageComposer({
         setBody("");
         setPendingFiles([]);
         onStopTyping();
-      } catch {
-        setFileError(labels.unableToUploadAttachment);
+      } catch (error) {
+        setFileError(communicationAttachmentErrorMessage(error, labels));
       } finally {
         setIsSubmitting(false);
         textareaRef.current?.focus();
@@ -173,8 +198,9 @@ export function MessageComposer({
     const validFiles: File[] = [];
 
     for (const file of Array.from(files)) {
-      if (file.size > maxAttachmentSizeMb * 1024 * 1024) {
-        setFileError(labels.errorFileUploadSizeExceeded || "File size exceeds allowed limit.");
+      const sizeError = attachmentSizeError([file], maxAttachmentSizeMb, labels);
+      if (sizeError) {
+        setFileError(sizeError);
         event.target.value = "";
         return;
       }

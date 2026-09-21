@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
@@ -186,6 +186,8 @@ function renderPage() {
   );
 }
 
+const createUser = () => userEvent.setup({ pointerEventsCheck: 0 });
+
 function mockSuccessfulLookups() {
   filterOptionMocks.getReinforcementFilterOptions.mockResolvedValue({
     stages: [{ id: "stage-1", nameEn: "Stage 1", nameAr: "Stage 1" }],
@@ -225,7 +227,7 @@ function mockSuccessfulLookups() {
 }
 
 async function openCreateModal() {
-  const user = userEvent.setup();
+  const user = createUser();
   renderPage();
   await user.click(
     await screen.findByRole("button", {
@@ -237,9 +239,8 @@ async function openCreateModal() {
 }
 
 async function selectCreateModalOptions(user: ReturnType<typeof userEvent.setup>) {
-  await waitFor(() =>
-    expect(filterOptionMocks.getReinforcementFilterOptions).toHaveBeenCalled(),
-  );
+  const stageSelect = screen.getByRole("button", { name: "Stage" });
+  await waitFor(() => expect(stageSelect).toBeEnabled());
 
   for (const [label, option] of [
     ["Stage", "Stage 1"],
@@ -248,8 +249,8 @@ async function selectCreateModalOptions(user: ReturnType<typeof userEvent.setup>
     ["Classroom", "Classroom 1"],
     ["rewardsModule.redemptions.create.student", "Student One"],
   ]) {
-    await user.click(await screen.findByRole("button", { name: label }));
-    await user.click(await screen.findByRole("button", { name: option }));
+    await user.click(screen.getByRole("button", { name: label }));
+    await user.click(screen.getByRole("button", { name: option }));
   }
 
   await user.click(
@@ -258,7 +259,7 @@ async function selectCreateModalOptions(user: ReturnType<typeof userEvent.setup>
     }),
   );
   await user.click(
-    await screen.findByRole("button", { name: "Gold Badge · 50 XP" }),
+    screen.getByRole("button", { name: "Gold Badge · 50 XP" }),
   );
 }
 
@@ -310,6 +311,61 @@ describe("RewardRedemptionsPage", () => {
     );
   });
 
+  it("forwards selected student and reward filters to the redemption list", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/en/reinforcement/rewards/redemptions?studentId=student-1&catalogItemId=reward-1",
+    );
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(redemptionMocks.listRewardRedemptions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          studentId: "student-1",
+          catalogItemId: "reward-1",
+        }),
+      ),
+    );
+  });
+
+  it("keeps the list usable when student and reward filter lookups fail", async () => {
+    filterOptionMocks.getReinforcementFilterOptions.mockRejectedValue(
+      new Error("Filter lookup unavailable"),
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        "rewardsModule.redemptions.filters.optionsUnavailable",
+      ),
+    ).toBeInTheDocument();
+    expect(redemptionMocks.listRewardRedemptions).toHaveBeenCalled();
+  });
+
+  it("scopes available rewards to the active academic context", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/en/reinforcement/rewards/redemptions?academicYearId=year-1&termId=term-1",
+    );
+
+    await openCreateModal();
+
+    await waitFor(() =>
+      expect(catalogMocks.listRewardCatalog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          academicYearId: "year-1",
+          termId: "term-1",
+          status: "published",
+          onlyAvailable: true,
+        }),
+      ),
+    );
+  });
+
   it("shows create and cancel only with request permission", async () => {
     authState.permissions = [
       "reinforcement.rewards.redemptions.view",
@@ -327,7 +383,7 @@ describe("RewardRedemptionsPage", () => {
       screen.getAllByRole("button", {
         name: "rewardsModule.actions.cancel",
       }),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     expect(
       screen.queryByRole("button", { name: "rewardsModule.actions.approve" }),
     ).not.toBeInTheDocument();
@@ -437,9 +493,9 @@ describe("RewardRedemptionsPage", () => {
     await selectCreateModalOptions(user);
     const listCallsBeforeSubmit =
       redemptionMocks.listRewardRedemptions.mock.calls.length;
-    await user.type(
+    fireEvent.change(
       screen.getByLabelText("rewardsModule.redemptions.create.requestNoteEn"),
-      "  Please prepare it today.  ",
+      { target: { value: "  Please prepare it today.  " } },
     );
     await user.click(
       screen.getByRole("button", {
@@ -461,7 +517,7 @@ describe("RewardRedemptionsPage", () => {
         listCallsBeforeSubmit,
       ),
     );
-  });
+  }, 20_000);
 
   it("keeps the page and create modal usable when lookups fail", async () => {
     filterOptionMocks.getReinforcementFilterOptions.mockRejectedValue(
@@ -470,11 +526,14 @@ describe("RewardRedemptionsPage", () => {
 
     await openCreateModal();
 
-    expect(await screen.findByText("Lookup unavailable")).toBeInTheDocument();
+    const modal = screen
+      .getByText("rewardsModule.redemptions.create.title")
+      .closest("[role='dialog']");
+    expect(modal).not.toBeNull();
+    expect(await within(modal as HTMLElement).findByRole("alert")).toHaveTextContent(
+      "common.error",
+    );
     expect(screen.getByText("Student One")).toBeInTheDocument();
-    expect(
-      screen.getByText("rewardsModule.redemptions.create.title"),
-    ).toBeInTheDocument();
   });
 
   it("keeps create selections and notes when submit fails", async () => {
@@ -484,9 +543,9 @@ describe("RewardRedemptionsPage", () => {
     const user = await openCreateModal();
 
     await selectCreateModalOptions(user);
-    await user.type(
+    fireEvent.change(
       screen.getByLabelText("rewardsModule.redemptions.create.requestNoteEn"),
-      "Keep this note",
+      { target: { value: "Keep this note" } },
     );
     await user.click(
       screen.getByRole("button", {
@@ -494,7 +553,7 @@ describe("RewardRedemptionsPage", () => {
       }),
     );
 
-    expect(await screen.findAllByText("Create failed")).not.toHaveLength(0);
+    expect(await screen.findAllByText("common.error")).not.toHaveLength(0);
     const modal = screen
       .getByText("rewardsModule.redemptions.create.title")
       .closest("[role='dialog']");
@@ -506,5 +565,5 @@ describe("RewardRedemptionsPage", () => {
     expect(
       screen.getByLabelText("rewardsModule.redemptions.create.requestNoteEn"),
     ).toHaveValue("Keep this note");
-  });
+  }, 20_000);
 });

@@ -117,6 +117,8 @@ describe("RewardCatalogPage", () => {
       "files.uploads.manage",
       "files.downloads.view",
     ];
+    academicContextState.academicYearId = "year-1";
+    academicContextState.termId = "term-1";
     academicContextState.requestAcademicYearChange.mockReset();
     academicContextState.requestTermChange.mockReset();
     structureMocks.fetchTermsByYear
@@ -183,8 +185,6 @@ describe("RewardCatalogPage", () => {
 
     await waitFor(() => {
       expect(catalogMocks.listRewardCatalog).toHaveBeenCalledWith({
-        academicYearId: "year-1",
-        termId: "term-1",
         status: undefined,
         type: undefined,
         search: undefined,
@@ -192,8 +192,6 @@ describe("RewardCatalogPage", () => {
         offset: 0,
       });
       expect(dashboardMocks.getRewardCatalogSummary).toHaveBeenCalledWith({
-        academicYearId: "year-1",
-        termId: "term-1",
         status: undefined,
         type: undefined,
       });
@@ -219,6 +217,21 @@ describe("RewardCatalogPage", () => {
         name: "rewardsModule.catalog.form.term",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("loads global catalog records without an active academic context", async () => {
+    academicContextState.academicYearId = "";
+    academicContextState.termId = "";
+
+    renderPage();
+
+    expect(await screen.findByText("Backend Catalog Item")).toBeInTheDocument();
+    expect(catalogMocks.listRewardCatalog).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        academicYearId: expect.anything(),
+        termId: expect.anything(),
+      }),
+    );
   });
 
   it("uses backend pagination for catalog rows", async () => {
@@ -310,6 +323,7 @@ describe("RewardCatalogPage", () => {
       ),
       "جائزة عربية",
     );
+    await user.type(screen.getAllByRole("spinbutton")[1], "10");
     await user.type(screen.getAllByRole("spinbutton")[2], "10");
     await user.click(
       screen.getByRole("button", { name: "rewardsModule.actions.create" }),

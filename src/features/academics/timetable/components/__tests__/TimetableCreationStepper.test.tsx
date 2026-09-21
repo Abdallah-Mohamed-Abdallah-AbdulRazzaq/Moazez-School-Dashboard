@@ -119,7 +119,9 @@ describe("TimetableCreationStepper", () => {
       />,
     );
 
-    expect(screen.getByText("Checking progress")).toHaveAttribute(
+    expect(
+      screen.getByRole("status", { name: "Checking progress" }),
+    ).toHaveAttribute(
       "aria-busy",
       "true",
     );

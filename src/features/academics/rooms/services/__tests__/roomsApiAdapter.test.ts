@@ -47,20 +47,13 @@ describe("roomsApiAdapter", () => {
         name: "Science Lab",
         nameAr: "معمل العلوم",
         nameEn: "Science Lab",
-        capacity: 0,
+        capacity: null,
         floor: undefined,
         building: "Block A",
         isActive: true,
       },
     ]);
     expect(mockedApiGet).toHaveBeenCalledWith("/academics/rooms");
-  });
-
-  it("returns no room defaults without calling an unsupported endpoint", async () => {
-    await expect(
-      adapter.fetchRoomDefaultAssignments("school-1"),
-    ).resolves.toEqual([]);
-    expect(mockedApiGet).not.toHaveBeenCalled();
   });
 
   it("creates rooms with only backend-supported payload fields", async () => {

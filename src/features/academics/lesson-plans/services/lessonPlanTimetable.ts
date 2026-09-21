@@ -7,6 +7,7 @@ import type {
 export interface TimetableSlotScope {
   academicYearId: string;
   termId: string;
+  stageId: string;
   gradeId: string;
   sectionId: string;
   classroomId: string;
@@ -19,6 +20,7 @@ export interface TimetableConfigLookupParams {
   academicYearId: string;
   termId: string;
   scopeType: TimetableScopeType;
+  stageId?: string;
   gradeId?: string;
   sectionId?: string;
   classroomId?: string;
@@ -27,13 +29,21 @@ export interface TimetableConfigLookupParams {
 export function timetableConfigCandidates(
   scope: TimetableSlotScope,
 ): TimetableConfigLookupParams[] {
-  const { academicYearId, termId, gradeId, sectionId, classroomId } = scope;
+  const {
+    academicYearId,
+    termId,
+    stageId,
+    gradeId,
+    sectionId,
+    classroomId,
+  } = scope;
 
   return [
     {
       academicYearId,
       termId,
       scopeType: "CLASSROOM",
+      stageId,
       gradeId,
       sectionId,
       classroomId,
@@ -42,6 +52,7 @@ export function timetableConfigCandidates(
       academicYearId,
       termId,
       scopeType: "SECTION",
+      stageId,
       gradeId,
       sectionId,
     },
@@ -49,7 +60,14 @@ export function timetableConfigCandidates(
       academicYearId,
       termId,
       scopeType: "GRADE",
+      stageId,
       gradeId,
+    },
+    {
+      academicYearId,
+      termId,
+      scopeType: "STAGE",
+      stageId,
     },
     {
       academicYearId,
@@ -64,17 +82,59 @@ export function dashboardEntriesForScope(
   scope: TimetableSlotScope,
   dayOfWeek: number,
 ): BackendTimetableEntryDto[] {
-  const classroom = response.items.find(
-    (item) => item.classroomId === scope.classroomId,
-  );
-
-  return (classroom?.entries ?? []).filter(
+  return effectiveDashboardEntries(response, scope.classroomId).filter(
     (entry) =>
       entry.dayOfWeek === dayOfWeek &&
-      entry.status.toLowerCase() !== "cancelled" &&
       Boolean(entry.teacherSubjectAllocationId) &&
       entry.teacherSubjectAllocationId === scope.teacherSubjectAllocationId,
   );
+}
+
+export function effectiveDashboardEntries(
+  response: TimetableDashboardAllResponseDto,
+  classroomId: string,
+): BackendTimetableEntryDto[] {
+  const classroomTimetable = response.items.find(
+    (dashboardItem) => dashboardItem.classroomId === classroomId,
+  );
+  const effectiveTimetableConfigId = classroomTimetable?.effectiveConfig?.id;
+  if (!effectiveTimetableConfigId) return [];
+
+  return classroomTimetable.entries.filter(
+    (entry) =>
+      entry.status.toLowerCase() === "active" &&
+      entry.timetableConfigId === effectiveTimetableConfigId,
+  );
+}
+
+export function timetableEntryDisplayLabel(
+  entry: BackendTimetableEntryDto,
+  locale: string,
+): string {
+  const subject =
+    locale === "ar"
+      ? entry.subject?.nameAr || entry.subject?.nameEn
+      : entry.subject?.nameEn || entry.subject?.nameAr;
+  const teacher = entry.teacher as
+    | (NonNullable<BackendTimetableEntryDto["teacher"]> & {
+        name?: string;
+        nameEn?: string;
+        nameAr?: string;
+      })
+    | null;
+  const teacherName =
+    teacher?.fullName ||
+    (locale === "ar"
+      ? teacher?.nameAr || teacher?.nameEn || teacher?.name
+      : teacher?.nameEn || teacher?.nameAr || teacher?.name);
+  const time =
+    entry.period?.startTime && entry.period?.endTime
+      ? `${entry.period.startTime} - ${entry.period.endTime}`
+      : undefined;
+
+  return [entry.period?.label, time, subject, teacherName]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function dashboardDaysForScope(

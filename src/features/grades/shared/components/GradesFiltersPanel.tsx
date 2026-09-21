@@ -70,22 +70,6 @@ export default function GradesFiltersPanel({
       }}
     >
       <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${showSubjectFilter || onDeliveryModeChange ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
-        {scopeEntitiesByType && onHierarchyChange ? (['stage', 'grade', 'section', 'classroom'] as ExamScopeType[]).map((type) => {
-          const parentType = type === 'grade' ? 'stage' : type === 'section' ? 'grade' : type === 'classroom' ? 'section' : undefined;
-          const parentId = parentType ? selectedScopeIds[parentType] : undefined;
-          const options = parentType && !parentId
-            ? []
-            : (scopeEntitiesByType[type] || []).filter((item) => !parentId || item.parentId === parentId);
-          return <Select
-            key={type}
-            label={t(`filters.scopeTypes.${type}`)}
-            value={selectedScopeIds[type] || ''}
-            onChange={(value) => onHierarchyChange(type, value)}
-            options={options.map((item) => ({ value: item.id, label: locale === 'ar' ? item.nameAr : item.nameEn }))}
-            placeholder={parentType && !parentId ? t('filters.selectScope') : t('filters.selectScope')}
-            disabled={Boolean(parentType && !parentId)}
-          />;
-        }) : null}
         <Select
           label={t("filters.scopeType")}
           value={selectedScopeType}
@@ -106,6 +90,22 @@ export default function GradesFiltersPanel({
           }))}
           placeholder={t("filters.selectScope")}
         />
+        {scopeEntitiesByType && onHierarchyChange ? (['stage', 'grade', 'section', 'classroom'] as ExamScopeType[]).map((type) => {
+          const parentType = type === 'grade' ? 'stage' : type === 'section' ? 'grade' : type === 'classroom' ? 'section' : undefined;
+          const parentId = parentType ? selectedScopeIds[parentType] : undefined;
+          const options = parentType && !parentId
+            ? []
+            : (scopeEntitiesByType[type] || []).filter((item) => !parentId || item.parentId === parentId);
+          return <Select
+            key={type}
+            label={t(`filters.scopeTypes.${type}`)}
+            value={selectedScopeIds[type] || ''}
+            onChange={(value) => onHierarchyChange(type, value)}
+            options={options.map((item) => ({ value: item.id, label: locale === 'ar' ? item.nameAr : item.nameEn }))}
+            placeholder={parentType && !parentId ? t('filters.selectScope') : t('filters.selectScope')}
+            disabled={Boolean(parentType && !parentId)}
+          />;
+        }) : null}
         {showSubjectFilter ? (
           <Select
             label={t("filters.subject")}

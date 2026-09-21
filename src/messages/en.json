@@ -495,7 +495,7 @@
       "system": "System",
       "admin": "Admin",
       "teacher": "Teacher",
-    "student": "Student",
+      "student": "Student",
       "parent": "Parent",
       "unknown": "Unknown"
     },
@@ -748,6 +748,14 @@
             "description": "Switch between Arabic and English instantly without leaving the page."
           }
         }
+      },
+      "nationalDay": {
+        "badge": "Saudi National Day",
+        "title": "Our pride is in our nature, and our future grows with knowledge.",
+        "description": "Moazez celebrates the Kingdom and everyone shaping a generation that learns with confidence and builds with ambition.",
+        "logoAlt": "Saudi National Day and Moazez",
+        "formBadge": "Celebrating Saudi National Day",
+        "welcome": "A proud national welcome"
       },
       "title": "Welcome back",
       "subtitle": "Sign in to continue to your school dashboard.",
@@ -2686,9 +2694,9 @@
         "change": "Change"
       },
       "validation": {
-                       "username_required": "Username is required.",
-                       "username_invalid": "Use a valid username format: lowercase letters, numbers, dots, underscores, and hyphens only.",
-                       "contact_email_required": "Contact email is required when creating a student account.",
+        "username_required": "Username is required.",
+        "username_invalid": "Use a valid username format: lowercase letters, numbers, dots, underscores, and hyphens only.",
+        "contact_email_required": "Contact email is required when creating a student account.",
         "user_required": "Select an existing user to link."
       },
       "search_placeholder": "Search by name, username, or email",
@@ -4053,9 +4061,9 @@
         "select": "Select…"
       },
       "errors": {
-                   "load_years_failed": "Could not load academic years.",
-                   "registration_failed": "Registration failed.",
-                   "username_invalid": "Update the username to use a valid format: lowercase letters, numbers, dots, underscores, and hyphens only."
+        "load_years_failed": "Could not load academic years.",
+        "registration_failed": "Registration failed.",
+        "username_invalid": "Update the username to use a valid format: lowercase letters, numbers, dots, underscores, and hyphens only."
       },
       "student_step": {
         "title": "Student information",
@@ -4575,7 +4583,35 @@
         "delete": "Delete",
         "move_up": "Move Up",
         "move_down": "Move Down",
-        "drag_to_reorder": "Drag to reorder"
+        "drag_to_reorder": "Drag to reorder",
+        "expand_all": "Expand all levels",
+        "collapse_all": "Collapse all levels",
+        "structure_summary": "Visible structure totals",
+        "actions": "Structure item actions",
+        "views": {
+          "label": "Structure view",
+          "tree": "Tree",
+          "list": "Drill-down",
+          "back": "Back to the previous level",
+          "empty_level": "No items exist at this level yet.",
+          "levels": {
+            "stages": "Stages",
+            "grades": "Grades",
+            "sections": "Sections",
+            "classrooms": "Classrooms"
+          },
+          "hints": {
+            "tree": "Expand a stage, then a grade and section to see its classrooms.",
+            "stages": "Choose a stage, then a grade and section to reach its classrooms.",
+            "grades": "Choose a grade, then a section to reach its classrooms.",
+            "sections": "Choose a section to open its classrooms.",
+            "classrooms": "You reached the classrooms for this section."
+          },
+          "validation": {
+            "sections_without_classrooms": "Some sections do not have classrooms yet. Add classrooms to complete the structure.",
+            "no_classrooms": "No classrooms"
+          }
+        }
       },
       "details": {
         "no_selection": "Select an item from the tree to view details",
@@ -5491,14 +5527,14 @@
         "remove_pair": "Remove pair",
         "pair_label": "Pair {number}",
         "media": "Media",
-        "media_hint": "Attach a file or paste a link. Question text can be used as optional instructions or caption.",
+        "media_hint": "Add an external HTTPS link. Question text can be used as optional instructions or caption.",
         "media_mode": "Media source",
         "media_mode_link": "Link",
         "media_mode_file": "File",
         "media_title": "Media title",
         "media_title_placeholder": "Optional media title",
         "media_url": "Media URL",
-        "media_link_help": "Use a full http or https link.",
+        "media_link_help": "Use a full HTTPS link.",
         "attach_file": "Attach file",
         "remove_media": "Remove media",
         "media_attached": "Media attached",
@@ -5715,7 +5751,8 @@
         },
         "helpers": {
           "teacherSubjectAllocation": "Homework will use this allocation for teacher, subject, classroom, year, and term validation.",
-          "scheduleDate": "Only dates with this class's scheduled lesson can be selected."
+          "scheduleDate": "Only dates with this class's scheduled lesson can be selected.",
+          "timetablePublicationRequired": "Only slots from an active, published timetable can be linked. If no slot is available, publish the timetable first."
         },
         "targetModes": {
           "classroom": "Classroom",
@@ -5970,7 +6007,10 @@
           "multipleChoice": "Multiple choice",
           "trueFalse": "True / false",
           "shortAnswer": "Short answer",
-          "essay": "Essay"
+          "essay": "Essay",
+          "fillInBlank": "Fill in the blank",
+          "matching": "Matching",
+          "media": "Media"
         },
         "attachments": {
           "title": "Attachments",
@@ -6161,9 +6201,73 @@
         "clearSelection": "Clear",
         "save": "Save Changes",
         "saving": "Saving...",
+        "saveSuccess": "Teacher allocations saved successfully.",
         "reset": "Reset",
         "export": "Export",
         "retry": "Retry"
+      },
+      "reassignment": {
+        "title": "Review teacher reassignment",
+        "description": "Review the responsibilities that will move to the new teacher before confirming.",
+        "currentTeacher": "Current teacher",
+        "targetTeacher": "New teacher",
+        "status": {
+          "ready": "Ready",
+          "blocked": "Blocked"
+        },
+        "sections": {
+          "transfers": "Responsibilities to transfer",
+          "history": "Historical records preserved",
+          "policies": "Records that will not be rewritten",
+          "blockers": "Resolve before reassigning"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "confirm": "Confirm reassignment",
+          "confirming": "Reassigning...",
+          "handoff": {
+            "timetable": "{count, plural, one {# current timetable entry will move} other {# current timetable entries will move}}",
+            "lessonPlans": "{count, plural, one {# current lesson plan will move} other {# current lesson plans will move}}",
+            "homework": "{count, plural, one {# current homework assignment will move} other {# current homework assignments will move}}"
+          }
+        },
+        "history": {
+          "timetable": "{count, plural, one {# historical timetable entry will remain unchanged} other {# historical timetable entries will remain unchanged}}",
+          "lessonPlans": "{count, plural, one {# historical lesson plan will remain unchanged} other {# historical lesson plans will remain unchanged}}",
+          "homework": "{count, plural, one {# historical homework assignment will remain unchanged} other {# historical homework assignments will remain unchanged}}",
+          "reinforcement": "{count, plural, one {# completed or cancelled reinforcement task will remain unchanged} other {# completed or cancelled reinforcement tasks will remain unchanged}}",
+          "announcements": "{count, plural, one {# published, archived, or cancelled announcement will remain unchanged} other {# published, archived, or cancelled announcements will remain unchanged}}"
+        },
+        "blockers": {
+          "targetIsCurrentTeacher": "The selected teacher is already assigned.",
+          "targetAlreadyAllocated": "The selected teacher already has this allocation.",
+          "targetTeacherConflict": "{count, plural, one {The selected teacher has # timetable conflict.} other {The selected teacher has # timetable conflicts.}}",
+          "activeReinforcementTasks": "{count, plural, one {# active reinforcement task must be resolved.} other {# active reinforcement tasks must be resolved.}}",
+          "mutableTeacherAnnouncements": "{count, plural, one {# editable teacher announcement must be resolved.} other {# editable teacher announcements must be resolved.}}"
+        },
+        "errors": {
+          "targetNotFound": "The selected teacher could not be found. Refresh the page and choose a teacher again.",
+          "targetIneligible": "The selected teacher is not eligible for this reassignment.",
+          "blocked": "This reassignment is blocked by current academic records.",
+          "stalePreview": "The allocation changed after this review. The latest data has been loaded; review it again before confirming.",
+          "concurrentChange": "Another change was saved at the same time. The latest data has been loaded; review it again before confirming.",
+          "unknown": "The reassignment could not be completed. Review the latest allocation data and try again.",
+          "traceId": "Reference: {traceId}"
+        },
+        "eligibility": {
+          "incompatibleIdentity": "The selected account is not a compatible teacher identity.",
+          "accountStatusIneligible": "The selected teacher account is not active and eligible.",
+          "membershipIneligible": "The selected teacher does not have an eligible school membership.",
+          "profileMissing": "The selected teacher does not have a teacher profile.",
+          "employmentInactive": "The selected teacher's employment is inactive.",
+          "profileIncomplete": "The selected teacher's profile is incomplete."
+        },
+        "policies": {
+          "assessments": "Assessment access follows the new teacher's current classroom context.",
+          "curriculum": "Curriculum records are not changed.",
+          "attendance": "Historical attendance records keep their original teacher attribution.",
+          "messages": "Message history and authorship are not rewritten."
+        }
       },
       "summaryCards": {
         "totalClassrooms": "Total classrooms",
@@ -6386,11 +6490,18 @@
     },
     "timetable": {
       "title": "Timetable",
+      "loadingLabel": "Loading timetable",
       "tabs": {
         "timetable": "Timetable",
         "rooms": "Rooms"
       },
       "filters": {
+        "selectScope": "Scope",
+        "scopeTerm": "Term",
+        "scopeStage": "Stage",
+        "scopeGrade": "Grade",
+        "scopeSection": "Section",
+        "scopeClassroom": "Classroom",
         "selectStage": "Select Stage",
         "selectGrade": "Select Grade",
         "selectSection": "Select Section",
@@ -6471,27 +6582,31 @@
       },
       "generate": {
         "title": "Auto Generate Timetable",
-        "description": "Missing periods will be generated for the selected classroom based on weekly periods and teacher allocations.",
-        "options": {
-          "distributeEvenly": "Distribute subjects evenly across days",
-          "avoidConsecutive": "Avoid same subject in consecutive periods",
-          "strictMode": "Strict mode (fail on any conflict)",
-          "strictModeHelp": "In strict mode, generation will fail if it cannot place all required hours"
-        },
+        "description": "Generate missing timetable demand for this complete configuration scope.",
+        "configLabel": "Timetable configuration",
+        "scopeLabel": "Scope",
+        "classroomCount": "Classrooms affected",
+        "persistenceWarning": "Generated entries are saved immediately by the backend. The timetable will be refreshed after generation.",
         "generating": "Generating...",
         "generate": "Generate",
-        "apply": "Apply",
         "cancel": "Cancel",
+        "close": "Close",
+        "openValidation": "Open validation",
+        "unassignedClassroom": "Unassigned classroom",
+        "unassignedSubject": "Unassigned subject",
+        "unresolved": {
+          "missing_teacher_allocation": "Assign a qualified teacher before generating again.",
+          "no_feasible_slot": "No feasible timetable slot is available; review validation details.",
+          "existing_over_scheduled": "Existing entries already exceed the required weekly demand.",
+          "search_budget_exhausted": "The backend could not finish its search safely; no partial generation was applied."
+        },
         "result": {
-          "entriesGenerated": "Entries Generated",
-          "unresolvedSubjects": "Incomplete Subjects",
-          "unresolvedTitle": "Subjects with unplaced periods",
-          "periods": "periods",
-          "hours": "periods",
-          "applyWarning": "This will add the generated periods to the selected classroom. Review and save when ready.",
-          "applied": "Applied {count} generated entries",
-          "successMessage": "Successfully generated timetable with {count} entries",
-          "partialMessage": "Generated {generated} entries, but {unresolved} subjects have unplaced hours"
+          "complete": "Generation completed and the saved timetable has been refreshed.",
+          "partial": "Generation saved the feasible entries. Review the unresolved demand below.",
+          "budget_exhausted": "Generation stopped before a safe complete plan was found. No partial generation was applied.",
+          "createdCount": "Created",
+          "existingCount": "Existing",
+          "remainingDemandCount": "Remaining demand"
         }
       },
       "editSlot": {
@@ -6528,6 +6643,8 @@
         "roomSourceManual": "manual selection",
         "roomOptionalWarning": "Room is optional, but this slot will save without a room.",
         "roomConflictWarning": "This room is already used in another slot at this time.",
+        "roomInactive": "This room is inactive and cannot be selected.",
+        "roomCapacityInsufficient": "Room capacity ({roomCapacity}) is below classroom capacity ({classroomCapacity}).",
         "breakLabelPlaceholderAr": "فسحة",
         "breakLabelPlaceholderEn": "Break"
       },
@@ -6633,6 +6750,23 @@
         },
         "emptyState": "No rooms found. Add your first room.",
         "searchPlaceholder": "Search rooms...",
+        "dependency": {
+          "title": "Room scheduling dependency",
+          "description": "This room cannot be changed because the current schedule depends on it.",
+          "close": "Close",
+          "traceId": "Trace ID",
+          "reasons": {
+            "room_deactivation": "This room cannot be deactivated while it is assigned to active timetable entries or classrooms.",
+            "capacity_insufficient": "The proposed capacity is too small for classrooms currently using this room.",
+            "room_delete": "This room cannot be deleted while it is assigned to active timetable entries or classrooms."
+          },
+          "details": {
+            "activeTimetableEntryCount": "Active timetable entries",
+            "classroomDefaultRoomCount": "Classrooms using this default room",
+            "incompatibleClassroomCount": "Classrooms exceeding the proposed capacity",
+            "proposedRoomCapacity": "Proposed room capacity"
+          }
+        },
         "defaults": {
           "title": "Default Room Assignments",
           "description": "Define default rooms for sections and classrooms used by timetable editing.",
@@ -6717,6 +6851,8 @@
         "scope": {
           "term": "Entire Term",
           "termDesc": "Apply to all grades and sections",
+          "stage": "Specific Stage",
+          "stageDesc": "Apply to one stage only",
           "grade": "Specific Grade",
           "gradeDesc": "Apply to one grade only",
           "section": "Individual Section",
@@ -6769,6 +6905,7 @@
         "name": "Name",
         "scopeLabel": "Scope",
         "scopeLockedHelp": "This configuration applies to the timetable selected above. Change the timetable filters to configure a different scope.",
+        "scopeSelectHelp": "Choose Term for the whole term, or use an available level from the selected timetable filters.",
         "weekStartDay": "Week start day",
         "activeDays": "Active days",
         "periodsSection": "Periods",
@@ -6797,6 +6934,7 @@
         },
         "scopeOptions": {
           "term": "Term",
+          "stage": "Stage",
           "grade": "Grade",
           "section": "Section",
           "classroom": "Classroom"
@@ -6814,6 +6952,16 @@
         "classroom": "Classroom",
         "configSource": "Config source"
       },
+      "source": {
+        "exactTitle": "Scope timetable",
+        "exactDescription": "This scope uses its own timetable configuration.",
+        "inheritedTitle": "Inherited published timetable",
+        "inheritedDescription": "This published timetable is inherited and read-only.",
+        "sourceLabel": "Source",
+        "lockedLabel": "Inherited timetable is locked",
+        "createOverride": "Create custom timetable",
+        "overrideUnavailable": "You cannot create an override for this scope while the term is closed or without manage permission."
+      },
       "export": {
         "status": "Status",
         "draft": "Draft",
@@ -6830,8 +6978,12 @@
       "errors": {
         "loadFailed": "Failed to load timetable data.",
         "saveFailed": "Failed to save timetable.",
+        "saveReloadFailed": "Timetable changes may have been saved, but the authoritative reload failed.",
+        "partialSaveRefreshed": "Some deletions may already have been applied. The timetable was refreshed.",
+        "partialSaveReloadFailed": "Some deletions may already have been applied, and the authoritative reload failed.",
         "publishFailed": "Failed to publish timetable.",
         "unpublishFailed": "Failed to unpublish timetable.",
+        "unpublishUnsupportedScope": "Unpublish is unavailable for stage and section timetables.",
         "noConfigSelected": "No timetable config selected.",
         "noFilledSlotsToSave": "No filled timetable slots to save.",
         "noFilledSlotsToPublish": "No filled timetable slots to publish.",
@@ -6849,6 +7001,8 @@
         "classroom_scope_mismatch": "The classroom does not match the selected timetable scope.",
         "allocation_mismatch": "The teacher allocation does not match this timetable slot.",
         "room_not_found": "The selected room no longer exists.",
+        "room_inactive": "The selected room is not available for timetable scheduling.",
+        "room_capacity_insufficient": "The selected room does not have enough capacity for this classroom.",
         "entry_not_mutable": "This timetable entry cannot be edited.",
         "invalid_time_range": "Start time must be before end time.",
         "period_overlap": "Periods cannot overlap.",
@@ -7262,7 +7416,21 @@
         "title": "Assessment submissions",
         "subtitle": "Track answer progress, submission state, and correction readiness.",
         "detailTitle": "Submission",
+        "backToAssessments": "Back to assessments",
         "search": "Search students",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "allGrades": "All grades",
+        "allSections": "All sections",
+        "allClassrooms": "All classrooms",
+        "resetFilters": "Reset filters",
+        "filterOptionsUnavailable": "Academic scope filters are currently unavailable.",
+        "traceId": "Support trace ID: {traceId}",
+        "bulkReviewPartialRecovery": "Some review changes may have been applied. Refresh and verify before retrying.",
+        "bulkReviewRecoveryFailed": "Review save failed ({saveError}) and recovery refresh also failed ({reloadError}).",
+        "genericReloadFailure": "The submission could not be refreshed.",
+        "finalizeBlockedStatus": "Finalization is available only for submitted submissions.",
         "allStatuses": "All statuses",
         "loading": "Loading submissions...",
         "empty": "No submissions match the current filters.",
@@ -7279,10 +7447,70 @@
         "finalize": "Finalize review",
         "sync": "Sync grade",
         "points": "points",
+        "required": "Required",
+        "score": "Score",
+        "requiredProgress": "Required answers",
+        "assessmentStatus": "Assessment status",
+        "deliveryMode": "Delivery mode",
+        "startedAt": "Started",
+        "submittedAt": "Submitted",
+        "correctedAt": "Corrected",
+        "correctionStatus": "Correction status",
+        "reviewedAt": "Reviewed at",
+        "messages": {
+          "synced": "The submission grade was synced to the gradebook."
+        },
+        "assessmentStatuses": {
+          "draft": "Draft",
+          "published": "Published",
+          "approved": "Approved"
+        },
+        "deliveryModes": {
+          "questionBased": "Question-based",
+          "scoreOnly": "Score only"
+        },
+        "correctionStatuses": {
+          "pending": "Pending review",
+          "corrected": "Corrected"
+        },
+        "questionTypes": {
+          "singleChoice": "Single choice",
+          "multipleChoice": "Multiple choice",
+          "trueFalse": "True / false",
+          "shortAnswer": "Short answer",
+          "essay": "Essay",
+          "fillInBlank": "Fill in the blank",
+          "matching": "Matching",
+          "media": "Media"
+        },
         "answerPlaceholder": "Enter the student's answer",
+        "fillInBlankAnswer": "Your answer",
+        "fillInBlankPlaceholder": "Enter the missing word or phrase",
+        "questionDetailsUnavailable": "Question details are unavailable.",
+        "matchingHelp": "Match every prompt with one answer before saving.",
+        "matchingPrompt": "Prompt",
+        "matchingAnswer": "Matching answer",
+        "selectMatch": "Select the matching answer",
+        "mediaAttachment": "Attached media",
+        "openMedia": "Open {label}",
         "awardedPoints": "Awarded points",
         "reviewComment": "Reviewer comment",
         "saveReview": "Save review",
+        "saveAllReviews": "Save all reviews",
+        "reviewCommentEn": "Reviewer comment (English)",
+        "reviewCommentAr": "Reviewer comment (Arabic)",
+        "back": "Back",
+        "finalizeBlockedUnsaved": "Save or correct unsaved reviews before finalizing.",
+        "finalizeBlockedPending": "All answers must be corrected before finalizing.",
+        "discardReviewTitle": "Discard unsaved reviews?",
+        "discardReviewDescription": "Your review changes have not been saved.",
+        "discardReviewConfirm": "Discard changes",
+        "reviewValidation": {
+          "required": "A score is required.",
+          "invalid": "Enter a valid score.",
+          "out_of_range": "Score must be within the available points.",
+          "too_long": "This comment cannot exceed 2,000 characters."
+        },
         "statuses": {
           "IN_PROGRESS": "In progress",
           "SUBMITTED": "Submitted",
@@ -7373,6 +7601,47 @@
         "subtitle": "Students by rows, exams by columns",
         "search": "Search students or classrooms",
         "statusFilter": "Filter by grade status",
+        "groups": "Assessment groups",
+        "viewMode": "Gradebook view",
+        "views": {
+          "student": "Students",
+          "assessment": "Assessment",
+          "matrix": "Matrix"
+        },
+        "studentProgress": "{completed}/{total} completed · {average}% average",
+        "assessment": "Assessment",
+        "assessmentProgress": "Weight {weight}% · maximum {maxScore} points",
+        "points": "points",
+        "grade": "Grade",
+        "assessments": "Assessments",
+        "assessmentFilter": "Filter assessments",
+        "studentListSignals": "{missing} missing · {absent} absent",
+        "emptyStates": {
+          "noAssessmentsTitle": "No assessments to display"
+        },
+        "deliveryHints": {
+          "scoreOnly": "Enter this student's score manually; it has no submissions.",
+          "questionBased": "A student submission can be reviewed from the Review button."
+        },
+        "studentSummary": {
+          "overall": "Overall",
+          "completed": "Completed",
+          "missing": "Missing",
+          "absent": "Absent"
+        },
+        "pagination": {
+          "summary": "Showing {from}–{to} of {total}",
+          "pageSize": "Students per page",
+          "previous": "Previous",
+          "next": "Next",
+          "page": "Page {page} of {total}"
+        },
+        "summary": {
+          "students": "Students shown",
+          "entered": "Entered grades",
+          "missing": "Missing grades",
+          "absent": "Absent grades"
+        },
         "statuses": {
           "all": "All statuses",
           "entered": "Entered",
@@ -7416,7 +7685,14 @@
         "absent": "Absent",
         "pending": "Pending",
         "missing": "Missing",
-        "openReview": "Review"
+        "openReview": "Review",
+        "studentCode": "Student code",
+        "admissionNo": "Admission no.",
+        "completedWeight": "Completed weight",
+        "missingCount": "Missing count",
+        "absentCount": "Absent count",
+        "weightedContribution": "Weight: {value}",
+        "virtualMissing": "Virtual missing"
       },
       "assessmentTypes": {
         "quiz": "Quiz",
@@ -7458,7 +7734,8 @@
         "reasons": {
           "termClosed": "This term is closed.",
           "locked": "This assessment is locked.",
-          "permission": "You do not have permission to manage grade items."
+          "permission": "You do not have permission to manage grade items.",
+          "notPublished": "Publish this assessment before entering or reviewing grades."
         }
       },
       "export": {
@@ -7566,6 +7843,7 @@
         "createAssessment": {
           "title": "Create Exam",
           "description": "Add a new exam for the selected scope and subject.",
+          "term": "Term",
           "scopeType": "Scope Type",
           "scope": "Scope",
           "subject": "Subject",
@@ -7575,7 +7853,9 @@
           "type": "Type",
           "date": "Date",
           "weight": "Weight",
+          "weightHint": "Percentage of the subject total; weights for this scope and subject cannot exceed 100%.",
           "maxScore": "Max Score",
+          "expectedTimeMinutes": "Expected time (minutes)",
           "save": "Create",
           "continueToBuilder": "Continue to Question Builder",
           "cancel": "Cancel",
@@ -7616,7 +7896,9 @@
           "type": "Type",
           "date": "Date",
           "weight": "Weight",
+          "weightHint": "Percentage of the subject total; weights for this scope and subject cannot exceed 100%.",
           "maxScore": "Max Score",
+          "expectedTimeMinutes": "Expected time (minutes)",
           "save": "Save Changes",
           "cancel": "Cancel",
           "types": {
@@ -7881,6 +8163,11 @@
           "saved": "Question saved successfully",
           "deleted": "Question deleted successfully",
           "pointsUpdated": "Question points updated successfully"
+        },
+        "recovery": {
+          "partialCreationTitle": "Assessment created; a question needs attention",
+          "partialCreationDescription": "The assessment was created, but question {failedQuestionNumber} could not be saved. Review the saved questions, then add that question again.",
+          "dismiss": "Dismiss"
         },
         "saveAssessment": "Save Assessment",
         "readOnly": "Read-only",
@@ -10362,21 +10649,21 @@
           "back": "Back to campaigns",
           "close": "Close"
         },
-    "recipients": {
-      "title": "Recipient preview",
-      "description": "Preview eligible and skipped recipients before creating a campaign batch.",
-      "total_matched": "Matched",
-      "eligible": "Eligible",
-      "skipped": "Skipped",
-      "zero_eligible_warning": "No recipients are eligible. Review the skip reasons or choose a different audience before creating the campaign.",
-      "skip_reasons": {
-        "title": "Why recipients are skipped",
-        "disabled_user": "Disabled account",
-        "missing_contact_email": "No contact email",
-        "duplicate_email": "Duplicate recipient email",
-        "invalid_email": "Invalid email address",
-        "unknown": "Other backend eligibility rule"
-      },
+        "recipients": {
+          "title": "Recipient preview",
+          "description": "Preview eligible and skipped recipients before creating a campaign batch.",
+          "total_matched": "Matched",
+          "eligible": "Eligible",
+          "skipped": "Skipped",
+          "zero_eligible_warning": "No recipients are eligible. Review the skip reasons or choose a different audience before creating the campaign.",
+          "skip_reasons": {
+            "title": "Why recipients are skipped",
+            "disabled_user": "Disabled account",
+            "missing_contact_email": "No contact email",
+            "duplicate_email": "Duplicate recipient email",
+            "invalid_email": "Invalid email address",
+            "unknown": "Other backend eligibility rule"
+          },
           "sample_eligible": "Sample eligible recipients",
           "sample_skipped": "Sample skipped recipients",
           "no_eligible": "No eligible recipients in the sample.",
@@ -11272,6 +11559,7 @@
       "showAdvancedFilters": "Show more filters",
       "hideAdvancedFilters": "Hide more filters",
       "includeCancelled": "Include cancelled tasks",
+      "filterOptionsUnavailable": "Task filters are temporarily unavailable. The task list is still up to date.",
       "search": "Search tasks",
       "source": "Source",
       "targetScope": "Target scope",
@@ -11287,7 +11575,8 @@
       "messages": {
         "created": "Task created successfully.",
         "duplicated": "Task duplicated successfully.",
-        "cancelled": "Task cancelled successfully."
+        "cancelled": "Task cancelled successfully.",
+        "alreadyCancelled": "This task has already been cancelled."
       },
       "table": {
         "task": "Task",
@@ -11400,6 +11689,7 @@
       }
     },
     "xp": {
+      "filterOptionsUnavailable": "Policy target labels are temporarily unavailable. The policy list is still up to date.",
       "policiesTitle": "XP Policies",
       "policiesDescription": "Configure XP limits, cooldowns, and effective policy scopes.",
       "ledgerTitle": "XP Ledger",
@@ -11416,6 +11706,8 @@
       "updatePolicy": "Update policy",
       "updatePolicyDescription": "Update the XP policy academic context, scope, limits, reasons, dates, and active state.",
       "policyFilters": "Policy filters",
+      "policyFiltersDescription": "Filter by scope, activity, or a specific academic target.",
+      "clearFilters": "Clear filters",
       "ledgerFilters": "Ledger filters",
       "policyScope": "Policy scope",
       "policyCaps": "Caps and reasons",
@@ -11468,6 +11760,8 @@
         "granted": "Manual XP grant recorded successfully."
       },
       "validation": {
+        "invalidCaps": "Caps must be whole numbers of zero or greater, and the weekly cap cannot be below the daily cap.",
+        "policyConflict": "An active XP policy already exists for this scope.",
         "academicYearRequired": "Select an academic year first.",
         "termRequired": "Select a term first.",
         "studentRequired": "Select a student before continuing.",
@@ -11547,7 +11841,8 @@
       "stageRequired": "Add at least one stage.",
       "targetRequired": "Select at least one target.",
       "duplicateTarget": "This target is already selected.",
-      "futureDueDateRequired": "Choose a future due date.",
+      "futureDueDateRequired": "Choose a due date.",
+      "invalidDueDateRange": "The due-date range is invalid.",
       "cancelReasonRequired": "Enter a cancellation reason.",
       "studentRequired": "Select a student.",
       "enrollmentRequired": "Select an enrollment.",
@@ -12024,9 +12319,13 @@
         "allStatuses": "All statuses",
         "allTypes": "All types",
         "allCatalogStatuses": "All catalog statuses",
+        "catalogStatusSummary": "Catalog status (summary)",
+        "catalogSummaryOnly": "Affects the catalog summary only.",
         "includeArchived": "Include archived",
         "includeDeleted": "Include deleted",
+        "includeDeletedCatalog": "Include deleted catalog items",
         "onlyAvailable": "Only available",
+        "onlyAvailableCatalog": "Only available catalog items",
         "filtersTitle": "Filters",
         "dateFrom": "Date From",
         "dateTo": "Date To",
@@ -12046,6 +12345,10 @@
           "descriptionPlaceholderAr": "Enter the reward description in Arabic (optional)",
           "stockRemaining": "Stock remaining",
           "stockRemainingRequired": "Stock remaining is required for limited rewards.",
+          "stockQuantityRequired": "Stock quantity is required for limited rewards.",
+          "stockRemainingExceedsQuantity": "Stock remaining cannot exceed stock quantity.",
+          "nonNegativeInteger": "Enter whole numbers that are zero or greater.",
+          "integer": "Enter a whole number.",
           "stockRemainingHelp": "Current available quantity. Leave empty to let the backend use the stock quantity.",
           "academicScope": "Academic scope",
           "academicYear": "Academic year",
@@ -12066,6 +12369,9 @@
           "termsLoadFailed": "Unable to load terms for this academic year.",
           "contextUnavailable": "Select an academic year and term to view the reward catalog."
         },
+        "filters": {
+          "allAvailability": "All availability"
+        },
         "archive": {
           "title": "Archive reward",
           "description": "Archive this reward so it no longer appears as an active catalog option. Existing historical records remain available.",
@@ -12074,7 +12380,7 @@
         },
         "publish": {
           "title": "Publish reward",
-          "description": "Are you sure you want to publish this reward? Published rewards can no longer be edited."
+          "description": "Are you sure you want to publish this reward? Academic scope and reward type will be locked after publishing."
         },
         "availability": {
           "available": "Available",
@@ -12120,7 +12426,14 @@
         },
         "filters": {
           "requestedFrom": "From Date",
-          "requestedTo": "To Date"
+          "requestedTo": "To Date",
+          "allSources": "All sources",
+          "requestState": "Request state",
+          "allRequests": "All requests",
+          "openOnly": "Open requests only",
+          "allStudents": "All students",
+          "allRewards": "All rewards",
+          "optionsUnavailable": "Student and reward filter options are temporarily unavailable. You can still use the other filters."
         },
         "table": {
           "student": "Student",
@@ -12217,6 +12530,19 @@
         "rejected": "Redemption rejected successfully.",
         "fulfilled": "Redemption fulfilled successfully.",
         "cancelled": "Redemption cancelled successfully."
+      },
+      "errors": {
+        "validation": "Check the entered values and try again.",
+        "archived": "This reward is archived and cannot be changed or requested.",
+        "notPublished": "Publish this reward before requesting it.",
+        "outOfStock": "This reward is no longer available because it is out of stock.",
+        "insufficientXp": "The student does not have enough XP for this reward.",
+        "duplicateRedemption": "This student already has an open request for this reward.",
+        "invalidTransition": "This action is not available for the current request state.",
+        "notRequested": "Only requested redemptions can be cancelled.",
+        "notApproved": "Approve this redemption before fulfilling it.",
+        "terminal": "This redemption has already been completed, rejected, or cancelled.",
+        "invalidSource": "This request source is not allowed."
       },
       "emptyStates": {
         "catalog": "No rewards in the catalog yet.",
@@ -12435,10 +12761,10 @@
       "request_created": "Request created",
       "request_escalated": "Request escalated",
       "escalation_recorded": "Follow-up required",
-    "status_changed": "Status changed",
-    "initial_status": "Initial status: {status}",
-    "status_changed_from_to": "{from} → {to}",
-    "note": "Staff note",
+      "status_changed": "Status changed",
+      "initial_status": "Initial status: {status}",
+      "status_changed_from_to": "{from} → {to}",
+      "note": "Staff note",
       "no_events": "No timeline events are available for this request."
     },
     "operations_recipients": {
@@ -13205,7 +13531,7 @@
       "phone_invalid": "Enter a valid phone number.",
       "email_invalid": "Enter a valid email address.",
       "work_time_order_invalid": "Work end time must be after work start time.",
-                   "identity_inconsistent": "This teacher's account state is inconsistent, so the operation was stopped safely.",
+      "identity_inconsistent": "This teacher's account state is inconsistent, so the operation was stopped safely.",
       "identity_inconsistent_guidance": "The latest teacher state was refreshed. Contact an administrator or backend support to repair the linked user and membership records before trying again.",
       "trace_id": "Support trace ID"
     },

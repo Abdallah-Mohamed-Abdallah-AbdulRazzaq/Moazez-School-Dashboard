@@ -6,6 +6,7 @@ import type { NotificationFiltersState } from "../../hooks/useNotifications";
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
+  useTranslations: () => (key: string) => key,
 }));
 
 // Mock the search select components since they are not the focus of this test and might make API calls
@@ -57,7 +58,7 @@ const initialFilters: NotificationFiltersState = {
 };
 
 describe("NotificationFilters", () => {
-  it("renders with early leave option and allows selecting it", async () => {
+  it("uses the backend announcement source type for the production filter", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
@@ -69,29 +70,79 @@ describe("NotificationFilters", () => {
       />
     );
 
-    // Find the Type select trigger button
-    const typeLabel = screen.getByText("Type");
-    const typeContainer = typeLabel.parentElement;
-    expect(typeContainer).toBeInTheDocument();
-    
-    const typeButton = typeContainer?.querySelector("button");
-    expect(typeButton).toBeInTheDocument();
+    const sourceTypeButton = screen
+      .getByText("Source Type")
+      .parentElement?.querySelector("button");
+    expect(sourceTypeButton).toBeInTheDocument();
 
-    // Click the Type select to open options
-    await user.click(typeButton!);
+    await user.click(sourceTypeButton!);
+    await user.click(screen.getByRole("button", { name: "announcement" }));
 
-    // Find and click the attendance_early_leave option
-    const earlyLeaveOption = screen.getByRole("button", {
-      name: "attendance_early_leave",
-    });
-    expect(earlyLeaveOption).toBeInTheDocument();
-
-    await user.click(earlyLeaveOption);
-
-    // Verify onChange was called with the updated filter
     expect(onChange).toHaveBeenCalledWith({
       ...initialFilters,
-      type: "attendance_early_leave",
+      sourceType: "communication_announcement",
+      sourceId: "",
+    });
+  });
+
+  it("clears dependent source filters when the source module changes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const announcementFilters: NotificationFiltersState = {
+      ...initialFilters,
+      sourceModule: "announcements",
+      sourceType: "communication_announcement",
+      sourceId: "announcement-1",
+    };
+
+    render(
+      <NotificationFilters
+        filters={announcementFilters}
+        labels={mockLabels}
+        onChange={onChange}
+      />
+    );
+
+    const sourceModuleButton = screen
+      .getByText("Source Module")
+      .parentElement?.querySelector("button");
+    expect(sourceModuleButton).toBeInTheDocument();
+
+    await user.click(sourceModuleButton!);
+    await user.click(screen.getByRole("button", { name: "communication" }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...announcementFilters,
+      sourceModule: "communication",
+      sourceType: "",
+      sourceId: "",
+    });
+  });
+
+  it("applies a message source ID after the user finishes entering it", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const messageFilters: NotificationFiltersState = {
+      ...initialFilters,
+      sourceModule: "communication",
+      sourceType: "communication_message",
+    };
+
+    render(
+      <NotificationFilters
+        filters={messageFilters}
+        labels={mockLabels}
+        onChange={onChange}
+      />
+    );
+
+    const sourceId = "2f98396a-36e1-4f4a-bc85-359874fe21e8";
+    await user.type(screen.getByLabelText("Source ID"), sourceId);
+    await user.tab();
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...messageFilters,
+      sourceId,
     });
   });
 });

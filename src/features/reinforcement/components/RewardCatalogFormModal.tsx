@@ -19,6 +19,16 @@ import type {
   UpdateRewardCatalogItemPayload,
 } from "@/features/reinforcement/types";
 
+const MAX_TITLE_LENGTH = 255;
+const MAX_DESCRIPTION_LENGTH = 2_000;
+
+function isNonNegativeInteger(numericText: string) {
+  return (
+    !numericText ||
+    (Number.isInteger(Number(numericText)) && Number(numericText) >= 0)
+  );
+}
+
 interface RewardCatalogFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -58,6 +68,7 @@ export default function RewardCatalogFormModal({
   const tCommon = useTranslations("common");
 
   const isEditMode = !!initialData;
+  const isPublished = initialData?.status === "published";
 
   const [titleEn, setTitleEn] = useState("");
   const [titleAr, setTitleAr] = useState("");
@@ -151,12 +162,35 @@ export default function RewardCatalogFormModal({
       return;
     }
 
+    if (!isUnlimited && !stockQuantity.trim()) {
+      setValidationError(t("rewardsModule.catalog.form.stockQuantityRequired"));
+      return;
+    }
+
     if (!isUnlimited && !stockRemaining.trim()) {
       setValidationError(
         t("rewardsModule.catalog.form.stockRemainingRequired", {
           defaultMessage: "Stock remaining is required for limited rewards.",
         }),
       );
+      return;
+    }
+
+    const stockValues = isUnlimited
+      ? [minTotalXp]
+      : [minTotalXp, stockQuantity, stockRemaining];
+    if (stockValues.some((value) => !isNonNegativeInteger(value))) {
+      setValidationError(t("rewardsModule.catalog.form.nonNegativeInteger"));
+      return;
+    }
+
+    if (sortOrder && !Number.isInteger(Number(sortOrder))) {
+      setValidationError(t("rewardsModule.catalog.form.integer"));
+      return;
+    }
+
+    if (!isUnlimited && Number(stockRemaining) > Number(stockQuantity)) {
+      setValidationError(t("rewardsModule.catalog.form.stockRemainingExceedsQuantity"));
       return;
     }
 
@@ -170,13 +204,13 @@ export default function RewardCatalogFormModal({
         };
 
     const commonPayload = {
-      ...scopedFields,
+      ...(isPublished ? {} : scopedFields),
       imageFileId,
       titleEn: titleEn.trim() || undefined,
       titleAr: titleAr.trim() || undefined,
       descriptionEn: descriptionEn.trim() || undefined,
       descriptionAr: descriptionAr.trim() || undefined,
-      type,
+      ...(isPublished ? {} : { type }),
       minTotalXp: minTotalXp ? Number(minTotalXp) : undefined,
       stockQuantity:
         !isUnlimited && stockQuantity ? Number(stockQuantity) : undefined,
@@ -242,6 +276,7 @@ export default function RewardCatalogFormModal({
             placeholder={t("rewardsModule.catalog.form.titlePlaceholderAr")}
             dir="rtl"
             required={!titleEn.trim()}
+            maxLength={MAX_TITLE_LENGTH}
           />
           <Input
             label={t("rewardsModule.catalog.table.title") + " (EN)"}
@@ -249,6 +284,7 @@ export default function RewardCatalogFormModal({
             onChange={(e) => setTitleEn(e.target.value)}
             placeholder="Reward title in English"
             required={!titleAr.trim()}
+            maxLength={MAX_TITLE_LENGTH}
           />
         </div>
 
@@ -263,6 +299,7 @@ export default function RewardCatalogFormModal({
             )}
             dir="rtl"
             rows={3}
+            maxLength={MAX_DESCRIPTION_LENGTH}
           />
           <TextArea
             label={`${t("rewardsModule.description")} (EN)`}
@@ -270,6 +307,7 @@ export default function RewardCatalogFormModal({
             onChange={(e) => setDescriptionEn(e.target.value)}
             placeholder="Description in English"
             rows={3}
+            maxLength={MAX_DESCRIPTION_LENGTH}
           />
         </div>
 
@@ -289,7 +327,7 @@ export default function RewardCatalogFormModal({
           defaultTermId={defaultTermId}
           value={scope}
           onChange={setScope}
-          disabled={loading}
+          disabled={loading || isPublished}
           hideAcademicContextSelectors
         />
 
@@ -299,6 +337,7 @@ export default function RewardCatalogFormModal({
           options={typeOptions}
           value={type}
           onChange={(val) => setType(val as RewardItemType)}
+          disabled={loading || isPublished}
           required
         />
 
@@ -310,6 +349,8 @@ export default function RewardCatalogFormModal({
             value={minTotalXp}
             onChange={(e) => setMinTotalXp(e.target.value)}
             placeholder="0"
+            min={0}
+            step={1}
           />
           <Input
             label={t("rewardsModule.catalog.table.stock")}
@@ -318,6 +359,8 @@ export default function RewardCatalogFormModal({
             onChange={(e) => setStockQuantity(e.target.value)}
             placeholder="0"
             disabled={isUnlimited}
+            min={0}
+            step={1}
           />
           <Input
             label={t("rewardsModule.catalog.form.stockRemaining")}
@@ -327,6 +370,8 @@ export default function RewardCatalogFormModal({
             placeholder="0"
             disabled={isUnlimited}
             required={!isUnlimited}
+            min={0}
+            step={1}
             helperText={t("rewardsModule.catalog.form.stockRemainingHelp")}
           />
           <Input
@@ -335,6 +380,7 @@ export default function RewardCatalogFormModal({
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
             placeholder="0"
+            step={1}
           />
         </div>
 

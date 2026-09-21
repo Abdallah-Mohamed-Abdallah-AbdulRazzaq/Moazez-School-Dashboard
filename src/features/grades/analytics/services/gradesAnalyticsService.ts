@@ -51,6 +51,17 @@ function mapDistributionBuckets(
   }));
 }
 
+export function calculateGradesCompletionRate(
+  summary: Pick<
+    BackendGradesAnalyticsSummaryResponse,
+    "enteredItemCount" | "missingItemCount" | "absentItemCount"
+  >,
+): number {
+  const totalItemCount =
+    summary.enteredItemCount + summary.missingItemCount + summary.absentItemCount;
+  return totalItemCount > 0 ? (summary.enteredItemCount / totalItemCount) * 100 : 0;
+}
+
 export async function fetchGradesAnalytics(
   academicYearId: string,
   termId: string,
@@ -70,7 +81,7 @@ export async function fetchGradesAnalytics(
     kpis: {
       classAverage: summary.averagePercent ?? 0,
       passRate: summary.passRate ?? 0,
-      completionRate: summary.completedWeightAverage ?? 0,
+      completionRate: calculateGradesCompletionRate(summary),
       failingStudents: summary.failingCount,
     },
     distribution: mapDistributionBuckets(distribution),

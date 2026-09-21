@@ -4,7 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { AlertCircle, DoorOpen, Download, Edit2, Plus, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  DoorOpen,
+  Download,
+  Edit2,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { AccessDenied, Button } from "@/components/ui";
 import Select from "@/components/ui/input/Select";
@@ -31,6 +38,11 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import { usePermissions } from "@/hooks/usePermissions";
 import { isApiError } from "@/lib/api-error";
 import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
+import RoomDependencyDialog from "./RoomDependencyDialog";
+import {
+  roomSchedulingUiError,
+  type RoomSchedulingUiError,
+} from "@/features/academics/rooms/services/roomSchedulingErrors";
 
 interface RoomsViewProps {
   schoolId: string;
@@ -104,7 +116,9 @@ export default function RoomsView({
     }),
     [searchParams],
   );
-  const [searchInputValue, setSearchInputValue] = useState(queryState.searchQuery);
+  const [searchInputValue, setSearchInputValue] = useState(
+    queryState.searchQuery,
+  );
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [floorFilter, setFloorFilter] = useState("");
@@ -114,9 +128,13 @@ export default function RoomsView({
   const [isRoomSaving, setIsRoomSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
+  const [schedulingError, setSchedulingError] =
+    useState<RoomSchedulingUiError | null>(null);
 
   useEffect(() => {
-    void Promise.resolve().then(() => setSearchInputValue(queryState.searchQuery));
+    void Promise.resolve().then(() =>
+      setSearchInputValue(queryState.searchQuery),
+    );
   }, [queryState.searchQuery]);
 
   const syncQueryParams = useCallback(
@@ -155,9 +173,12 @@ export default function RoomsView({
     syncQueryParams({ searchQuery: value }, "replace");
   }, 250);
 
-  useEffect(() => () => {
-    syncSearchQueryParam.cancel();
-  }, [syncSearchQueryParam]);
+  useEffect(
+    () => () => {
+      syncSearchQueryParam.cancel();
+    },
+    [syncSearchQueryParam],
+  );
 
   const loadRooms = useCallback(async () => {
     if (!canViewRooms) {
@@ -171,6 +192,7 @@ export default function RoomsView({
       const loadedRooms = await fetchRooms(schoolId);
       setRooms(loadedRooms);
     } catch (error) {
+      setSchedulingError(roomSchedulingUiError(error));
       console.error("Failed to load rooms:", error);
       const errorMessage = roomApiErrorMessage(error, t("loadError"));
       setLoadError(errorMessage);
@@ -222,6 +244,7 @@ export default function RoomsView({
       await loadRooms();
       setRoomDialogOpen(false);
     } catch (error) {
+      setSchedulingError(roomSchedulingUiError(error));
       console.error("Failed to save room:", error);
       showToast(roomApiErrorMessage(error, tCommon("save_failed")), "error");
     } finally {
@@ -239,6 +262,7 @@ export default function RoomsView({
       setDeleteDialogOpen(false);
       setRoomToDelete(null);
     } catch (error) {
+      setSchedulingError(roomSchedulingUiError(error));
       console.error("Failed to delete room:", error);
       showToast(roomApiErrorMessage(error, tCommon("delete_failed")), "error");
     }
@@ -312,7 +336,9 @@ export default function RoomsView({
       key: "capacity",
       label: t("table.capacity"),
       render: (_value: unknown, room: Room) => (
-        <span className="text-gray-900">{room.capacity ? room.capacity : "-"}</span>
+        <span className="text-gray-900">
+          {room.capacity ? room.capacity : "-"}
+        </span>
       ),
     },
     {
@@ -433,7 +459,9 @@ export default function RoomsView({
       <div className="border-b border-gray-200 bg-white px-6 py-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">{t("title")}</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {t("title")}
+            </h2>
             <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -588,6 +616,10 @@ export default function RoomsView({
           severity="danger"
         />
       )}
+      <RoomDependencyDialog
+        error={schedulingError}
+        onClose={() => setSchedulingError(null)}
+      />
 
       <AcademicsGlobalExportModal
         isOpen={showExportModal}

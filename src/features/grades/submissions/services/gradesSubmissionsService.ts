@@ -36,6 +36,21 @@ export async function fetchGradeSubmission(
   return apiGet(`/grades/submissions/${submissionId}`);
 }
 
+export interface ResolveGradeSubmissionPayload {
+  studentId: string;
+  enrollmentId?: string;
+}
+
+export async function resolveGradeSubmission(
+  assessmentId: string,
+  payload: ResolveGradeSubmissionPayload,
+): Promise<BackendSubmissionDetailResponse> {
+  assertUuid(assessmentId, "assessmentId");
+  assertUuid(payload.studentId, "studentId");
+  if (payload.enrollmentId) assertUuid(payload.enrollmentId, "enrollmentId");
+  return apiPost(`/grades/assessments/${assessmentId}/submissions/resolve`, payload);
+}
+
 export async function saveSubmissionAnswer(
   submissionId: string,
   questionId: string,

@@ -14,6 +14,8 @@ import type {
 
 export type RedemptionActionType = "approve" | "reject" | "fulfill" | "cancel";
 
+const MAX_NOTE_LENGTH = 1_000;
+
 export type RedemptionActionPayload =
   | ApproveRewardRedemptionPayload
   | RejectRewardRedemptionPayload
@@ -173,6 +175,7 @@ export default function RewardRedemptionActionModal({
           value={fieldEn}
           onChange={(e) => setFieldEn(e.target.value)}
           rows={3}
+          maxLength={MAX_NOTE_LENGTH}
         />
         <TextArea
           label={getFieldLabelAr()}
@@ -180,6 +183,7 @@ export default function RewardRedemptionActionModal({
           dir="rtl"
           onChange={(e) => setFieldAr(e.target.value)}
           rows={3}
+          maxLength={MAX_NOTE_LENGTH}
         />
       </div>
     </Modal>

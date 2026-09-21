@@ -1,6 +1,6 @@
 import { UserPlus } from "lucide-react";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
-import { ActionButton, PanelLayout, PanelState, ParticipantActionButton, StatusPill } from "@/features/communication/conversations_redesign/components/PanelLayout";
+import { ActionButton, PanelErrorState, PanelLayout, PanelState, ParticipantActionButton, StatusPill } from "@/features/communication/conversations_redesign/components/PanelLayout";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { UserDisplayNameMap } from "@/features/communication/conversations_redesign/types";
 import type { ConversationParticipant } from "@/features/communication/types/conversation.types";
@@ -23,6 +23,7 @@ export default function ParticipantsPanel({
   onLeaveConversation,
   onPromoteParticipant,
   onRemoveParticipant,
+  onRetry,
   participants,
   presenceByUserId,
   userDisplayNames,
@@ -40,6 +41,7 @@ export default function ParticipantsPanel({
   onLeaveConversation: () => void;
   onPromoteParticipant: (participant: ConversationParticipant) => void;
   onRemoveParticipant: (participant: ConversationParticipant) => void;
+  onRetry?: () => void;
   participants: ConversationParticipant[];
   presenceByUserId: Record<string, { isOnline?: boolean }>;
   total: number;
@@ -97,7 +99,9 @@ export default function ParticipantsPanel({
       title={`${labels.participants} (${activeParticipants.length})`}
     >
       {isLoading ? <PanelState label={labels.loading} /> : null}
-      {error ? <PanelState label={error} /> : null}
+      {error ? (
+        <PanelErrorState error={error} labels={labels} onRetry={onRetry} />
+      ) : null}
       {!isLoading && !error ? (
         <>
           {/* Active members */}

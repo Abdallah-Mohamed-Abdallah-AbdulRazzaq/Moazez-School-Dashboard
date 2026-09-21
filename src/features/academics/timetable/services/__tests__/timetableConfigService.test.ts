@@ -24,6 +24,7 @@ const backendConfig = {
   activeDays: [0, 1, 2, 3, 4],
   scopeType: "term" as const,
   scopeKey: "term-1",
+  stageId: null,
   gradeId: null,
   sectionId: null,
   classroomId: null,
@@ -234,6 +235,7 @@ describe("timetableConfigService", () => {
       academicYearId: "year-1",
       termId: "term-1",
       scopeType: "TERM",
+      stageId: undefined,
       gradeId: undefined,
       sectionId: undefined,
       classroomId: undefined,
@@ -242,5 +244,33 @@ describe("timetableConfigService", () => {
       activeDays: [0, 1],
       status: "DRAFT",
     });
+  });
+
+  it("sends the stage identifier when upserting a stage config", async () => {
+    mockedApiPut.mockResolvedValueOnce({
+      data: {
+        ...backendConfig,
+        scopeType: "stage",
+        scopeKey: "stage-1",
+        stageId: "stage-1",
+      },
+    });
+    mockedApiGet.mockResolvedValueOnce({ items: [] });
+
+    await upsertTimetableConfig({
+      academicYearId: "year-1",
+      termId: "term-1",
+      scopeType: "STAGE",
+      scopeId: "stage-1",
+      days: [
+        { key: "sun", index: 0, nameAr: "Sunday", nameEn: "Sunday", isActive: true },
+      ],
+      periods: [],
+    });
+
+    expect(mockedApiPut).toHaveBeenCalledWith(
+      "/academics/timetable/config",
+      expect.objectContaining({ scopeType: "STAGE", stageId: "stage-1" }),
+    );
   });
 });

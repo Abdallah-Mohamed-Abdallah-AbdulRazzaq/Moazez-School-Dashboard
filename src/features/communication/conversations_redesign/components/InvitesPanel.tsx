@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
-import { ActionButton, PanelLayout, PanelState, StatusPill } from "@/features/communication/conversations_redesign/components/PanelLayout";
+import { ActionButton, PanelErrorState, PanelLayout, PanelState, StatusPill } from "@/features/communication/conversations_redesign/components/PanelLayout";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { UserDisplayNameMap } from "@/features/communication/conversations_redesign/types";
 import type { ConversationInvite } from "@/features/communication/types/conversation.types";
@@ -9,7 +9,6 @@ import { formatDate, statusLabel } from "@/features/communication/conversations_
 
 export default function InvitesPanel({
   canCreate,
-  canManage,
   currentUserId,
   error,
   invites,
@@ -20,12 +19,11 @@ export default function InvitesPanel({
   onAcceptInvite,
   onCreateInvite,
   onRejectInvite,
+  onRetry,
   total,
   userDisplayNames,
-  isActiveParticipant,
 }: {
   canCreate: boolean;
-  canManage: boolean;
   currentUserId?: string | null;
   error: string | null;
   invites: ConversationInvite[];
@@ -36,9 +34,9 @@ export default function InvitesPanel({
   onAcceptInvite: (invite: ConversationInvite) => Promise<unknown>;
   onCreateInvite: () => void;
   onRejectInvite: (invite: ConversationInvite) => void;
+  onRetry?: () => void;
   total: number;
   userDisplayNames: UserDisplayNameMap;
-  isActiveParticipant?: boolean;
 }) {
   return (
     <PanelLayout
@@ -55,7 +53,9 @@ export default function InvitesPanel({
       title={`${labels.invites} (${total || invites.length})`}
     >
       {isLoading ? <PanelState label={labels.loading} /> : null}
-      {error ? <PanelState label={error} /> : null}
+      {error ? (
+        <PanelErrorState error={error} labels={labels} onRetry={onRetry} />
+      ) : null}
       {!isLoading && !error ? (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           {invites.length === 0 ? <PanelState label={labels.invites} /> : null}
@@ -77,8 +77,6 @@ export default function InvitesPanel({
               currentUserId && invitedUserId === currentUserId,
             );
             const canRespondToInvite = isPending && isCurrentUserInvite;
-            const canRejectInvite =
-              isPending && ((canManage && isActiveParticipant) || isCurrentUserInvite);
             return (
               <div
                 key={invite.id}
@@ -122,16 +120,14 @@ export default function InvitesPanel({
                       {labels.acceptInvite}
                     </button>
                   ) : null}
-                  {canRejectInvite ? (
+                  {canRespondToInvite ? (
                     <button
                       type="button"
                       disabled={isMutating}
                       onClick={() => void onRejectInvite(invite)}
                       className="rounded-md bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {canManage && !isCurrentUserInvite
-                        ? labels.revokeInvite
-                        : labels.rejectInvite}
+                      {labels.rejectInvite}
                     </button>
                   ) : null}
                 </div>

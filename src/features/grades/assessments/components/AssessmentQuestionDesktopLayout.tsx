@@ -8,7 +8,7 @@ import Button from "@/components/ui/button/Button";
 import QuestionsOutline from "@/features/academics/curriculum/components/QuestionsOutline";
 import EmptyQuestionState from "@/features/academics/curriculum/components/EmptyQuestionState";
 import QuestionEditor from "@/features/academics/curriculum/components/QuestionEditor";
-import type { Assessment } from "../types";
+import type { Assessment, ExamScopeType, ScopeEntityOption, ScopeOption } from "../types";
 import AssessmentQuestionSettingsPanel from "./AssessmentQuestionSettingsPanel";
 
 interface AssessmentQuestionDesktopLayoutProps {
@@ -16,6 +16,10 @@ interface AssessmentQuestionDesktopLayoutProps {
   selectedQuestionId: string | null;
   selectedQuestion: AssignmentQuestion | undefined;
   assessment: Assessment;
+  termLabel: string;
+  scopeTypes: ExamScopeType[];
+  scopeEntitiesByType: Record<ExamScopeType, ScopeEntityOption[]>;
+  subjects: Array<Pick<ScopeOption, "id" | "nameAr" | "nameEn">>;
   isReadOnly: boolean;
   isAssessmentReadOnly: boolean;
   pointsSummary: PointsSummary;
@@ -37,6 +41,10 @@ export default function AssessmentQuestionDesktopLayout({
   selectedQuestionId,
   selectedQuestion,
   assessment,
+  termLabel,
+  scopeTypes,
+  scopeEntitiesByType,
+  subjects,
   isReadOnly,
   isAssessmentReadOnly,
   pointsSummary,
@@ -55,7 +63,7 @@ export default function AssessmentQuestionDesktopLayout({
   const tCommon = useTranslations("common");
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 flex-1 overflow-hidden">
       <QuestionsOutline
         questions={questions}
         selectedQuestionId={selectedQuestionId}
@@ -103,10 +111,14 @@ export default function AssessmentQuestionDesktopLayout({
         )}
       </div>
 
-      <div className="min-h-0 w-96 overflow-y-auto border-l bg-white" style={{ borderColor: "var(--border-color)" }}>
+      <div className="h-full min-h-0 w-96 overflow-y-auto overscroll-contain border-l bg-white" style={{ borderColor: "var(--border-color)" }}>
         <div className="p-6">
           <AssessmentQuestionSettingsPanel
             assessment={assessment}
+            termLabel={termLabel}
+            scopeTypes={scopeTypes}
+            scopeEntitiesByType={scopeEntitiesByType}
+            subjects={subjects}
             pointsSummary={pointsSummary}
             validationErrors={validationErrors}
             isReadOnly={isAssessmentReadOnly}

@@ -37,6 +37,7 @@ import type {
   RewardItemType,
   UpdateRewardCatalogItemPayload,
 } from "../types";
+import { describeRewardApiError } from "../utils/rewardApiErrors";
 
 function AccessNotice() {
   const t = useTranslations("reinforcement.common");
@@ -133,7 +134,7 @@ export default function RewardCatalogPage() {
     setValue,
     clearAll,
   } = useReinforcementUrlFilters({
-    paramKeys: ["status", "type", "search"],
+    paramKeys: ["status", "type", "onlyAvailable", "search"],
     defaults: {},
   });
 
@@ -188,6 +189,15 @@ export default function RewardCatalogPage() {
         ],
       },
       {
+        key: "onlyAvailable",
+        label: t("rewardsModule.catalog.table.availability"),
+        type: "select",
+        options: [
+          { value: "", label: t("rewardsModule.catalog.filters.allAvailability") },
+          { value: "true", label: t("rewardsModule.overview.onlyAvailable") },
+        ],
+      },
+      {
         key: "search",
         label: t("filters.search"),
         type: "search",
@@ -223,8 +233,16 @@ export default function RewardCatalogPage() {
         displayValue: values.search,
       });
     }
+    if (values.onlyAvailable === "true") {
+      filters.push({
+        key: "onlyAvailable",
+        label: t("rewardsModule.catalog.table.availability"),
+        value: "true",
+        displayValue: t("rewardsModule.overview.onlyAvailable"),
+      });
+    }
     return filters;
-  }, [values.status, values.type, values.search, t]);
+  }, [values.status, values.type, values.search, values.onlyAvailable, t]);
 
   const handleFilterChange = useCallback(
     (key: string, value: string) => {
@@ -251,18 +269,16 @@ export default function RewardCatalogPage() {
     () => ({
       status: (values.status || undefined) as RewardCatalogStatus | undefined,
       type: (values.type || undefined) as RewardItemType | undefined,
-      academicYearId: academicYearId || undefined,
-      termId: termId || undefined,
       search: values.search || undefined,
+      onlyAvailable: values.onlyAvailable === "true" || undefined,
       limit: catalogPageSize,
       offset: (catalogPage - 1) * catalogPageSize,
     }),
     [
       values.status,
       values.type,
-      academicYearId,
-      termId,
       values.search,
+      values.onlyAvailable,
       catalogPage,
       catalogPageSize,
     ],
@@ -272,14 +288,12 @@ export default function RewardCatalogPage() {
     () => ({
       status: (values.status || undefined) as RewardCatalogStatus | undefined,
       type: (values.type || undefined) as RewardItemType | undefined,
-      academicYearId: academicYearId || undefined,
-      termId: termId || undefined,
     }),
-    [academicYearId, termId, values.status, values.type],
+    [values.status, values.type],
   );
 
   const refreshCatalog = useCallback(async () => {
-    if (!canView || contextInitializing || !hasAcademicContext) {
+    if (!canView || contextInitializing) {
       if (!contextInitializing) setLoading(false);
       return;
     }
@@ -299,15 +313,11 @@ export default function RewardCatalogPage() {
         setSummary(asCatalogSummary(summaryResponse.summary));
       } catch (summaryError) {
         setSummary({});
-        const message =
-          summaryError instanceof Error
-            ? summaryError.message
-            : t("common.error");
+        const message = t(describeRewardApiError(summaryError).messageKey);
         showError(message);
       }
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeRewardApiError(nextError).messageKey);
       setError(message);
       setItems([]);
       setCatalogTotal(0);
@@ -320,15 +330,10 @@ export default function RewardCatalogPage() {
     canView,
     catalogParams,
     contextInitializing,
-    hasAcademicContext,
     summaryParams,
     showError,
     t,
   ]);
-
-  useEffect(() => {
-    void Promise.resolve().then(() => setCatalogPage(1));
-  }, [academicYearId, termId]);
 
   useEffect(() => {
     void Promise.resolve().then(refreshCatalog);
@@ -352,8 +357,7 @@ export default function RewardCatalogPage() {
         setPublishTarget(null);
         await refreshCatalog();
       } catch (nextError) {
-        const message =
-          nextError instanceof Error ? nextError.message : t("common.error");
+        const message = t(describeRewardApiError(nextError).messageKey);
         showError(message);
       } finally {
         setPublishLoading(false);
@@ -386,8 +390,7 @@ export default function RewardCatalogPage() {
         setArchiveReason("");
         await refreshCatalog();
       } catch (nextError) {
-        const message =
-          nextError instanceof Error ? nextError.message : t("common.error");
+        const message = t(describeRewardApiError(nextError).messageKey);
         showError(message);
       } finally {
         setArchiveLoading(false);
@@ -409,7 +412,7 @@ export default function RewardCatalogPage() {
   };
 
   const handleOpenEdit = (item: RewardCatalogItem) => {
-    if (item.status === "published") {
+    if (item.status === "archived") {
       setFormModalOpen(false);
       setEditingItem(undefined);
       return;
@@ -439,8 +442,7 @@ export default function RewardCatalogPage() {
       setEditingItem(undefined);
       void refreshCatalog();
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeRewardApiError(nextError).messageKey);
       showError(message);
     } finally {
       setFormLoading(false);
@@ -577,7 +579,7 @@ export default function RewardCatalogPage() {
           if (!canManage) return null;
           return (
             <div className="flex items-center gap-2">
-              {row.status !== "published" ? (
+              {row.status !== "archived" ? (
                 <Button
                   variant="secondary"
                   size="sm"
@@ -678,6 +680,7 @@ export default function RewardCatalogPage() {
         values={{
           status: values.status,
           type: values.type,
+          onlyAvailable: values.onlyAvailable,
           search: values.search,
         }}
         onChange={handleFilterChange}
@@ -687,12 +690,6 @@ export default function RewardCatalogPage() {
         searchKey="search"
         debounceMs={350}
       />
-
-      {!contextInitializing && !hasAcademicContext ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
-          {t("rewardsModule.catalog.form.contextUnavailable")}
-        </div>
-      ) : null}
 
       {error ? (
         <div className="rounded-lg border border-red-100 bg-red-50 p-5">

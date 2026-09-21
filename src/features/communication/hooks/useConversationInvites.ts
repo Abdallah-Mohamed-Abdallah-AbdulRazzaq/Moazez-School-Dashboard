@@ -143,12 +143,12 @@ export function useConversationInvites(
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!enabled) return;
     setIsRefreshing(true);
-    setError(null);
+    setLoadError(null);
     try {
       const response = await getConversationInvites(conversationId);
       const list = unwrapList<ConversationInvite>(response);
@@ -158,7 +158,7 @@ export function useConversationInvites(
       setTotal(list.total ?? nextInvites.length);
     } catch (nextError) {
       if (!mountedRef.current) return;
-      setError(errorMessage(nextError));
+      setLoadError(errorMessage(nextError));
       setInvites([]);
       setTotal(0);
     } finally {
@@ -172,13 +172,11 @@ export function useConversationInvites(
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
       setIsMutating(true);
-      setError(null);
       try {
         const response = await operation();
         await refresh();
         return response;
       } catch (nextError) {
-        if (mountedRef.current) setError(errorMessage(nextError));
         throw nextError;
       } finally {
         if (mountedRef.current) setIsMutating(false);
@@ -238,7 +236,7 @@ export function useConversationInvites(
     isLoading,
     isRefreshing,
     isMutating,
-    error,
+    error: loadError,
     refresh,
     create,
     accept,

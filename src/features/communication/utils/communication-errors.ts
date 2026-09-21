@@ -28,6 +28,45 @@ export function communicationErrorMessage(
   return fallback;
 }
 
+export function attachmentPolicyLimitMb(error: unknown): number | undefined {
+  if (
+    !isApiError(error) ||
+    error.code !== "communication.attachment.invalid_file" ||
+    !error.details ||
+    typeof error.details !== "object" ||
+    Array.isArray(error.details)
+  ) {
+    return undefined;
+  }
+
+  const maxAttachmentSizeMb = (
+    error.details as Record<string, unknown>
+  ).maxAttachmentSizeMb;
+  return typeof maxAttachmentSizeMb === "number" &&
+    Number.isFinite(maxAttachmentSizeMb) &&
+    maxAttachmentSizeMb > 0
+    ? maxAttachmentSizeMb
+    : undefined;
+}
+
+export function communicationAttachmentErrorMessage(
+  error: unknown,
+  labels: ConversationRedesignLabels,
+): string {
+  const maxAttachmentSizeMb = attachmentPolicyLimitMb(error);
+  if (maxAttachmentSizeMb !== undefined) {
+    return labels.errorAttachmentSizeLimit.replace(
+      "{size}",
+      String(maxAttachmentSizeMb),
+    );
+  }
+
+  const labelKey = isApiError(error)
+    ? CONVERSATION_ERROR_LABEL_KEYS[error.code]
+    : undefined;
+  return labelKey ? labels[labelKey] : labels.unableToUploadAttachment;
+}
+
 export function normalizeStatus(value?: string | null): string {
   return value?.toLowerCase() || "";
 }

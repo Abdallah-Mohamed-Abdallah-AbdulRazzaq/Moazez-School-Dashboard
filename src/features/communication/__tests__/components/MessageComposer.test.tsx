@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import { MessageComposer } from "@/features/communication/conversations_redesign/components/messages/MessageComposer";
+import { ApiError } from "@/lib/api-error";
 
 const mockPolicy = {
   maxMessageLength: 20,
@@ -133,7 +134,14 @@ describe("MessageComposer", () => {
 
     fireEvent.change(input, { target: { files: [oversizedFile] } });
 
-    expect(screen.getByText(labels.errorFileUploadSizeExceeded)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        labels.errorAttachmentSizeLimit.replace(
+          "{size}",
+          String(mockPolicy.maxAttachmentSizeMb),
+        ),
+      ),
+    ).toBeInTheDocument();
     // Verify file is not in preview
     expect(screen.queryByText("oversized.png")).not.toBeInTheDocument();
   });
@@ -189,5 +197,50 @@ describe("MessageComposer", () => {
       expect(screen.getByText(labels.unableToUploadAttachment)).toBeInTheDocument();
     });
     expect(screen.getByText("lesson.pdf")).toBeInTheDocument();
+  });
+
+  it("shows the current backend attachment limit when the cached policy is stale", async () => {
+    const onSendWithAttachment = vi.fn().mockRejectedValue(
+      new ApiError(
+        "Attachment file exceeds the communication policy limit",
+        422,
+        "communication.attachment.invalid_file",
+        undefined,
+        { maxAttachmentSizeMb: 1 },
+      ),
+    );
+    const { container } = render(
+      <MessageComposer
+        attachmentSizeLimitMb={10}
+        disabled={false}
+        editingMessage={null}
+        labels={labels}
+        onCancelEdit={vi.fn()}
+        onCancelReply={vi.fn()}
+        onEditMessage={vi.fn().mockResolvedValue(undefined)}
+        onSend={vi.fn().mockResolvedValue(undefined)}
+        onSendVoice={vi.fn().mockResolvedValue(undefined)}
+        onSendWithAttachment={onSendWithAttachment}
+        onStopTyping={vi.fn()}
+        onTyping={vi.fn()}
+        replyTo={null}
+      />,
+    );
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const file = new File(["content"], "policy.pdf", {
+      type: "application/pdf",
+    });
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: labels.send }));
+
+    expect(
+      await screen.findByText(
+        labels.errorAttachmentSizeLimit.replace("{size}", "1"),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("policy.pdf")).toBeInTheDocument();
   });
 });

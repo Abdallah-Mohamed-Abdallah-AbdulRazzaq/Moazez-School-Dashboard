@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
+import { NationalDayBanner } from "@/components/ui";
 import GlobalMessageNotifications from "@/features/communication/components/GlobalMessageNotifications";
 import { useTranslations, useLocale } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
@@ -99,12 +100,14 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           userName={userName}
           userRole={userRole}
           schoolName={shortSchoolName}
-          onSearchChange={(value) => console.log("Search:", value)}
           onProfileClick={() => console.log("Profile clicked")}
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
         />
-        <div className="bg-background min-h-[calc(100vh-89px)]">{children}</div>
+        <div className="bg-background min-h-[calc(100vh-89px)]">
+          <NationalDayBanner locale={isRTL ? "ar" : "en"} />
+          {children}
+        </div>
       </div>
     </div>
   );

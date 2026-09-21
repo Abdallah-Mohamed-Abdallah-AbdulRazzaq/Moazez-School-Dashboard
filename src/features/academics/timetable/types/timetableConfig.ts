@@ -19,7 +19,12 @@ export interface TimetablePeriod {
   isInstructional?: boolean;
 }
 
-export type TimetableConfigScope = "TERM" | "GRADE" | "SECTION" | "CLASSROOM";
+export type TimetableConfigScope =
+  | "TERM"
+  | "STAGE"
+  | "GRADE"
+  | "SECTION"
+  | "CLASSROOM";
 
 export interface TimetableConfig {
   id: string;

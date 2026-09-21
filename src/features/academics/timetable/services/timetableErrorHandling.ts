@@ -1,6 +1,11 @@
 import { ApiError, isApiError } from "@/lib/api-error";
-import type { TimetableConflict } from "@/features/academics/timetable/types/timetable";
-import { dayIndexToKey } from "@/features/academics/timetable/services/timetableMappers";
+import {
+  normalizeTimetableConflicts,
+  type TimetableConflictDisplay,
+  type TimetableConflictNormalizationContext,
+  type TimetableConflictPeriod,
+} from "@/features/academics/timetable/services/timetableConflictNormalization";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 export type TimetableErrorCode =
   | "academics.timetable.config_not_found"
@@ -14,6 +19,8 @@ export type TimetableErrorCode =
   | "academics.timetable.classroom_scope_mismatch"
   | "academics.timetable.allocation_mismatch"
   | "academics.timetable.room_not_found"
+  | "academics.timetable.room_inactive"
+  | "academics.timetable.room_capacity_insufficient"
   | "academics.timetable.entry_not_mutable"
   | "academics.timetable.invalid_time_range"
   | "academics.timetable.period_overlap"
@@ -54,6 +61,8 @@ const timetableErrorMessages: Record<TimetableErrorCode, string> = {
   "academics.timetable.classroom_scope_mismatch": "The classroom does not match the selected timetable scope.",
   "academics.timetable.allocation_mismatch": "The teacher allocation does not match this timetable slot.",
   "academics.timetable.room_not_found": "The selected room no longer exists.",
+  "academics.timetable.room_inactive": "The selected room is not available for timetable scheduling.",
+  "academics.timetable.room_capacity_insufficient": "The selected room does not have enough capacity for this classroom.",
   "academics.timetable.entry_not_mutable": "This timetable entry cannot be edited.",
   "academics.timetable.invalid_time_range": "Start time must be before end time.",
   "academics.timetable.period_overlap": "Periods cannot overlap.",
@@ -116,15 +125,18 @@ export function timetableErrorCode(error: unknown): string | undefined {
   return backendErrorPayload(error)?.code;
 }
 
-export function publicationBlockingReason(error: unknown): string | undefined {
+export function publicationBlockingReason(
+  error: unknown,
+  translateMessage?: TimetableBackendMessageTranslator,
+): string | undefined {
   const details = timetableErrorDetails(error);
   if (!isRecord(details) || !Array.isArray(details.blockingReasons)) {
     return undefined;
   }
   const firstReason = details.blockingReasons.find(isRecord);
-  return typeof firstReason?.message === "string"
-    ? firstReason.message
-    : undefined;
+  const message = stringField(firstReason, "message");
+  const code = stringField(firstReason, "code");
+  return code ? (translateMessage?.(code, message) ?? message) : message;
 }
 
 export function isTimetableErrorCode(
@@ -153,7 +165,9 @@ export function timetableFormErrors(
 
 export function conflictFromTimetableError(
   error: unknown,
-): TimetableConflict | null {
+  periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
+): TimetableConflictDisplay | null {
   const code = timetableErrorCode(error);
   if (!isConflictCode(code)) {
     return null;
@@ -162,31 +176,29 @@ export function conflictFromTimetableError(
   if (!isRecord(details)) {
     return null;
   }
-  const periodIndex =
-    numberField(details, "periodIndex") ?? numberField(details, "period");
-  if (!periodIndex) {
-    return null;
+  const [conflict] = normalizeTimetableConflicts(
+    [
+      {
+        ...details,
+        code,
+        message: backendErrorMessage(error) ?? timetableErrorMessage(error),
+        periodIndex:
+          numberField(details, "periodIndex") ?? numberField(details, "period"),
+      },
+    ],
+    "proposed",
+    periods,
+    context,
+  );
+
+  return conflict ?? null;
+}
+
+function backendErrorMessage(error: unknown): string | undefined {
+  if (isApiError(error)) {
+    return error.message;
   }
-  return {
-    type: code === "academics.timetable.teacher_conflict" ? "TEACHER" : "ROOM",
-    code,
-    severity: stringField(details, "severity") ?? "blocking",
-    dayKey:
-      stringField(details, "dayKey") ??
-      dayIndexToKey(numberField(details, "dayOfWeek") ?? 0),
-    periodIndex,
-    periodId: stringField(details, "periodId"),
-    resourceId:
-      stringField(details, "resourceId") ??
-      stringField(details, "teacherId") ??
-      stringField(details, "roomId") ??
-      "",
-    resourceName:
-      stringField(details, "resourceName") ?? timetableErrorMessage(error),
-    proposedIndexes: numberArrayField(details, "proposedIndexes") ?? [],
-    entryIds: stringArrayField(details, "entryIds") ?? [],
-    sections: [],
-  };
+  return backendErrorPayload(error)?.message;
 }
 
 function backendErrorPayload(error: unknown): BackendErrorShape["error"] {
@@ -259,29 +271,13 @@ function numberField(
 }
 
 function stringField(
-  record: Record<string, unknown>,
+  record: Record<string, unknown> | undefined,
   field: string,
 ): string | undefined {
-  const value = record[field];
-  return typeof value === "string" ? value : undefined;
+  const fieldValue = record?.[field];
+  return typeof fieldValue === "string" ? fieldValue : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
-}
-
-function numberArrayField(
-  record: Record<string, unknown>,
-  field: string,
-): number[] | undefined {
-  const value = record[field];
-  return Array.isArray(value) ? value.filter((v): v is number => typeof v === "number") : undefined;
-}
-
-function stringArrayField(
-  record: Record<string, unknown>,
-  field: string,
-): string[] | undefined {
-  const value = record[field];
-  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : undefined;
 }

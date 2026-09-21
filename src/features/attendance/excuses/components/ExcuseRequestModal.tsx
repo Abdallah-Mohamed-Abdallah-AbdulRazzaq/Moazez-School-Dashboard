@@ -13,7 +13,7 @@ import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadA
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { getUploadRules } from "@/utils/upload/validateFile";
 import { fetchRoster } from "@/features/attendance/roll-call/services/attendanceRollCallService";
-import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
+import { fetchEffectiveAttendanceTimetable } from "@/features/attendance/shared/services/effectiveAttendanceTimetable";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import type { ExcuseRequest, ExcuseType, AttachmentMeta } from "../types";
 import { formatLocalDate } from "../../utils/dateFormatting";
@@ -28,11 +28,6 @@ import {
 } from "../utils/excusePolicyValidation";
 import { deriveExcusePolicyState } from "../utils/excusePolicyState";
 import { shouldLoadExcusePeriods } from "../utils/excusePeriodLoading";
-import { createTimetableConfigCache } from "../utils/timetableConfigCache";
-import {
-  getExcuseTimetableCandidates,
-  resolveExcuseTimetableConfig,
-} from "../utils/excuseTimetableScope";
 import {
   ExcuseAttachmentLinkError,
   linkExcuseRequestAttachments,
@@ -129,9 +124,6 @@ export default function ExcuseRequestModal({
   const [policyLoadFailed, setPolicyLoadFailed] = useState(false);
   const rosterRequestId = useRef(0);
   const timetableRequestId = useRef(0);
-  const timetableConfigCache = useRef(
-    createTimetableConfigCache(fetchTimetableConfig),
-  );
 
   // The backend resolves excuse requests at the school level and does not
   // persist a grade, section, or classroom scope.
@@ -387,36 +379,19 @@ export default function ExcuseRequestModal({
     const loadPeriods = async () => {
       const requestId = ++timetableRequestId.current;
       try {
-        const candidates = getExcuseTimetableCandidates(
-          yearId,
+        const timetable = await fetchEffectiveAttendanceTimetable({
+          academicYearId: yearId,
           termId,
-          timetableScope.scopeType,
-          timetableScope.scopeIds,
-        );
-        if (candidates.length === 0) {
-          setPeriods([]);
-          setPeriodsError(false);
-          return;
-        }
-        const config = await resolveExcuseTimetableConfig(
-          candidates,
-          (candidate) => {
-            const scopeId =
-              candidate.classroomId ||
-              candidate.sectionId ||
-              candidate.gradeId ||
-              candidate.termId;
-            const cacheKey = `${candidate.academicYearId}:${candidate.termId}:${candidate.scopeType}:${scopeId}`;
-            return timetableConfigCache.current.get(cacheKey, candidate);
-          },
-        );
+          scopeType: timetableScope.scopeType,
+          scopeIds: timetableScope.scopeIds,
+        });
         if (requestId !== timetableRequestId.current) return;
-        if (!config) {
+        if (timetable.periods.length === 0) {
           setPeriods([]);
           setPeriodsError(true);
           return;
         }
-        setPeriods(config.periods);
+        setPeriods(timetable.periods);
         setPeriodsError(false);
       } catch (error) {
         console.error("Failed to load periods:", error);

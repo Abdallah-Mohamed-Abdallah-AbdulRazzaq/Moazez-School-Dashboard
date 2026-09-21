@@ -15,7 +15,11 @@ const dashboard = (entries: unknown[] = []) => ({
   academicYearId: "year-1",
   publishedAt: null,
   isPublished: false,
-  items: [{ classroomId: "classroom-1", entries }],
+  items: [{
+    classroomId: "classroom-1",
+    effectiveConfig: { id: "config-1" },
+    entries,
+  }],
 });
 
 const week = (instructionalDays: string[]): WeekInfo => ({
@@ -135,6 +139,7 @@ describe("AddLessonDialog planned day selection", () => {
     vi.mocked(getDashboardTimetable).mockResolvedValue(dashboard([
       {
         id: "entry-1",
+        timetableConfigId: "config-1",
         dayOfWeek: 4,
         periodId: "period-1",
         period: { label: "Period 2", index: 2 },

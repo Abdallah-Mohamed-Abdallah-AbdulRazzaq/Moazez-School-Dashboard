@@ -376,6 +376,15 @@ describe("useConversationRealtime", () => {
   });
 
   describe("onReconnect called when resyncVersion increments (Property 26)", () => {
+    it("does not reconcile an existing resync version on mount", () => {
+      mockResyncVersion = 3;
+      const handlers = createDefaultHandlers();
+
+      renderHook(() => useConversationRealtime(handlers));
+
+      expect(handlers.onReconnect).not.toHaveBeenCalled();
+    });
+
     it("calls onReconnect when resyncVersion changes from 0 to 1", () => {
       const handlers = createDefaultHandlers();
 

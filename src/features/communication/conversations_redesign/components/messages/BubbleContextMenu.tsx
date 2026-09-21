@@ -7,6 +7,9 @@ import {
   Edit3,
   Flag,
   Info,
+  Eye,
+  EyeOff,
+  History,
   Paperclip,
   Trash2,
 } from "lucide-react";
@@ -20,6 +23,9 @@ export function BubbleContextMenu({
   canAttach = false,
   canEdit,
   canDelete,
+  canHide = false,
+  canUnhide = false,
+  canViewModerationHistory = false,
   canReply = true,
   canReport = true,
   isOwn,
@@ -29,15 +35,21 @@ export function BubbleContextMenu({
   onAttach = () => undefined,
   onCopy,
   onDelete,
+  onHide = () => undefined,
   onEdit,
   onInfo,
   onReply,
   onReport,
+  onUnhide = () => undefined,
+  onViewModerationHistory = () => undefined,
 }: {
   allowReactions: boolean;
   canAttach?: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canHide?: boolean;
+  canUnhide?: boolean;
+  canViewModerationHistory?: boolean;
   canReply?: boolean;
   canReport?: boolean;
   isOwn: boolean;
@@ -47,10 +59,13 @@ export function BubbleContextMenu({
   onAttach?: () => void;
   onCopy: () => void;
   onDelete: () => void;
+  onHide?: () => void;
   onEdit: () => void;
   onInfo: () => void;
   onReply: () => void;
   onReport: () => void;
+  onUnhide?: () => void;
+  onViewModerationHistory?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -144,7 +159,7 @@ export function BubbleContextMenu({
               {labels.like}
             </button>
           ) : null}
-          {/* Edit (own messages only) */}
+          {/* Edit */}
           {canEdit ? (
             <button
               type="button"
@@ -199,7 +214,7 @@ export function BubbleContextMenu({
               {labels.messageInfo}
             </button>
           ) : null}
-          {/* Delete (own messages only) */}
+          {/* Delete */}
           {canDelete ? (
             <button
               type="button"
@@ -211,6 +226,45 @@ export function BubbleContextMenu({
             >
               <Trash2 className="h-3.5 w-3.5" />
               {labels.deleteMessage}
+            </button>
+          ) : null}
+          {canHide ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onHide();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-amber-700 hover:bg-amber-50"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+              {labels.hideMessage}
+            </button>
+          ) : null}
+          {canUnhide ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onUnhide();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              {labels.unhideMessage}
+            </button>
+          ) : null}
+          {canViewModerationHistory ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onViewModerationHistory();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+            >
+              <History className="h-3.5 w-3.5" />
+              {labels.moderationHistory}
             </button>
           ) : null}
         </div>

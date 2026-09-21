@@ -944,6 +944,7 @@ export default function LessonPlansPage() {
                 teacherSubjectAllocationId={teacherSubjectAllocationId}
                 curriculumId={curriculumId}
                 subjectId={selectedSubjectId}
+                stageId={selectedStageId}
                 gradeId={selectedGradeId}
                 sectionId={selectedSectionId}
                 classroomId={displayedClassroomId}
@@ -1034,6 +1035,7 @@ export default function LessonPlansPage() {
         termEndDate={selectedTerm?.endDate}
         academicYearId={academicYearId}
         termId={termId}
+        stageId={selectedStageId}
         gradeId={selectedGradeId}
         sectionId={selectedSectionId}
         classroomId={displayedClassroomId}

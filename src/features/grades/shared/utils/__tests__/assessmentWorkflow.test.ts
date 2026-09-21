@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getAssessmentEntryUnavailableReason,
   isAssessmentMetadataEditable,
   isGradeEntryAvailable,
   isSubmissionReviewAvailable,
@@ -40,5 +41,15 @@ describe("assessment metadata editing", () => {
   it("keeps score-only and locked assessments out of submission review", () => {
     expect(isSubmissionReviewAvailable({ approvalStatus: "published", isLocked: false, deliveryMode: "SCORE_ONLY" })).toBe(false);
     expect(isSubmissionReviewAvailable({ approvalStatus: "approved", isLocked: true, deliveryMode: "QUESTION_BASED" })).toBe(false);
+  });
+
+  it.each([
+    [{ approvalStatus: "draft", isLocked: false }, { isReadOnly: false, hasRequiredPermission: true }, "notPublished"],
+    [{ approvalStatus: "published", isLocked: false }, { isReadOnly: true, hasRequiredPermission: true }, "termClosed"],
+    [{ approvalStatus: "approved", isLocked: true }, { isReadOnly: false, hasRequiredPermission: true }, "locked"],
+    [{ approvalStatus: "approved", isLocked: false }, { isReadOnly: false, hasRequiredPermission: false }, "permission"],
+    [{ approvalStatus: "published", isLocked: false }, { isReadOnly: false, hasRequiredPermission: true }, null],
+  ] as const)("explains unavailable grade entry", (assessment, context, expected) => {
+    expect(getAssessmentEntryUnavailableReason(assessment, context)).toBe(expected);
   });
 });

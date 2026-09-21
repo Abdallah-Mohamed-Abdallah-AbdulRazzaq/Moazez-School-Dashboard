@@ -25,6 +25,10 @@ import type {
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import { upsertBackendTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import {
+  resolveTimetableScopeSelection,
+  type TimetableScopeIds,
+} from "@/features/academics/timetable/services/timetableScope";
+import {
   createTimetablePeriodDto,
   deleteTimetablePeriod,
   updateTimetablePeriodDto,
@@ -51,6 +55,7 @@ interface TimetableConfigDialogProps {
   config: BackendTimetableConfigDto | null;
   periods: BackendTimetablePeriodDto[];
   entries: TimetableEntry[];
+  selectedStageId: string;
   selectedGradeId: string;
   selectedSectionId: string;
   selectedClassroomId: string;
@@ -109,6 +114,32 @@ const isPeriodType = (type: string): type is PeriodType =>
 const nextPeriodIndex = (periods: BackendTimetablePeriodDto[]): number =>
   Math.max(0, ...periods.map((period) => period.index)) + 1;
 
+const availableScopeTypes = ({
+  stageId,
+  gradeId,
+  sectionId,
+  classroomId,
+}: TimetableScopeIds): TimetableScopeType[] => {
+  const scopeTypes: TimetableScopeType[] = ["TERM"];
+  if (stageId) scopeTypes.push("STAGE");
+  if (gradeId) scopeTypes.push("GRADE");
+  if (sectionId) scopeTypes.push("SECTION");
+  if (classroomId) scopeTypes.push("CLASSROOM");
+  return scopeTypes;
+};
+
+const scopeSelectionForType = (
+  scopeType: TimetableScopeType,
+  scopeIds: TimetableScopeIds,
+) =>
+  resolveTimetableScopeSelection({
+    stageId: scopeType === "STAGE" ? scopeIds.stageId : undefined,
+    gradeId: scopeType === "GRADE" ? scopeIds.gradeId : undefined,
+    sectionId: scopeType === "SECTION" ? scopeIds.sectionId : undefined,
+    classroomId:
+      scopeType === "CLASSROOM" ? scopeIds.classroomId : undefined,
+  });
+
 export default function TimetableConfigDialog({
   mode,
   open,
@@ -119,6 +150,7 @@ export default function TimetableConfigDialog({
   config,
   periods,
   entries,
+  selectedStageId,
   selectedGradeId,
   selectedSectionId,
   selectedClassroomId,
@@ -129,11 +161,15 @@ export default function TimetableConfigDialog({
   const isConfigMode = mode === "config";
   const translateTimetableError = (code: TimetableErrorCode) =>
     t(`errors.${code.replace("academics.timetable.", "")}`);
-  const scopeType = defaultScopeType({
-    selectedGradeId,
-    selectedSectionId,
-    selectedClassroomId,
+  const filterScopeSelection = resolveTimetableScopeSelection({
+    stageId: selectedStageId,
+    gradeId: selectedGradeId,
+    sectionId: selectedSectionId,
+    classroomId: selectedClassroomId,
   });
+  const [scopeType, setScopeType] = useState<TimetableScopeType>(
+    filterScopeSelection.scopeType,
+  );
   const [name, setName] = useState("");
   const [weekStartDay, setWeekStartDay] = useState(0);
   const [activeDays, setActiveDays] = useState<number[]>([0, 1, 2, 3, 4]);
@@ -151,6 +187,7 @@ export default function TimetableConfigDialog({
   const initializedPeriodSessionRef = useRef<string | null>(null);
   const periodSessionKey = [
     config?.id ?? "new",
+    selectedStageId,
     selectedGradeId,
     selectedSectionId,
     selectedClassroomId,
@@ -167,6 +204,11 @@ export default function TimetableConfigDialog({
     initializedPeriodSessionRef.current = periodSessionKey;
     void Promise.resolve().then(() => {
       setName(config?.name ?? t("config.defaultName"));
+      setScopeType(
+        config
+          ? (config.scopeType.toUpperCase() as TimetableScopeType)
+          : filterScopeSelection.scopeType,
+      );
       setWeekStartDay(config?.weekStartDay ?? 0);
       setActiveDays(config?.activeDays ?? [0, 1, 2, 3, 4]);
       setPeriodForm(emptyPeriodForm(nextPeriodIndex(periods)));
@@ -177,11 +219,14 @@ export default function TimetableConfigDialog({
     });
   }, [
     config,
+    filterScopeSelection.scopeType,
     open,
+    periods,
     periodSessionKey,
     selectedClassroomId,
     selectedGradeId,
     selectedSectionId,
+    selectedStageId,
     t,
   ]);
 
@@ -204,6 +249,15 @@ export default function TimetableConfigDialog({
   const dayOptions = days.map((day) => ({
     value: String(day.index),
     label: locale === "ar" ? day.nameAr : day.nameEn,
+  }));
+  const scopeOptions = availableScopeTypes({
+    stageId: selectedStageId,
+    gradeId: selectedGradeId,
+    sectionId: selectedSectionId,
+    classroomId: selectedClassroomId,
+  }).map((availableScopeType) => ({
+    value: availableScopeType,
+    label: t(`config.scopeOptions.${availableScopeType.toLowerCase()}`),
   }));
 
   const resetPeriodForm = () => {
@@ -414,10 +468,12 @@ export default function TimetableConfigDialog({
   const buildConfigPayload = (): UpsertConfigRequest => ({
     academicYearId,
     termId,
-    scopeType,
-    gradeId: scopeType === "GRADE" ? selectedGradeId : undefined,
-    sectionId: scopeType === "SECTION" ? selectedSectionId : undefined,
-    classroomId: scopeType === "CLASSROOM" ? selectedClassroomId : undefined,
+    ...scopeSelectionForType(scopeType, {
+      stageId: selectedStageId,
+      gradeId: selectedGradeId,
+      sectionId: selectedSectionId,
+      classroomId: selectedClassroomId,
+    }),
     name: name.trim(),
     weekStartDay,
     activeDays,
@@ -512,14 +568,16 @@ export default function TimetableConfigDialog({
               />
               <FieldError errors={fieldErrors} field="name" />
             </label>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-              <div className="font-medium text-gray-900">
-                {t("config.scopeLabel")}: {t(`config.scopeOptions.${scopeType.toLowerCase()}`)}
-              </div>
-              <p className="mt-1 text-xs text-gray-600">
-                {t("config.scopeLockedHelp")}
-              </p>
-            </div>
+            <Select
+              label={t("config.scopeLabel")}
+              value={scopeType}
+              onChange={(value) => setScopeType(value as TimetableScopeType)}
+              disabled={readOnly || Boolean(config)}
+              options={scopeOptions}
+              helperText={t(
+                config ? "config.scopeLockedHelp" : "config.scopeSelectHelp",
+              )}
+            />
             <Select
               label={t("config.weekStartDay")}
               value={String(weekStartDay)}
@@ -903,25 +961,4 @@ function FieldError({
     return null;
   }
   return <div className="mt-1 text-xs text-red-600">{error}</div>;
-}
-
-function defaultScopeType({
-  selectedGradeId,
-  selectedSectionId,
-  selectedClassroomId,
-}: {
-  selectedGradeId: string;
-  selectedSectionId: string;
-  selectedClassroomId: string;
-}): TimetableScopeType {
-  if (selectedClassroomId) {
-    return "CLASSROOM";
-  }
-  if (selectedSectionId) {
-    return "SECTION";
-  }
-  if (selectedGradeId) {
-    return "GRADE";
-  }
-  return "TERM";
 }

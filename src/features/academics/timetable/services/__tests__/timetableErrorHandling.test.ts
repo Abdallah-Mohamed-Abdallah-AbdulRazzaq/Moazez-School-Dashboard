@@ -7,6 +7,7 @@ import {
   timetableErrorMessage,
   timetableFormErrors,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 describe("timetableErrorHandling", () => {
   it.each([
@@ -25,6 +26,14 @@ describe("timetableErrorHandling", () => {
     [
       "academics.timetable.publication_not_found",
       "No timetable publication exists for this scope.",
+    ],
+    [
+      "academics.timetable.room_inactive",
+      "The selected room is not available for timetable scheduling.",
+    ],
+    [
+      "academics.timetable.room_capacity_insufficient",
+      "The selected room does not have enough capacity for this classroom.",
     ],
   ])("maps %s to a friendly timetable message", (code, message) => {
     const error = new ApiError("Backend message", 400, code);
@@ -73,7 +82,7 @@ describe("timetableErrorHandling", () => {
     });
   });
 
-  it("builds a grid conflict from backend slot details", () => {
+  it("builds a display conflict from backend slot details", () => {
     const error = new ApiError(
       "Teacher is already scheduled",
       409,
@@ -92,9 +101,44 @@ describe("timetableErrorHandling", () => {
       dayKey: "tue",
       periodIndex: 4,
       resourceId: "teacher-1",
-      resourceName: "Ms. Noor",
-      sections: [],
+      message: "Teacher is already scheduled",
     }));
+  });
+
+  it("resolves an error period ID without requiring backend index metadata", () => {
+    const error = new ApiError(
+      "Room intervals overlap",
+      409,
+      "academics.timetable.room_conflict",
+      undefined,
+      {
+        dayOfWeek: 3,
+        periodId: "period-2",
+        roomId: "room-1",
+        entryIds: ["entry-1"],
+      },
+    );
+
+    expect(
+      conflictFromTimetableError(error, [
+        {
+          id: "period-2",
+          index: 2,
+          nameAr: "الحصة الثانية",
+          nameEn: "Period 2",
+          startTime: "09:00",
+          endTime: "09:45",
+        },
+      ]),
+    ).toMatchObject({
+      type: "ROOM",
+      periodId: "period-2",
+      periodIndex: 2,
+      periodLabel: "Period 2",
+      startTime: "09:00",
+      endTime: "09:45",
+      resourceId: "room-1",
+    });
   });
 
   it("preserves the backend publication blocking reason", () => {
@@ -110,6 +154,10 @@ describe("timetableErrorHandling", () => {
       },
     );
 
-    expect(publicationBlockingReason(error)).toBe("Monday is inactive.");
+    expect(
+      publicationBlockingReason(error, (code, fallback) =>
+        timetableBackendMessage(code, "ar", fallback),
+      ),
+    ).toBe("توجد حصة في يوم غير مفعّل في إعدادات الجدول.");
   });
 });

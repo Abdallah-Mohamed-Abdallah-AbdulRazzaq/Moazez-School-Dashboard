@@ -481,9 +481,32 @@ export default function CommunicationOverviewPage() {
   const deliveredNotificationsCount = numberOrFallback(
     data.adminOverview?.receipts.deliveredDeliveries,
   );
+  const pageHeader = (
+    <CommunicationPageHeader
+      title={t.title}
+      description={t.description}
+      actions={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void refresh()}
+          disabled={isRefreshing}
+          leftIcon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
+        >
+          {t.refresh}
+        </Button>
+      }
+    />
+  );
 
   if (isLoading) {
-    return <CommunicationLoadingState label={t.loading} />;
+    return (
+      <div className="space-y-6">
+        {pageHeader}
+        <CommunicationTabs />
+        <CommunicationLoadingState label={t.loading} />
+      </div>
+    );
   }
 
   if (!hasAnyContent && error) {
@@ -512,21 +535,7 @@ export default function CommunicationOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <CommunicationPageHeader
-        title={t.title}
-        description={t.description}
-        actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void refresh()}
-            disabled={isRefreshing}
-            leftIcon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
-          >
-            {t.refresh}
-          </Button>
-        }
-      />
+      {pageHeader}
       <CommunicationTabs />
 
       {error ? (

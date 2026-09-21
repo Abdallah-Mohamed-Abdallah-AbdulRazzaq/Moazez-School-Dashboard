@@ -38,6 +38,7 @@ import type {
   RewardCatalogStatus,
   RewardItemType,
 } from "../types";
+import { describeRewardApiError } from "../utils/rewardApiErrors";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -415,7 +416,7 @@ export default function RewardsOverviewPage() {
       setOverview(overviewData);
       setCatalogSummary(summaryData);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t("common.error"));
+      setError(t(describeRewardApiError(nextError).messageKey));
     } finally {
       setLoading(false);
     }
@@ -568,7 +569,7 @@ export default function RewardsOverviewPage() {
               />
 
               <Select
-                label={t("rewardsModule.catalog.table.status") || "Catalog status"}
+                label={t("rewardsModule.overview.catalogStatusSummary")}
                 value={values.catalogStatus || ""}
                 onChange={(val) => setValue("catalogStatus", val)}
                 options={[
@@ -577,6 +578,7 @@ export default function RewardsOverviewPage() {
                   { value: "archived", label: t("rewardsModule.status.archived") },
                 ]}
                 placeholder={t("rewardsModule.overview.allCatalogStatuses") || "All catalog statuses"}
+                helperText={t("rewardsModule.overview.catalogSummaryOnly")}
               />
 
               <Input
@@ -617,7 +619,7 @@ export default function RewardsOverviewPage() {
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
                 <span>
-                  {t("rewardsModule.overview.includeDeleted") || "Include deleted"}
+                  {t("rewardsModule.overview.includeDeletedCatalog")}
                 </span>
               </label>
 
@@ -631,7 +633,7 @@ export default function RewardsOverviewPage() {
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
                 <span>
-                  {t("rewardsModule.overview.onlyAvailable") || "Only available"}
+                  {t("rewardsModule.overview.onlyAvailableCatalog")}
                 </span>
               </label>
             </div>

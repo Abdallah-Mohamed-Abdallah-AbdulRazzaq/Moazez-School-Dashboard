@@ -26,6 +26,7 @@ import type {
   ReinforcementRewardType,
   ReinforcementSource,
 } from "../types";
+import { describeReinforcementTaskApiError } from "../utils/reinforcementTaskApiErrors";
 
 interface ReinforcementTaskFormProps {
   onSubmit: (payload: CreateReinforcementTaskPayload) => Promise<void>;
@@ -198,6 +199,15 @@ export default function ReinforcementTaskForm({
     setSaving(true);
     try {
       await onSubmit(buildReinforcementTaskPayload(draft));
+    } catch (submissionError) {
+      const apiError = describeReinforcementTaskApiError(submissionError);
+      const field = apiError.field;
+      if (field) {
+        setErrors((current) => ({
+          ...current,
+          [field]: t(apiError.messageKey),
+        }));
+      }
     } finally {
       setSaving(false);
     }
@@ -257,6 +267,7 @@ export default function ReinforcementTaskForm({
             label={t("tasks.form.titleAr")}
             value={draft.titleAr}
             error={errors.title}
+            maxLength={255}
             dir="rtl"
             onChange={(event) =>
               setDraft({ ...draft, titleAr: event.target.value })
@@ -267,6 +278,7 @@ export default function ReinforcementTaskForm({
             label={t("tasks.form.titleEn")}
             value={draft.titleEn}
             error={errors.title}
+            maxLength={255}
             onChange={(event) =>
               setDraft({ ...draft, titleEn: event.target.value })
             }
@@ -275,6 +287,7 @@ export default function ReinforcementTaskForm({
           <TextArea
             label={t("tasks.form.descriptionAr")}
             value={draft.descriptionAr}
+            maxLength={2000}
             dir="rtl"
             onChange={(event) =>
               setDraft({ ...draft, descriptionAr: event.target.value })
@@ -284,6 +297,7 @@ export default function ReinforcementTaskForm({
           <TextArea
             label={t("tasks.form.descriptionEn")}
             value={draft.descriptionEn}
+            maxLength={2000}
             onChange={(event) =>
               setDraft({ ...draft, descriptionEn: event.target.value })
             }
@@ -350,6 +364,7 @@ export default function ReinforcementTaskForm({
           <Input
             label={t("tasks.form.rewardLabelAr")}
             value={draft.rewardLabelAr}
+            maxLength={255}
             dir="rtl"
             onChange={(event) =>
               setDraft({ ...draft, rewardLabelAr: event.target.value })
@@ -359,6 +374,7 @@ export default function ReinforcementTaskForm({
           <Input
             label={t("tasks.form.rewardLabelEn")}
             value={draft.rewardLabelEn}
+            maxLength={255}
             onChange={(event) =>
               setDraft({ ...draft, rewardLabelEn: event.target.value })
             }

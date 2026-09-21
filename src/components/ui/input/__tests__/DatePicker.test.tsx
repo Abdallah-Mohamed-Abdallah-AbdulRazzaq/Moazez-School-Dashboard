@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import Modal from "../../modal/Modal";
 import DatePicker from "../DatePicker";
 
@@ -9,6 +9,19 @@ afterEach(() => {
 });
 
 describe("DatePicker", () => {
+  const getBoundingClientRect = vi.spyOn(
+    HTMLElement.prototype,
+    "getBoundingClientRect",
+  );
+
+  beforeAll(() => {
+    getBoundingClientRect.mockReturnValue(
+      DOMRect.fromRect({ x: 1, y: 1, width: 1, height: 1 }),
+    );
+  });
+
+  afterAll(() => getBoundingClientRect.mockRestore());
+
   it("keeps the calendar above a modal overlay", async () => {
     // Regression: the modal layer was raised to 1400, hiding MUI's default 1300 popper.
     vi.stubGlobal(

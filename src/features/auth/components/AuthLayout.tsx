@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useLocale } from "next-intl";
+import { NationalDayVideoBackground } from "@/components/ui";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 interface AuthLayoutProps {
@@ -14,37 +15,25 @@ export function AuthLayout({ brandPanel, children }: AuthLayoutProps) {
   const isRTL = locale === "ar";
 
   return (
-    <main className="min-h-screen text-[var(--foreground)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
-        <div className="mb-4 flex justify-end sm:mb-5 lg:mb-6">
+    <main className="relative min-h-screen overflow-hidden bg-white text-[var(--foreground)]">
+      <NationalDayVideoBackground />
+
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[90rem] flex-col justify-center px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+        <div className="mb-3 flex justify-end sm:mb-4">
           <LanguageSwitcher />
         </div>
 
-        {isRTL ? (
-          <section
-            className={`overflow-hidden rounded-[1.75rem] border border-[color-mix(in_oklab,var(--border-color)_80%,var(--primary-color))] bg-[var(--background)] shadow-[0_28px_60px_rgba(0,0,0,0.08)] lg:flex lg:min-h-[640px] lg:rounded-[2rem] ${isRTL ? "lg:flex-row-reverse" : "lg:flex-row"}`}
-          >
-            <div className="flex min-h-[calc(100vh-7.5rem)] flex-1 items-center justify-center bg-[var(--background)] px-5 py-8 sm:px-8 sm:py-10 lg:min-h-[640px] lg:px-10 lg:py-12">
-              <div className="w-full max-w-[22rem] sm:max-w-[24rem]">
-                {children}
-              </div>
-            </div>
+        <section
+          className={`overflow-hidden rounded-[1.75rem] border border-black/[0.06] bg-white lg:flex lg:min-h-[680px] lg:rounded-[2.25rem] ${
+            isRTL ? "lg:flex-row-reverse" : "lg:flex-row"
+          }`}
+        >
+          <div className="hidden lg:flex lg:w-[52%]">{brandPanel}</div>
 
-            <div className="hidden lg:flex lg:w-[51%]">{brandPanel}</div>
-          </section>
-        ) : (
-          <section
-            className={`overflow-hidden rounded-[1.75rem] border border-[color-mix(in_oklab,var(--border-color)_80%,var(--primary-color))] bg-[var(--background)] shadow-[0_28px_60px_rgba(0,0,0,0.08)] lg:flex lg:min-h-[640px] lg:rounded-[2rem] ${isRTL ? "lg:flex-row-reverse" : "lg:flex-row"}`}
-          >
-            <div className="hidden lg:flex lg:w-[51%]">{brandPanel}</div>
-
-            <div className="flex min-h-[calc(100vh-7.5rem)] flex-1 items-center justify-center bg-[var(--background)] px-5 py-8 sm:px-8 sm:py-10 lg:min-h-[640px] lg:px-10 lg:py-12">
-              <div className="w-full max-w-[22rem] sm:max-w-[24rem]">
-                {children}
-              </div>
-            </div>
-          </section>
-        )}
+          <div className="flex min-h-[calc(100vh-6.75rem)] flex-1 items-center justify-center bg-white px-5 py-8 sm:px-10 sm:py-10 lg:min-h-[680px] lg:px-12 lg:py-12 xl:px-16">
+            <div className="w-full max-w-[25rem]">{children}</div>
+          </div>
+        </section>
       </div>
     </main>
   );

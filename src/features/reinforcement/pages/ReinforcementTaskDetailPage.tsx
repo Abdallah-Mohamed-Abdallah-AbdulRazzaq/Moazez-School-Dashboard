@@ -19,6 +19,7 @@ import {
 } from "../services/reinforcementTasksService";
 import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import { getReinforcementTaskTargetLabel } from "../utils/reinforcementTaskPresentation";
+import { describeReinforcementTaskApiError } from "../utils/reinforcementTaskApiErrors";
 import type {
   CancelReinforcementTaskPayload,
   DuplicateReinforcementTaskPayload,
@@ -119,8 +120,7 @@ export default function ReinforcementTaskDetailPage({
         setFilterOptions({});
       }
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeReinforcementTaskApiError(nextError).messageKey);
       setError(message);
       showError(message);
     } finally {
@@ -141,8 +141,7 @@ export default function ReinforcementTaskDetailPage({
       showSuccess(t("tasks.messages.duplicated"));
       setDuplicateOpen(false);
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeReinforcementTaskApiError(nextError).messageKey);
       showError(message);
       throw nextError;
     }
@@ -156,8 +155,7 @@ export default function ReinforcementTaskDetailPage({
       showSuccess(t("tasks.messages.cancelled"));
       setCancelOpen(false);
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeReinforcementTaskApiError(nextError).messageKey);
       showError(message);
       throw nextError;
     }

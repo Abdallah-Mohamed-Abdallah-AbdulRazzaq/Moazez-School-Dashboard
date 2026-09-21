@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import type { CommunicationSelectorOption } from "@/features/communication/api/communication-selectors.service";
 
@@ -8,7 +9,7 @@ const LOADING_VALUE = "__loading";
 const EMPTY_VALUE = "__empty";
 const ERROR_VALUE = "__error";
 
-export interface CommunicationEntitySelectProps {
+export interface CommunicationEntitySelectProps<TEntity = unknown> {
   label: string;
   value?: string;
   placeholder?: string;
@@ -16,15 +17,21 @@ export interface CommunicationEntitySelectProps {
   error?: string;
   disabled?: boolean;
   clearable?: boolean;
-  search: (query: string) => Promise<CommunicationSelectorOption[]>;
+  search: (query: string) => Promise<CommunicationSelectorOption<TEntity>[]>;
   onChange: (value: string) => void;
-  onOptionChange?: (option: CommunicationSelectorOption | null) => void;
-  onOptionsChange?: (options: CommunicationSelectorOption[]) => void;
+  onOptionChange?: (option: CommunicationSelectorOption<TEntity> | null) => void;
+  onOptionsChange?: (options: CommunicationSelectorOption<TEntity>[]) => void;
 }
 
-function toSelectOption(option: CommunicationSelectorOption): SelectOption {
+function toSelectOption<TEntity>(
+  option: CommunicationSelectorOption<TEntity>,
+  locale: string,
+): SelectOption {
+  const description = locale.startsWith("ar") && option.description
+    ? `\u2067${option.description}\u2069`
+    : option.description;
   const label = option.description
-    ? `${option.label} - ${option.description}`
+    ? `${option.label} - ${description}`
     : option.label;
 
   return {
@@ -34,7 +41,17 @@ function toSelectOption(option: CommunicationSelectorOption): SelectOption {
   };
 }
 
-export default function CommunicationEntitySelect({
+async function searchOptions<TEntity>(
+  search: CommunicationEntitySelectProps<TEntity>["search"],
+): Promise<{ items: CommunicationSelectorOption<TEntity>[]; failed: boolean }> {
+  try {
+    return { items: await search(""), failed: false };
+  } catch {
+    return { items: [], failed: true };
+  }
+}
+
+export default function CommunicationEntitySelect<TEntity>({
   clearable = true,
   disabled,
   error,
@@ -46,47 +63,45 @@ export default function CommunicationEntitySelect({
   placeholder,
   search,
   value,
-}: CommunicationEntitySelectProps) {
-  const [options, setOptions] = useState<CommunicationSelectorOption[]>([]);
+}: CommunicationEntitySelectProps<TEntity>) {
+  const locale = useLocale();
+  const [options, setOptions] = useState<CommunicationSelectorOption<TEntity>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const activeRequestId = useRef(0);
+  const loadedSearch = useRef<typeof search | null>(null);
 
   useEffect(() => {
-    if (disabled) return;
-
-    let cancelled = false;
-    const timeout = window.setTimeout(() => {
-      setIsLoading(true);
-      setLoadError(false);
-      search("")
-        .then((items) => {
-          if (!cancelled) {
-            setOptions(items);
-            onOptionsChange?.(items);
-            setHasSearched(true);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setOptions([]);
-            setLoadError(true);
-            setHasSearched(true);
-          }
-        })
-        .finally(() => {
-          if (!cancelled) setIsLoading(false);
-        });
-    }, 250);
-
+    activeRequestId.current += 1;
     return () => {
-      cancelled = true;
-      window.clearTimeout(timeout);
+      activeRequestId.current += 1;
     };
-  }, [disabled, onOptionsChange, search]);
+  }, [search]);
+
+  const loadOptions = useCallback(() => {
+    const sameSearch = loadedSearch.current === search;
+    if (disabled || (sameSearch && (isLoading || hasSearched))) return;
+
+    const requestId = activeRequestId.current + 1;
+    activeRequestId.current = requestId;
+    loadedSearch.current = search;
+    setOptions([]);
+    setIsLoading(true);
+    setLoadError(false);
+
+    void searchOptions(search).then(({ items, failed }) => {
+      if (activeRequestId.current !== requestId) return;
+      setOptions(items);
+      if (!failed) onOptionsChange?.(items);
+      setLoadError(failed);
+      setHasSearched(true);
+      setIsLoading(false);
+    });
+  }, [disabled, hasSearched, isLoading, onOptionsChange, search]);
 
   const selectOptions = useMemo(() => {
-    const nextOptions = options.map(toSelectOption);
+    const nextOptions = options.map((option) => toSelectOption(option, locale));
 
     if (value && !nextOptions.some((option) => option.value === value)) {
       nextOptions.unshift({ value, label: value, searchText: value });
@@ -121,7 +136,16 @@ export default function CommunicationEntitySelect({
     }
 
     return nextOptions;
-  }, [clearable, hasSearched, isLoading, loadError, options, placeholder, value]);
+  }, [
+    clearable,
+    hasSearched,
+    isLoading,
+    loadError,
+    locale,
+    options,
+    placeholder,
+    value,
+  ]);
 
   const handleChange = (nextValue: string) => {
     if (
@@ -149,6 +173,7 @@ export default function CommunicationEntitySelect({
       disabled={disabled}
       options={selectOptions}
       onChange={handleChange}
+      onOpen={loadOptions}
       noOptionsText={isLoading ? "Loading..." : "No options"}
       noResultsText={loadError ? "Unable to load options" : "No options"}
     />

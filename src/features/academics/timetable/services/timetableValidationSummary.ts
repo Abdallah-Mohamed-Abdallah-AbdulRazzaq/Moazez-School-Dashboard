@@ -3,8 +3,13 @@ import type {
   TimetableValidationItem,
   TimetableValidationResponse,
 } from "@/features/academics/timetable/services/timetableApiTypes";
-import type { TimetableConflict } from "@/features/academics/timetable/types/timetable";
-import { dayIndexToKey } from "@/features/academics/timetable/services/timetableMappers";
+import {
+  normalizeTimetableConflicts,
+  type TimetableConflictDisplay,
+  type TimetableConflictNormalizationContext,
+  type TimetableConflictPeriod,
+} from "@/features/academics/timetable/services/timetableConflictNormalization";
+import type { TimetableBackendMessageTranslator } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 export interface TimetableValidationSummary {
   canPublish: boolean;
@@ -18,6 +23,7 @@ export interface TimetableValidationSummary {
   teacherConflicts: TimetableValidationIssue[];
   classroomConflicts: TimetableValidationIssue[];
   roomConflicts: TimetableValidationIssue[];
+  roomIntegrityIssues: TimetableValidationIssue[];
   missingSubjectAllocationRows: TimetableValidationIssue[];
   conflicts: TimetableValidationIssue[];
 }
@@ -34,20 +40,25 @@ export const emptyValidationSummary = (): TimetableValidationSummary => ({
   teacherConflicts: [],
   classroomConflicts: [],
   roomConflicts: [],
+  roomIntegrityIssues: [],
   missingSubjectAllocationRows: [],
   conflicts: [],
 });
 
 export function validationSummaryFromResponse(
   response: TimetableValidationResponse,
+  translateMessage?: TimetableBackendMessageTranslator,
 ): TimetableValidationSummary {
   const backendItems = response.items;
-  const itemBuckets = bucketIssuesFromValidationItems(backendItems);
+  const itemBuckets = bucketIssuesFromValidationItems(
+    backendItems,
+    translateMessage,
+  );
   return {
     canPublish: !hasSummaryBlockingCounts(response),
     backendSummary: response.summary,
     items: backendItems,
-    blockingReasons: blockingReasonsFromSummary(response),
+    blockingReasons: blockingReasonsFromSummary(response, translateMessage),
     warnings: [],
     missingTeacherAllocations: itemBuckets.missingTeacherAllocations,
     underScheduledSubjects: itemBuckets.underScheduledSubjects,
@@ -55,6 +66,7 @@ export function validationSummaryFromResponse(
     teacherConflicts: [],
     classroomConflicts: [],
     roomConflicts: [],
+    roomIntegrityIssues: itemBuckets.roomIntegrityIssues,
     missingSubjectAllocationRows: itemBuckets.missingSubjectAllocationRows,
     conflicts: [],
   };
@@ -83,41 +95,36 @@ export function validationIssueText(issue: TimetableValidationIssue): string {
   return `${name ?? "Timetable issue"}${hours}`;
 }
 
-export function conflictsFromResponse(response: unknown): TimetableConflict[] {
-  return normalizeConflictResponse(response).conflicts;
-}
-
-export function normalizeConflictCheckResponse(response: unknown): {
-  conflicts: TimetableConflict[];
-} {
-  return normalizeConflictResponse(response, "code");
-}
-
-export function normalizePersistedConflicts(response: unknown): {
-  conflicts: TimetableConflict[];
-} {
-  return normalizeConflictResponse(response, "type");
-}
-
-function normalizeConflictResponse(
+export function conflictsFromResponse(
   response: unknown,
-  source: "code" | "type" = "code",
-): { conflicts: TimetableConflict[] } {
-  if (Array.isArray(response)) {
-    return { conflicts: response.map((conflict) => normalizeConflict(conflict, source)) };
-  }
-  if (response && typeof response === "object") {
-    const conflictsResponse = response as {
-      conflicts?: unknown[];
-      items?: unknown[];
-    };
-    return {
-      conflicts: (conflictsResponse.conflicts ?? conflictsResponse.items ?? []).map(
-        (conflict) => normalizeConflict(conflict, source),
-      ),
-    };
-  }
-  return { conflicts: [] };
+  periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
+): TimetableConflictDisplay[] {
+  return normalizeTimetableConflicts(response, "proposed", periods, context);
+}
+
+export function normalizeConflictCheckResponse(
+  response: unknown,
+  periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
+): {
+  conflicts: TimetableConflictDisplay[];
+} {
+  return {
+    conflicts: normalizeTimetableConflicts(response, "proposed", periods, context),
+  };
+}
+
+export function normalizePersistedConflicts(
+  response: unknown,
+  periods: TimetableConflictPeriod[] = [],
+  context: TimetableConflictNormalizationContext = {},
+): {
+  conflicts: TimetableConflictDisplay[];
+} {
+  return {
+    conflicts: normalizeTimetableConflicts(response, "persisted", periods, context),
+  };
 }
 
 export function hasBlockingValidation(summary: TimetableValidationSummary) {
@@ -129,22 +136,27 @@ export function hasBlockingValidation(summary: TimetableValidationSummary) {
     summary.teacherConflicts.length > 0 ||
     summary.classroomConflicts.length > 0 ||
     summary.roomConflicts.length > 0 ||
+    summary.roomIntegrityIssues.length > 0 ||
     summary.missingSubjectAllocationRows.length > 0 ||
     summary.conflicts.length > 0
   );
 }
 
-function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
+function bucketIssuesFromValidationItems(
+  items: TimetableValidationItem[],
+  translateMessage?: TimetableBackendMessageTranslator,
+) {
   const buckets = {
     missingTeacherAllocations: [] as TimetableValidationIssue[],
     underScheduledSubjects: [] as TimetableValidationIssue[],
     overScheduledSubjects: [] as TimetableValidationIssue[],
     missingSubjectAllocationRows: [] as TimetableValidationIssue[],
+    roomIntegrityIssues: [] as TimetableValidationIssue[],
   };
 
   for (const item of items) {
     const normalizedIssues = item.issues.map((issue) =>
-      enrichValidationIssue(issue, item),
+      enrichValidationIssue(issue, item, translateMessage),
     );
     if (item.status === "missing_subject_allocation") {
       buckets.missingSubjectAllocationRows.push(...normalizedIssues);
@@ -159,6 +171,8 @@ function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
         buckets.overScheduledSubjects.push(issue);
       } else if (issue.code === "missing_subject_allocation_row") {
         buckets.missingSubjectAllocationRows.push(issue);
+      } else if (issue.code === "room_not_found" || issue.code === "room_inactive" || issue.code === "room_capacity_insufficient") {
+        buckets.roomIntegrityIssues.push(issue);
       }
     }
   }
@@ -169,9 +183,11 @@ function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
 function enrichValidationIssue(
   issue: TimetableValidationItem["issues"][number],
   item: TimetableValidationItem,
+  translateMessage?: TimetableBackendMessageTranslator,
 ): TimetableValidationIssue {
   return {
     ...issue,
+    message: translateMessage?.(issue.code, issue.message) ?? issue.message,
     subjectId: item.subjectId ?? undefined,
     subjectName: item.subject?.nameEn ?? item.subject?.nameAr,
     classroomId: item.classroomId,
@@ -206,85 +222,14 @@ function hasSummaryBlockingCounts(
 
 function blockingReasonsFromSummary(
   response: TimetableValidationResponse,
+  translateMessage?: TimetableBackendMessageTranslator,
 ): string[] {
   return hasSummaryBlockingCounts(response)
-    ? ["Resolve timetable validation issues before publishing."]
+    ? [
+        translateMessage?.(
+          "validation_blocked",
+          "Resolve timetable validation issues before publishing.",
+        ) ?? "Resolve timetable validation issues before publishing.",
+      ]
     : [];
-}
-
-function normalizeConflict(
-  conflict: unknown,
-  source: "code" | "type",
-): TimetableConflict {
-  const current = conflict as Partial<TimetableConflict> & {
-    code?: string;
-    type?: string;
-    dayOfWeek?: number | null;
-    periodIndex?: number;
-    periodId?: string | null;
-    teacherUserId?: string | null;
-    roomId?: string | null;
-    message?: string;
-    severity?: string;
-    proposedIndexes?: number[];
-    entryIds?: string[];
-  };
-  if (
-    current.dayKey &&
-    current.periodIndex &&
-    current.type &&
-    ["CLASSROOM", "TEACHER", "ROOM", "DUPLICATE", "UNKNOWN"].includes(
-      current.type,
-    )
-  ) {
-    return current as TimetableConflict;
-  }
-  const discriminator = source === "type" ? current.type : current.code;
-  const type = conflictType(discriminator);
-  const periodIndex = current.periodIndex ?? current.period ?? 0;
-  const resourceId =
-    type === "ROOM"
-      ? (current.roomId ?? current.resourceId ?? "")
-      : type === "TEACHER"
-        ? (current.teacherUserId ?? current.resourceId ?? "")
-        : current.resourceId ?? "";
-  return {
-    type,
-    code: current.code ?? current.type,
-    message: current.message,
-    severity: current.severity,
-    dayKey: dayIndexToKey(current.dayOfWeek ?? 0),
-    periodIndex,
-    periodId: current.periodId ?? undefined,
-    resourceId,
-    resourceName:
-      current.resourceName ??
-      resourceId ??
-      current.message ??
-      "Timetable conflict",
-    proposedIndexes: current.proposedIndexes ?? [],
-    entryIds: current.entryIds ?? [],
-    sections: current.sections ?? [],
-    day: current.dayOfWeek ?? current.day,
-    period: periodIndex,
-  };
-}
-
-function conflictType(discriminator: string | undefined): TimetableConflict["type"] {
-  switch (discriminator) {
-    case "CLASSROOM_SLOT":
-    case "CLASSROOM":
-    case "classroom_conflict":
-      return "CLASSROOM";
-    case "TEACHER":
-    case "teacher_conflict":
-      return "TEACHER";
-    case "ROOM":
-    case "room_conflict":
-      return "ROOM";
-    case "duplicate_slot":
-      return "DUPLICATE";
-    default:
-      return "UNKNOWN";
-  }
 }

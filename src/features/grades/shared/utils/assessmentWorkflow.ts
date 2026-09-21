@@ -2,6 +2,11 @@ import type { Assessment } from "../types";
 
 export type AssessmentWorkflowState = "draft" | "published" | "approved" | "locked";
 export type AssessmentEntryModeKey = "scoreOnly" | "questionBased";
+export type AssessmentEntryUnavailableReason =
+  | "termClosed"
+  | "locked"
+  | "permission"
+  | "notPublished";
 
 export const ASSESSMENT_WORKFLOW_STATE_STYLES: Record<
   AssessmentWorkflowState,
@@ -65,6 +70,17 @@ export function isSubmissionReviewAvailable(
     assessment.deliveryMode === "QUESTION_BASED" &&
     isAssessmentReleased(assessment)
   );
+}
+
+export function getAssessmentEntryUnavailableReason(
+  assessment: Pick<Assessment, "approvalStatus" | "isLocked">,
+  context: { isReadOnly: boolean; hasRequiredPermission: boolean },
+): AssessmentEntryUnavailableReason | null {
+  if (assessment.isLocked) return "locked";
+  if (context.isReadOnly) return "termClosed";
+  if (!context.hasRequiredPermission) return "permission";
+  if (assessment.approvalStatus === "draft") return "notPublished";
+  return null;
 }
 
 export function getAssessmentEntryModeKey(assessment: Assessment): AssessmentEntryModeKey {

@@ -35,16 +35,13 @@ import {
   type Section,
   type Classroom,
 } from "@/features/academics/academic-structure-tree/services/structureService";
-import {
-  fetchSessions,
-} from "../services/attendanceRollCallService";
+import { fetchSessions } from "../services/attendanceRollCallService";
 import { fetchEffectiveAttendancePolicy } from "@/features/attendance/policies/services/attendancePolicyService";
 import {
   RollCallSubmissionError,
   useRollCallSessionWorkspace,
 } from "../hooks/useRollCallSessionWorkspace";
-import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
-import { getRollCallTimetableConfigRequest } from "../utils/policyTimetableConfig";
+import { fetchEffectiveAttendanceTimetable } from "@/features/attendance/shared/services/effectiveAttendanceTimetable";
 import { getRollCallContextKey } from "../utils/rollCallContextKey";
 import {
   formatLocalDate,
@@ -103,7 +100,9 @@ export default function AttendanceRollCallPage() {
   const [periods, setPeriods] = useState<
     import("@/features/academics/timetable/types/timetableConfig").TimetablePeriod[]
   >([]);
-  const [activeDayIndexes, setActiveDayIndexes] = useState<number[] | undefined>();
+  const [activeDayIndexes, setActiveDayIndexes] = useState<
+    number[] | undefined
+  >();
   const [readyContextKey, setReadyContextKey] = useState<string | null>(null);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [derivedPeriodSessions, setDerivedPeriodSessions] = useState<
@@ -477,23 +476,17 @@ export default function AttendanceRollCallPage() {
           effectivePolicy?.mode === "DAILY" &&
           effectivePolicy.dailyComputationStrategy === "DERIVED_FROM_PERIODS";
 
-        const timetableRequest = effectivePolicy
-          ? getRollCallTimetableConfigRequest(
+        const effectiveTimetable = effectivePolicy
+          ? await fetchEffectiveAttendanceTimetable({
+              academicYearId: termContext.yearId!,
+              termId: termContext.termId!,
               scopeType,
               scopeIds,
-              termContext.yearId!,
-              termContext.termId!,
-            )
-          : null;
-        const timetableConfig = timetableRequest
-          ? await fetchTimetableConfig(timetableRequest)
+              structure: { stages, grades, sections, classrooms },
+            })
           : null;
         if (cancelled) return;
-        setActiveDayIndexes(
-          timetableConfig?.days
-            .filter((day) => day.isActive)
-            .map((day) => day.index),
-        );
+        setActiveDayIndexes(effectiveTimetable?.activeDayIndexes);
 
         // Derived daily policies still require period sessions. The backend
         // derives the daily result from their submitted entries.
@@ -503,18 +496,17 @@ export default function AttendanceRollCallPage() {
           );
           const allowedPeriods =
             policyPeriodIds.size > 0
-              ? (timetableConfig?.periods || []).filter((period) =>
+              ? (effectiveTimetable?.periods || []).filter((period) =>
                   policyPeriodIds.has(period.id),
                 )
-              : timetableConfig?.periods || [];
+              : effectiveTimetable?.periods || [];
           setPeriods(allowedPeriods);
 
           // Keep the current period only while it remains allowed by policy.
-          setSelectedPeriodId(
-            (current) =>
-              current && allowedPeriods.some((period) => period.id === current)
-                ? current
-                : allowedPeriods[0]?.id ?? null,
+          setSelectedPeriodId((current) =>
+            current && allowedPeriods.some((period) => period.id === current)
+              ? current
+              : (allowedPeriods[0]?.id ?? null),
           );
         } else {
           setPeriods([]);
@@ -549,6 +541,10 @@ export default function AttendanceRollCallPage() {
     scopeType,
     scopeIds,
     date,
+    stages,
+    grades,
+    sections,
+    classrooms,
   ]);
 
   useEffect(() => {
@@ -570,13 +566,10 @@ export default function AttendanceRollCallPage() {
     let cancelled = false;
     const loadDerivedPeriodSessions = async () => {
       try {
-        const sessions = await fetchSessions(
-          yearId,
-          termId,
-          date,
-          date,
-          { scopeType, scopeIds },
-        );
+        const sessions = await fetchSessions(yearId, termId, date, date, {
+          scopeType,
+          scopeIds,
+        });
         if (cancelled) return;
 
         setDerivedPeriodSessions(
@@ -677,15 +670,7 @@ export default function AttendanceRollCallPage() {
           : tCommon("error_saving"),
       );
     }
-  }, [
-    session,
-    kpis,
-    submitDraft,
-    t,
-    tCommon,
-    showSuccess,
-    showError,
-  ]);
+  }, [session, kpis, submitDraft, t, tCommon, showSuccess, showError]);
 
   // Unsubmit
   const handleUnsubmit = useCallback(async () => {
@@ -1121,10 +1106,7 @@ export default function AttendanceRollCallPage() {
     isContextReady &&
     !isSelectedDateActive &&
     !isContextLoading;
-  const pickerDisabled =
-    isReadOnly ||
-    rollCall.isOpening ||
-    rollCall.isSaving;
+  const pickerDisabled = isReadOnly || rollCall.isOpening || rollCall.isSaving;
 
   const sessionPickerProps = {
     scopeType,

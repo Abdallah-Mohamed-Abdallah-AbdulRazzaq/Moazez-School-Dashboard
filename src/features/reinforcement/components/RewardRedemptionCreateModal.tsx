@@ -16,6 +16,9 @@ import type {
   CreateRewardRedemptionPayload,
   RewardCatalogItem,
 } from "../types";
+import { describeRewardApiError } from "../utils/rewardApiErrors";
+
+const MAX_NOTE_LENGTH = 1_000;
 
 interface RewardRedemptionCreateModalProps {
   isOpen: boolean;
@@ -210,6 +213,8 @@ export default function RewardRedemptionCreateModal({
           listRewardCatalog({
             status: "published",
             onlyAvailable: true,
+            academicYearId,
+            termId,
             limit: 100,
           }),
         ]);
@@ -232,7 +237,7 @@ export default function RewardRedemptionCreateModal({
         if (!active.current) return;
         setLookupError(
           error instanceof Error
-            ? error.message
+            ? t(describeRewardApiError(error).messageKey)
             : t("rewardsModule.redemptions.create.lookupFailed"),
         );
       } finally {
@@ -327,7 +332,7 @@ export default function RewardRedemptionCreateModal({
     } catch (error) {
       setSubmitError(
         error instanceof Error
-          ? error.message
+          ? t(describeRewardApiError(error).messageKey)
           : t("rewardsModule.redemptions.create.submitFailed"),
       );
     }
@@ -425,6 +430,7 @@ export default function RewardRedemptionCreateModal({
             }
             disabled={loading}
             rows={3}
+            maxLength={MAX_NOTE_LENGTH}
           />
           <TextArea
             label={t("rewardsModule.redemptions.create.requestNoteAr")}
@@ -434,6 +440,7 @@ export default function RewardRedemptionCreateModal({
             }
             disabled={loading}
             rows={3}
+            maxLength={MAX_NOTE_LENGTH}
           />
         </div>
       </div>

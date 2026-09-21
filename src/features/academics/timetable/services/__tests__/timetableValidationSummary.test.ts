@@ -7,6 +7,7 @@ import {
   validationIssueText,
   validationSummaryFromResponse,
 } from "@/features/academics/timetable/services/timetableValidationSummary";
+import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
 
 describe("timetableValidationSummary", () => {
   it("normalizes backend validation buckets for the validation panel", () => {
@@ -91,21 +92,50 @@ describe("timetableValidationSummary", () => {
     ).toBe("Science (2/4)");
   });
 
+  it("retains room validity failures when overlap count is zero", () => {
+    const response = validationSummaryFromResponse(
+      {
+        termId: "term-1", academicYearId: "year-1",
+        summary: { classroomsChecked: 1, expectedWeeklySlots: 1, actualScheduledSlots: 1, missingTeacherAllocations: 0, underScheduledSubjects: 0, overScheduledSubjects: 0, teacherConflicts: 0, classroomConflicts: 0, roomConflicts: 0, missingSubjectAllocationRows: 0 },
+        items: [{ classroomId: "class-1", classroom: { id: "class-1", nameAr: "A", nameEn: "A" }, gradeId: "grade-1", grade: { id: "grade-1", nameAr: "G", nameEn: "G" }, subjectId: "subject-1", subject: { id: "subject-1", nameAr: "S", nameEn: "S", code: null, color: null }, expectedWeeklyHours: 1, scheduledWeeklyHours: 1, status: "complete", issues: [{ code: "room_inactive", message: "Room is inactive" }] }],
+      },
+      (code, fallback) => timetableBackendMessage(code, "ar", fallback),
+    );
+
+    expect(response.roomIntegrityIssues).toEqual([
+      expect.objectContaining({
+        message: "توجد حصة مجدولة في غرفة غير نشطة.",
+      }),
+    ]);
+    expect(hasBlockingValidation(response)).toBe(true);
+  });
+
   it("reads conflict lists from common backend response shapes", () => {
     const conflict = {
-      type: "ROOM" as const,
-      dayKey: "mon",
-      periodIndex: 1,
-      resourceId: "room-1",
-      resourceName: "Room 1",
-      sections: [],
+      code: "room_conflict",
+      message: "Room intervals overlap.",
+      severity: "blocking",
+      dayOfWeek: 1,
+      periodId: "period-1",
+      roomId: "room-1",
+      entryIds: ["entry-1"],
+      proposedIndexes: [],
     };
+    const expectedConflict = expect.objectContaining({
+      type: "ROOM",
+      code: "room_conflict",
+      dayKey: "mon",
+      periodId: "period-1",
+      resourceId: "room-1",
+    });
 
     expect(conflictsFromResponse({ conflicts: [conflict] })).toEqual([
-      conflict,
+      expectedConflict,
     ]);
-    expect(conflictsFromResponse({ items: [conflict] })).toEqual([conflict]);
-    expect(conflictsFromResponse([conflict])).toEqual([conflict]);
+    expect(conflictsFromResponse({ items: [conflict] })).toEqual([
+      expectedConflict,
+    ]);
+    expect(conflictsFromResponse([conflict])).toEqual([expectedConflict]);
   });
 
   it("preserves the source-specific conflict category", () => {
@@ -130,5 +160,30 @@ describe("timetableValidationSummary", () => {
         conflicts: [{ code: "future_conflict", message: "Backend detail" }],
       }).conflicts[0],
     ).toMatchObject({ type: "UNKNOWN", code: "future_conflict" });
+  });
+
+  it("preserves unresolved backend period IDs without inventing an index", () => {
+    const conflict = normalizePersistedConflicts(
+      {
+        conflicts: [
+          {
+            type: "TEACHER",
+            message: "Teacher intervals overlap.",
+            severity: "blocking",
+            dayOfWeek: 2,
+            periodId: "deleted-period",
+            teacherUserId: "teacher-1",
+            entryIds: ["entry-1"],
+          },
+        ],
+      },
+      [],
+    ).conflicts[0];
+
+    expect(conflict).toMatchObject({
+      periodId: "deleted-period",
+      message: "Teacher intervals overlap.",
+    });
+    expect(conflict).not.toHaveProperty("periodIndex");
   });
 });

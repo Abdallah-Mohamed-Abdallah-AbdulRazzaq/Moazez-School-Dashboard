@@ -72,7 +72,7 @@ describe("timetablePeriodsService", () => {
   it("creates, updates, and deletes periods with real backend period endpoints", async () => {
     mockedApiPost.mockResolvedValueOnce(backendPeriod);
     mockedApiPatch.mockResolvedValueOnce({ ...backendPeriod, label: "Updated" });
-    mockedApiDelete.mockResolvedValueOnce(undefined);
+    mockedApiDelete.mockResolvedValueOnce({ ok: true });
 
     await createTimetablePeriod({
       timetableConfigId: "config-1",
@@ -82,7 +82,9 @@ describe("timetablePeriodsService", () => {
       endTime: "08:45",
     });
     await updateTimetablePeriod("period-1", { label: "Updated" });
-    await deleteTimetablePeriod("period-1");
+    await expect(deleteTimetablePeriod("period-1")).resolves.toEqual({
+      ok: true,
+    });
 
     expect(mockedApiPost).toHaveBeenCalledWith("/academics/timetable/periods", {
       timetableConfigId: "config-1",

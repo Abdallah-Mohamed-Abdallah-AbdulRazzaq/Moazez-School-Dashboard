@@ -381,7 +381,7 @@ export function useConversationMessages(conversationId: string) {
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [hasOlderMessages, setHasOlderMessages] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Keep ref in sync for use in callbacks without stale closures
   useEffect(() => {
@@ -392,7 +392,7 @@ export function useConversationMessages(conversationId: string) {
 
   const refreshMessages = useCallback(async () => {
     const requestConversationId = conversationId;
-    setError(null);
+    setLoadError(null);
     try {
       const response = await getMessages(requestConversationId, {
         limit: PAGE_SIZE,
@@ -424,7 +424,7 @@ export function useConversationMessages(conversationId: string) {
       ) {
         return;
       }
-      setError(errorMessage(nextError));
+      setLoadError(errorMessage(nextError));
       setMessages([]);
     } finally {
       if (mountedRef.current) setIsLoading(false);
@@ -585,7 +585,6 @@ export function useConversationMessages(conversationId: string) {
         );
         return serverMessage.id ?? clientMessageId;
       } catch (nextError) {
-        setError(errorMessage(nextError));
         setMessages((current) =>
           current.map((message) =>
             message.clientMessageId === clientMessageId
@@ -667,7 +666,6 @@ export function useConversationMessages(conversationId: string) {
         );
         return serverMessage.id ?? clientMessageId;
       } catch (nextError) {
-        setError(errorMessage(nextError));
         setMessages((current) =>
           current.map((message) =>
             message.clientMessageId === clientMessageId
@@ -703,7 +701,6 @@ export function useConversationMessages(conversationId: string) {
           setMessages((current) => upsertMessage(current, serverMessage));
         }
       } catch (nextError) {
-        setError(errorMessage(nextError));
         await refreshMessages();
         throw nextError;
       } finally {
@@ -733,7 +730,6 @@ export function useConversationMessages(conversationId: string) {
       try {
         await deleteMessage(messageId);
       } catch (nextError) {
-        setError(errorMessage(nextError));
         await refreshMessages();
         throw nextError;
       } finally {
@@ -842,7 +838,7 @@ export function useConversationMessages(conversationId: string) {
     isLoadingOlder,
     hasOlderMessages,
     isMutating,
-    error,
+    error: loadError,
     refresh,
     loadOlderMessages,
     send,

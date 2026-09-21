@@ -18,6 +18,8 @@ import type {
   ReactionType,
 } from "@/features/communication/types/message.types";
 import { MessageBubble } from "./MessageBubble";
+import type { CommunicationMessageCapabilities } from "@/features/communication/authorization/communication-capabilities";
+import type { SupportedModerationAction } from "@/features/communication/types/safety.types";
 
 function preferredScrollBehavior(): ScrollBehavior {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
@@ -43,6 +45,7 @@ export function MessagesPanel({
   labels,
   locale,
   messages,
+  getMessageCapabilities,
   onAddReaction,
   onAttachFile,
   onDeleteAttachment,
@@ -50,9 +53,11 @@ export function MessagesPanel({
   onStartEdit,
   onLoadOlder,
   onInfo,
+  onModerateMessage = async () => undefined,
   onRemoveReaction,
   onReply,
   onReport,
+  onViewModerationHistory = () => undefined,
   onRetry,
   reactionsByMessageId,
   typingUsers,
@@ -76,6 +81,9 @@ export function MessagesPanel({
   labels: ConversationRedesignLabels;
   locale: string;
   messages: ConversationMessage[];
+  getMessageCapabilities?: (
+    message: ConversationMessage,
+  ) => CommunicationMessageCapabilities;
   onAddReaction: (messageId: string, type: ReactionType) => Promise<unknown>;
   onAttachFile: (messageId: string, file: File) => Promise<unknown>;
   onDeleteAttachment: (
@@ -86,9 +94,15 @@ export function MessagesPanel({
   onStartEdit: (messageId: string, body: string) => void;
   onLoadOlder: () => void;
   onInfo: (messageId: string) => void;
+  onModerateMessage?: (
+    messageId: string,
+    action: SupportedModerationAction,
+    reason: string,
+  ) => Promise<unknown>;
   onRemoveReaction: (messageId: string) => Promise<unknown>;
   onReply: (message: ConversationMessage) => void;
   onReport: (messageId: string) => void;
+  onViewModerationHistory?: (messageId: string) => void;
   onRetry: () => void;
   reactionsByMessageId: Record<string, MessageReaction[]>;
   typingUsers: Array<{ userId: string; name?: string }>;
@@ -154,9 +168,11 @@ export function MessagesPanel({
           top: container.scrollHeight,
           behavior: preferredScrollBehavior(),
         });
-        setNewMessageCount(0);
+        queueMicrotask(() => setNewMessageCount(0));
       } else if (appendedCount > 0) {
-        setNewMessageCount((count) => count + appendedCount);
+        queueMicrotask(() =>
+          setNewMessageCount((count) => count + appendedCount),
+        );
       }
     }
 
@@ -325,6 +341,7 @@ export function MessagesPanel({
                   labels={labels}
                   locale={locale}
                   message={message}
+                  capabilities={getMessageCapabilities?.(message)}
                   onAddReaction={(type: ReactionType) =>
                     onAddReaction(message.id, type)
                   }
@@ -337,9 +354,13 @@ export function MessagesPanel({
                     onStartEdit(message.id, message.body ?? "")
                   }
                   onInfo={(msgId) => onInfo(msgId)}
+                  onModerateMessage={(action, reason) =>
+                    onModerateMessage(message.id, action, reason)
+                  }
                   onRemoveReaction={() => onRemoveReaction(message.id)}
                   onReply={(msg) => onReply(msg)}
                   onReport={(msgId) => onReport(msgId)}
+                  onViewModerationHistory={onViewModerationHistory}
                   allMessages={messages}
                   reactions={reactionsByMessageId[message.id] ?? []}
                   userDisplayNames={userDisplayNames}

@@ -7,10 +7,11 @@ import { fetchEnrollments } from "@/features/students-guardians/enrollments/serv
 const showError = vi.fn();
 const showSuccess = vi.fn();
 const replace = vi.fn();
+const translate = (key: string) => key;
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => translate,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -166,5 +167,13 @@ describe("CreateHomeworkPage assignment contract", () => {
     expect(
       await screen.findByTestId("homework-due-date-time-picker"),
     ).toHaveTextContent("fields.dueAt");
+  });
+
+  it("explains that a timetable must be published before its slot can be linked", async () => {
+    render(<CreateHomeworkPage />);
+
+    expect(
+      await screen.findByText("helpers.timetablePublicationRequired"),
+    ).toBeInTheDocument();
   });
 });

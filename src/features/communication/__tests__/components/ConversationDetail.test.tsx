@@ -15,6 +15,7 @@ import {
   createMessage,
   createParticipant,
 } from "../utils/test-data-generators";
+import { ApiError } from "@/lib/api-error";
 
 // ─── Hoisted Mocks ──────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ const refreshMessagesMock = vi.hoisted(() => vi.fn());
 const refreshParticipantsMock = vi.hoisted(() => vi.fn());
 const refreshReactionsMock = vi.hoisted(() => vi.fn());
 const refreshAttachmentsMock = vi.hoisted(() => vi.fn());
+const refreshPolicyMock = vi.hoisted(() => vi.fn());
 
 // ─── Module Mocks ───────────────────────────────────────────────────────────
 
@@ -142,9 +144,30 @@ vi.mock("@/hooks/use-auth", () => ({
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
-  usePermissions: () => ({
-    hasPermission: hasPermissionMock,
-  }),
+  usePermissions: () => {
+    const communicationPermissions = [
+      "communication.admin.view",
+      "communication.admin.manage",
+      "communication.conversations.view",
+      "communication.conversations.manage",
+      "communication.messages.view",
+      "communication.messages.send",
+      "communication.messages.edit",
+      "communication.messages.delete",
+      "communication.messages.react",
+      "communication.messages.attachments.manage",
+      "communication.messages.report",
+      "communication.messages.moderate",
+      "communication.participants.manage",
+    ];
+
+    return {
+      grantedPermissions: communicationPermissions.filter((permission) =>
+        hasPermissionMock(permission),
+      ),
+      hasPermission: hasPermissionMock,
+    };
+  },
 }));
 
 vi.mock("next-intl", () => ({
@@ -272,7 +295,7 @@ vi.mock(
             void onSendWithAttachment?.(
               [new File(["image"], "photo.png", { type: "image/png" })],
               "Photo caption",
-            )
+            ).catch(() => undefined)
           }
         >
           Send image
@@ -293,11 +316,15 @@ vi.mock(
     default: ({
       canManage,
       canLeaveConversation,
+      error,
+      onRetry,
       participants,
       userDisplayNames,
     }: {
       canManage: boolean;
       canLeaveConversation: boolean;
+      error?: string | null;
+      onRetry?: () => void;
       participants?: Array<{
         id: string;
         userId?: string;
@@ -314,6 +341,10 @@ vi.mock(
         {canManage && <button data-testid="demote-btn">Demote</button>}
         {canManage && <button data-testid="remove-btn">Remove</button>}
         {canLeaveConversation && <button data-testid="leave-btn">Leave</button>}
+        {error ? <div role="alert">{error}</div> : null}
+        {error && onRetry ? (
+          <button type="button" onClick={onRetry}>Retry participants</button>
+        ) : null}
         <ul data-testid="participants-list">
           {participants?.map((p) => {
             const userId = p.userId ?? p.actor?.userId ?? p.actor?.id;
@@ -542,17 +573,22 @@ function setupDefaultMocks() {
       maxAttachmentSizeMb: 10,
     },
     isLoading: false,
+    refresh: refreshPolicyMock,
   });
 
   markConversationReadMock.mockResolvedValue({});
 }
 
-function renderConversationDetail(onToast = vi.fn()) {
+function renderConversationDetail(
+  onToast = vi.fn(),
+  onConversationRead?: (conversationId: string) => void,
+) {
   return render(
     <ConversationDetail
       conversationId={TEST_CONVERSATION_ID}
       labels={labels}
       onBack={vi.fn()}
+      onConversationRead={onConversationRead}
       onToast={onToast}
     />,
   );
@@ -789,6 +825,45 @@ describe("ConversationDetail", () => {
       });
     });
 
+    it("refreshes a stale communication policy after the backend rejects attachment size", async () => {
+      const onToast = vi.fn();
+      const sendMedia = vi.fn().mockRejectedValue(
+        new ApiError(
+          "Attachment file exceeds the communication policy limit",
+          422,
+          "communication.attachment.invalid_file",
+          undefined,
+          { maxAttachmentSizeMb: 1 },
+        ),
+      );
+      useConversationMessagesMock.mockReturnValue({
+        messages: [],
+        isLoading: false,
+        isLoadingOlder: false,
+        isMutating: false,
+        hasOlderMessages: false,
+        error: null,
+        send: vi.fn(),
+        sendMedia,
+        edit: vi.fn(),
+        remove: vi.fn(),
+        loadOlderMessages: vi.fn(),
+        refresh: vi.fn(),
+        markRead: vi.fn(),
+      });
+
+      renderConversationDetail(onToast);
+      fireEvent.click(screen.getByTestId("send-image-attachment"));
+
+      await waitFor(() => {
+        expect(refreshPolicyMock).toHaveBeenCalledTimes(1);
+        expect(onToast).toHaveBeenCalledWith({
+          tone: "error",
+          message: labels.errorAttachmentSizeLimit.replace("{size}", "1"),
+        });
+      });
+    });
+
     it("renders full-component loading spinner and blocks rendering of other elements when conversation loading is true", () => {
       useConversationMock.mockReturnValue({
         conversation: null,
@@ -864,6 +939,7 @@ describe("ConversationDetail", () => {
 
     it("waits for window focus before marking an incoming message as read", async () => {
       const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(false);
+      const onConversationRead = vi.fn();
       useConversationMessagesMock.mockReturnValue({
         ...useConversationMessagesMock(),
         messages: [
@@ -876,7 +952,7 @@ describe("ConversationDetail", () => {
         ],
       });
 
-      renderConversationDetail();
+      renderConversationDetail(vi.fn(), onConversationRead);
       expect(markConversationReadMock).not.toHaveBeenCalled();
 
       hasFocus.mockReturnValue(true);
@@ -886,6 +962,39 @@ describe("ConversationDetail", () => {
         expect(markConversationReadMock).toHaveBeenCalledWith(
           TEST_CONVERSATION_ID,
         );
+      });
+      expect(onConversationRead).toHaveBeenCalledWith(TEST_CONVERSATION_ID);
+      hasFocus.mockRestore();
+    });
+
+    it("keeps the conversation unread and allows retry when marking read fails", async () => {
+      const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
+      const onConversationRead = vi.fn();
+      markConversationReadMock
+        .mockRejectedValueOnce(new Error("read failed"))
+        .mockResolvedValueOnce({});
+      useConversationMessagesMock.mockReturnValue({
+        ...useConversationMessagesMock(),
+        messages: [
+          {
+            id: "retry-incoming-message",
+            senderId: "another-user",
+            body: "Hello again",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      renderConversationDetail(vi.fn(), onConversationRead);
+      await waitFor(() => {
+        expect(markConversationReadMock).toHaveBeenCalledTimes(1);
+      });
+      expect(onConversationRead).not.toHaveBeenCalled();
+
+      fireEvent.focus(window);
+      await waitFor(() => {
+        expect(markConversationReadMock).toHaveBeenCalledTimes(2);
+        expect(onConversationRead).toHaveBeenCalledWith(TEST_CONVERSATION_ID);
       });
       hasFocus.mockRestore();
     });
@@ -1001,6 +1110,33 @@ describe("ConversationDetail", () => {
         expect(options?.enabled).toBe(true);
       }
     });
+
+    it("loads join requests for a user who can create a request but cannot review requests", () => {
+      useConversationParticipantsMock.mockReturnValue({
+        participants: [],
+        isLoading: false,
+        isMutating: false,
+        total: 0,
+        error: null,
+        refresh: vi.fn(),
+        add: vi.fn(),
+        update: vi.fn(),
+        promote: vi.fn(),
+        demote: vi.fn(),
+        remove: vi.fn(),
+        leave: vi.fn(),
+      });
+      hasPermissionMock.mockImplementation(
+        (permission: string) =>
+          permission === "communication.conversations.view",
+      );
+
+      renderConversationDetail();
+      fireEvent.click(screen.getByTestId("tab-joinRequests"));
+
+      const latestCall = useConversationJoinRequestsMock.mock.calls.at(-1);
+      expect(latestCall?.[1]).toEqual(expect.objectContaining({ enabled: true }));
+    });
   });
 
   // ─── Property 17: ReadOnlyComposer for Restricted Users ────────────────
@@ -1032,6 +1168,11 @@ describe("ConversationDetail", () => {
     });
 
     it("shows restriction banner when conversation has isReadOnly flag", () => {
+      hasPermissionMock.mockImplementation(
+        (permission: string) =>
+          permission !== "communication.messages.moderate" &&
+          permission !== "communication.admin.manage",
+      );
       const readOnlyConversation = createConversation({
         id: TEST_CONVERSATION_ID,
         status: "active",
@@ -1085,7 +1226,7 @@ describe("ConversationDetail", () => {
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
     });
 
-    it("shows restriction banner when current user is blocked", () => {
+    it("treats an unsupported blocked participant status as inactive", () => {
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -1109,7 +1250,9 @@ describe("ConversationDetail", () => {
       });
 
       renderConversationDetail();
-      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
+      expect(
+        screen.getByText(labels.errorConversationNotMember),
+      ).toBeInTheDocument();
       expect(
         screen.queryByTestId("read-only-composer"),
       ).not.toBeInTheDocument();
@@ -1348,6 +1491,10 @@ describe("ConversationDetail", () => {
     });
 
     it("hides management actions when user has member role (no management permissions)", () => {
+      hasPermissionMock.mockImplementation(
+        (permission: string) =>
+          permission !== "communication.participants.manage",
+      );
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -1571,15 +1718,16 @@ describe("ConversationDetail", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("toasts error when participantsState has an error and renders ParticipantsPanel without inline error", async () => {
+    it("renders participant load errors inline and retries without a toast", () => {
       setupDefaultMocks();
+      const refreshParticipants = vi.fn();
       useConversationParticipantsMock.mockReturnValue({
         participants: [],
         isLoading: false,
         isMutating: false,
         total: 0,
         error: "Failed to load participants test error",
-        refresh: vi.fn(),
+        refresh: refreshParticipants,
         add: vi.fn(),
         update: vi.fn(),
         promote: vi.fn(),
@@ -1601,17 +1749,18 @@ describe("ConversationDetail", () => {
       // Switch to participants tab
       fireEvent.click(screen.getByTestId("tab-participants"));
 
-      await waitFor(() => {
-        expect(mockOnToast).toHaveBeenCalledWith({
-          tone: "error",
-          message: "Failed to load participants test error",
-        });
+      expect(
+        screen.getByRole("alert"),
+      ).toHaveTextContent("Failed to load participants test error");
+      expect(mockOnToast).not.toHaveBeenCalledWith({
+        tone: "error",
+        message: "Failed to load participants test error",
       });
 
-      // Verify no inline error panel state is displayed
-      expect(
-        screen.queryByText("Failed to load participants test error"),
-      ).not.toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Retry participants" }),
+      );
+      expect(refreshParticipants).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1664,7 +1813,7 @@ describe("ConversationDetail", () => {
       expect(screen.getByText(labels.errorPolicyDisabled)).toBeInTheDocument();
     });
 
-    it("renders blocked banner when current participant status is blocked", () => {
+    it("treats an unsupported blocked participant status as inactive", () => {
       useConversationParticipantsMock.mockReturnValue({
         participants: [
           createParticipant({
@@ -1684,16 +1833,20 @@ describe("ConversationDetail", () => {
       renderConversationDetail();
 
       expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
-      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
+      expect(
+        screen.getByText(labels.errorConversationNotMember),
+      ).toBeInTheDocument();
     });
 
-    it("renders blocked banner when current participant has isBlocked flag", () => {
+    it.each(["isBlocked", "isRestricted"] as const)(
+      "does not trust the unsupported %s participant field",
+      (field) => {
       const participant = createParticipant({
         userId: TEST_USER_ID,
         role: "member",
         status: "active",
         actor: { id: TEST_USER_ID, name: "Test User" },
-        isBlocked: true,
+        [field]: true,
       });
 
       useConversationParticipantsMock.mockReturnValue({
@@ -1707,35 +1860,16 @@ describe("ConversationDetail", () => {
 
       renderConversationDetail();
 
-      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
-      expect(screen.getByText(labels.errorUserBlocked)).toBeInTheDocument();
-    });
-
-    it("renders restricted banner when current participant has isRestricted flag", () => {
-      const participant = createParticipant({
-        userId: TEST_USER_ID,
-        role: "member",
-        status: "active",
-        actor: { id: TEST_USER_ID, name: "Test User" },
-        isRestricted: true,
-      });
-
-      useConversationParticipantsMock.mockReturnValue({
-        participants: [participant],
-        isLoading: false,
-        isMutating: false,
-        total: 1,
-        error: null,
-        refresh: vi.fn(),
-      });
-
-      renderConversationDetail();
-
-      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
-      expect(screen.getByText(labels.errorUserRestricted)).toBeInTheDocument();
-    });
+        expect(screen.getByTestId("message-composer")).toBeInTheDocument();
+      },
+    );
 
     it("renders read-only banner when conversation is read-only", () => {
+      hasPermissionMock.mockImplementation(
+        (permission: string) =>
+          permission !== "communication.messages.moderate" &&
+          permission !== "communication.admin.manage",
+      );
       const conv = createConversation({
         id: TEST_CONVERSATION_ID,
         status: "active",

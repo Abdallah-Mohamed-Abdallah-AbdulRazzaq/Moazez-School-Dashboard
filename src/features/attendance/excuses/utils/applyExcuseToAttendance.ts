@@ -1,8 +1,10 @@
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
-import { getOrCreateSession, upsertEntry } from "@/features/attendance/roll-call/services/attendanceRollCallService";
-import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
-import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
+import {
+  getOrCreateSession,
+  upsertEntry,
+} from "@/features/attendance/roll-call/services/attendanceRollCallService";
+import { fetchEffectiveAttendanceTimetable } from "@/features/attendance/shared/services/effectiveAttendanceTimetable";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import type { AttachmentMeta as RollCallAttachmentMeta } from "@/features/attendance/roll-call/types";
 import type { ExcuseRequest } from "../types";
@@ -21,47 +23,32 @@ interface ApplyExcuseParams {
 async function fetchTimetablePeriodsForScope(
   yearId: string,
   termId: string,
-  scopeIds: ExcuseRequest["scopeIds"]
+  scopeType: NonNullable<ExcuseRequest["scopeType"]>,
+  scopeIds: ExcuseRequest["scopeIds"],
 ): Promise<TimetablePeriod[]> {
-  const termConfig = await fetchTimetableConfig({
+  const timetable = await fetchEffectiveAttendanceTimetable({
     academicYearId: yearId,
     termId,
-    scopeType: "TERM",
+    scopeType,
+    scopeIds: scopeIds ?? {},
   });
-
-  let gradeConfig = null;
-  if (scopeIds?.gradeId) {
-    gradeConfig = await fetchTimetableConfig({
-      academicYearId: yearId,
-      termId,
-      scopeType: "GRADE",
-      gradeId: scopeIds.gradeId,
-    });
-  }
-
-  let sectionConfig = null;
-  if (scopeIds?.sectionId) {
-    sectionConfig = await fetchTimetableConfig({
-      academicYearId: yearId,
-      termId,
-      scopeType: "SECTION",
-      sectionId: scopeIds.sectionId,
-    });
-  }
-
-  const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig);
-  return resolved.periods;
+  return timetable.periods;
 }
 
 function choosePeriodIds(
   request: ExcuseRequest,
   policy: AttendancePolicy,
-  periods: TimetablePeriod[]
+  periods: TimetablePeriod[],
 ): string[] {
-  const normalizedPolicyPeriods = normalizeSelectedPeriodIds(policy.selectedPeriodIds || [], periods);
+  const normalizedPolicyPeriods = normalizeSelectedPeriodIds(
+    policy.selectedPeriodIds || [],
+    periods,
+  );
 
   if (request.type === "ABSENCE") {
-    return normalizedPolicyPeriods.length > 0 ? normalizedPolicyPeriods : [periods[0]?.id].filter(Boolean);
+    return normalizedPolicyPeriods.length > 0
+      ? normalizedPolicyPeriods
+      : [periods[0]?.id].filter(Boolean);
   }
 
   if (request.selectedPeriodIds && request.selectedPeriodIds.length > 0) {
@@ -83,7 +70,10 @@ function choosePeriodIds(
     : [normalizedPolicyPeriods[normalizedPolicyPeriods.length - 1]];
 }
 
-function mapAttachments(attachments: ExcuseRequest["attachments"], decidedBy?: string): RollCallAttachmentMeta[] {
+function mapAttachments(
+  attachments: ExcuseRequest["attachments"],
+  decidedBy?: string,
+): RollCallAttachmentMeta[] {
   return attachments.map((attachment) => ({
     id: attachment.id,
     name: attachment.name,
@@ -94,7 +84,10 @@ function mapAttachments(attachments: ExcuseRequest["attachments"], decidedBy?: s
   }));
 }
 
-export async function applyExcuseToAttendance({ request, decidedBy }: ApplyExcuseParams): Promise<string[]> {
+export async function applyExcuseToAttendance({
+  request,
+  decidedBy,
+}: ApplyExcuseParams): Promise<string[]> {
   if (!request.scopeType) {
     throw new Error("Cannot apply an excuse without attendance scope context.");
   }
@@ -104,14 +97,19 @@ export async function applyExcuseToAttendance({ request, decidedBy }: ApplyExcus
 
   const dates = enumerateExcuseDates(request.dateFrom, request.dateTo);
   const linkedSessionIds = new Set<string>();
-  const periods = await fetchTimetablePeriodsForScope(request.yearId, request.termId, request.scopeIds);
+  const periods = await fetchTimetablePeriodsForScope(
+    request.yearId,
+    request.termId,
+    request.scopeType,
+    request.scopeIds,
+  );
 
   for (const date of dates) {
     const effectivePolicy = resolveEffectiveExcuseAttendancePolicy(
       policies,
       date,
       request.scopeType,
-      request.scopeIds
+      request.scopeIds,
     );
 
     if (!effectivePolicy) {
@@ -157,11 +155,20 @@ export async function applyExcuseToAttendance({ request, decidedBy }: ApplyExcus
         entryUpdate.minutesLate = request.minutesLate;
       }
 
-      if (request.type === "EARLY_LEAVE" && request.minutesEarlyLeave !== undefined) {
+      if (
+        request.type === "EARLY_LEAVE" &&
+        request.minutesEarlyLeave !== undefined
+      ) {
         entryUpdate.minutesEarlyLeave = request.minutesEarlyLeave;
       }
 
-      await upsertEntry(request.yearId, request.termId, sessionData.session.id, request.studentId, entryUpdate);
+      await upsertEntry(
+        request.yearId,
+        request.termId,
+        sessionData.session.id,
+        request.studentId,
+        entryUpdate,
+      );
     }
   }
 

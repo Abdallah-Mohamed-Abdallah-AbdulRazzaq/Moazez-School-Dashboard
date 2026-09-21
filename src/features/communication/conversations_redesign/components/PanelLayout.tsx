@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { Loader2, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button/Button";
+import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 
 export function PanelLayout({
   action,
@@ -93,6 +95,30 @@ export function StatusPill({
 export function PanelState({ label }: { label: string }) {
   return (
     <div className="px-4 py-6 text-center text-sm text-slate-500">{label}</div>
+  );
+}
+
+export function PanelErrorState({
+  error,
+  labels,
+  onRetry,
+}: {
+  error: string;
+  labels: ConversationRedesignLabels;
+  onRetry?: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-col items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-6 text-center text-sm text-rose-700"
+    >
+      <span>{error}</span>
+      {onRetry ? (
+        <Button type="button" size="sm" variant="danger" onClick={onRetry}>
+          {labels.retry}
+        </Button>
+      ) : null}
+    </div>
   );
 }
 

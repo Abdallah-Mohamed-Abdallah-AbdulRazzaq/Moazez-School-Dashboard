@@ -7,6 +7,7 @@ import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
 import type { DuplicateReinforcementTaskPayload, ReinforcementTask } from "../types";
 import { getDefaultReinforcementDueDate } from "./ReinforcementTaskForm";
+import { describeReinforcementTaskApiError } from "../utils/reinforcementTaskApiErrors";
 
 interface ReinforcementTaskDuplicateModalProps {
   task: ReinforcementTask | null;
@@ -26,7 +27,10 @@ export default function ReinforcementTaskDuplicateModal({
   const [titleEn, setTitleEn] = useState("");
   const [titleAr, setTitleAr] = useState("");
   const [dueDate, setDueDate] = useState(getDefaultReinforcementDueDate());
+  const [errors, setErrors] = useState<{ title?: string; dueDate?: string; form?: string }>({});
   const [saving, setSaving] = useState(false);
+
+  const clearErrors = () => setErrors({});
 
   useEffect(() => {
     if (!isOpen) return;
@@ -34,6 +38,7 @@ export default function ReinforcementTaskDuplicateModal({
       setTitleEn(task?.titleEn || "");
       setTitleAr(task?.titleAr || "");
       setDueDate(getDefaultReinforcementDueDate());
+      setErrors({});
       setSaving(false);
     });
   }, [isOpen, task]);
@@ -46,6 +51,12 @@ export default function ReinforcementTaskDuplicateModal({
         titleAr: titleAr.trim() || undefined,
         dueDate,
       });
+    } catch (submissionError) {
+      const apiError = describeReinforcementTaskApiError(submissionError);
+      const field = apiError.field === "title" || apiError.field === "dueDate"
+        ? apiError.field
+        : "form";
+      setErrors({ [field]: t(apiError.messageKey) });
     } finally {
       setSaving(false);
     }
@@ -73,20 +84,35 @@ export default function ReinforcementTaskDuplicateModal({
         <Input
           label={t("tasks.form.titleEn")}
           value={titleEn}
-          onChange={(event) => setTitleEn(event.target.value)}
+          error={errors.title}
+          maxLength={255}
+          onChange={(event) => {
+            setTitleEn(event.target.value);
+            clearErrors();
+          }}
         />
         <Input
           label={t("tasks.form.titleAr")}
           value={titleAr}
+          error={errors.title}
+          maxLength={255}
           dir="rtl"
-          onChange={(event) => setTitleAr(event.target.value)}
+          onChange={(event) => {
+            setTitleAr(event.target.value);
+            clearErrors();
+          }}
         />
         <Input
           type="date"
           label={t("tasks.form.dueDate")}
           value={dueDate}
-          onChange={(event) => setDueDate(event.target.value)}
+          error={errors.dueDate}
+          onChange={(event) => {
+            setDueDate(event.target.value);
+            clearErrors();
+          }}
         />
+        {errors.form ? <p className="text-sm text-red-600">{errors.form}</p> : null}
       </div>
     </Modal>
   );

@@ -33,10 +33,10 @@ export function hasQuestionMedia(question: Pick<
   );
 }
 
-export function isValidHttpUrl(value: string): boolean {
+export function isValidHttpsUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
+    return url.protocol === "https:";
   } catch {
     return false;
   }
@@ -210,7 +210,7 @@ export function validateQuestion(
     const hasMedia = hasQuestionMedia(question);
     if (!hasMedia) {
       errors.media = t("media_required");
-    } else if (mediaMode === "LINK" && question.mediaUrl?.trim() && !isValidHttpUrl(question.mediaUrl.trim())) {
+    } else if (mediaMode === "LINK" && question.mediaUrl?.trim() && !isValidHttpsUrl(question.mediaUrl.trim())) {
       errors.media = t("invalid_media_url");
     }
   }

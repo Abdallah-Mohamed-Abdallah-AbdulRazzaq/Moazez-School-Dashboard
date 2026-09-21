@@ -179,12 +179,12 @@ export function useConversationParticipants(
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!enabled) return;
     setIsRefreshing(true);
-    setError(null);
+    setLoadError(null);
     try {
       const response = await getParticipants(conversationId);
       const list = unwrapList<ConversationParticipant>(response);
@@ -194,7 +194,7 @@ export function useConversationParticipants(
       setTotal(list.total ?? nextParticipants.length);
     } catch (nextError) {
       if (!mountedRef.current) return;
-      setError(errorMessage(nextError));
+      setLoadError(errorMessage(nextError));
       setParticipants([]);
       setTotal(0);
     } finally {
@@ -208,14 +208,11 @@ export function useConversationParticipants(
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
       setIsMutating(true);
-      setError(null);
       try {
         const response = await operation();
         await refresh();
         return response;
       } catch (nextError) {
-        const message = errorMessage(nextError);
-        if (mountedRef.current) setError(message);
         throw nextError;
       } finally {
         if (mountedRef.current) setIsMutating(false);
@@ -306,7 +303,7 @@ export function useConversationParticipants(
     isLoading,
     isRefreshing,
     isMutating,
-    error,
+    error: loadError,
     refresh,
     add,
     update,

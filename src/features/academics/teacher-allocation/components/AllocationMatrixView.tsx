@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast/Toast";
 import FilterBar from "./FilterBar";
 import TeacherSelect from "./TeacherSelect";
 import BulkActionDialog from "./BulkActionDialog";
+import ReassignmentPreviewDialog from "./ReassignmentPreviewDialog";
 import AllocationMatrixTable, {
   type MatrixColumn,
   type MatrixDensity,
@@ -29,9 +30,15 @@ import {
   Teacher,
   TeacherAllocation,
   clearSubjectAllocations,
-  saveTeacherAllocationChanges,
+  commitTeacherAllocationSave,
+  prepareTeacherAllocationSave,
+  type TeacherAllocationSavePlan,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { teacherAllocationUiError } from "@/features/academics/teacher-allocation/services/teacherAllocationErrors";
+import {
+  teacherAllocationReassignmentFailure,
+  teacherAllocationUiError,
+  type TeacherAllocationReassignmentFailure,
+} from "@/features/academics/teacher-allocation/services/teacherAllocationErrors";
 import TeacherAllocationTechnicalDetails from "./TeacherAllocationTechnicalDetails";
 import {
   type AcademicsExportFormat,
@@ -194,6 +201,10 @@ export default function AllocationMatrixView({
   const [isClearingSubject, setIsClearingSubject] = useState(false);
   const [operationError, setOperationError] = useState<OperationError | null>(null);
   const [failedCellKeys, setFailedCellKeys] = useState<Set<string>>(new Set());
+  const [pendingSavePlan, setPendingSavePlan] =
+    useState<TeacherAllocationSavePlan | null>(null);
+  const [reassignmentFailure, setReassignmentFailure] =
+    useState<TeacherAllocationReassignmentFailure | null>(null);
 
   const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
   const [bulkActionGrade, setBulkActionGrade] = useState<Grade | null>(null);
@@ -502,30 +513,86 @@ export default function AllocationMatrixView({
     [filteredSubjects, localAllocations]
   );
 
+  const presentSaveError = (error: unknown) => {
+    console.error("Failed to save allocations:", error);
+    const uiError = teacherAllocationUiError(
+      error,
+      "Failed to save teacher allocations.",
+    );
+    setOperationError(uiError);
+    setFailedCellKeys(new Set(changedCellKeys));
+    showError(uiError.message);
+  };
+
+  const refreshAfterFailedWrite = async () => {
+    try {
+      await onRefresh();
+    } catch (refreshError) {
+      presentSaveError(refreshError);
+    }
+  };
+
+  const commitPreparedSave = async (plan: TeacherAllocationSavePlan) => {
+    try {
+      await commitTeacherAllocationSave(plan);
+    } catch (error) {
+      presentSaveError(error);
+      if (plan.reassignments.length > 0) {
+        setReassignmentFailure(teacherAllocationReassignmentFailure(error));
+      }
+      await refreshAfterFailedWrite();
+      return;
+    }
+
+    try {
+      await onRefresh();
+      setPendingSavePlan(null);
+      setReassignmentFailure(null);
+      setFailedCellKeys(new Set());
+      showSuccess(t("actions.saveSuccess"));
+    } catch (error) {
+      setPendingSavePlan(null);
+      presentSaveError(error);
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     setOperationError(null);
+    setReassignmentFailure(null);
     try {
-      await saveTeacherAllocationChanges({
+      const plan = await prepareTeacherAllocationSave({
         termId,
         localAllocations,
         originalAllocations,
       });
-      await onRefresh();
-      setOriginalAllocations(localAllocations);
-      setFailedCellKeys(new Set());
+
+      if (plan.reassignments.length > 0) {
+        setPendingSavePlan(plan);
+      } else {
+        await commitPreparedSave(plan);
+      }
     } catch (error) {
-      console.error("Failed to save allocations:", error);
-      const uiError = teacherAllocationUiError(
-        error,
-        "Failed to save teacher allocations.",
-      );
-      setOperationError(uiError);
-      setFailedCellKeys(new Set(changedCellKeys));
-      showError(uiError.message);
+      presentSaveError(error);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const confirmReassignment = async () => {
+    if (!pendingSavePlan || reassignmentFailure) return;
+    setIsSaving(true);
+    try {
+      await commitPreparedSave(pendingSavePlan);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelReassignment = () => {
+    if (isSaving) return;
+    setPendingSavePlan(null);
+    setReassignmentFailure(null);
   };
 
   const handleClearSubject = async () => {
@@ -1169,6 +1236,15 @@ export default function AllocationMatrixView({
         sections={sections}
         classrooms={classrooms}
         onSuccess={handleBulkActionSuccess}
+      />
+
+      <ReassignmentPreviewDialog
+        open={pendingSavePlan !== null}
+        reassignments={pendingSavePlan?.reassignments ?? []}
+        isSubmitting={isSaving}
+        error={reassignmentFailure}
+        onCancel={cancelReassignment}
+        onConfirm={() => void confirmReassignment()}
       />
 
       <AcademicsGlobalExportModal

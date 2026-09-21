@@ -19,6 +19,7 @@ import {
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import GuardedLink from "@/components/navigation/GuardedLink";
+import { NavigationStatusBadge, OverflowMarquee } from "@/components/ui";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
@@ -397,7 +398,11 @@ export default function Sidebar({
       {/* Sidebar */}
       <aside
         onMouseLeave={() => setHoveredCollapsedItemKey(null)}
-        className={`group/sidebar fixed z-50 h-screen bg-[#065769] flex flex-col transition-all duration-300 ease-in-out
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(7, 28, 33, 0.46), rgba(7, 28, 33, 0.46)), url('/images/sidebar/sidebar-background.svg')",
+        }}
+        className={`group/sidebar fixed z-50 h-screen bg-[#065769] bg-cover bg-center bg-no-repeat flex flex-col transition-all duration-300 ease-in-out
       ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-white/10
       ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
       ${isOpen ? "w-[260px] max-w-[80vw]" : "lg:w-20 lg:px-3"}`}
@@ -445,7 +450,7 @@ export default function Sidebar({
             className="flex items-center justify-center rounded-lg text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#065769]"
           >
             <Image
-              src="/images/logo/moazez_white_logo.svg"
+              src="/images/logo/moazez_white_logo.png"
               alt="Logo"
               width={isOpen ? 120 : 40}
               height={isOpen ? 30 : 40}
@@ -617,7 +622,7 @@ export default function Sidebar({
                               : item.label_en
                             : undefined
                         }
-                        className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 text-left ${
+                        className={`group w-full flex items-center gap-2 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 ${isArabic ? "text-right" : "text-left"} ${
                           isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
                         } ${
                           isActive || pendingHref === itemNavigationHref
@@ -651,9 +656,20 @@ export default function Sidebar({
                         )}
                         {isOpen && (
                           <>
-                            <span className="font-semibold text-[16px] truncate">
-                              {isArabic ? item.label_ar : item.label_en}
-                            </span>
+                            <OverflowMarquee
+                              className="flex-1 text-[15px] font-semibold"
+                              isRTL={isArabic}
+                              label={isArabic ? item.label_ar : item.label_en}
+                            />
+                            {item.statusBadge ? (
+                              <NavigationStatusBadge
+                                label={
+                                  isArabic
+                                    ? item.statusBadge.label_ar
+                                    : item.statusBadge.label_en
+                                }
+                              />
+                            ) : null}
                             {pendingHref === itemNavigationHref && (
                               <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                             )}

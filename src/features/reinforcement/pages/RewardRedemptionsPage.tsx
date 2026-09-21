@@ -31,10 +31,15 @@ import {
   listRewardRedemptions,
   rejectRewardRedemption,
 } from "../services/rewardRedemptionsService";
+import { listRewardCatalog } from "../services/rewardCatalogService";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 import type {
+  RedemptionRequestSource,
   RedemptionStatus,
+  RewardCatalogItem,
   RewardRedemption,
 } from "../types";
+import { describeRewardApiError } from "../utils/rewardApiErrors";
 
 function AccessNotice() {
   const t = useTranslations("reinforcement.common");
@@ -65,6 +70,68 @@ const STATUS_BADGE_STYLES: Record<RedemptionStatus, string> = {
 
 type RedemptionActionType = "approve" | "reject" | "fulfill" | "cancel";
 
+interface RedemptionFilterOption {
+  value: string;
+  label: string;
+  searchText: string;
+}
+
+function asLookupRecord(candidate: unknown): Record<string, unknown> | null {
+  return candidate && typeof candidate === "object" && !Array.isArray(candidate)
+    ? (candidate as Record<string, unknown>)
+    : null;
+}
+
+function readLookupText(
+  lookupRecord: Record<string, unknown>,
+  fieldNames: string[],
+): string | undefined {
+  return fieldNames
+    .map((fieldName) => lookupRecord[fieldName])
+    .find((fieldValue): fieldValue is string =>
+      typeof fieldValue === "string" && Boolean(fieldValue.trim()),
+    );
+}
+
+function mapStudentFilterOption(
+  candidate: unknown,
+  locale: string,
+): RedemptionFilterOption | null {
+  const student = asLookupRecord(candidate);
+  if (!student) return null;
+
+  const studentId = readLookupText(student, ["studentId", "id", "student_id"]);
+  if (!studentId) return null;
+
+  const nameEn = readLookupText(student, ["nameEn", "fullNameEn", "name"]);
+  const nameAr = readLookupText(student, ["nameAr", "fullNameAr"]);
+  const displayName = locale === "ar" ? nameAr || nameEn : nameEn || nameAr;
+
+  return {
+    value: studentId,
+    label: displayName || studentId,
+    searchText: [nameEn, nameAr, studentId].filter(Boolean).join(" "),
+  };
+}
+
+function mapCatalogFilterOption(
+  catalogItem: RewardCatalogItem,
+  locale: string,
+): RedemptionFilterOption {
+  const title =
+    locale === "ar"
+      ? catalogItem.titleAr || catalogItem.titleEn || catalogItem.id
+      : catalogItem.titleEn || catalogItem.titleAr || catalogItem.id;
+
+  return {
+    value: catalogItem.id,
+    label: title,
+    searchText: [catalogItem.titleEn, catalogItem.titleAr, catalogItem.id]
+      .filter(Boolean)
+      .join(" "),
+  };
+}
+
 export default function RewardRedemptionsPage() {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
@@ -84,7 +151,7 @@ export default function RewardRedemptionsPage() {
     setPage,
     setPageSize,
   } = useReinforcementUrlFilters({
-    paramKeys: ["status", "search", "requestedFrom", "requestedTo", "academicYearId", "termId"],
+    paramKeys: ["status", "studentId", "catalogItemId", "requestSource", "includeTerminal", "search", "requestedFrom", "requestedTo", "academicYearId", "termId"],
     defaults: {},
   });
 
@@ -92,6 +159,9 @@ export default function RewardRedemptionsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [studentFilterOptions, setStudentFilterOptions] = useState<RedemptionFilterOption[]>([]);
+  const [catalogFilterOptions, setCatalogFilterOptions] = useState<RedemptionFilterOption[]>([]);
+  const [filterLookupError, setFilterLookupError] = useState<string | null>(null);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -111,6 +181,47 @@ export default function RewardRedemptionsPage() {
   const canReview = hasPermission("reinforcement.rewards.redemptions.review");
   const canFulfill = hasPermission("reinforcement.rewards.fulfill");
   const canDownloadFiles = hasPermission("files.downloads.view");
+
+  useEffect(() => {
+    let isActive = true;
+
+    void Promise.all([
+      getReinforcementFilterOptions({
+        academicYearId: values.academicYearId || undefined,
+        termId: values.termId || undefined,
+      }),
+      listRewardCatalog({
+        academicYearId: values.academicYearId || undefined,
+        termId: values.termId || undefined,
+        limit: 100,
+      }),
+    ])
+      .then(([filterOptions, catalogResponse]) => {
+        if (!isActive) return;
+
+        setStudentFilterOptions(
+          (filterOptions.students ?? [])
+            .map((student) => mapStudentFilterOption(student, locale))
+            .filter((option): option is RedemptionFilterOption => Boolean(option)),
+        );
+        setCatalogFilterOptions(
+          catalogResponse.items.map((catalogItem) =>
+            mapCatalogFilterOption(catalogItem, locale),
+          ),
+        );
+        setFilterLookupError(null);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setStudentFilterOptions([]);
+        setCatalogFilterOptions([]);
+        setFilterLookupError(t("rewardsModule.redemptions.filters.optionsUnavailable"));
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [locale, t, values.academicYearId, values.termId]);
 
   // ─── Filter toolbar config ───────────────────────────────────────────────
   const redemptionFilters: FilterConfig[] = useMemo(
@@ -135,6 +246,47 @@ export default function RewardRedemptionsPage() {
         placeholder: t("filters.searchPlaceholder"),
       },
       {
+        key: "requestSource",
+        label: t("rewardsModule.redemptions.table.source"),
+        type: "select",
+        options: [
+          { value: "", label: t("rewardsModule.redemptions.filters.allSources") },
+          ...(["dashboard", "teacher", "student_app", "parent_app", "system"] as const).map((source) => ({
+            value: source,
+            label: t(`rewardsModule.source.${source}`),
+          })),
+        ],
+      },
+      {
+        key: "studentId",
+        label: t("rewardsModule.redemptions.table.student"),
+        type: "select",
+        options: [
+          { value: "", label: t("rewardsModule.redemptions.filters.allStudents") },
+          ...studentFilterOptions,
+        ],
+        searchable: true,
+      },
+      {
+        key: "catalogItemId",
+        label: t("rewardsModule.redemptions.table.reward"),
+        type: "select",
+        options: [
+          { value: "", label: t("rewardsModule.redemptions.filters.allRewards") },
+          ...catalogFilterOptions,
+        ],
+        searchable: true,
+      },
+      {
+        key: "includeTerminal",
+        label: t("rewardsModule.redemptions.filters.requestState"),
+        type: "select",
+        options: [
+          { value: "", label: t("rewardsModule.redemptions.filters.allRequests") },
+          { value: "false", label: t("rewardsModule.redemptions.filters.openOnly") },
+        ],
+      },
+      {
         key: "requestedFrom",
         label: t("rewardsModule.redemptions.filters.requestedFrom"),
         type: "date",
@@ -145,7 +297,7 @@ export default function RewardRedemptionsPage() {
         type: "date",
       },
     ],
-    [t],
+    [catalogFilterOptions, studentFilterOptions, t],
   );
 
   const activeFilters: ActiveFilter[] = useMemo(() => {
@@ -166,6 +318,43 @@ export default function RewardRedemptionsPage() {
         displayValue: values.search,
       });
     }
+    if (values.studentId) {
+      filters.push({
+        key: "studentId",
+        label: t("rewardsModule.redemptions.table.student"),
+        value: values.studentId,
+        displayValue:
+          studentFilterOptions.find((option) => option.value === values.studentId)
+            ?.label || values.studentId,
+      });
+    }
+    if (values.catalogItemId) {
+      filters.push({
+        key: "catalogItemId",
+        label: t("rewardsModule.redemptions.table.reward"),
+        value: values.catalogItemId,
+        displayValue:
+          catalogFilterOptions.find(
+            (option) => option.value === values.catalogItemId,
+          )?.label || values.catalogItemId,
+      });
+    }
+    if (values.requestSource) {
+      filters.push({
+        key: "requestSource",
+        label: t("rewardsModule.redemptions.table.source"),
+        value: values.requestSource,
+        displayValue: t(`rewardsModule.source.${values.requestSource}`),
+      });
+    }
+    if (values.includeTerminal === "false") {
+      filters.push({
+        key: "includeTerminal",
+        label: t("rewardsModule.redemptions.filters.requestState"),
+        value: "false",
+        displayValue: t("rewardsModule.redemptions.filters.openOnly"),
+      });
+    }
     if (values.requestedFrom) {
       filters.push({
         key: "requestedFrom",
@@ -183,7 +372,7 @@ export default function RewardRedemptionsPage() {
       });
     }
     return filters;
-  }, [values.status, values.search, values.requestedFrom, values.requestedTo, t]);
+  }, [catalogFilterOptions, studentFilterOptions, t, values.catalogItemId, values.includeTerminal, values.requestSource, values.requestedFrom, values.requestedTo, values.search, values.status, values.studentId]);
 
   const handleFilterChange = useCallback(
     (key: string, value: string) => {
@@ -208,13 +397,17 @@ export default function RewardRedemptionsPage() {
       academicYearId: values.academicYearId || undefined,
       termId: values.termId || undefined,
       status: (values.status || undefined) as RedemptionStatus | undefined,
+      studentId: values.studentId || undefined,
+      catalogItemId: values.catalogItemId || undefined,
+      requestSource: (values.requestSource || undefined) as RedemptionRequestSource | undefined,
+      includeTerminal: values.includeTerminal === "false" ? false : undefined,
       search: values.search || undefined,
       requestedFrom: values.requestedFrom || undefined,
       requestedTo: values.requestedTo || undefined,
       limit: pageSize,
       offset: (page - 1) * pageSize,
     }),
-    [values.academicYearId, values.termId, values.status, values.search, values.requestedFrom, values.requestedTo, page, pageSize],
+    [page, pageSize, values.academicYearId, values.catalogItemId, values.includeTerminal, values.requestSource, values.requestedFrom, values.requestedTo, values.search, values.status, values.studentId, values.termId],
   );
 
   const refreshList = useCallback(async () => {
@@ -226,8 +419,7 @@ export default function RewardRedemptionsPage() {
       setItems(response.items);
       setTotal(response.total ?? response.items.length);
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeRewardApiError(nextError).messageKey);
       setError(message);
       setItems([]);
       showError(message);
@@ -254,8 +446,7 @@ export default function RewardRedemptionsPage() {
         const response = await getRewardRedemption(redemptionId);
         setDetailsItem(response);
       } catch (nextError) {
-        const message =
-          nextError instanceof Error ? nextError.message : t("common.error");
+        const message = t(describeRewardApiError(nextError).messageKey);
         setDetailsError(message);
         setDetailsItem(null);
       } finally {
@@ -323,8 +514,7 @@ export default function RewardRedemptionsPage() {
         await loadDetails(updatedRedemptionId);
       }
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeRewardApiError(nextError).messageKey);
       showError(message);
     } finally {
       setModalLoading(false);
@@ -341,8 +531,7 @@ export default function RewardRedemptionsPage() {
       setCreateModalOpen(false);
       await refreshList();
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
+      const message = t(describeRewardApiError(nextError).messageKey);
       showError(message);
       throw nextError;
     } finally {
@@ -425,7 +614,7 @@ export default function RewardRedemptionsPage() {
         label: t("rewardsModule.redemptions.table.actions"),
         render: (_value: unknown, row: RewardRedemption) => {
           const canCancelRow =
-            canRequest && ["requested", "approved"].includes(row.status);
+            canRequest && row.status === "requested";
           const hasVisibleAction =
             (canReview && row.status === "requested") ||
             (canFulfill && row.status === "approved") ||
@@ -530,7 +719,7 @@ export default function RewardRedemptionsPage() {
 
       <ReinforcementFilterToolbar
         filters={redemptionFilters}
-        values={{ status: values.status, search: values.search, requestedFrom: values.requestedFrom, requestedTo: values.requestedTo }}
+        values={{ status: values.status, studentId: values.studentId, catalogItemId: values.catalogItemId, requestSource: values.requestSource, includeTerminal: values.includeTerminal, search: values.search, requestedFrom: values.requestedFrom, requestedTo: values.requestedTo }}
         onChange={handleFilterChange}
         onClearAll={handleClearAllFilters}
         activeFilters={activeFilters}
@@ -538,6 +727,12 @@ export default function RewardRedemptionsPage() {
         searchKey="search"
         debounceMs={350}
       />
+
+      {filterLookupError ? (
+        <p className="text-sm text-amber-700" role="status">
+          {filterLookupError}
+        </p>
+      ) : null}
 
       {error ? (
         <div className="rounded-lg border border-red-100 bg-red-50 p-5">

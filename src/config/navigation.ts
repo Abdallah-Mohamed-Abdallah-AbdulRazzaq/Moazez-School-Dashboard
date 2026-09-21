@@ -34,10 +34,16 @@ import {
   BarChart3,
   Gauge,
   PanelsTopLeft,
+  LibraryBig,
 } from "lucide-react";
 
 export interface SubgroupDefinition {
   key: string;
+  label_en: string;
+  label_ar: string;
+}
+
+interface NavigationStatusBadge {
   label_en: string;
   label_ar: string;
 }
@@ -53,6 +59,7 @@ interface MenuItem {
   subgroup?: string;
   subgroups?: SubgroupDefinition[];
   badge?: () => number; // Function to get dynamic badge count
+  statusBadge?: NavigationStatusBadge;
   buttonVariant?: "default" | "highlight";
   buttonBackgroundImage?: string;
 }
@@ -515,16 +522,6 @@ export const menuItems: MenuItem[] = [
         icon: FileText,
       },
       {
-        key: "academics-homework",
-        subgroup: "teaching-learning",
-        label_en: "Homework",
-        label_ar: "الواجبات",
-        href_en: "/en/academics/homework",
-        href_ar: "/ar/academics/homework",
-        icon: ClipboardList,
-      },
-
-      {
         key: "academics-calendar",
         subgroup: "teaching-learning",
         label_en: "Academic Calendar",
@@ -571,6 +568,15 @@ export const menuItems: MenuItem[] = [
       },
     ],
   },
+  {
+    key: "academic-content-hub",
+    label_en: "Academic Content Hub",
+    label_ar: "مركز المحتوى الأكاديمي",
+    href_en: "/en/academic-content-hub",
+    href_ar: "/ar/academic-content-hub",
+    icon: LibraryBig,
+    statusBadge: { label_en: "Coming soon", label_ar: "قريبًا" },
+  },
 
   {
     key: "grades",
@@ -578,12 +584,12 @@ export const menuItems: MenuItem[] = [
       { key: "general", label_en: "General", label_ar: "عام" },
       {
         key: "assessment-management",
-        label_en: "Assessment Management",
-        label_ar: "إدارة التقييمات",
+        label_en: "Assignments and Exams Management",
+        label_ar: "إدارة الاختبارات والواجبات",
       },
     ],
-    label_en: "Assessments & Grades",
-    label_ar: "التقييمات والدرجات",
+    label_en: "Assignments and Exams",
+    label_ar: "الواجبات والاختبارات",
     href_en: "/en/grades",
     href_ar: "/ar/grades",
     icon: ClipboardCheck,
@@ -598,10 +604,19 @@ export const menuItems: MenuItem[] = [
         icon: LayoutDashboard,
       },
       {
+        key: "academics-homework",
+        subgroup: "assessment-management",
+        label_en: "Homework",
+        label_ar: "الواجبات",
+        href_en: "/en/academics/homework",
+        href_ar: "/ar/academics/homework",
+        icon: ClipboardList,
+      },
+      {
         key: "grades-assessments",
         subgroup: "assessment-management",
-        label_en: "Assessments",
-        label_ar: "التقييمات",
+        label_en: "Exams",
+        label_ar: "الاختبارات",
         href_en: "/en/grades/assessments",
         href_ar: "/ar/grades/assessments",
         icon: ClipboardCheck,
@@ -832,15 +847,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/reinforcement",
         href_ar: "/ar/reinforcement",
         icon: LayoutDashboard,
-      },
-      {
-        key: "reinforcement-templates",
-        subgroup: "programs",
-        label_en: "Templates",
-        label_ar: "القوالب",
-        href_en: "/en/reinforcement/templates",
-        href_ar: "/ar/reinforcement/templates",
-        icon: FileText,
       },
       {
         key: "reinforcement-tasks",

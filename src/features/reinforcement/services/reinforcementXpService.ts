@@ -116,8 +116,10 @@ export function serializePatchXpPolicyPayload(
     }
   }
 
-  const allowedReasons = optionalStringList(payload.allowedReasons);
-  if (allowedReasons) serializedPayload.allowedReasons = allowedReasons;
+  if (payload.allowedReasons !== undefined) {
+    serializedPayload.allowedReasons =
+      optionalStringList(payload.allowedReasons) ?? [];
+  }
 
   for (const key of ["startsAt", "endsAt"] as const) {
     const value = payload[key];

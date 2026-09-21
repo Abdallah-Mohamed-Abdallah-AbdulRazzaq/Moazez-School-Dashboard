@@ -9,6 +9,8 @@ import {
   getTeacherAllocationValidation,
   getTeacherLoads,
   listTeacherAllocations,
+  previewTeacherAllocationReassignment,
+  reassignTeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationApiAdapter";
 
 vi.mock("@/lib/api", () => ({
@@ -185,6 +187,39 @@ describe("teacherAllocationApiAdapter", () => {
 
     expect(mockedApiDelete).toHaveBeenCalledWith(
       "/academics/allocations/allocation-1",
+    );
+  });
+
+  it("calls the reassignment preview and execute endpoints with their contract payloads", async () => {
+    const previewPayload = { newTeacherUserId: "teacher-user-2" };
+    const executePayload = {
+      newTeacherUserId: "teacher-user-2",
+      impactFingerprint: "a".repeat(64),
+    };
+    mockedApiPost
+      .mockResolvedValueOnce({ impactFingerprint: "a".repeat(64) })
+      .mockResolvedValueOnce({
+        allocation: {
+          id: "allocation-1",
+          teacherUserId: "teacher-user-2",
+        },
+      });
+
+    await previewTeacherAllocationReassignment(
+      "allocation-1",
+      previewPayload,
+    );
+    await reassignTeacherAllocation("allocation-1", executePayload);
+
+    expect(mockedApiPost).toHaveBeenNthCalledWith(
+      1,
+      "/academics/allocations/allocation-1/reassignment-preview",
+      previewPayload,
+    );
+    expect(mockedApiPost).toHaveBeenNthCalledWith(
+      2,
+      "/academics/allocations/allocation-1/reassign",
+      executePayload,
     );
   });
 });

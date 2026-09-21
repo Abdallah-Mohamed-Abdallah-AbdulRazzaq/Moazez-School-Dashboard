@@ -14,6 +14,7 @@ import type {
 import ReinforcementTaskTargetSelector, {
   type ReinforcementTaskTargetSelection,
 } from "./ReinforcementTaskTargetSelector";
+import { describeXpPolicyApiError } from "../utils/xpPolicyApiErrors";
 
 interface XpPolicyFormProps {
   onSubmit: (payload: CreateXpPolicyPayload) => Promise<void>;
@@ -29,6 +30,9 @@ const parseOptionalNumber = (value: string): number | undefined => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
 };
+
+const isNonNegativeInteger = (value: string): boolean =>
+  !value.trim() || /^\d+$/.test(value.trim());
 
 const reasonsFromText = (value: string): string[] | undefined => {
   const reasons = value
@@ -114,6 +118,25 @@ export default function XpPolicyForm({
       setError(t("xp.invalidDateRange"));
       return;
     }
+    if (
+      ![dailyCap, weeklyCap, cooldownMinutes].every(isNonNegativeInteger)
+    ) {
+      setError(t("xp.validation.invalidCaps"));
+      return;
+    }
+
+    const nextDailyCap = parseOptionalNumber(dailyCap);
+    const nextWeeklyCap = parseOptionalNumber(weeklyCap);
+    if (
+      nextDailyCap !== undefined &&
+      nextWeeklyCap !== undefined &&
+      nextWeeklyCap < nextDailyCap
+    ) {
+      setError(t("xp.validation.invalidCaps"));
+      return;
+    }
+
+    const isEditing = mode === "edit";
     setSaving(true);
     setError("");
     try {
@@ -122,14 +145,23 @@ export default function XpPolicyForm({
         termId: context.termId,
         scopeType: selectedTarget.scopeType as XpPolicyScopeType,
         scopeId: selectedTarget.scopeId,
-        dailyCap: parseOptionalNumber(dailyCap),
-        weeklyCap: parseOptionalNumber(weeklyCap),
-        cooldownMinutes: parseOptionalNumber(cooldownMinutes),
-        allowedReasons: reasonsFromText(allowedReasons),
-        startsAt: startsAt || undefined,
-        endsAt: endsAt || undefined,
+        dailyCap: nextDailyCap ?? (isEditing ? null : undefined),
+        weeklyCap: nextWeeklyCap ?? (isEditing ? null : undefined),
+        cooldownMinutes:
+          parseOptionalNumber(cooldownMinutes) ?? (isEditing ? null : undefined),
+        allowedReasons:
+          reasonsFromText(allowedReasons) ?? (isEditing ? [] : undefined),
+        startsAt: startsAt || (isEditing ? null : undefined),
+        endsAt: endsAt || (isEditing ? null : undefined),
         isActive,
       });
+    } catch (submissionError) {
+      const apiError = describeXpPolicyApiError(submissionError);
+      if (apiError.field) {
+        setError(t(apiError.messageKey));
+        return;
+      }
+      throw submissionError;
     } finally {
       setSaving(false);
     }
@@ -167,18 +199,24 @@ export default function XpPolicyForm({
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <Input
             type="number"
+            min={0}
+            step={1}
             label={t("xp.dailyCap")}
             value={dailyCap}
             onChange={(event) => setDailyCap(event.target.value)}
           />
           <Input
             type="number"
+            min={0}
+            step={1}
             label={t("xp.weeklyCap")}
             value={weeklyCap}
             onChange={(event) => setWeeklyCap(event.target.value)}
           />
           <Input
             type="number"
+            min={0}
+            step={1}
             label={t("xp.cooldownMinutes")}
             value={cooldownMinutes}
             onChange={(event) => setCooldownMinutes(event.target.value)}

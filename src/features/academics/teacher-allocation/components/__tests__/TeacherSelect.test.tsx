@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiGet } from "@/lib/api";
 import TeacherSelect from "../TeacherSelect";
 
@@ -14,6 +14,19 @@ vi.mock("next-intl", () => ({
 }));
 
 describe("TeacherSelect", () => {
+  const getBoundingClientRect = vi.spyOn(
+    HTMLElement.prototype,
+    "getBoundingClientRect",
+  );
+
+  beforeAll(() => {
+    getBoundingClientRect.mockReturnValue(
+      DOMRect.fromRect({ x: 1, y: 1, width: 1, height: 1 }),
+    );
+  });
+
+  afterAll(() => getBoundingClientRect.mockRestore());
+
   beforeEach(() => {
     vi.mocked(apiGet).mockReset();
   });

@@ -14,6 +14,7 @@ import {
   getEntry,
   getPreview,
   getPublication,
+  generateTimetableConfig,
   listEntries,
   listPeriods,
   publish,
@@ -98,8 +99,8 @@ describe("timetableApiAdapter", () => {
     await getConfig({
       academicYearId: "year-1",
       termId: "term-1",
-      scopeType: "GRADE",
-      gradeId: "grade-1",
+      scopeType: "STAGE",
+      stageId: "stage-1",
     });
     await upsertConfig({
       academicYearId: "year-1",
@@ -127,8 +128,8 @@ describe("timetableApiAdapter", () => {
         params: {
           academicYearId: "year-1",
           termId: "term-1",
-          scopeType: "GRADE",
-          gradeId: "grade-1",
+          scopeType: "STAGE",
+          stageId: "stage-1",
         },
       },
     );
@@ -145,7 +146,7 @@ describe("timetableApiAdapter", () => {
     mockedApiGet.mockResolvedValueOnce({ items: [] });
     mockedApiPost.mockResolvedValueOnce({ id: "period-1" });
     mockedApiPatch.mockResolvedValueOnce({ id: "period-1" });
-    mockedApiDelete.mockResolvedValueOnce(undefined);
+    mockedApiDelete.mockResolvedValueOnce({ ok: true });
 
     await listPeriods("config-1");
     await createPeriod({
@@ -156,7 +157,7 @@ describe("timetableApiAdapter", () => {
       endTime: "08:45",
     });
     await updatePeriod("period-1", { label: "Period 1" });
-    await deletePeriod("period-1");
+    await expect(deletePeriod("period-1")).resolves.toEqual({ ok: true });
 
     expect(mockedApiGet).toHaveBeenCalledWith("/academics/timetable/periods", {
       params: { timetableConfigId: "config-1" },
@@ -191,7 +192,7 @@ describe("timetableApiAdapter", () => {
     mockedApiGet.mockResolvedValueOnce({ id: "entry-1" });
     mockedApiPost.mockResolvedValueOnce({ id: "entry-1" });
     mockedApiPatch.mockResolvedValueOnce({ id: "entry-1" });
-    mockedApiDelete.mockResolvedValueOnce(undefined);
+    mockedApiDelete.mockResolvedValueOnce({ ok: true });
     mockedApiPut.mockResolvedValueOnce({ items: [] });
 
     await listEntries({
@@ -203,7 +204,7 @@ describe("timetableApiAdapter", () => {
     await getEntry("entry-1");
     await createEntry(entryPayload);
     await updateEntry("entry-1", { notes: "Updated" });
-    await deleteEntry("entry-1");
+    await expect(deleteEntry("entry-1")).resolves.toEqual({ ok: true });
     await bulkSaveEntries({
       termId: "term-1",
       items: [
@@ -318,6 +319,29 @@ describe("timetableApiAdapter", () => {
       3,
       "/academics/timetable/conflicts/check",
       bulkPayload,
+    );
+  });
+
+  it("generates the complete timetable config scope through the backend", async () => {
+    mockedApiPost.mockResolvedValueOnce({
+      timetableConfigId: "config-1",
+      createdCount: 0,
+      existingCount: 0,
+      remainingDemandCount: 0,
+      complete: true,
+      createdEntryIds: [],
+      unresolved: [],
+      searchNodesVisited: 0,
+      searchBudgetExhausted: false,
+      validation: {},
+      publishReadiness: {},
+    });
+
+    await generateTimetableConfig("config-1");
+
+    expect(mockedApiPost).toHaveBeenCalledWith(
+      "/academics/timetable/generate",
+      { timetableConfigId: "config-1" },
     );
   });
 

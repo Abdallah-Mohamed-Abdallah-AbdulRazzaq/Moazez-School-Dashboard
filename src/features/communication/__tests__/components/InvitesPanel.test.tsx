@@ -1,10 +1,40 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import InvitesPanel from "@/features/communication/conversations_redesign/components/InvitesPanel";
 import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { ConversationInvite } from "@/features/communication/types/conversation.types";
 
 describe("InvitesPanel", () => {
+  it("shows a scoped loading error with retry", () => {
+    const onRetry = vi.fn();
+    render(
+      <InvitesPanel
+        canCreate={false}
+        canManage={false}
+        error="Load failed"
+        invites={[]}
+        isLoading={false}
+        isMutating={false}
+        labels={conversationRedesignLabels.en}
+        locale="en"
+        onAcceptInvite={() => Promise.resolve()}
+        onCreateInvite={() => undefined}
+        onRejectInvite={() => undefined}
+        onRetry={onRetry}
+        total={0}
+        userDisplayNames={{}}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Load failed");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: conversationRedesignLabels.en.retry,
+      }),
+    );
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the invited user name returned by the invites API", () => {
     const invite: ConversationInvite = {
       id: "invite-1",
@@ -40,5 +70,37 @@ describe("InvitesPanel", () => {
     );
 
     expect(screen.getByText("Abdo Mohammed")).toBeInTheDocument();
+  });
+
+  it("hides the cancel action from the invitation sender", () => {
+    const invite: ConversationInvite = {
+      id: "invite-1",
+      conversationId: "conversation-1",
+      invitedUserId: "recipient-1",
+      invitedById: "sender-1",
+      status: "pending",
+    };
+
+    render(
+      <InvitesPanel
+        canCreate
+        currentUserId="sender-1"
+        error={null}
+        invites={[invite]}
+        isLoading={false}
+        isMutating={false}
+        labels={conversationRedesignLabels.en}
+        locale="en"
+        onAcceptInvite={() => Promise.resolve()}
+        onCreateInvite={() => undefined}
+        onRejectInvite={() => undefined}
+        total={1}
+        userDisplayNames={{}}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^(Reject|Revoke) invite$/ }),
+    ).not.toBeInTheDocument();
   });
 });

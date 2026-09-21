@@ -6,7 +6,6 @@ import {
   KeyRound,
   LogOut,
   Menu,
-  Search,
   UserCircle,
   X,
 } from "lucide-react";
@@ -29,7 +28,6 @@ interface TopNavProps {
   userRole?: string;
   userAvatar?: string;
   schoolName?: string;
-  onSearchChange?: (value: string) => void;
   onLanguageChange?: () => void;
   onProfileClick?: () => void;
   onMenuToggle?: () => void;
@@ -41,7 +39,6 @@ export default function TopNav({
   userRole = "Admin",
   userAvatar,
   schoolName = "School Name",
-  onSearchChange,
   onProfileClick,
   onMenuToggle,
   isSidebarOpen = true,
@@ -134,7 +131,7 @@ export default function TopNav({
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
       <div className="px-4 sm:px-6 py-3 sm:py-4">
-        <div className="flex items-center gap-3 sm:gap-6">
+        <div className="relative flex items-center gap-3 sm:gap-6 lg:justify-between">
           {/* Mobile Menu Toggle */}
           <button
             onClick={onMenuToggle}
@@ -149,7 +146,7 @@ export default function TopNav({
           </button>
 
           {/* Title (takes available space, truncates on small screens) */}
-          <div className="min-w-fit lg:flex-0 sm:flex-1 flex-1">
+          <div className="min-w-0 flex-1 lg:flex-none">
             <div className="flex items-center gap-2 min-w-0">
               <h1 className="sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 truncate">
                 {t("hello_school", { schoolName })}
@@ -162,20 +159,14 @@ export default function TopNav({
             </p>
           </div>
 
-          {/* Desktop Search (hidden on mobile) */}
-          <div className="hidden lg:flex flex-1 max-w-full justify-center items">
-            <div className="relative flex-1 max-w-2xl">
-              <input
-                type="text"
-                placeholder={t("search_placeholder")}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                suppressHydrationWarning
-                className="hover:border-primary-600 w-full ps-4 pe-10 py-3.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 placeholder:text-center focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
-              />
-              {/* use logical property: icon at end (works in RTL/LTR) */}
-              <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            </div>
-          </div>
+          <Image
+            src="/images/logo/national-day-navbar.png"
+            alt="Moazez Saudi National Day"
+            width={301}
+            height={54}
+            priority
+            className="pointer-events-none absolute left-1/2 top-1/2 hidden h-auto w-[220px] -translate-x-1/2 -translate-y-1/2 xl:block 2xl:w-[260px]"
+          />
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -226,20 +217,6 @@ export default function TopNav({
               onProfileClick={onProfileClick}
               t={t}
             />
-          </div>
-        </div>
-
-        {/* Mobile/Tablet Search (shows up until lg) */}
-        <div className="lg:hidden mt-3">
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder={t("search_placeholder")}
-              onChange={(e) => onSearchChange?.(e.target.value)}
-              suppressHydrationWarning
-              className="w-full ps-4 pe-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            />
-            <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           </div>
         </div>
       </div>

@@ -25,6 +25,18 @@ export interface SaveSubmissionAnswerPayload {
   selectedOptionIds?: string[] | null;
 }
 
+export interface SubmissionAnswerDraft {
+  answerText: string;
+  selectedOptionIds: string[];
+  matchingAnswers: Record<string, string>;
+}
+
+export interface SubmissionScopeSelection {
+  gradeId: string;
+  sectionId: string;
+  classroomId: string;
+}
+
 export interface BulkSaveSubmissionAnswerPayload extends SaveSubmissionAnswerPayload {
   questionId: string;
 }

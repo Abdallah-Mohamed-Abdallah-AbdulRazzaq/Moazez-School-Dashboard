@@ -76,6 +76,7 @@ describe("RewardCatalogFormModal", () => {
       screen.getByPlaceholderText("Reward title in English"),
       "Reward",
     );
+    await user.type(screen.getAllByRole("spinbutton")[1], "10");
     await user.click(
       screen.getByRole("button", { name: "rewardsModule.actions.create" }),
     );
@@ -86,6 +87,91 @@ describe("RewardCatalogFormModal", () => {
       ),
     ).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("requires stock quantity for limited rewards", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <RewardCatalogFormModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        academicYears={academicYears}
+        defaultAcademicYearId="year-1"
+        defaultTermId="term-1"
+        canUploadFiles
+        canDownloadFiles={false}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Reward title in English"), "Reward");
+    await user.type(screen.getAllByRole("spinbutton")[2], "10");
+    await user.click(screen.getByRole("button", { name: "rewardsModule.actions.create" }));
+
+    expect(await screen.findByText("rewardsModule.catalog.form.stockQuantityRequired")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("requires a whole-number sort order", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <RewardCatalogFormModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        academicYears={academicYears}
+        defaultAcademicYearId="year-1"
+        defaultTermId="term-1"
+        canUploadFiles
+        canDownloadFiles={false}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Reward title in English"), "Reward");
+    await user.type(screen.getAllByRole("spinbutton")[1], "10");
+    await user.type(screen.getAllByRole("spinbutton")[2], "10");
+    await user.type(screen.getAllByRole("spinbutton")[3], "1.5");
+    await user.click(screen.getByRole("button", { name: "rewardsModule.actions.create" }));
+
+    expect(await screen.findByText("rewardsModule.catalog.form.integer")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("locks protected fields while allowing published reward updates", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <RewardCatalogFormModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        initialData={{
+          id: "reward-1",
+          titleEn: "Reward",
+          type: "digital",
+          status: "published",
+          academicYearId: "year-1",
+          termId: "term-1",
+          isUnlimited: true,
+        }}
+        academicYears={academicYears}
+        defaultAcademicYearId="year-1"
+        defaultTermId="term-1"
+        canUploadFiles
+        canDownloadFiles={false}
+      />,
+    );
+
+    const titleInput = await screen.findByPlaceholderText("Reward title in English");
+    await waitFor(() => expect(titleInput).toHaveValue("Reward"));
+    await user.clear(titleInput);
+    await user.type(titleInput, "Updated reward");
+    await user.click(screen.getByRole("button", { name: "save" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ titleEn: "Updated reward" }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.not.objectContaining({ academicYearId: expect.anything(), termId: expect.anything(), type: expect.anything() }));
   });
 
   it("submits the active context and uploaded image for create", async () => {
@@ -115,6 +201,7 @@ describe("RewardCatalogFormModal", () => {
       screen.getByPlaceholderText("Reward title in English"),
       "Reward",
     );
+    await user.type(screen.getAllByRole("spinbutton")[1], "10");
     await user.type(screen.getAllByRole("spinbutton")[2], "10");
     await user.upload(
       screen.getByLabelText("rewardsModule.catalog.form.uploadImage"),
@@ -150,6 +237,7 @@ describe("RewardCatalogFormModal", () => {
           titleEn: "Reward",
           academicYearId: "year-1",
           termId: "term-1",
+          stockQuantity: 10,
           stockRemaining: 10,
           imageFileId: "file-1",
         }}

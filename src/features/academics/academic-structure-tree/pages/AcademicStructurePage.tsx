@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Menu, AlertCircle, Download } from "lucide-react";
-import StructureTree from "../components/StructureTree";
+import StructureTree, {
+  type StructureView,
+} from "../components/StructureTree";
 import DetailsPanel from "../../components/shared/DetailsPanel";
 import InsightsPanel from "../../components/shared/InsightsPanel";
 import Modal from "@/components/ui/modal/Modal";
@@ -61,6 +63,7 @@ export default function AcademicStructurePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showTreeDrawer, setShowTreeDrawer] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [structureView, setStructureView] = useState<StructureView>("tree");
   const {
     state: panelState,
     containerRef,
@@ -259,6 +262,33 @@ export default function AcademicStructurePage() {
     [router, searchParams],
   );
 
+  const syncExpandedBranchesUrl = useCallback(
+    (branches: {
+      stages: Set<string>;
+      grades: Set<string>;
+      sections: Set<string>;
+    }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const expansionParams = [
+        ["expandedStages", branches.stages],
+        ["expandedGrades", branches.grades],
+        ["expandedSections", branches.sections],
+      ] as const;
+
+      expansionParams.forEach(([key, ids]) => {
+        const serializedIds = Array.from(ids).join(",");
+        if (serializedIds) {
+          params.set(key, serializedIds);
+        } else {
+          params.delete(key);
+        }
+      });
+
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
   const effectiveSelectedNode = useMemo<TreeNodeRef | null>(() => {
     if (!querySelectedNode) {
       return null;
@@ -310,7 +340,7 @@ export default function AcademicStructurePage() {
 
   useAcademicContextBarActions(contextBarActions);
 
-  const handleSelectNode = (node: TreeNodeRef) => {
+  const handleSelectNode = (node: TreeNodeRef | null) => {
     if (hasUnsavedChanges) {
       if (!confirmDiscardChanges()) return;
       setHasUnsavedChanges(false);
@@ -534,12 +564,16 @@ export default function AcademicStructurePage() {
               classrooms={classrooms}
               searchQuery={searchInputValue}
               onSearchQueryChange={handleSearchQueryChange}
+              view={structureView}
+              onViewChange={setStructureView}
+              onClearSelection={() => handleSelectNode(null)}
               expandedStages={expandedStages}
               expandedGrades={expandedGrades}
               expandedSections={expandedSections}
               onExpandedStagesChange={handleExpandedStagesChange}
               onExpandedGradesChange={handleExpandedGradesChange}
               onExpandedSectionsChange={handleExpandedSectionsChange}
+              onExpandedBranchesChange={syncExpandedBranchesUrl}
               selectedNode={effectiveSelectedNode}
               onSelectNode={handleSelectNode}
               onAddStage={openAddStage}
@@ -628,12 +662,16 @@ export default function AcademicStructurePage() {
                     classrooms={classrooms}
                     searchQuery={searchInputValue}
                     onSearchQueryChange={handleSearchQueryChange}
+                    view={structureView}
+                    onViewChange={setStructureView}
+                    onClearSelection={() => handleSelectNode(null)}
                     expandedStages={expandedStages}
                     expandedGrades={expandedGrades}
                     expandedSections={expandedSections}
                     onExpandedStagesChange={handleExpandedStagesChange}
                     onExpandedGradesChange={handleExpandedGradesChange}
                     onExpandedSectionsChange={handleExpandedSectionsChange}
+                    onExpandedBranchesChange={syncExpandedBranchesUrl}
                     selectedNode={effectiveSelectedNode}
                     onSelectNode={(node) => {
                       handleSelectNode(node);

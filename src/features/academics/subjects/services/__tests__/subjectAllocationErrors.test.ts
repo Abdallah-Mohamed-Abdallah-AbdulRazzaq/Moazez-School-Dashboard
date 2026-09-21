@@ -62,4 +62,35 @@ describe("subjectAllocationUiError", () => {
       details: [],
     });
   });
+
+  it("preserves typed dependency diagnostics without flattening counts", () => {
+    const apiError = new ApiError(
+      "Blocked",
+      409,
+      "academics.subject_allocation.dependency_conflict",
+      undefined,
+      {
+        gradeId: "grade-1",
+        subjectId: "subject-1",
+        mutation: "POSITIVE_REQUIREMENT_CHANGE",
+        previousWeeklyHours: 3,
+        proposedWeeklyHours: 4,
+        teacherAllocationCount: 2,
+        draftTimetableEntryCount: 1,
+        publishedTimetableEntryCount: 4,
+        publishedTimetableConfigCount: 1,
+      },
+      "trace-456",
+    );
+
+    expect(subjectAllocationUiError(apiError, "Fallback")).toMatchObject({
+      traceId: "trace-456",
+      dependency: {
+        gradeId: "grade-1",
+        subjectId: "subject-1",
+        proposedWeeklyHours: 4,
+        publishedTimetableEntryCount: 4,
+      },
+    });
+  });
 });

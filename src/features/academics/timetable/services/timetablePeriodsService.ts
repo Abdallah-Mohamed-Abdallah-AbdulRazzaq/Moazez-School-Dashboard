@@ -3,6 +3,7 @@ import type {
   BackendTimetablePeriodDto,
   CreatePeriodRequest,
   ListResponse,
+  TimetableDeleteResponse,
   UpdatePeriodRequest,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
@@ -12,7 +13,7 @@ const BASE = "/academics/timetable";
 const listResponseItems = <T>(response: ListResponse<T> | T[]): T[] =>
   Array.isArray(response) ? response : response.items;
 
-const mapBackendPeriodToUi = (
+export const mapBackendPeriodToUi = (
   dto: BackendTimetablePeriodDto,
 ): TimetablePeriod => ({
   id: dto.id,
@@ -77,6 +78,8 @@ export async function updateTimetablePeriodDto(
   return period;
 }
 
-export async function deleteTimetablePeriod(periodId: string): Promise<void> {
-  await apiDelete<void>(`${BASE}/periods/${periodId}`);
+export function deleteTimetablePeriod(
+  periodId: string,
+): Promise<TimetableDeleteResponse> {
+  return apiDelete<TimetableDeleteResponse>(`${BASE}/periods/${periodId}`);
 }

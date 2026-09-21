@@ -1,0 +1,110 @@
+.root {
+  display: grid;
+  width: 100%;
+  min-height: 100svh;
+  padding: 1.5rem;
+  place-items: center;
+  background: #fff;
+}
+
+.identityCard {
+  display: flex;
+  width: min(90vw, 32rem);
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 2rem clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 2rem;
+  color: white;
+  background:
+    radial-gradient(circle at 18% 12%, rgb(0 191 111 / 24%), transparent 34%),
+    linear-gradient(145deg, rgb(6 78 59 / 88%), rgb(3 35 36 / 92%));
+  box-shadow: 0 1.75rem 5rem rgb(2 35 32 / 28%);
+  backdrop-filter: blur(1rem);
+}
+
+.logo {
+  width: 7rem;
+  height: 7rem;
+  border-radius: 1.75rem;
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 24%);
+  animation: logoPulse 1.8s ease-in-out infinite;
+}
+
+.divider {
+  width: 4rem;
+  height: 2px;
+  border-radius: 999px;
+  background: #24d18a;
+}
+
+.motto {
+  width: min(100%, 23rem);
+  height: auto;
+}
+
+.progressTrack {
+  width: min(100%, 15rem);
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 16%);
+}
+
+.progressBar {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00a15d, #7af2ba, #00bf6f);
+  animation: progressSweep 1.35s ease-in-out infinite alternate;
+}
+
+@keyframes logoPulse {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: scale(0.97);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes progressSweep {
+  from {
+    transform: translateX(-95%);
+  }
+
+  to {
+    transform: translateX(235%);
+  }
+}
+
+@media (max-width: 480px) {
+  .identityCard {
+    gap: 1rem;
+    border-radius: 1.5rem;
+  }
+
+  .logo {
+    width: 5.75rem;
+    height: 5.75rem;
+    border-radius: 1.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo,
+  .progressBar {
+    animation: none;
+  }
+
+  .progressBar {
+    width: 100%;
+    opacity: 0.72;
+  }
+}

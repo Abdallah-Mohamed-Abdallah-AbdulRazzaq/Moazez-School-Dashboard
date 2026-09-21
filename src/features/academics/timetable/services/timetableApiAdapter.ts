@@ -6,10 +6,14 @@ import type {
   BulkSaveTimetableRequest,
   CreateEntryRequest,
   CreatePeriodRequest,
+  GenerateTimetableRequest,
   ListResponse,
   PublicationResponse,
   TimetableConflictCheckResponse,
   TimetableDashboardAllResponseDto,
+  TimetableDeleteResponse,
+  TimetableGenerationResponse,
+  TimetablePersistedConflictsResponse,
   TimetableScopeType,
   TimetableValidationResponse,
   TimetableUnpublishResponse,
@@ -39,6 +43,7 @@ type ConfigParams = {
   academicYearId: string;
   termId: string;
   scopeType?: TimetableScopeType;
+  stageId?: string;
   gradeId?: string;
   sectionId?: string;
   classroomId?: string;
@@ -67,7 +72,7 @@ type ValidateParams = {
 };
 
 export type TimetablePreviewResponse = unknown;
-export type TimetableConflictsResponse = unknown;
+export type TimetableConflictsResponse = TimetablePersistedConflictsResponse;
 export type TimetablePublicationResponse = PublicationResponse;
 
 const definedParams = <T extends Record<string, QueryParamValue>>(
@@ -142,8 +147,10 @@ export const updatePeriod = (
     payload,
   ).then(unwrap);
 
-export const deletePeriod = (periodId: string): Promise<void> =>
-  apiDelete<void>(`${BASE}/periods/${periodId}`);
+export const deletePeriod = (
+  periodId: string,
+): Promise<TimetableDeleteResponse> =>
+  apiDelete<TimetableDeleteResponse>(`${BASE}/periods/${periodId}`);
 
 export const listEntries = (
   params: EntryListParams,
@@ -180,8 +187,10 @@ export const updateEntry = (
     payload,
   ).then(unwrap);
 
-export const deleteEntry = (entryId: string): Promise<void> =>
-  apiDelete<void>(`${BASE}/entries/${entryId}`);
+export const deleteEntry = (
+  entryId: string,
+): Promise<TimetableDeleteResponse> =>
+  apiDelete<TimetableDeleteResponse>(`${BASE}/entries/${entryId}`);
 
 export const bulkSaveEntries = (
   payload: BulkSaveTimetableRequest,
@@ -192,6 +201,15 @@ export const bulkSaveEntries = (
     `${BASE}/entries/bulk`,
     payload,
   ).then(unwrap);
+
+export const generateTimetableConfig = (
+  timetableConfigId: string,
+): Promise<TimetableGenerationResponse> => {
+  const payload: GenerateTimetableRequest = { timetableConfigId };
+  return apiPost<TimetableGenerationResponse>(`${BASE}/generate`, payload).then(
+    unwrap,
+  );
+};
 
 export const getPreview = (
   timetableConfigId: string,
@@ -255,6 +273,7 @@ export const timetableApiAdapter = {
   updateEntry,
   deleteEntry,
   bulkSaveEntries,
+  generateTimetableConfig,
   getPreview,
   getConflicts,
   getPublication,

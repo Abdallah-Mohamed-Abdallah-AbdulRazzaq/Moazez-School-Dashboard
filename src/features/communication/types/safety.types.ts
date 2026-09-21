@@ -22,10 +22,9 @@ export type ReportReason =
   | "privacy"
   | "other";
 
+export type SupportedModerationAction = "hide" | "unhide" | "delete";
 export type ModerationActionType =
-  | "hide"
-  | "unhide"
-  | "delete"
+  | SupportedModerationAction
   | "restrict_sender"
   | "message_hidden"
   | "message_unhidden"
@@ -103,7 +102,7 @@ export interface UpdateMessageReportPayload {
 }
 
 export interface CreateModerationActionPayload {
-  action: ModerationActionType;
+  action: SupportedModerationAction;
   reason?: string | null;
   note?: string | null;
   metadata?: CommunicationRecord | null;
@@ -112,6 +111,7 @@ export interface CreateModerationActionPayload {
 export interface ModerationAction extends CommunicationRecord {
   id: CommunicationId;
   messageId?: CommunicationId;
+  actorUserId?: CommunicationId;
   moderatorId?: CommunicationId;
   moderator?: CommunicationActor;
   action?: ModerationActionType;

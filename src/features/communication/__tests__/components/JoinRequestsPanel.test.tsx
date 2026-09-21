@@ -1,10 +1,39 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import JoinRequestsPanel from "@/features/communication/conversations_redesign/components/JoinRequestsPanel";
 import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { ConversationJoinRequest } from "@/features/communication/types/conversation.types";
 
 describe("JoinRequestsPanel", () => {
+  it("shows a scoped loading error with retry", () => {
+    const onRetry = vi.fn();
+    render(
+      <JoinRequestsPanel
+        canCreate={false}
+        canReview={false}
+        error="Load failed"
+        isLoading={false}
+        joinRequests={[]}
+        labels={conversationRedesignLabels.en}
+        locale="en"
+        onCreateRequest={() => undefined}
+        onReject={() => undefined}
+        onReview={() => undefined}
+        onRetry={onRetry}
+        total={0}
+        userDisplayNames={{}}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Load failed");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: conversationRedesignLabels.en.retry,
+      }),
+    );
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the requester name returned by the join requests API", () => {
     const joinRequest: ConversationJoinRequest = {
       id: "request-1",

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ParticipantsPanel from "@/features/communication/conversations_redesign/components/ParticipantsPanel";
 import { createParticipant } from "../utils/test-data-generators";
@@ -6,6 +6,35 @@ import { conversationRedesignLabels } from "@/features/communication/conversatio
 
 describe("ParticipantsPanel", () => {
   const labels = conversationRedesignLabels.en;
+
+  it("shows a scoped loading error with retry", () => {
+    const onRetry = vi.fn();
+    render(
+      <ParticipantsPanel
+        canLeaveConversation={false}
+        canManage={false}
+        error="Load failed"
+        isLoading={false}
+        labels={labels}
+        locale="en"
+        onAddParticipant={vi.fn()}
+        onDemoteParticipant={vi.fn()}
+        onEditParticipant={vi.fn()}
+        onLeaveConversation={vi.fn()}
+        onPromoteParticipant={vi.fn()}
+        onRemoveParticipant={vi.fn()}
+        onRetry={onRetry}
+        participants={[]}
+        presenceByUserId={{}}
+        total={0}
+        userDisplayNames={{}}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Load failed");
+    fireEvent.click(screen.getByRole("button", { name: labels.retry }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 
   it("renders user.displayName and localized userType status pill", () => {
     const participant = createParticipant({

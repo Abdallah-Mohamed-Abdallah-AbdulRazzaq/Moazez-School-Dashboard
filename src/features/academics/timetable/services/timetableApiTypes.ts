@@ -1,4 +1,9 @@
-export type TimetableScopeType = "TERM" | "GRADE" | "SECTION" | "CLASSROOM";
+export type TimetableScopeType =
+  | "TERM"
+  | "STAGE"
+  | "GRADE"
+  | "SECTION"
+  | "CLASSROOM";
 
 export type BackendTimetableStatus = "draft" | "active" | "cancelled";
 export type BackendTimetableConfigStatus = "draft" | "active" | "archived";
@@ -20,8 +25,9 @@ export interface BackendTimetableConfigDto {
   name: string;
   weekStartDay: number;
   activeDays: number[];
-  scopeType: "term" | "grade" | "section" | "classroom";
+  scopeType: "term" | "stage" | "grade" | "section" | "classroom";
   scopeKey: string;
+  stageId: string | null;
   gradeId: string | null;
   sectionId: string | null;
   classroomId: string | null;
@@ -88,6 +94,7 @@ export interface TimetableDashboardConfigSummaryDto {
   name: string;
   scopeType: string;
   scopeKey: string;
+  stageId: string | null;
   status: string;
   activeDays: number[];
 }
@@ -105,6 +112,7 @@ export interface TimetableDashboardItemDto {
     nameAr: string;
     nameEn: string;
   };
+  effectiveConfig: TimetableDashboardConfigSummaryDto | null;
   configs: TimetableDashboardConfigSummaryDto[];
   periods: BackendTimetablePeriodDto[];
   entries: BackendTimetableEntryDto[];
@@ -120,6 +128,10 @@ export interface TimetableDashboardAllResponseDto {
 
 export interface ListResponse<T> {
   items: T[];
+}
+
+export interface TimetableDeleteResponse {
+  ok: boolean;
 }
 
 export interface PublicationResponse {
@@ -195,6 +207,13 @@ export interface TimetablePersistedConflictDto {
   roomId: string | null;
   message: string;
 }
+
+export type TimetablePersistedConflictsResponse =
+  | TimetablePersistedConflictDto[]
+  | {
+      conflicts?: TimetablePersistedConflictDto[];
+      items?: TimetablePersistedConflictDto[];
+    };
 
 export interface TimetableConflictCheckResponse {
   termId: string;
@@ -274,6 +293,7 @@ export type UpsertConfigRequest = {
   academicYearId: string;
   termId: string;
   scopeType?: TimetableScopeType;
+  stageId?: string;
   gradeId?: string;
   sectionId?: string;
   classroomId?: string;
@@ -321,4 +341,41 @@ export interface BulkSaveTimetableRequest {
     teacherSubjectAllocationId: string;
     roomId?: string | null;
   }>;
+}
+
+export interface GenerateTimetableRequest {
+  timetableConfigId: string;
+}
+
+export type TimetableGenerationUnresolvedCode =
+  | "missing_teacher_allocation"
+  | "no_feasible_slot"
+  | "existing_over_scheduled"
+  | "search_budget_exhausted";
+
+export interface TimetableGenerationUnresolved {
+  code: TimetableGenerationUnresolvedCode;
+  classroomId: string | null;
+  subjectId: string | null;
+  requiredWeeklySlots: number | null;
+  scheduledWeeklySlots: number | null;
+  remainingWeeklySlots: number;
+}
+
+export interface TimetableGenerationResponse {
+  timetableConfigId: string;
+  createdCount: number;
+  existingCount: number;
+  remainingDemandCount: number;
+  complete: boolean;
+  createdEntryIds: string[];
+  unresolved: TimetableGenerationUnresolved[];
+  searchNodesVisited: number;
+  searchBudgetExhausted: boolean;
+  validation: TimetableValidationResponse;
+  publishReadiness: {
+    canPublish: boolean;
+    blockingReasons: TimetablePublishReason[];
+    warnings: TimetablePublishReason[];
+  };
 }

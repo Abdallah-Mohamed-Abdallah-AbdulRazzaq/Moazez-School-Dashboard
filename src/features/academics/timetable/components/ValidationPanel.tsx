@@ -1,16 +1,18 @@
 "use client";
 
-import { Drawer } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Drawer, Tab, Tabs } from "@mui/material";
+import RtlProvider from "@mui/system/RtlProvider";
 import {
   AlertCircle,
   AlertTriangle,
   BookOpen,
   CheckCircle,
+  ChevronDown,
   Clock,
   School,
   X,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   validationIssueText,
   type TimetableValidationSummary,
@@ -19,18 +21,30 @@ import type {
   TimetableValidationIssue,
   TimetableValidationItem,
 } from "@/features/academics/timetable/services/timetableApiTypes";
-import type { TimetableConflict } from "@/features/academics/timetable/types/timetable";
-import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
+import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
+import { formatTimetableTimeRange } from "@/features/academics/timetable/services/timetableTimeFormat";
+import { Button } from "@/components/ui";
+import {
+  classifyPublicationReasons,
+  publicationReasonPresentation,
+  type PublicationReasonCategory,
+  type PublicationReasonReferenceNames,
+} from "@/features/academics/timetable/services/timetablePublicationReasons";
+import type { TimetablePublishReason } from "@/features/academics/timetable/services/timetableApiTypes";
 
 interface ValidationPanelProps {
   open: boolean;
   validationSummary: TimetableValidationSummary;
-  conflicts: TimetableConflict[];
-  periods: TimetablePeriod[];
+  conflicts: TimetableConflictDisplay[];
   teachers: NamedEntity[];
   rooms: NamedEntity[];
+  classrooms: NamedEntity[];
+  selectedConflict?: TimetableConflictDisplay | null;
+  onConflictSelect: (conflict: TimetableConflictDisplay) => void;
   onClose: () => void;
   locale: string;
+  publicationReasons?: TimetablePublishReason[];
+  publicationReferenceNames?: PublicationReasonReferenceNames;
 }
 
 type NamedEntity = {
@@ -43,6 +57,18 @@ interface ValidationSection {
   title: string;
   issues: TimetableValidationIssue[];
   severity: "warning" | "error";
+  tab: "conflicts" | "blockers";
+}
+
+type ValidationNavigationTab =
+  | "overview"
+  | "subjects"
+  | "conflicts"
+  | "blockers";
+
+interface SubjectIssueGroup {
+  title: string;
+  items: TimetableValidationItem[];
 }
 
 type ValidationStatus = TimetableValidationItem["status"];
@@ -59,28 +85,52 @@ export default function ValidationPanel({
   open,
   validationSummary,
   conflicts,
-  periods,
   teachers,
   rooms,
+  classrooms,
+  selectedConflict = null,
+  onConflictSelect,
   onClose,
   locale,
+  publicationReasons = [],
+  publicationReferenceNames = {},
 }: ValidationPanelProps) {
+  const [activeTab, setActiveTab] = useState<ValidationNavigationTab>("overview");
   const isRTL = locale === "ar";
   const copy = getCopy(isRTL);
   const summary = validationSummary.backendSummary;
   const issueItems = validationSummary.items.filter(
     (item) => item.status !== "complete" || item.issues.length > 0,
   );
-  const fallbackSections = validationSections(
-    validationSummary,
-    copy,
-  );
+  const fallbackSections = validationSections(validationSummary, copy);
+  const publicationGroups = classifyPublicationReasons(publicationReasons);
   const fallbackIssueCount = fallbackSections.reduce(
     (total, section) => total + section.issues.length,
     0,
   );
+  const blockerSections = fallbackSections.filter(
+    (section) => section.tab === "blockers",
+  );
+  const conflictSections = fallbackSections.filter(
+    (section) => section.tab === "conflicts",
+  );
+  const subjectGroups = subjectIssueGroups(issueItems, copy);
+  const conflictCount =
+    conflicts.length +
+    conflictSections.reduce((total, section) => total + section.issues.length, 0);
+  const blockerCount =
+    publicationReasons.length +
+    blockerSections.reduce((total, section) => total + section.issues.length, 0);
+  const reviewTab = nextBlockingTab({
+    subjectIssueCount: issueItems.length,
+    conflictCount,
+    blockerCount,
+  });
   const hasIssues =
-    issueItems.length > 0 || conflicts.length > 0 || fallbackIssueCount > 0;
+    issueItems.length > 0 ||
+    conflicts.length > 0 ||
+    fallbackIssueCount > 0 ||
+    publicationGroups.length > 0;
 
   return (
     <Drawer
@@ -157,16 +207,59 @@ export default function ValidationPanel({
             </div>
           ) : (
             <>
-              {issueItems.length > 0 && (
-                <section className="space-y-3">
-                  <SectionTitle
-                    title={copy.subjectIssues}
-                    count={issueItems.length}
+              <RtlProvider value={isRTL}>
+                <Tabs
+                  dir={isRTL ? "rtl" : "ltr"}
+                  value={activeTab}
+                  onChange={(_event, nextTab) => setActiveTab(nextTab)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  allowScrollButtonsMobile
+                  aria-label={copy.navigationLabel}
+                  sx={{
+                    minHeight: 44,
+                    "& .MuiTab-root": {
+                      minHeight: 44,
+                      minWidth: "auto",
+                      px: 1.5,
+                      textTransform: "none",
+                    },
+                  }}
+                >
+                  <Tab value="overview" label={tabLabel(copy.overview, 0)} />
+                  <Tab
+                    value="subjects"
+                    label={tabLabel(copy.subjectIssues, issueItems.length)}
                   />
-                  {issueItems.map((item) => (
-                    <ValidationItemCard
-                      key={`${item.classroomId}-${item.subjectId ?? "missing"}`}
-                      item={item}
+                  <Tab
+                    value="conflicts"
+                    label={tabLabel(copy.conflicts, conflictCount)}
+                  />
+                  <Tab
+                    value="blockers"
+                    label={tabLabel(copy.publishBlockers, blockerCount)}
+                  />
+                </Tabs>
+              </RtlProvider>
+
+              {activeTab === "overview" && (
+                <ValidationOverview
+                  copy={copy}
+                  subjectIssueCount={issueItems.length}
+                  conflictCount={conflictCount}
+                  blockerCount={blockerCount}
+                  reviewTab={reviewTab}
+                  onReview={() => reviewTab && setActiveTab(reviewTab)}
+                />
+              )}
+
+              {activeTab === "subjects" && (
+                <section className="space-y-2">
+                  {subjectGroups.map((group, index) => (
+                    <SubjectIssueSection
+                      key={group.title}
+                      group={group}
+                      defaultExpanded={index === 0}
                       locale={locale}
                       copy={copy}
                     />
@@ -174,34 +267,197 @@ export default function ValidationPanel({
                 </section>
               )}
 
-              {conflicts.length > 0 && (
-                <section className="space-y-3">
-                  <SectionTitle
-                    title={copy.blockingConflicts}
-                    count={conflicts.length}
-                  />
-                  {conflicts.map((conflict, index) => (
-                    <ConflictCard
-                      key={`${conflict.code ?? conflict.type}-${conflict.dayKey}-${conflict.periodId ?? conflict.periodIndex}-${index}`}
-                      conflict={conflict}
-                      periods={periods}
-                      teachers={teachers}
-                      rooms={rooms}
-                      locale={locale}
-                      copy={copy}
-                    />
+              {activeTab === "conflicts" && (
+                <section className="space-y-2">
+                  {conflicts.length > 0 && (
+                    <IssueAccordion
+                      title={copy.blockingConflicts}
+                      count={conflicts.length}
+                      defaultExpanded
+                    >
+                      <div className="space-y-3">
+                        {conflicts.map((conflict, index) => (
+                          <ConflictCard
+                            key={`${conflict.code ?? conflict.type}-${conflict.dayKey}-${conflict.periodId ?? conflict.periodIndex}-${index}`}
+                            conflict={conflict}
+                            teachers={teachers}
+                            rooms={rooms}
+                            classrooms={classrooms}
+                            locale={locale}
+                            copy={copy}
+                            isSelected={selectedConflict === conflict}
+                            onSelect={onConflictSelect}
+                          />
+                        ))}
+                      </div>
+                    </IssueAccordion>
+                  )}
+                  {conflictSections.map((section) => (
+                    <FallbackIssueSection key={section.title} section={section} />
                   ))}
                 </section>
               )}
 
-              {fallbackSections.map((section) => (
-                <FallbackIssueSection key={section.title} section={section} />
-              ))}
+              {activeTab === "blockers" && (
+                <section className="space-y-2">
+                  {blockerSections.map((section) => (
+                    <FallbackIssueSection key={section.title} section={section} />
+                  ))}
+                  {publicationGroups.map((group, index) => (
+                    <IssueAccordion
+                      key={group.category}
+                      title={publicationCategoryLabel(group.category, locale)}
+                      count={group.reasons.length}
+                      defaultExpanded={index === 0}
+                    >
+                      <div className="space-y-2">
+                        {group.reasons.map((reason, reasonIndex) => (
+                          <PublicationReasonCard
+                            key={`${reason.code}-${reasonIndex}`}
+                            reason={reason}
+                            locale={locale}
+                            referenceNames={publicationReferenceNames}
+                          />
+                        ))}
+                      </div>
+                    </IssueAccordion>
+                  ))}
+                </section>
+              )}
             </>
           )}
         </div>
       </div>
     </Drawer>
+  );
+}
+
+function PublicationReasonCard({
+  reason,
+  locale,
+  referenceNames,
+}: {
+  reason: TimetablePublishReason;
+  locale: string;
+  referenceNames: PublicationReasonReferenceNames;
+}) {
+  const presentation = publicationReasonPresentation(reason, locale, referenceNames);
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+      <div className="font-medium">{presentation.message}</div>
+      {presentation.details.length > 0 && (
+        <dl className="mt-2 grid gap-1 text-xs text-red-700 sm:grid-cols-2">
+          {presentation.details.map((detail) => (
+            <div key={detail.label} className="flex gap-1">
+              <dt className="font-medium">{detail.label}:</dt>
+              <dd className="break-all">{detail.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+  );
+}
+
+function ValidationOverview({
+  copy,
+  subjectIssueCount,
+  conflictCount,
+  blockerCount,
+  reviewTab,
+  onReview,
+}: {
+  copy: ValidationCopy;
+  subjectIssueCount: number;
+  conflictCount: number;
+  blockerCount: number;
+  reviewTab: ValidationNavigationTab | null;
+  onReview: () => void;
+}) {
+  return (
+    <section className="space-y-4">
+      <p className="text-sm text-slate-600">{copy.overviewDescription}</p>
+      <div className="grid grid-cols-3 gap-2">
+        <NavigationMetric label={copy.subjectIssues} count={subjectIssueCount} />
+        <NavigationMetric label={copy.conflicts} count={conflictCount} />
+        <NavigationMetric label={copy.publishBlockers} count={blockerCount} />
+      </div>
+      <Button
+        type="button"
+        variant="primary"
+        fullWidth
+        disabled={reviewTab === null}
+        onClick={onReview}
+      >
+        {copy.reviewBlockers}
+      </Button>
+    </section>
+  );
+}
+
+function NavigationMetric({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
+      <div className="text-xl font-semibold text-slate-950">{count}</div>
+      <div className="mt-1 text-xs font-medium text-slate-600">{label}</div>
+    </div>
+  );
+}
+
+function SubjectIssueSection({
+  group,
+  defaultExpanded,
+  locale,
+  copy,
+}: {
+  group: SubjectIssueGroup;
+  defaultExpanded: boolean;
+  locale: string;
+  copy: ValidationCopy;
+}) {
+  return (
+    <IssueAccordion
+      title={group.title}
+      count={group.items.length}
+      defaultExpanded={defaultExpanded}
+    >
+      <div className="space-y-3">
+        {group.items.map((item) => (
+          <ValidationItemCard
+            key={`${item.classroomId}-${item.subjectId ?? "missing"}`}
+            item={item}
+            locale={locale}
+            copy={copy}
+          />
+        ))}
+      </div>
+    </IssueAccordion>
+  );
+}
+
+function IssueAccordion({
+  title,
+  count,
+  defaultExpanded = false,
+  children,
+}: {
+  title: string;
+  count: number;
+  defaultExpanded?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Accordion
+      defaultExpanded={defaultExpanded}
+      disableGutters
+      elevation={0}
+      sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}
+    >
+      <AccordionSummary expandIcon={<ChevronDown className="h-4 w-4" />}>
+        <SectionTitle title={title} count={count} />
+      </AccordionSummary>
+      <AccordionDetails>{children}</AccordionDetails>
+    </Accordion>
   );
 }
 
@@ -396,18 +652,23 @@ function FallbackIssueSection({ section }: { section: ValidationSection }) {
       : "border-amber-200 bg-amber-50 text-amber-800";
 
   return (
-    <section className="space-y-2">
-      <SectionTitle title={section.title} count={section.issues.length} />
-      {section.issues.map((issue, index) => (
-        <div
-          key={`${section.title}-${index}`}
-          className={`flex gap-2 rounded-lg border p-3 text-sm ${colorClass}`}
-        >
-          <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{validationIssueText(issue)}</span>
-        </div>
-      ))}
-    </section>
+    <IssueAccordion
+      title={section.title}
+      count={section.issues.length}
+      defaultExpanded={section.severity === "error"}
+    >
+      <div className="space-y-2">
+        {section.issues.map((issue, index) => (
+          <div
+            key={`${section.title}-${index}`}
+            className={`flex gap-2 rounded-lg border p-3 text-sm ${colorClass}`}
+          >
+            <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{validationIssueText(issue)}</span>
+          </div>
+        ))}
+      </div>
+    </IssueAccordion>
   );
 }
 
@@ -428,63 +689,86 @@ function dayLabel(dayKey: string, locale: string): string {
 
 function ConflictCard({
   conflict,
-  periods,
   teachers,
   rooms,
+  classrooms,
   locale,
   copy,
+  isSelected,
+  onSelect,
 }: {
-  conflict: TimetableConflict;
-  periods: TimetablePeriod[];
+  conflict: TimetableConflictDisplay;
   teachers: NamedEntity[];
   rooms: NamedEntity[];
+  classrooms: NamedEntity[];
   locale: string;
   copy: ValidationCopy;
+  isSelected: boolean;
+  onSelect: (conflict: TimetableConflictDisplay) => void;
 }) {
-  const period = conflict.periodId
-    ? periods.find((item) => item.id === conflict.periodId)
-    : periods.find((item) => item.index === conflict.periodIndex);
-  const resource =
+  const resourceDirectory =
     conflict.type === "ROOM"
-      ? rooms.find((room) => room.id === conflict.resourceId)
-      : teachers.find((teacher) => teacher.id === conflict.resourceId);
+      ? rooms
+      : conflict.type === "CLASSROOM"
+        ? classrooms
+        : teachers;
+  const resource = resourceDirectory.find(
+    (entity) => entity.id === conflict.resourceId,
+  );
   const resourceName =
-    localizedName(resource ?? null, locale) ||
-    conflict.resourceName ||
-    conflict.resourceId ||
-    copy.unknownResource;
-  const periodLabel =
-    periodLabelText(period, locale) ||
-    `${copy.period} ${conflict.periodIndex || conflict.periodId || ""}`.trim();
+    localizedName(resource ?? null, locale) || copy.unknownResource;
+  const hasScheduleMetadata = Boolean(conflict.dayKey || conflict.periodLabel);
 
   return (
-    <article className="rounded-lg border border-red-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="rounded-full bg-red-50 p-2 text-red-700">
+    <Button
+      type="button"
+      variant="ghost"
+      fullWidth
+      aria-current={isSelected ? "true" : undefined}
+      onClick={() => onSelect(conflict)}
+      className={`items-start justify-start whitespace-normal border bg-white p-4 text-start shadow-sm focus:ring-2 focus:ring-primary-500 ${
+        isSelected ? "border-primary-500" : "border-red-200"
+      }`}
+    >
+      <span className="flex items-start gap-3">
+        <span className="rounded-full bg-red-50 p-2 text-red-700">
           <AlertTriangle className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold text-slate-950">
-              {conflict.type === "ROOM"
-                ? copy.roomConflictTitle
-                : copy.teacherConflictTitle}
-            </h4>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-slate-950">
+              {conflictTitle(conflict.type, copy)}
+            </span>
             <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
               {copy.blocking}
             </span>
-          </div>
-          <p className="mt-1 text-sm text-slate-700">{resourceName}</p>
-          <p className="mt-1 text-xs text-slate-500">
-            {copy.day}: {dayLabel(conflict.dayKey, locale)} · {periodLabel}
-          </p>
-          <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-800">
-            {conflict.type === "ROOM"
-              ? copy.roomConflictMessage
-              : copy.teacherConflictMessage}
-          </p>
+          </span>
+          <span className="mt-1 block text-sm text-slate-700">
+            {resourceName}
+          </span>
+          {hasScheduleMetadata && (
+            <span className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500">
+              {conflict.dayKey && (
+                <span>
+                  {copy.day}: {dayLabel(conflict.dayKey, locale)}
+                </span>
+              )}
+              {conflict.periodLabel && <span>{conflict.periodLabel}</span>}
+              {conflict.startTime && conflict.endTime && (
+                <span dir="ltr">
+                  {formatTimetableTimeRange(
+                    conflict.startTime,
+                    conflict.endTime,
+                  )}
+                </span>
+              )}
+            </span>
+          )}
+          <span className="mt-3 block rounded-md bg-red-50 px-3 py-2 text-xs text-red-800">
+            {conflict.message}
+          </span>
           {conflict.proposedIndexes && conflict.proposedIndexes.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            <span className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
               <span className="font-medium">{copy.affectedItems}</span>
               {conflict.proposedIndexes.map((index) => (
                 <span
@@ -494,35 +778,30 @@ function ConflictCard({
                   #{index + 1}
                 </span>
               ))}
-            </div>
+            </span>
           )}
-          {conflict.sections && conflict.sections.length > 0 && (
-            <div className="mt-3 space-y-1">
-              <span className="text-xs font-medium text-slate-600">
-                {copy.conflictsWith}
-              </span>
-              {conflict.sections.map((section, sIdx) => (
-                <div
-                  key={`${section.sectionId}-${sIdx}`}
-                  className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700"
-                >
-                  <span className="font-medium">
-                    {section.classroomName ?? section.sectionName}
-                  </span>
-                  {section.subjectName && (
-                    <span className="text-slate-500">
-                      {" "}
-                      · {section.subjectName}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </article>
+        </span>
+      </span>
+    </Button>
   );
+}
+
+function conflictTitle(
+  type: TimetableConflictDisplay["type"],
+  copy: ValidationCopy,
+): string {
+  switch (type) {
+    case "ROOM":
+      return copy.roomConflictTitle;
+    case "CLASSROOM":
+      return copy.classroomConflictTitle;
+    case "DUPLICATE":
+      return copy.duplicateConflictTitle;
+    case "UNKNOWN":
+      return copy.unknownConflictTitle;
+    default:
+      return copy.teacherConflictTitle;
+  }
 }
 
 function validationSections(
@@ -534,33 +813,77 @@ function validationSections(
       title: copy.blockingReasons,
       issues: validationSummary.blockingReasons.map((message) => ({ message })),
       severity: "error",
+      tab: "blockers",
     },
     {
       title: copy.warnings,
       issues: validationSummary.warnings.map((message) => ({ message })),
       severity: "warning",
+      tab: "blockers",
     },
     {
       title: copy.teacherConflicts,
       issues: validationSummary.teacherConflicts,
       severity: "error",
+      tab: "conflicts",
     },
     {
       title: copy.classroomConflicts,
       issues: validationSummary.classroomConflicts,
       severity: "error",
+      tab: "conflicts",
     },
     {
       title: copy.roomConflicts,
       issues: validationSummary.roomConflicts,
       severity: "error",
+      tab: "conflicts",
+    },
+    {
+      title: copy.roomIntegrity,
+      issues: validationSummary.roomIntegrityIssues,
+      severity: "error",
+      tab: "conflicts",
     },
     {
       title: copy.conflicts,
       issues: validationSummary.conflicts,
       severity: "error",
+      tab: "conflicts",
     },
   ];
+}
+
+function subjectIssueGroups(
+  issueItems: TimetableValidationItem[],
+  copy: ValidationCopy,
+): SubjectIssueGroup[] {
+  const groups = new Map<ValidationStatus, TimetableValidationItem[]>();
+  for (const item of issueItems) {
+    groups.set(item.status, [...(groups.get(item.status) ?? []), item]);
+  }
+  return Array.from(groups, ([status, items]) => ({
+    title: copy.status[status],
+    items,
+  }));
+}
+
+function nextBlockingTab({
+  subjectIssueCount,
+  conflictCount,
+  blockerCount,
+}: {
+  subjectIssueCount: number;
+  conflictCount: number;
+  blockerCount: number;
+}): ValidationNavigationTab | null {
+  if (conflictCount > 0) return "conflicts";
+  if (blockerCount > 0) return "blockers";
+  return subjectIssueCount > 0 ? "subjects" : null;
+}
+
+function tabLabel(label: string, count: number): string {
+  return `${label} (${count})`;
 }
 
 function validationIssueCount(
@@ -575,6 +898,31 @@ function validationIssueCount(
     summary.roomConflicts +
     summary.missingSubjectAllocationRows
   );
+}
+
+function publicationCategoryLabel(
+  category: PublicationReasonCategory,
+  locale: string,
+) {
+  const labels =
+    locale === "ar"
+      ? {
+          configuration: "الإعداد والسياق الأكاديمي",
+          curriculum: "متطلبات المنهج",
+          teachers: "تخصيصات المعلمين",
+          weekly_hours: "اكتمال الساعات الأسبوعية",
+          conflicts: "تعارضات الجدول",
+          rooms: "صلاحية الغرف",
+        }
+      : {
+          configuration: "Configuration and academic context",
+          curriculum: "Curriculum requirements",
+          teachers: "Teacher allocations",
+          weekly_hours: "Weekly-hour completeness",
+          conflicts: "Timetable conflicts",
+          rooms: "Room integrity",
+        };
+  return labels[category];
 }
 
 function localizedName(
@@ -606,18 +954,6 @@ function localizedIssueMessage(
   return issue.message || validationIssueText(issue);
 }
 
-function periodLabelText(
-  period: TimetablePeriod | undefined,
-  locale: string,
-): string {
-  if (!period) return "";
-  const name = locale === "ar" ? period.nameAr : period.nameEn;
-  if (period.startTime && period.endTime) {
-    return `${name} (${period.startTime} - ${period.endTime})`;
-  }
-  return name;
-}
-
 interface ValidationCopy {
   title: string;
   subtitle: string;
@@ -629,6 +965,11 @@ interface ValidationCopy {
   scheduledSlots: string;
   publishIssues: string;
   noIssues: string;
+  navigationLabel: string;
+  overview: string;
+  overviewDescription: string;
+  publishBlockers: string;
+  reviewBlockers: string;
   subjectIssues: string;
   noSubjectLabel: string;
   expected: string;
@@ -639,6 +980,7 @@ interface ValidationCopy {
   teacherConflicts: string;
   classroomConflicts: string;
   roomConflicts: string;
+  roomIntegrity: string;
   conflicts: string;
   conflictAt: string;
   period: string;
@@ -650,12 +992,12 @@ interface ValidationCopy {
   blockingConflicts: string;
   teacherConflictTitle: string;
   roomConflictTitle: string;
-  teacherConflictMessage: string;
-  roomConflictMessage: string;
+  classroomConflictTitle: string;
+  duplicateConflictTitle: string;
+  unknownConflictTitle: string;
   blocking: string;
   affectedItems: string;
   unknownResource: string;
-  conflictsWith: string;
   status: Record<ValidationStatus, string>;
 }
 
@@ -672,6 +1014,11 @@ function getCopy(isRTL: boolean): ValidationCopy {
       scheduledSlots: "المجدول",
       publishIssues: "مشاكل النشر",
       noIssues: "لا توجد مشاكل تحقق أو تعارضات.",
+      navigationLabel: "أقسام التحقق",
+      overview: "نظرة عامة",
+      overviewDescription: "ابدأ بالقسم الذي يحتاج إلى المعالجة أولاً.",
+      publishBlockers: "موانع النشر",
+      reviewBlockers: "مراجعة أول مانع",
       subjectIssues: "مشاكل المواد والفصول",
       noSubjectLabel: "مادة غير محددة",
       expected: "المطلوب",
@@ -682,6 +1029,7 @@ function getCopy(isRTL: boolean): ValidationCopy {
       teacherConflicts: "تعارضات المعلمين",
       classroomConflicts: "تعارضات الفصول",
       roomConflicts: "تعارضات الغرف",
+      roomIntegrity: "صلاحية الغرف",
       conflicts: "التعارضات",
       conflictAt: "يتعارض في",
       period: "الحصة",
@@ -694,12 +1042,12 @@ function getCopy(isRTL: boolean): ValidationCopy {
       blockingConflicts: "تعارضات مانعة",
       teacherConflictTitle: "تعارض معلم",
       roomConflictTitle: "تعارض غرفة",
-      teacherConflictMessage: "هذا المعلم مجدول في أكثر من فصل في نفس الوقت.",
-      roomConflictMessage: "هذه الغرفة محجوزة لأكثر من فصل في نفس الوقت.",
+      classroomConflictTitle: "تعارض فصل",
+      duplicateConflictTitle: "حصة مكررة",
+      unknownConflictTitle: "تعارض في الجدول",
       blocking: "مانع",
       affectedItems: "العناصر المتأثرة:",
       unknownResource: "مورد غير معروف",
-      conflictsWith: "يتعارض مع:",
       status: {
         complete: "مكتمل",
         under_scheduled: "أقل من المطلوب",
@@ -721,6 +1069,11 @@ function getCopy(isRTL: boolean): ValidationCopy {
     scheduledSlots: "Scheduled",
     publishIssues: "Publish issues",
     noIssues: "No validation issues or conflicts found.",
+    navigationLabel: "Validation sections",
+    overview: "Overview",
+    overviewDescription: "Start with the section that needs attention first.",
+    publishBlockers: "Publish blockers",
+    reviewBlockers: "Review next blocker",
     subjectIssues: "Subject scheduling issues",
     noSubjectLabel: "No subject",
     expected: "Expected",
@@ -731,6 +1084,7 @@ function getCopy(isRTL: boolean): ValidationCopy {
     teacherConflicts: "Teacher conflicts",
     classroomConflicts: "Classroom conflicts",
     roomConflicts: "Room conflicts",
+    roomIntegrity: "Room integrity",
     conflicts: "Conflicts",
     conflictAt: "conflict at",
     period: "period",
@@ -744,12 +1098,12 @@ function getCopy(isRTL: boolean): ValidationCopy {
     blockingConflicts: "Blocking conflicts",
     teacherConflictTitle: "Teacher conflict",
     roomConflictTitle: "Room conflict",
-    teacherConflictMessage: "This teacher is scheduled in more than one classroom at the same time.",
-    roomConflictMessage: "This room is booked for more than one classroom at the same time.",
+    classroomConflictTitle: "Classroom conflict",
+    duplicateConflictTitle: "Duplicate slot",
+    unknownConflictTitle: "Timetable conflict",
     blocking: "Blocking",
     affectedItems: "Affected items:",
     unknownResource: "Unknown resource",
-    conflictsWith: "Conflicts with:",
     status: {
       complete: "Complete",
       under_scheduled: "Under scheduled",
