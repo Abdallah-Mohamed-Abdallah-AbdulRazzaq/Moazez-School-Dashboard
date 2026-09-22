@@ -63,12 +63,14 @@ interface SchoolDashboardViewProps {
   alertsState: DashboardSectionState<DashboardAlertsViewModel>;
   isRefreshing: boolean;
   onRefresh: () => void;
+  refreshSequence: number;
   summaryState: DashboardSectionState<DashboardSummaryViewModel>;
   modules: DashboardModuleListItem[];
   cachedModules: Record<string, DashboardModulePage>;
   moduleLoadingStates: Record<string, "loading" | "success" | "error">;
   moduleErrors: Record<string, string>;
   onLoadModuleDetails: (moduleKey: string) => void;
+  onActiveTabChange: (tabKey: string) => void;
 }
 
 interface DashboardHeaderProps {
@@ -164,12 +166,14 @@ export default function SchoolDashboardView({
   alertsState,
   isRefreshing,
   onRefresh,
+  refreshSequence,
   summaryState,
   modules,
   cachedModules,
   moduleLoadingStates,
   moduleErrors,
   onLoadModuleDetails,
+  onActiveTabChange,
 }: SchoolDashboardViewProps) {
   const [commandCenterAnalysis, setCommandCenterAnalysis] =
     useState<DashboardCommandCenterResponse | null>(null);
@@ -223,6 +227,7 @@ export default function SchoolDashboardView({
         <DashboardLightModeDropdown />
         <DashboardIntelligencePanel
           onCommandCenterChange={handleCommandCenterChange}
+          refreshSequence={refreshSequence}
         />
 
         <DashboardAnalysisCards commandCenter={commandCenterAnalysis} />
@@ -251,6 +256,7 @@ export default function SchoolDashboardView({
               activeTab={activeTab}
               onTabChange={(tabId) => {
                 setActiveTab(tabId);
+                onActiveTabChange(tabId);
                 if (tabId !== "overview") {
                   onLoadModuleDetails(tabId);
                 }
@@ -687,13 +693,6 @@ function DashboardTabContent({
   const renderInnerContent = () => {
     if (activeTab !== "overview") {
       const state = moduleLoadingStates[activeTab] || "loading";
-      if (state === "loading") {
-        return (
-          <div className="flex justify-center p-8">
-            <PartialLoader />
-          </div>
-        );
-      }
       if (state === "error") {
         return (
           <section className="rounded-2xl border border-red-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
@@ -709,9 +708,16 @@ function DashboardTabContent({
         );
       }
       const pageData = cachedModules[activeTab];
-      if (!pageData) return null;
+      if (pageData) {
+        return (
+          <>
+            {state === "loading" && <div className="flex justify-center p-3"><PartialLoader /></div>}
+            <ModuleTabDashboardView pageData={pageData} />
+          </>
+        );
+      }
 
-      return <ModuleTabDashboardView pageData={pageData} />;
+      return <div className="flex justify-center p-8"><PartialLoader /></div>;
     }
 
     if (summaryState.status === "loading") {

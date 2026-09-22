@@ -9,6 +9,10 @@ import {
   fetchDashboardModules,
   fetchDashboardModuleByKey,
   fetchDashboardWidgets,
+  fetchDashboardCommandCenter,
+  fetchDashboardTodos,
+  fetchAnalyticsCharts,
+  fetchAnalyticsChartData,
   fetchLightModeDropdown,
 } from "@/features/dashboard/services/dashboardApiService";
 import {
@@ -38,6 +42,10 @@ vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchDashboardModules: vi.fn(),
   fetchDashboardModuleByKey: vi.fn(),
   fetchDashboardWidgets: vi.fn(),
+  fetchDashboardCommandCenter: vi.fn(),
+  fetchDashboardTodos: vi.fn(),
+  fetchAnalyticsCharts: vi.fn(),
+  fetchAnalyticsChartData: vi.fn(),
   fetchLightModeDropdown: vi.fn(),
 }));
 
@@ -62,6 +70,10 @@ const mockedFetchDashboardActivityFeed = vi.mocked(fetchDashboardActivityFeed);
 const mockedFetchDashboardModules = vi.mocked(fetchDashboardModules);
 const mockedFetchDashboardModuleByKey = vi.mocked(fetchDashboardModuleByKey);
 const mockedFetchDashboardWidgets = vi.mocked(fetchDashboardWidgets);
+const mockedFetchDashboardCommandCenter = vi.mocked(fetchDashboardCommandCenter);
+const mockedFetchDashboardTodos = vi.mocked(fetchDashboardTodos);
+const mockedFetchAnalyticsCharts = vi.mocked(fetchAnalyticsCharts);
+const mockedFetchAnalyticsChartData = vi.mocked(fetchAnalyticsChartData);
 const mockedFetchLightModeDropdown = vi.mocked(fetchLightModeDropdown);
 type DashboardModulesResult = Awaited<ReturnType<typeof fetchDashboardModules>>;
 type DashboardModuleResult = Awaited<ReturnType<typeof fetchDashboardModuleByKey>>;
@@ -95,6 +107,20 @@ describe("SchoolDashboardContainer", () => {
     mockedFetchDashboardActivityFeed.mockReset();
     mockedFetchDashboardModules.mockReset();
     mockedFetchDashboardModuleByKey.mockReset();
+    mockedFetchDashboardCommandCenter.mockReset().mockResolvedValue({
+      quickStats: [], topActions: [], topRisks: [], operationalHealth: [],
+      moduleReadiness: [], analyticsPreview: [],
+      todoPreview: {
+        items: [], summary: { pending: 0, total: 0 },
+        action: { target: "/dashboard/todos" },
+      },
+      meta: { dataFreshness: "live" },
+    } as never);
+    mockedFetchDashboardTodos.mockReset().mockResolvedValue({
+      todos: [], summary: { pending: 0, total: 0 },
+    } as never);
+    mockedFetchAnalyticsCharts.mockReset().mockResolvedValue({ charts: [] } as never);
+    mockedFetchAnalyticsChartData.mockReset();
     mockedFetchDashboardWidgets.mockReset().mockResolvedValue({
       generatedAt: "2026-07-15T09:00:00.000Z",
       widgets: [],
@@ -573,8 +599,72 @@ describe("SchoolDashboardContainer", () => {
     await waitFor(() => {
       expect(mockedFetchDashboardModuleByKey).toHaveBeenCalledWith("admissions");
     });
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Refresh" })[0]);
+    await waitFor(() => {
+      expect(mockedFetchDashboardModuleByKey).toHaveBeenCalledTimes(2);
+      expect(mockedFetchDashboardSummary).toHaveBeenCalledTimes(2);
+      expect(mockedFetchDashboardCommandCenter).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("changes the analytics range without reloading overview endpoints", async () => {
+    mockedFetchDashboardSummary.mockResolvedValue(dashboardSummaryResponse());
+    mockedFetchDashboardAlerts.mockResolvedValue(dashboardAlertsResponse());
+    mockedFetchDashboardActivityFeed.mockResolvedValue(dashboardActivityFeedResponse());
+    mockedFetchAnalyticsCharts.mockResolvedValue({
+      charts: [{ chartKey: "enrollment", title: "Enrollment", type: "line", filters: ["range"] }],
+    } as never);
+    mockedFetchAnalyticsChartData.mockResolvedValue({
+      chartKey: "enrollment", title: "Enrollment", type: "line",
+      data: { series: [], totals: {}, empty: true },
+    } as never);
+
+    render(<SchoolDashboardContainer />);
+
+    await waitFor(() => expect(mockedFetchAnalyticsChartData).toHaveBeenCalledTimes(1));
+    const widgetRequestsBeforeRangeChange = mockedFetchDashboardWidgets.mock.calls.length;
+    fireEvent.change(screen.getByLabelText("Analytics period"), { target: { value: "7d" } });
+
+    await waitFor(() => expect(mockedFetchAnalyticsChartData).toHaveBeenCalledTimes(2));
+    expect(mockedFetchDashboardCommandCenter).toHaveBeenCalledTimes(1);
+    expect(mockedFetchDashboardWidgets).toHaveBeenCalledTimes(widgetRequestsBeforeRangeChange);
+    expect(mockedFetchDashboardTodos).toHaveBeenCalledTimes(1);
+    expect(mockedFetchAnalyticsCharts).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the newest analytics range when an older request resolves last", async () => {
+    mockedFetchDashboardSummary.mockResolvedValue(dashboardSummaryResponse());
+    mockedFetchDashboardAlerts.mockResolvedValue(dashboardAlertsResponse());
+    mockedFetchDashboardActivityFeed.mockResolvedValue(dashboardActivityFeedResponse());
+    mockedFetchAnalyticsCharts.mockResolvedValue({
+      charts: [{ chartKey: "enrollment", title: "Enrollment", type: "line", filters: ["range"] }],
+    } as never);
+
+    let resolveOlder!: (response: Awaited<ReturnType<typeof fetchAnalyticsChartData>>) => void;
+    let resolveNewer!: (response: Awaited<ReturnType<typeof fetchAnalyticsChartData>>) => void;
+    mockedFetchAnalyticsChartData
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveOlder = resolve; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveNewer = resolve; }));
+
+    render(<SchoolDashboardContainer />);
+    await waitFor(() => expect(mockedFetchAnalyticsChartData).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByLabelText("Analytics period"), { target: { value: "7d" } });
+    await waitFor(() => expect(mockedFetchAnalyticsChartData).toHaveBeenCalledTimes(2));
+
+    resolveNewer(analyticsPreviewResponse("Current range"));
+    expect(await screen.findByText("Current range")).toBeInTheDocument();
+    resolveOlder(analyticsPreviewResponse("Old range"));
+    await waitFor(() => expect(screen.queryByText("Old range")).not.toBeInTheDocument());
   });
 });
+
+function analyticsPreviewResponse(title: string) {
+  return {
+    chartKey: "enrollment", title, type: "line",
+    data: { series: [], totals: {}, empty: true },
+  } as Awaited<ReturnType<typeof fetchAnalyticsChartData>>;
+}
 
 function dashboardAlertFixture(
   key: string,

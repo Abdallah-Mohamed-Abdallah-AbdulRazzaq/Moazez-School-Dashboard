@@ -15,6 +15,18 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useCallback, useEffect, useState } from "react";
 
 import ModuleWidgetCard from "./ModuleWidgetCard";
@@ -36,6 +48,7 @@ import type {
 import { resolveDashboardActionTarget } from "@/features/dashboard/utils/resolveDashboardActionTarget";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import DashboardPermissionGuard from "./DashboardPermissionGuard";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { formatDashboardMetric } from "@/features/dashboard/utils/formatDashboardMetric";
@@ -64,8 +77,10 @@ const AnalyticsPreviewCard = dynamic(() => import("./DashboardAnalyticsPreviewCa
 
 export default function DashboardIntelligencePanel({
   onCommandCenterChange,
+  refreshSequence,
 }: {
   onCommandCenterChange?: (commandCenter: DashboardCommandCenterResponse | null) => void;
+  refreshSequence: number;
 }) {
   const { isPermissionsReady } = usePermissions();
 
@@ -90,6 +105,7 @@ export default function DashboardIntelligencePanel({
           >
             <DashboardIntelligenceContent
               onCommandCenterChange={onCommandCenterChange}
+              refreshSequence={refreshSequence}
             />
           </DashboardPermissionGuard>
         </DashboardPermissionGuard>
@@ -100,8 +116,10 @@ export default function DashboardIntelligencePanel({
 
 function DashboardIntelligenceContent({
   onCommandCenterChange,
+  refreshSequence,
 }: {
   onCommandCenterChange?: (commandCenter: DashboardCommandCenterResponse | null) => void;
+  refreshSequence: number;
 }) {
   const locale = useLocale();
   const t = useTranslations("dashboard_new.command_center");
@@ -110,11 +128,15 @@ function DashboardIntelligenceContent({
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [analyticsRange, setAnalyticsRange] = useState<AnalyticsRange>("30d");
+  const [charts, setCharts] = useState<DashboardAnalyticsChart[]>([]);
+  const [manualRefreshSequence, setManualRefreshSequence] = useState(0);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
+  const overviewRequestId = useRef(0);
 
   const analyticsHref = `/${locale}/dashboard/analytics`;
   const widgetsHref = `/${locale}/dashboard/widgets`;
 
-  const load = useCallback(async (range: AnalyticsRange) => {
+  const loadOverview = useCallback(async (requestId: number) => {
     setIsLoading(true);
 
     const [commandResult, widgetsResult, chartsResult, todosResult] = await Promise.allSettled([
@@ -126,44 +148,77 @@ function DashboardIntelligenceContent({
       Promise.resolve().then(() => fetchDashboardTodos({ status: "all", limit: 5 })),
     ]);
 
-    const charts =
-      chartsResult.status === "fulfilled" ? chartsResult.value.charts.slice(0, 2) : [];
-    const analyticsRequests = charts.flatMap((chart) => {
-      const query = analyticsQuery(chart, range, academicYearId, termId);
-      return query
-        ? [
-        Promise.resolve().then(() =>
-          fetchAnalyticsChartData(chart.chartKey, query),
-        ),
-      ]
-        : [];
-    });
-    const analyticsResults = await Promise.allSettled(analyticsRequests);
+    if (requestId !== overviewRequestId.current) return;
 
     const commandCenter = commandResult.status === "fulfilled" ? commandResult.value : null;
+    const availableCharts = chartsResult.status === "fulfilled" ? chartsResult.value.charts.slice(0, 2) : [];
     onCommandCenterChange?.(commandCenter);
-    setState({
+    setState((previous) => ({
+      ...previous,
+      analytics: availableCharts.length ? previous.analytics : [],
       commandCenter,
       widgets: widgetsResult.status === "fulfilled" ? widgetsResult.value.widgets : [],
-      analytics: analyticsResults.flatMap((result) =>
-        result.status === "fulfilled" ? [result.value] : [],
-      ),
       todos: todosResult.status === "fulfilled" ? todosResult.value : null,
       unavailableSections: [
         ...(commandResult.status === "rejected" ? ["command"] : []),
         ...(widgetsResult.status === "rejected" ? ["widgets"] : []),
-        ...(chartsResult.status === "rejected" || analyticsResults.some((result) => result.status === "rejected") ? ["analytics"] : []),
+        ...(chartsResult.status === "rejected" ? ["analytics"] : []),
         ...(todosResult.status === "rejected" ? ["todos"] : []),
       ],
-    });
+    }));
+    setCharts(availableCharts);
+    if (!availableCharts.length) setIsAnalyticsLoading(false);
     setHasLoaded(true);
     setIsLoading(false);
-  }, [academicYearId, onCommandCenterChange, termId]);
+  }, [onCommandCenterChange]);
 
   useEffect(() => {
-    const initialLoad = window.setTimeout(() => void load(analyticsRange), 0);
-    return () => window.clearTimeout(initialLoad);
-  }, [analyticsRange, load]);
+    const requestId = ++overviewRequestId.current;
+    const initialLoad = window.setTimeout(() => {
+      void loadOverview(requestId);
+    }, 0);
+    return () => {
+      overviewRequestId.current += 1;
+      window.clearTimeout(initialLoad);
+    };
+  }, [loadOverview, manualRefreshSequence, refreshSequence]);
+
+  useEffect(() => {
+    if (!charts.length) return;
+    let active = true;
+    const requests = charts.flatMap((chart) => {
+      const query = analyticsQuery(chart, analyticsRange, academicYearId, termId);
+      return query ? [fetchAnalyticsChartData(chart.chartKey, query)] : [];
+    });
+
+    if (!requests.length) {
+      void Promise.resolve().then(() => {
+        if (!active) return;
+        setState((previous) => ({ ...previous, analytics: [] }));
+        setIsAnalyticsLoading(false);
+      });
+      return () => { active = false; };
+    }
+
+    void Promise.resolve().then(() => {
+      if (active) setIsAnalyticsLoading(true);
+    });
+    void Promise.allSettled(requests).then((responses) => {
+      if (!active) return;
+      setState((previous) => ({
+        ...previous,
+        analytics: responses.flatMap((response) =>
+          response.status === "fulfilled" ? [response.value] : [],
+        ),
+        unavailableSections: responses.some((response) => response.status === "rejected")
+          ? [...new Set([...previous.unavailableSections, "analytics"])]
+          : previous.unavailableSections.filter((section) => section !== "analytics"),
+      }));
+      setIsAnalyticsLoading(false);
+    });
+
+    return () => { active = false; };
+  }, [academicYearId, analyticsRange, charts, termId]);
 
   const quickStats = state.commandCenter?.quickStats.slice(0, 4) ?? [];
   const topActions = state.commandCenter?.topActions.slice(0, 2) ?? [];
@@ -195,7 +250,7 @@ function DashboardIntelligenceContent({
           </span>
           <button
             type="button"
-            onClick={() => void load(analyticsRange)}
+            onClick={() => setManualRefreshSequence((sequence) => sequence + 1)}
             disabled={isLoading}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-primary-100 bg-white text-primary transition-colors duration-200 hover:bg-primary-50 disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 cursor-pointer"
             aria-label={t("refresh")}
@@ -269,7 +324,9 @@ function DashboardIntelligenceContent({
                 <option value="90d">{t("range_90d")}</option>
               </select>
             </div>
-            {state.analytics.length ? (
+            {isAnalyticsLoading ? (
+              <div className="flex justify-center py-6"><PartialLoader /></div>
+            ) : state.analytics.length ? (
               <div className="grid gap-4 lg:grid-cols-2">
                 {state.analytics.map((chart) => <AnalyticsPreviewCard key={chart.chartKey} chart={chart} locale={locale} />)}
               </div>
