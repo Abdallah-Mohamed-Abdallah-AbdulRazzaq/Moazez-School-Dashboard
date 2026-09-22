@@ -242,7 +242,10 @@ export default function HomeworkListPage() {
       ]),
     );
     const teacherNames = new Map(
-      filterSources.teachers.map((teacher) => [teacher.id, teacherName(locale, teacher)]),
+      filterSources.teachers.map((teacher) => [
+        teacher.id,
+        teacherName(locale, teacher),
+      ]),
     );
     const subjectNames = new Map(
       filterSources.subjects.map((subject) => [
@@ -304,6 +307,7 @@ export default function HomeworkListPage() {
       params.set("tab", tab);
       router.push(
         `/${locale}/academics/homework/${homeworkId}?${params.toString()}`,
+        { scroll: false },
       );
     },
     [locale, router, searchParams],
@@ -467,7 +471,11 @@ export default function HomeworkListPage() {
         setItems(response.items);
         setMeta(response.meta);
       } catch (error) {
-        showError(t("errors.loadFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+        showError(
+          t("errors.loadFailed", {
+            message: getHomeworkErrorMessage(error, tHomeworkError),
+          }),
+        );
       } finally {
         setIsLoading(false);
       }
@@ -517,22 +525,33 @@ export default function HomeworkListPage() {
     return () => {
       isActive = false;
     };
-  }, [academicYearId, canView, isInitializing, showError, t, tHomeworkError, termId]);
+  }, [
+    academicYearId,
+    canView,
+    isInitializing,
+    showError,
+    t,
+    tHomeworkError,
+    termId,
+  ]);
 
-  const updateFilters = useCallback((updates: Partial<HomeworkListFilterValues>) => {
-    const nextFilters = { ...filterValues, ...updates };
-    setFilterValues(nextFilters);
+  const updateFilters = useCallback(
+    (updates: Partial<HomeworkListFilterValues>) => {
+      const nextFilters = { ...filterValues, ...updates };
+      setFilterValues(nextFilters);
 
-    if ("search" in updates) return;
+      if ("search" in updates) return;
 
-    const params = updateHomeworkListFilterParams(
-      new URLSearchParams(searchParams.toString()),
-      { ...nextFilters, search: debouncedSearch },
-    );
-    if (params.toString() !== searchParams.toString()) {
-      router.replace(`/${locale}/academics/homework?${params.toString()}`);
-    }
-  }, [debouncedSearch, filterValues, locale, router, searchParams]);
+      const params = updateHomeworkListFilterParams(
+        new URLSearchParams(searchParams.toString()),
+        { ...nextFilters, search: debouncedSearch },
+      );
+      if (params.toString() !== searchParams.toString()) {
+        router.replace(`/${locale}/academics/homework?${params.toString()}`);
+      }
+    },
+    [debouncedSearch, filterValues, locale, router, searchParams],
+  );
 
   useEffect(() => {
     if (filterValues.search !== debouncedSearch) return;
@@ -576,7 +595,9 @@ export default function HomeworkListPage() {
       );
     } catch (error) {
       showError(
-        t("errors.lifecycleFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
+        t("errors.lifecycleFailed", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
       );
     } finally {
       setPendingHomeworkId(null);
@@ -607,11 +628,12 @@ export default function HomeworkListPage() {
           </div>
           {canManage && (
             <Button
-            onClick={() => {
+              onClick={() => {
                 const params = new URLSearchParams(searchParams.toString());
                 params.delete("tab");
                 router.push(
                   `/${locale}/academics/homework/new${params.toString() ? `?${params.toString()}` : ""}`,
+                  { scroll: false },
                 );
               }}
               leftIcon={<Plus className="h-4 w-4" />}
@@ -627,7 +649,9 @@ export default function HomeworkListPage() {
           <div className="grid gap-3 lg:grid-cols-[1fr_180px_180px_auto]">
             <Input
               value={filterValues.search}
-              onChange={(event) => updateFilters({ search: event.target.value })}
+              onChange={(event) =>
+                updateFilters({ search: event.target.value })
+              }
               placeholder={t("filters.searchPlaceholder")}
               leftIcon={<Search className="h-4 w-4" />}
             />
@@ -710,6 +734,7 @@ export default function HomeworkListPage() {
             params.delete("tab");
             router.push(
               `/${locale}/academics/homework/${item.id}${params.toString() ? `?${params.toString()}` : ""}`,
+              { scroll: false },
             );
           }}
           serverPagination={{
@@ -720,13 +745,19 @@ export default function HomeworkListPage() {
             onPageChange: (page) => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("page", page.toString());
-              router.push(`/${locale}/academics/homework?${params.toString()}`);
+              router.push(
+                `/${locale}/academics/homework?${params.toString()}`,
+                { scroll: false },
+              );
             },
             onPageSizeChange: (pageSize) => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("limit", pageSize.toString());
               params.delete("page");
-              router.push(`/${locale}/academics/homework?${params.toString()}`);
+              router.push(
+                `/${locale}/academics/homework?${params.toString()}`,
+                { scroll: false },
+              );
             },
           }}
         />
