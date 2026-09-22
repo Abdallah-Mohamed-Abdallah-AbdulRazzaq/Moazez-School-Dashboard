@@ -80,6 +80,7 @@ const CHART_COLORS = [
   "#8b5cf6",
   "#6366f1",
 ];
+const MAX_IN_FLIGHT_CHARTS = 4;
 
 function defaultCustomDateRange() {
   const today = new Date();
@@ -118,9 +119,9 @@ interface ChartError {
 }
 
 type ChartDataState =
-  | { status: "loading" }
-  | { status: "success"; data: DashboardAnalyticsChartDataResponse }
-  | { status: "error"; error: ChartError };
+  | { status: "loading"; requestKey: string }
+  | { status: "success"; requestKey: string; data: DashboardAnalyticsChartDataResponse }
+  | { status: "error"; requestKey: string; error: ChartError };
 
 type HierarchyFilterKey =
   | "academicYearId"
@@ -580,6 +581,10 @@ function DashboardAnalyticsContent() {
   const [chartDataStates, setChartDataStates] = useState<
     Record<string, ChartDataState>
   >({});
+  const [visibleChartKeys, setVisibleChartKeys] = useState<Set<string>>(new Set());
+  const [chartRefreshCounts, setChartRefreshCounts] = useState<Record<string, number>>({});
+  const chartGridRef = useRef<HTMLElement | null>(null);
+  const currentRequestKeysRef = useRef<Record<string, string>>({});
   const [showHierarchyRecoveryNotice, setShowHierarchyRecoveryNotice] =
     useState(false);
   const hierarchyRecoveryInProgressRef = useRef(false);
@@ -623,6 +628,14 @@ function DashboardAnalyticsContent() {
     [charts, chartQueries],
   );
 
+  const chartRequestKeys = useMemo(() => Object.fromEntries(charts.map((chart) => [
+    chart.chartKey,
+    JSON.stringify({
+      query: formatChartQuery(resolvedChartQueries[chart.chartKey], chart, contextYearId, contextTermId),
+      refresh: chartRefreshCounts[chart.chartKey] ?? 0,
+    }),
+  ])) as Record<string, string>, [charts, chartRefreshCounts, contextTermId, contextYearId, resolvedChartQueries]);
+
   // Load Catalog on mount
   useEffect(() => {
     isMountedRef.current = true;
@@ -656,6 +669,7 @@ function DashboardAnalyticsContent() {
     })
       .then((res) => {
         if (active) {
+          setVisibleChartKeys(new Set());
           setCharts(res.charts || []);
           setChartSummary(res.summary);
         }
@@ -668,6 +682,26 @@ function DashboardAnalyticsContent() {
       active = false;
     };
   }, [filters.source, filters.type, filters.status]);
+
+  useEffect(() => {
+    if (!charts.length) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisibleChartKeys(new Set(charts.map((chart) => chart.chartKey)));
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      const enteringKeys = entries
+        .filter((entry) => entry.isIntersecting)
+        .map((entry) => (entry.target as HTMLElement).dataset.chartKey)
+        .filter((key): key is string => Boolean(key));
+      if (!enteringKeys.length) return;
+      setVisibleChartKeys((current) => new Set([...current, ...enteringKeys]));
+    }, { rootMargin: "100% 0px" });
+
+    chartGridRef.current?.querySelectorAll<HTMLElement>("[data-chart-key]").forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [charts]);
 
   const recoverUnavailableHierarchy = useCallback(
     async (chartKey: string) => {
@@ -721,35 +755,35 @@ function DashboardAnalyticsContent() {
 
   // Fetch individual chart data
   const fetchDataForChart = useCallback(
-    (chartKey: string, chart: DashboardAnalyticsChart, query: ChartQuery) => {
+    (chartKey: string, chart: DashboardAnalyticsChart, query: ChartQuery, requestKey: string) => {
       const dateRangeError = customRangeError(query);
       if (dateRangeError) {
         setChartDataStates((prev) => ({
           ...prev,
-          [chartKey]: { status: "error", error: dateRangeError },
+          [chartKey]: { status: "error", requestKey, error: dateRangeError },
         }));
-        return;
+        return Promise.resolve();
       }
 
       setChartDataStates((prev) => ({
         ...prev,
-        [chartKey]: { status: "loading" },
+        [chartKey]: { status: "loading", requestKey },
       }));
 
-      fetchAnalyticsChartData(
+      return fetchAnalyticsChartData(
         chartKey,
         formatChartQuery(query, chart, contextYearId, contextTermId),
       )
         .then((res) => {
-          if (isMountedRef.current) {
+          if (isMountedRef.current && currentRequestKeysRef.current[chartKey] === requestKey) {
             setChartDataStates((prev) => ({
               ...prev,
-              [chartKey]: { status: "success", data: res },
+              [chartKey]: { status: "success", requestKey, data: res },
             }));
           }
         })
         .catch((err) => {
-          if (isMountedRef.current) {
+          if (isMountedRef.current && currentRequestKeysRef.current[chartKey] === requestKey) {
             const hierarchyUnavailable = isUnavailableAnalyticsHierarchy(err);
             const reportingPeriodUnavailable = isUnavailableReportingPeriod(
               err,
@@ -777,7 +811,7 @@ function DashboardAnalyticsContent() {
                 };
             setChartDataStates((prev) => ({
               ...prev,
-              [chartKey]: { status: "error", error: chartError },
+              [chartKey]: { status: "error", requestKey, error: chartError },
             }));
             if (hierarchyUnavailable && !reportingPeriodUnavailable) {
               void recoverUnavailableHierarchy(chartKey);
@@ -788,44 +822,70 @@ function DashboardAnalyticsContent() {
     [contextYearId, contextTermId, recoverUnavailableHierarchy],
   );
 
-  // Load chart data when its resolved filter set changes.
   const lastFetchedQueriesRef = useRef<Record<string, string>>({});
+  const pendingChartsRef = useRef<Array<{ chart: DashboardAnalyticsChart; query: ChartQuery; requestKey: string }>>([]);
+  const inFlightChartsRef = useRef(0);
+  const drainChartsRef = useRef<() => void>(() => {});
+
+  const drainCharts = useCallback(() => {
+    while (inFlightChartsRef.current < MAX_IN_FLIGHT_CHARTS && pendingChartsRef.current.length) {
+      const pending = pendingChartsRef.current.shift();
+      if (!pending) break;
+      const { chart, query, requestKey } = pending;
+      if (currentRequestKeysRef.current[chart.chartKey] !== requestKey) continue;
+      lastFetchedQueriesRef.current[chart.chartKey] = requestKey;
+      inFlightChartsRef.current += 1;
+      void fetchDataForChart(chart.chartKey, chart, query, requestKey).finally(() => {
+        inFlightChartsRef.current -= 1;
+        drainChartsRef.current();
+      });
+    }
+  }, [fetchDataForChart]);
   useEffect(() => {
-    charts.forEach((chart) => {
-      const key = chart.chartKey;
-      const query = resolvedChartQueries[key];
-      if (!query) return;
+    drainChartsRef.current = drainCharts;
+    return () => { drainChartsRef.current = () => {}; };
+  }, [drainCharts]);
 
-      const queryStr = JSON.stringify(
-        formatChartQuery(query, chart, contextYearId, contextTermId),
-      );
-
-      if (lastFetchedQueriesRef.current[key] !== queryStr) {
-        lastFetchedQueriesRef.current[key] = queryStr;
-        fetchDataForChart(key, chart, query);
-      }
+  useEffect(() => {
+    const currentRequestKeys: Record<string, string> = {};
+    const pendingCharts = charts.flatMap((chart) => {
+      const query = resolvedChartQueries[chart.chartKey];
+      if (!query) return [];
+      const requestKey = chartRequestKeys[chart.chartKey];
+      currentRequestKeys[chart.chartKey] = requestKey;
+      return visibleChartKeys.has(chart.chartKey) && lastFetchedQueriesRef.current[chart.chartKey] !== requestKey
+        ? [{ chart, query, requestKey }]
+        : [];
     });
-  }, [
-    charts,
-    fetchDataForChart,
-    resolvedChartQueries,
-    contextYearId,
-    contextTermId,
-  ]);
+    currentRequestKeysRef.current = currentRequestKeys;
+    pendingChartsRef.current = pendingCharts;
+    drainCharts();
+  }, [chartRequestKeys, charts, drainCharts, resolvedChartQueries, visibleChartKeys]);
+
+  useEffect(() => () => {
+    pendingChartsRef.current = [];
+    currentRequestKeysRef.current = {};
+  }, []);
 
   const isAnyChartLoading = useMemo(() => {
-    return Object.values(chartDataStates).some((s) => s.status === "loading");
-  }, [chartDataStates]);
+    return Object.entries(chartDataStates).some(([key, state]) =>
+      state.status === "loading" && state.requestKey === chartRequestKeys[key]);
+  }, [chartDataStates, chartRequestKeys]);
 
   const handleRefreshAll = useCallback(() => {
-    charts.forEach((chart) => {
-      const key = chart.chartKey;
-      const query = resolvedChartQueries[key];
-      if (query) {
-        fetchDataForChart(key, chart, query);
-      }
+    setChartRefreshCounts((current) => {
+      const next = { ...current };
+      visibleChartKeys.forEach((key) => { next[key] = (next[key] ?? 0) + 1; });
+      return next;
     });
-  }, [charts, resolvedChartQueries, fetchDataForChart]);
+  }, [visibleChartKeys]);
+
+  const refreshChart = useCallback((chartKey: string) => {
+    setChartRefreshCounts((current) => ({
+      ...current,
+      [chartKey]: (current[chartKey] ?? 0) + 1,
+    }));
+  }, []);
 
   const updateFilter = useCallback(
     <TKey extends keyof AnalyticsFilters>(
@@ -898,7 +958,7 @@ function DashboardAnalyticsContent() {
   const handleExportCSV = useCallback(
     (chartKey: string, chartTitle: string) => {
       const state = chartDataStates[chartKey];
-      if (state?.status !== "success" || !state.data?.data?.series) {
+      if (state?.status !== "success" || state.requestKey !== chartRequestKeys[chartKey] || !state.data?.data?.series) {
         return;
       }
 
@@ -942,7 +1002,7 @@ function DashboardAnalyticsContent() {
       link.click();
       document.body.removeChild(link);
     },
-    [chartDataStates],
+    [chartDataStates, chartRequestKeys],
   );
 
   const sourceOptions = [
@@ -1102,12 +1162,14 @@ function DashboardAnalyticsContent() {
       />
 
       {/* Analytics Charts Grid */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <section ref={chartGridRef} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {charts.map((chart) => {
-          const state = chartDataStates[chart.chartKey];
+          const savedState = chartDataStates[chart.chartKey];
+          const state = savedState?.requestKey === chartRequestKeys[chart.chartKey] ? savedState : undefined;
           return (
             <article
               key={chart.chartKey}
+              data-chart-key={chart.chartKey}
               className="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between gap-3">
@@ -1123,10 +1185,7 @@ function DashboardAnalyticsContent() {
                   <button
                     type="button"
                     onClick={() => {
-                      const query = resolvedChartQueries[chart.chartKey];
-                      if (query) {
-                        fetchDataForChart(chart.chartKey, chart, query);
-                      }
+                      refreshChart(chart.chartKey);
                     }}
                     disabled={state?.status === "loading"}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
@@ -1187,8 +1246,7 @@ function DashboardAnalyticsContent() {
                     updateChartQuery(chart.chartKey, "granularity", "day")
                   }
                   onRetry={() => {
-                    const query = resolvedChartQueries[chart.chartKey];
-                    if (query) fetchDataForChart(chart.chartKey, chart, query);
+                    refreshChart(chart.chartKey);
                   }}
                 />
               </div>
