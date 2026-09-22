@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
@@ -14,18 +15,7 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useCallback, useEffect, useState } from "react";
 
 import ModuleWidgetCard from "./ModuleWidgetCard";
 import {
@@ -47,6 +37,8 @@ import { resolveDashboardActionTarget } from "@/features/dashboard/utils/resolve
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import DashboardPermissionGuard from "./DashboardPermissionGuard";
+import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import { formatDashboardMetric } from "@/features/dashboard/utils/formatDashboardMetric";
 
 type IntelligenceState = {
   commandCenter: DashboardCommandCenterResponse | null;
@@ -66,7 +58,9 @@ const emptyState: IntelligenceState = {
   unavailableSections: [],
 };
 
-const chartColors = ["#036b80", "#0ea5a4", "#f59e0b", "#7c3aed"];
+const AnalyticsPreviewCard = dynamic(() => import("./DashboardAnalyticsPreviewCard"), {
+  loading: () => <PartialLoader />,
+});
 
 export default function DashboardIntelligencePanel({
   onCommandCenterChange,
@@ -237,7 +231,7 @@ function DashboardIntelligenceContent({
                 >
                   <p className="truncate text-xs font-bold text-gray-600">{stat.label}</p>
                   <p className="mt-2 text-2xl font-extrabold tracking-tight text-gray-950">
-                    {formatMetric(stat.value, locale)}
+                    {formatDashboardMetric(stat.value, locale)}
                     {stat.unit ? <span className="mr-1 text-xs font-bold text-gray-500">{stat.unit}</span> : null}
                   </p>
                   <p className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary-700">
@@ -501,49 +495,6 @@ function granularitySupportsRange(granularity: string, range: string) {
   return true;
 }
 
-function AnalyticsPreviewCard({ chart, locale }: { chart: DashboardAnalyticsChartDataResponse; locale: string }) {
-  const chartData = useMemo(() => seriesToChartData(chart), [chart]);
-  const chartLines = chart.data.series.map((series, index) => ({ ...series, color: chartColors[index % chartColors.length] }));
-  const value = chart.data.summary?.value ?? Object.values(chart.data.totals).reduce((total, current) => total + current, 0);
-
-  return (
-    <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-extrabold text-gray-950">{chart.title}</p>
-          <p className="mt-1 text-2xl font-extrabold tracking-tight text-primary-800">{formatMetric(value, locale)}</p>
-        </div>
-        <span className="rounded-lg bg-primary-50 p-2 text-primary"><BarChart3 className="h-4 w-4" /></span>
-      </div>
-      {chart.data.empty || !chartData.length ? <EmptyPanel message={chart.emptyState?.message ?? "No data"} /> : (
-        <div className="mt-3 h-36" role="img" aria-label={chart.title}>
-          <ResponsiveContainer width="100%" height="100%">
-            {chart.type === "area" ? (
-              <AreaChart data={chartData}><ChartAxes />{chartLines.map((series) => <Area key={series.key} type="monotone" dataKey={series.key} name={series.label} stroke={series.color} fill={series.color} fillOpacity={0.12} strokeWidth={2} />)}</AreaChart>
-            ) : (
-              <LineChart data={chartData}><ChartAxes />{chartLines.map((series) => <Line key={series.key} type="monotone" dataKey={series.key} name={series.label} stroke={series.color} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />)}</LineChart>
-            )}
-          </ResponsiveContainer>
-        </div>
-      )}
-    </article>
-  );
-}
-
-function ChartAxes() {
-  return <><CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" minTickGap={28} tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#64748b" }} /><YAxis width={30} tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#64748b" }} /><Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} /></>;
-}
-
-function seriesToChartData(chart: DashboardAnalyticsChartDataResponse) {
-  const pointsByLabel = new Map<string, Record<string, string | number>>();
-  chart.data.series.forEach((series) => series.points.forEach((point) => {
-    const item = pointsByLabel.get(point.x) ?? { label: point.x };
-    item[series.key] = point.y;
-    pointsByLabel.set(point.x, item);
-  }));
-  return Array.from(pointsByLabel.values());
-}
-
 function DirectionalArrow({ locale, className }: { locale: string; className: string }) {
   const Icon = locale === "ar" ? ArrowLeft : ArrowRight;
   return <Icon className={className} />;
@@ -555,10 +506,6 @@ function EmptyPanel({ message }: { message: string }) {
 
 function IntelligenceSkeleton() {
   return <div className="space-y-5 p-5 sm:p-6" aria-live="polite"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-24 animate-pulse rounded-xl bg-gray-100" />)}</div><div className="grid gap-5 xl:grid-cols-2"><div className="h-44 animate-pulse rounded-xl bg-gray-100" /><div className="h-44 animate-pulse rounded-xl bg-gray-100" /></div></div>;
-}
-
-function formatMetric(value: number, locale: string) {
-  return value.toLocaleString(locale === "ar" ? "ar-EG" : "en");
 }
 
 function attentionPriority(priority: string) {
