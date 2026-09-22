@@ -65,6 +65,32 @@ describe("homework list filters", () => {
     });
   });
 
+  it("preserves pagination when the homework filters are unchanged", () => {
+    const params = updateHomeworkListFilterParams(
+      new URLSearchParams({
+        page: "2",
+        search: "fractions",
+        homeworkStatus: "published",
+      }),
+      {
+        search: "fractions",
+        status: "published",
+        mode: "",
+        classroomId: "",
+        teacherUserId: "",
+        teacherSubjectAllocationId: "",
+        dueFrom: "",
+        dueTo: "",
+      },
+    );
+
+    expect(Object.fromEntries(params)).toEqual({
+      page: "2",
+      search: "fractions",
+      homeworkStatus: "published",
+    });
+  });
+
   it("clears every homework filter while preserving unrelated context", () => {
     const params = resetHomeworkListFilterParams(
       new URLSearchParams({

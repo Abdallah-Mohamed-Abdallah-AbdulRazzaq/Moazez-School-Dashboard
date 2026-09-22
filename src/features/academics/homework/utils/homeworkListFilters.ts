@@ -60,16 +60,20 @@ export function updateHomeworkListFilterParams(
   filters: HomeworkListFilterValues,
 ) {
   const nextSearchParams = new URLSearchParams(searchParams);
+  let filtersChanged = false;
 
   for (const [filterName, parameterName] of Object.entries(
     FILTER_PARAMETER_NAMES,
   ) as Array<[keyof HomeworkListFilterValues, string]>) {
     const filterValue = filters[filterName].trim();
+    const currentFilterValue =
+      nextSearchParams.get(parameterName)?.trim() || "";
+    if (currentFilterValue !== filterValue) filtersChanged = true;
     if (filterValue) nextSearchParams.set(parameterName, filterValue);
     else nextSearchParams.delete(parameterName);
   }
 
-  nextSearchParams.delete("page");
+  if (filtersChanged) nextSearchParams.delete("page");
   return nextSearchParams;
 }
 
