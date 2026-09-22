@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@/features/dashboard/__tests__/dashboardI18nMock";
 import DashboardPermissionGuard from "@/features/dashboard/components/DashboardPermissionGuard";
 import DashboardAnalyticsPage from "@/features/dashboard/pages/DashboardAnalyticsPage";
@@ -154,6 +154,13 @@ describe("DashboardAnalyticsPage", () => {
   };
 
   beforeEach(() => {
+    vi.stubGlobal("IntersectionObserver", vi.fn().mockImplementation((callback: IntersectionObserverCallback) => ({
+      observe: (target: Element) => queueMicrotask(() => callback([
+        { isIntersecting: true, target } as IntersectionObserverEntry,
+      ], {} as IntersectionObserver)),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+    })));
     mockedFetchCatalog.mockReset();
     mockedFetchCharts.mockReset();
     mockedFetchChartData.mockReset();
@@ -174,6 +181,10 @@ describe("DashboardAnalyticsPage", () => {
       mockChartsResponse as unknown as DashboardAnalyticsChartsResponse,
     );
     mockedFetchChartData.mockResolvedValue(mockChartData);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("renders page header, filters catalog, and loads charts list with visual Recharts", async () => {
@@ -415,5 +426,90 @@ describe("DashboardAnalyticsPage", () => {
     // Verify it doesn't crash on download execution
     expect(exportBtn).toBeInTheDocument();
     anchorClick.mockRestore();
+  });
+
+  it("loads chart data as cards become visible", async () => {
+    const observedCards = new Map<Element, IntersectionObserverCallback>();
+    vi.stubGlobal("IntersectionObserver", vi.fn().mockImplementation((callback: IntersectionObserverCallback) => {
+      return {
+        observe: (target: Element) => observedCards.set(target, callback),
+        unobserve: vi.fn(), disconnect: vi.fn(),
+      };
+    }));
+    mockedFetchCharts.mockResolvedValue({
+      ...mockChartsResponse,
+      charts: [
+        mockChartsResponse.charts[0],
+        { ...mockChartsResponse.charts[0], chartKey: "academics.attendance", title: "Attendance Trend" },
+      ],
+    } as unknown as DashboardAnalyticsChartsResponse);
+
+    render(<DashboardAnalyticsPage />);
+    const firstCard = (await screen.findByText("Class GPA Trend")).closest("article")!;
+    const secondCard = screen.getByText("Attendance Trend").closest("article")!;
+    expect(mockedFetchChartData).not.toHaveBeenCalled();
+
+    act(() => observedCards.get(firstCard)!([{ isIntersecting: true, target: firstCard } as IntersectionObserverEntry], {} as IntersectionObserver));
+    await waitFor(() => expect(mockedFetchChartData).toHaveBeenCalledTimes(1));
+    act(() => observedCards.get(secondCard)!([{ isIntersecting: true, target: secondCard } as IntersectionObserverEntry], {} as IntersectionObserver));
+    await waitFor(() => expect(mockedFetchChartData).toHaveBeenCalledTimes(2));
+  });
+
+  it("keeps chart-data concurrency at four requests", async () => {
+    const observedCards = new Map<Element, IntersectionObserverCallback>();
+    vi.stubGlobal("IntersectionObserver", vi.fn().mockImplementation((callback: IntersectionObserverCallback) => {
+      return {
+        observe: (target: Element) => observedCards.set(target, callback),
+        unobserve: vi.fn(), disconnect: vi.fn(),
+      };
+    }));
+    const pendingResolvers: Array<(response: typeof mockChartData) => void> = [];
+    mockedFetchChartData.mockImplementation(() => new Promise((resolve) => { pendingResolvers.push(resolve); }));
+    mockedFetchCharts.mockResolvedValue({
+      ...mockChartsResponse,
+      charts: Array.from({ length: 5 }, (_, index) => ({
+        ...mockChartsResponse.charts[0],
+        chartKey: `academics.chart_${index}`,
+        title: `Chart ${index}`,
+      })),
+    } as unknown as DashboardAnalyticsChartsResponse);
+
+    render(<DashboardAnalyticsPage />);
+    await screen.findByText("Chart 4");
+    const cards = Array.from(document.querySelectorAll("[data-chart-key]"));
+    act(() => observedCards.get(cards[0])!(cards.map((target) => ({ isIntersecting: true, target } as IntersectionObserverEntry)), {} as IntersectionObserver));
+    await waitFor(() => expect(mockedFetchChartData).toHaveBeenCalledTimes(4));
+
+    act(() => pendingResolvers[0](mockChartData));
+    await waitFor(() => expect(mockedFetchChartData).toHaveBeenCalledTimes(5));
+  });
+
+  it("ignores an old chart error after the classroom filter changes", async () => {
+    let rejectOlder!: (error: Error) => void;
+    mockedFetchChartData
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectOlder = reject; }))
+      .mockResolvedValueOnce(mockChartData);
+    mockedFetchCharts.mockResolvedValue({
+      ...mockChartsResponse,
+      charts: mockChartsResponse.charts.map((chart) => ({
+        ...chart,
+        filters: ["range", "granularity", "academicYearId", "classroomId"],
+        queryCapabilities: {
+          ...chart.queryCapabilities,
+          supportedHierarchyFilters: ["academicYearId", "classroomId"],
+        },
+      })),
+    } as DashboardAnalyticsChartsResponse);
+
+    render(<DashboardAnalyticsPage />);
+    await waitFor(() => expect(mockedFetchChartData).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "Classroom" }));
+    fireEvent.click(screen.getByRole("button", { name: "Classroom 1" }));
+    await waitFor(() => expect(mockedFetchChartData).toHaveBeenCalledTimes(2));
+    expect(await screen.findByTestId("line-chart")).toBeInTheDocument();
+
+    await act(async () => rejectOlder(new Error("Old request failed")));
+    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+    expect(screen.queryByText("Old request failed")).not.toBeInTheDocument();
   });
 });
