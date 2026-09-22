@@ -15,19 +15,7 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import ModuleWidgetCard from "./ModuleWidgetCard";
 import {
@@ -50,7 +38,6 @@ import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/Aca
 import { usePermissions } from "@/hooks/usePermissions";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import DashboardPermissionGuard from "./DashboardPermissionGuard";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { formatDashboardMetric } from "@/features/dashboard/utils/formatDashboardMetric";
 
 type IntelligenceState = {
