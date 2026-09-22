@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -24,7 +25,6 @@ import {
 
 import ActivitiesCard from "../components/ActivitiesCard";
 import DashboardAnalysisCards from "../components/DashboardAnalysisCards";
-import DashboardAnalysisCharts from "../components/DashboardAnalysisCharts";
 import DashboardIntelligencePanel from "../components/DashboardIntelligencePanel";
 import DashboardLightModeDropdown from "../components/DashboardLightModeDropdown";
 import DashboardPermissionGuard from "../components/DashboardPermissionGuard";
@@ -32,7 +32,7 @@ import FilterBar from "../components/FilterBar";
 import QuickActionPanel from "../components/QuickActionPanel";
 import { MobileAppsWidget } from "@/features/app-download/components/MobileAppsWidget";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
-import ModuleTabDashboardView from "../components/ModuleTabDashboardView";
+import DeferredDashboardAnalysisCharts from "../components/DeferredDashboardAnalysisCharts";
 import { DASHBOARD_ALERT_PREVIEW_LIMIT } from "@/features/dashboard/constants/dashboardPreviewLimits";
 import { dashboardExportRowsFromViewModels } from "@/features/dashboard/mappers/dashboardViewMapper";
 import type {
@@ -157,6 +157,10 @@ const overviewModuleIds: DashboardModuleCard["id"][] = [
   "homework",
 ];
 
+const ModuleTabDashboardView = dynamic(() => import("../components/ModuleTabDashboardView"), {
+  loading: () => <PartialLoader />,
+});
+
 export default function SchoolDashboardView({
   activityFeedState,
   alertsState,
@@ -228,7 +232,7 @@ export default function SchoolDashboardView({
 
         <DashboardAnalysisCards commandCenter={commandCenterAnalysis} />
 
-        <DashboardAnalysisCharts commandCenter={commandCenterAnalysis} />
+        <DeferredDashboardAnalysisCharts commandCenter={commandCenterAnalysis} />
 
         <DashboardActionRow
           alertsState={alertsState}
