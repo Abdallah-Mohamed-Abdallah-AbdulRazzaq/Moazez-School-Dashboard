@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
@@ -57,18 +57,59 @@ export default function SchoolDashboardContainer() {
   const [dashboardLoadState, setDashboardLoadState] =
     useState<DashboardLoadState>(initialDashboardLoadState);
   const [refreshSequence, setRefreshSequence] = useState(0);
+  const [modules, setModules] = useState<DashboardModuleListItem[]>([]);
+  const [cachedModules, setCachedModules] = useState<Record<string, DashboardModulePage>>({});
+  const [moduleLoadingStates, setModuleLoadingStates] = useState<Record<string, "loading" | "success" | "error">>({});
+  const [moduleErrors, setModuleErrors] = useState<Record<string, string>>({});
+  const selectedTabRef = useRef("overview");
+  const moduleGenerationRef = useRef(0);
+  const pendingModulesRef = useRef(new Set<string>());
+
+  const requestModuleDetails = useCallback((moduleKey: string) => {
+    const generation = moduleGenerationRef.current;
+    pendingModulesRef.current.add(moduleKey);
+    setModuleLoadingStates((current) => ({ ...current, [moduleKey]: "loading" }));
+
+    void fetchDashboardModuleByKey(moduleKey)
+      .then((modulePage) => {
+        if (generation !== moduleGenerationRef.current) return;
+        setCachedModules((current) => ({ ...current, [moduleKey]: modulePage }));
+        setModuleLoadingStates((current) => ({ ...current, [moduleKey]: "success" }));
+      })
+      .catch((error: unknown) => {
+        if (generation !== moduleGenerationRef.current) return;
+        setModuleErrors((current) => ({ ...current, [moduleKey]: dashboardErrorMessage(error, t) }));
+        setModuleLoadingStates((current) => ({ ...current, [moduleKey]: "error" }));
+      })
+      .finally(() => {
+        if (generation === moduleGenerationRef.current) {
+          pendingModulesRef.current.delete(moduleKey);
+        }
+      });
+  }, [t]);
 
   const refreshDashboard = useCallback(() => {
     setDashboardLoadState((currentState) => {
       return {
-        summary: { status: "loading" },
-        alerts: { status: "loading" },
-        activityFeed: { status: "loading" },
-        isRefreshing: hasLoadedDashboardSection(currentState),
+        summary: currentState.summary,
+        alerts: currentState.alerts,
+        activityFeed: currentState.activityFeed,
+        isRefreshing: true,
       };
     });
+    moduleGenerationRef.current += 1;
+    pendingModulesRef.current.clear();
+    const selectedModule = selectedTabRef.current;
+    setCachedModules((current) => selectedModule !== "overview" && current[selectedModule]
+      ? { [selectedModule]: current[selectedModule] }
+      : {});
+    setModuleLoadingStates({});
+    setModuleErrors({});
+    if (canViewModules && selectedTabRef.current !== "overview") {
+      requestModuleDetails(selectedTabRef.current);
+    }
     setRefreshSequence((currentSequence) => currentSequence + 1);
-  }, []);
+  }, [canViewModules, requestModuleDetails]);
 
   useEffect(() => {
     if (isInitializing || !isPermissionsReady) {
@@ -221,32 +262,20 @@ export default function SchoolDashboardContainer() {
     t,
   ]);
 
-  const [modules, setModules] = useState<DashboardModuleListItem[]>([]);
-  const [cachedModules, setCachedModules] = useState<Record<string, DashboardModulePage>>({});
-  const [moduleLoadingStates, setModuleLoadingStates] = useState<Record<string, "loading" | "success" | "error">>({});
-  const [moduleErrors, setModuleErrors] = useState<Record<string, string>>({});
-
   const loadModuleDetails = useCallback((moduleKey: string) => {
     if (
       !canViewModules ||
       cachedModules[moduleKey] ||
-      moduleLoadingStates[moduleKey] === "loading"
+      pendingModulesRef.current.has(moduleKey)
     ) {
       return;
     }
+    requestModuleDetails(moduleKey);
+  }, [cachedModules, canViewModules, requestModuleDetails]);
 
-    setModuleLoadingStates((curr) => ({ ...curr, [moduleKey]: "loading" }));
-
-    fetchDashboardModuleByKey(moduleKey)
-      .then((modulePage) => {
-        setCachedModules((curr) => ({ ...curr, [moduleKey]: modulePage }));
-        setModuleLoadingStates((curr) => ({ ...curr, [moduleKey]: "success" }));
-      })
-      .catch((error: unknown) => {
-        setModuleErrors((curr) => ({ ...curr, [moduleKey]: dashboardErrorMessage(error, t) }));
-        setModuleLoadingStates((curr) => ({ ...curr, [moduleKey]: "error" }));
-      });
-  }, [cachedModules, canViewModules, moduleLoadingStates, t]);
+  const onActiveTabChange = useCallback((tabKey: string) => {
+    selectedTabRef.current = tabKey;
+  }, []);
 
   useEffect(() => {
     if (isInitializing || !isPermissionsReady || !canViewModules) {
@@ -282,6 +311,7 @@ export default function SchoolDashboardContainer() {
       alertsState={dashboardLoadState.alerts}
       isRefreshing={dashboardLoadState.isRefreshing}
       onRefresh={refreshDashboard}
+      refreshSequence={refreshSequence}
       summaryState={
         isInitializing ? { status: "loading" } : dashboardLoadState.summary
       }
@@ -290,15 +320,8 @@ export default function SchoolDashboardContainer() {
       moduleLoadingStates={moduleLoadingStates}
       moduleErrors={moduleErrors}
       onLoadModuleDetails={loadModuleDetails}
+      onActiveTabChange={onActiveTabChange}
     />
-  );
-}
-
-function hasLoadedDashboardSection(dashboardLoadState: DashboardLoadState) {
-  return (
-    dashboardLoadState.summary.status === "success" ||
-    dashboardLoadState.alerts.status === "success" ||
-    dashboardLoadState.activityFeed.status === "success"
   );
 }
 
