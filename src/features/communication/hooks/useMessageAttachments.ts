@@ -14,6 +14,7 @@ import type {
 } from "@/features/communication/types/communication.types";
 import type { MessageAttachment } from "@/features/communication/types/message.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
+import { runBoundedRequests } from "./runBoundedRequests";
 
 type MessageAttachmentInput =
   | string
@@ -122,6 +123,7 @@ function fileIdFromUpload(response: unknown): string | null {
 export function useMessageAttachments(
   messageInputs: MessageAttachmentInput[],
   maxAttachmentSizeMb?: number,
+  visibleMessageIds?: string[],
 ) {
   const { socket } = useCommunicationSocket();
   const mountedRef = useRef(false);
@@ -132,6 +134,7 @@ export function useMessageAttachments(
         .filter((id): id is string => Boolean(id)),
     [messageInputs],
   );
+  const fetchMessageIds = visibleMessageIds ?? messageIds;
   const messageIdsRef = useRef<Set<string>>(new Set(messageIds));
   const fetchedIdsRef = useRef<Set<string>>(new Set());
   const [attachmentsByMessageId, setAttachmentsByMessageId] = useState<
@@ -222,22 +225,25 @@ export function useMessageAttachments(
   }, []);
 
   const refreshAll = useCallback(async () => {
-    fetchedIdsRef.current = new Set(messageIds);
-    await Promise.all(messageIds.map((messageId) => refreshMessage(messageId)));
-  }, [messageIds, refreshMessage]);
+    const failedIds = await runBoundedRequests(fetchMessageIds, refreshMessage);
+    failedIds.forEach((id) => fetchedIdsRef.current.delete(id));
+  }, [fetchMessageIds, refreshMessage]);
 
   useEffect(() => {
     mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
     // Only fetch attachments for message IDs we haven't fetched yet
-    const newIds = messageIds.filter((id) => !fetchedIdsRef.current.has(id));
+    const newIds = fetchMessageIds.filter((id) => messageIdsRef.current.has(id) && !fetchedIdsRef.current.has(id));
     if (newIds.length > 0) {
       newIds.forEach((id) => fetchedIdsRef.current.add(id));
-      void Promise.all(newIds.map((id) => refreshMessage(id)));
+      void runBoundedRequests(newIds, refreshMessage).then((failedIds) => {
+        failedIds.forEach((id) => fetchedIdsRef.current.delete(id));
+      });
     }
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [messageIds, refreshMessage]);
+  }, [fetchMessageIds, refreshMessage]);
 
   const attachFile = useCallback(
     async (messageId: string, file: File) => {
