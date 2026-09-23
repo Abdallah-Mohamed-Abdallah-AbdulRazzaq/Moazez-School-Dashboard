@@ -373,7 +373,6 @@ export function useConversationMessages(conversationId: string) {
   const mountedRef = useRef(false);
   const activeConversationIdRef = useRef(conversationId);
   const messagesRef = useRef<ConversationMessage[]>([]);
-  const readSummaryRef = useRef<ReadSummaryState>(emptyReadSummary(conversationId));
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [readSummary, setReadSummary] = useState<ReadSummaryState>(() =>
     emptyReadSummary(conversationId),
@@ -416,7 +415,7 @@ export function useConversationMessages(conversationId: string) {
       ) {
         return;
       }
-      setMessages(applyReadCounts(sortMessages(dedupeMessages(nextMessages)), readSummaryRef.current.items));
+      setMessages(sortMessages(dedupeMessages(nextMessages)));
       setHasOlderMessages(nextMessages.length >= PAGE_SIZE);
     } catch (nextError) {
       if (
@@ -495,7 +494,6 @@ export function useConversationMessages(conversationId: string) {
           requestConversationId,
         );
         setReadSummary(normalizedSummary);
-        readSummaryRef.current = normalizedSummary;
         setMessages((current) =>
           applyReadCounts(current, normalizedSummary.items),
         );
@@ -506,19 +504,18 @@ export function useConversationMessages(conversationId: string) {
         activeConversationIdRef.current === requestConversationId
       ) {
         setReadSummary(emptyReadSummary(requestConversationId));
-        readSummaryRef.current = emptyReadSummary(requestConversationId);
       }
     }
   }, [conversationId]);
 
   const refresh = useCallback(async () => {
-    await Promise.all([refreshMessages(), refreshReadSummary()]);
+    await refreshMessages();
+    await refreshReadSummary();
   }, [refreshMessages, refreshReadSummary]);
 
   useEffect(() => {
     mountedRef.current = true;
     activeConversationIdRef.current = conversationId;
-    readSummaryRef.current = emptyReadSummary(conversationId);
     void Promise.resolve().then(() => setIsLoading(true));
     void Promise.resolve().then(() => setMessages([]));
     void Promise.resolve().then(() =>

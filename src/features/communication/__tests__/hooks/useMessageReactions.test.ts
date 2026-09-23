@@ -72,18 +72,4 @@ describe("useMessageReactions", () => {
 
     expect(apiMocks.getReactions).not.toHaveBeenCalled();
   });
-
-  it("fetches reactions only for messages in the visible range", async () => {
-    const { rerender } = renderHook(
-      ({ visible }: { visible: string[] }) =>
-        useMessageReactions(["message-1", "message-2"], [], visible),
-      { initialProps: { visible: ["message-2"] } },
-    );
-
-    await waitFor(() => expect(apiMocks.getReactions).toHaveBeenCalledWith("message-2"));
-    expect(apiMocks.getReactions).not.toHaveBeenCalledWith("message-1");
-
-    rerender({ visible: ["message-1"] });
-    await waitFor(() => expect(apiMocks.getReactions).toHaveBeenCalledWith("message-1"));
-  });
 });

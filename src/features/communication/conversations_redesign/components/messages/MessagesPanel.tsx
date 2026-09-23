@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowDown, RefreshCw } from "lucide-react";
 import { CenteredState } from "@/features/communication/conversations_redesign/components/PanelLayout";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
@@ -22,7 +21,7 @@ import { MessageBubble } from "./MessageBubble";
 import type { CommunicationMessageCapabilities } from "@/features/communication/authorization/communication-capabilities";
 import type { SupportedModerationAction } from "@/features/communication/types/safety.types";
 
-function preferredScrollBehavior(): "auto" | "smooth" {
+function preferredScrollBehavior(): ScrollBehavior {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     ? "auto"
     : "smooth";
@@ -53,7 +52,6 @@ export function MessagesPanel({
   onDeleteMessage,
   onStartEdit,
   onLoadOlder,
-  onVisibleMessageIdsChange,
   onInfo,
   onModerateMessage = async () => undefined,
   onRemoveReaction,
@@ -95,7 +93,6 @@ export function MessagesPanel({
   onDeleteMessage: (messageId: string) => Promise<unknown>;
   onStartEdit: (messageId: string, body: string) => void;
   onLoadOlder: () => void;
-  onVisibleMessageIdsChange?: (messageIds: string[]) => void;
   onInfo: (messageId: string) => void;
   onModerateMessage?: (
     messageId: string,
@@ -112,67 +109,121 @@ export function MessagesPanel({
   userDisplayNames: UserDisplayNameMap;
   uploadingMessageId: string | null;
 }) {
-  const listRef = useRef<VirtuosoHandle | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const isInitialLoadRef = useRef(true);
   const isNearBottomRef = useRef(true);
   const messageSnapshotRef = useRef({
+    count: messages.length,
+    firstId: messages[0]?.id,
     lastId: messages.at(-1)?.id,
   });
-  const [indexState, setIndexState] = useState({ messages, firstItemIndex: 1_000_000 });
-  const loadingOlderRef = useRef(false);
+  const loadOlderSnapshotRef = useRef<{
+    scrollHeight: number;
+    scrollTop: number;
+  } | null>(null);
+  const wasLoadingOlderRef = useRef(isLoadingOlder);
   const [newMessageCount, setNewMessageCount] = useState(0);
-  const hasMessages = messages.length > 0;
-  const listComponents = useMemo(() => ({
-    EmptyPlaceholder: () => <CenteredState label={labels.noMessagesYetFull} />,
-    Header: () => isLoadingOlder ? (
-      <div className="flex justify-center py-3 text-xs text-slate-500">{labels.loading}</div>
-    ) : !hasOlderMessages && hasMessages ? (
-      <div className="flex justify-center py-2">
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] text-slate-500">{labels.endOfConversation}</span>
-      </div>
-    ) : null,
-  }), [hasOlderMessages, hasMessages, isLoadingOlder, labels]);
 
-  let firstItemIndex = indexState.firstItemIndex;
-  if (indexState.messages !== messages) {
-    const previous = indexState.messages;
-    const oldFirstIndex = previous.length > 0 && messages[0]?.id !== previous[0]?.id
-      ? messages.findIndex((message) => message.id === previous[0]?.id)
-      : 0;
-    if (oldFirstIndex > 0) firstItemIndex -= oldFirstIndex;
-    setIndexState({ messages, firstItemIndex });
-  }
-
-  useEffect(() => {
+  // Scroll to bottom on initial load and when new messages arrive at the bottom
+  // The unread jump control depends on measured scroll position, which is not
+  // available during render.
+  useLayoutEffect(() => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
     const previous = messageSnapshotRef.current;
     const current = {
+      count: messages.length,
+      firstId: messages[0]?.id,
       lastId: messages.at(-1)?.id,
     };
-    const previousLastIndex = previous.lastId
-      ? messages.findIndex((message) => message.id === previous.lastId)
-      : -1;
-    const appendedCount = previousLastIndex >= 0
-      ? messages.length - previousLastIndex - 1
-      : 0;
-    if (appendedCount > 0) {
-      const ownMessageWasAppended = messages
-        .slice(-appendedCount)
-        .some((message) => isOwnMessage(message, currentUserId));
-      if (isNearBottomRef.current || ownMessageWasAppended) {
-        listRef.current?.scrollToIndex({ index: firstItemIndex + messages.length - 1, align: "end", behavior: preferredScrollBehavior() });
+
+    if (isInitialLoadRef.current) {
+      container.scrollTop = container.scrollHeight;
+      isInitialLoadRef.current = false;
+    } else {
+      const wasPrepended =
+        Boolean(previous.firstId) &&
+        current.firstId !== previous.firstId &&
+        current.lastId === previous.lastId;
+      const appendedCount =
+        current.lastId !== previous.lastId && current.count > previous.count
+          ? current.count - previous.count
+          : 0;
+      const ownMessageWasAppended =
+        appendedCount > 0 &&
+        messages
+          .slice(-appendedCount)
+          .some((message) => isOwnMessage(message, currentUserId));
+
+      if (wasPrepended && loadOlderSnapshotRef.current) {
+        const snapshot = loadOlderSnapshotRef.current;
+        container.scrollTop =
+          snapshot.scrollTop + container.scrollHeight - snapshot.scrollHeight;
+        loadOlderSnapshotRef.current = null;
+      } else if (
+        appendedCount > 0 &&
+        (isNearBottomRef.current || ownMessageWasAppended)
+      ) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: preferredScrollBehavior(),
+        });
         queueMicrotask(() => setNewMessageCount(0));
-      } else {
-        queueMicrotask(() => setNewMessageCount((count) => count + appendedCount));
+      } else if (appendedCount > 0) {
+        queueMicrotask(() =>
+          setNewMessageCount((count) => count + appendedCount),
+        );
       }
     }
+
     messageSnapshotRef.current = current;
-  }, [currentUserId, firstItemIndex, messages]);
+  }, [currentUserId, messages]);
 
   useEffect(() => {
-    loadingOlderRef.current = isLoadingOlder;
+    if (wasLoadingOlderRef.current && !isLoadingOlder) {
+      loadOlderSnapshotRef.current = null;
+    }
+    wasLoadingOlderRef.current = isLoadingOlder;
   }, [isLoadingOlder]);
 
+  // Detect scroll to top for loading older messages
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      isNearBottomRef.current = distanceFromBottom < 120;
+      if (isNearBottomRef.current) {
+        setNewMessageCount(0);
+      }
+
+      if (
+        container.scrollTop < 100 &&
+        hasOlderMessages &&
+        !isLoadingOlder &&
+        !loadOlderSnapshotRef.current
+      ) {
+        loadOlderSnapshotRef.current = {
+          scrollHeight: container.scrollHeight,
+          scrollTop: container.scrollTop,
+        };
+        onLoadOlder();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [hasOlderMessages, isLoadingOlder, onLoadOlder]);
+
   const scrollToLatest = () => {
-    listRef.current?.scrollToIndex({ index: firstItemIndex + messages.length - 1, align: "end", behavior: preferredScrollBehavior() });
+    const container = scrollRef.current;
+    if (!container) return;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: preferredScrollBehavior(),
+    });
     isNearBottomRef.current = true;
     setNewMessageCount(0);
   };
@@ -208,46 +259,47 @@ export function MessagesPanel({
 
   return (
     <div dir="ltr" className="relative h-full">
-      <Virtuoso
-        ref={listRef}
+      <div
+        ref={scrollRef}
         role="log"
         aria-label={labels.messages}
+        aria-live="polite"
+        aria-relevant="additions"
         dir="ltr"
-        className="h-full px-1.5 py-5 sm:py-8"
-        data={messages}
-        defaultItemHeight={80}
-        firstItemIndex={firstItemIndex}
-        initialTopMostItemIndex={messages.length - 1}
-        computeItemKey={(_index, message) => message.clientMessageId ?? message.id}
-        atBottomStateChange={(atBottom) => {
-          isNearBottomRef.current = atBottom;
-          if (atBottom) setNewMessageCount(0);
-        }}
-        startReached={() => {
-          if (hasOlderMessages && !loadingOlderRef.current && messages.length > 0) {
-            loadingOlderRef.current = true;
-            onLoadOlder();
-          }
-        }}
-        rangeChanged={({ startIndex, endIndex }) => {
-          const offset = startIndex >= firstItemIndex ? firstItemIndex : 0;
-          const visibleIds = messages.slice(startIndex - offset, endIndex - offset + 1).map((message) => message.id);
-          onVisibleMessageIdsChange?.(visibleIds);
-        }}
-        components={listComponents}
-        itemContent={(index, message) => {
-            const localIndex = index >= firstItemIndex ? index - firstItemIndex : index;
+        className="h-full overflow-y-auto px-1.5 py-5 sm:py-8"
+      >
+        <div className="flex min-h-full flex-col gap-0.5">
+          {/* Loading older messages indicator */}
+          {isLoadingOlder ? (
+            <div className="flex justify-center py-3">
+              <span className="text-xs text-slate-500">{labels.loading}</span>
+            </div>
+          ) : null}
+
+          {!hasOlderMessages && messages.length > 0 ? (
+            <div className="flex justify-center py-2">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] text-slate-500">
+                {labels.endOfConversation}
+              </span>
+            </div>
+          ) : null}
+
+          {messages.length === 0 ? (
+            <CenteredState label={labels.noMessagesYetFull} />
+          ) : null}
+
+          {messages.map((message, index) => {
             const own = isOwnMessage(message, currentUserId);
             const messageDateKey = localDateKey(message.createdAt);
             const previousMessageDateKey = localDateKey(
-              messages[localIndex - 1]?.createdAt,
+              messages[index - 1]?.createdAt,
             );
             const shouldShowDateSeparator =
               Boolean(messageDateKey) &&
               messageDateKey !== previousMessageDateKey;
 
             // Group consecutive messages from the same sender
-            const prevMessage = messages[localIndex - 1];
+            const prevMessage = messages[index - 1];
             const prevSenderId = prevMessage
               ? messageSenderUserId(prevMessage)
               : null;
@@ -258,7 +310,7 @@ export function MessagesPanel({
               shouldShowDateSeparator;
 
             return (
-              <div className="flex flex-col gap-0.5 pb-0.5">
+              <Fragment key={message.clientMessageId ?? message.id}>
                 {shouldShowDateSeparator ? (
                   <div className="self-center rounded-full bg-slate-200 px-4 py-1 text-xs font-medium text-slate-700">
                     {formatMessageDateSeparator(
@@ -313,10 +365,9 @@ export function MessagesPanel({
                   reactions={reactionsByMessageId[message.id] ?? []}
                   userDisplayNames={userDisplayNames}
                 />
-              </div>
+              </Fragment>
             );
-          }}
-      />
+          })}
 
           <div
             role="status"
@@ -348,6 +399,8 @@ export function MessagesPanel({
               </span>
             ) : null}
           </div>
+        </div>
+      </div>
       {newMessageCount > 0 ? (
         <button
           type="button"

@@ -196,50 +196,6 @@ describe("useConversationMessages", () => {
         { messageId: "msg-1", readCount: 2 },
       ]);
     });
-
-    it("applies read counts when the summary arrives before the messages", async () => {
-      let resolveMessages!: (response: unknown) => void;
-      apiMocks.getMessages.mockImplementation(() => new Promise((resolve) => { resolveMessages = resolve; }));
-      apiMocks.getConversationReadSummary.mockResolvedValue({
-        data: {
-          conversationId: TEST_CONVERSATION_ID,
-          items: [{ messageId: "msg-1", readCount: 3 }],
-          total: 1,
-        },
-      });
-
-      const { result } = renderHook(() => useConversationMessages(TEST_CONVERSATION_ID));
-      await waitFor(() => expect(result.current.readSummary.items).toHaveLength(1));
-      expect(result.current.isLoading).toBe(true);
-
-      act(() => resolveMessages({ data: { items: [createMessage({
-        id: "msg-1",
-        conversationId: TEST_CONVERSATION_ID,
-        readCount: 0,
-      })], total: 1 } }));
-      await waitFor(() => expect(result.current.messages[0]?.readCount).toBe(3));
-    });
-
-    it("shows messages while the read summary is still pending", async () => {
-      let resolveSummary!: (response: unknown) => void;
-      apiMocks.getMessages.mockResolvedValue({ data: { items: [createMessage({
-        id: "msg-1",
-        conversationId: TEST_CONVERSATION_ID,
-        body: "Ready",
-      })], total: 1 } });
-      apiMocks.getConversationReadSummary.mockImplementation(() => new Promise((resolve) => { resolveSummary = resolve; }));
-
-      const { result } = renderHook(() => useConversationMessages(TEST_CONVERSATION_ID));
-      await waitFor(() => expect(result.current.isLoading).toBe(false));
-      expect(result.current.messages[0]?.body).toBe("Ready");
-
-      act(() => resolveSummary({ data: {
-        conversationId: TEST_CONVERSATION_ID,
-        items: [{ messageId: "msg-1", readCount: 2 }],
-        total: 1,
-      } }));
-      await waitFor(() => expect(result.current.messages[0]?.readCount).toBe(2));
-    });
   });
 
   // ─── Property 8: Real-Time Message Upsert Without Refetch ───────────────
