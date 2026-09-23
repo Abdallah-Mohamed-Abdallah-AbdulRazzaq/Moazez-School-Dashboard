@@ -7,10 +7,54 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { createMessage } from "../utils/test-data-generators";
 import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
+
+const scrollToIndex = vi.fn();
+
+vi.mock("react-virtuoso", () => ({
+  Virtuoso: React.forwardRef(function TestVirtuoso(
+    props: {
+      data: Array<{ id: string }>;
+      firstItemIndex: number;
+      itemContent: (index: number, item: { id: string }) => React.ReactNode;
+      startReached?: () => void;
+      atBottomStateChange?: (atBottom: boolean) => void;
+      rangeChanged?: (range: { startIndex: number; endIndex: number }) => void;
+      role?: string;
+      dir?: string;
+      "aria-label"?: string;
+    },
+    ref: React.ForwardedRef<{ scrollToIndex: typeof scrollToIndex }>,
+  ) {
+    React.useImperativeHandle(ref, () => ({ scrollToIndex }));
+    const { data, firstItemIndex, rangeChanged } = props;
+    React.useEffect(() => {
+      if (data.length > 0) {
+        rangeChanged?.({ startIndex: firstItemIndex, endIndex: firstItemIndex + data.length - 1 });
+      }
+    }, [data, firstItemIndex, rangeChanged]);
+    return (
+      <div
+        role={props.role}
+        dir={props.dir}
+        data-first-item-index={props.firstItemIndex}
+        aria-label={props["aria-label"]}
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          props.atBottomStateChange?.(element.scrollHeight - element.scrollTop - element.clientHeight < 120);
+          if (element.scrollTop < 100) props.startReached?.();
+        }}
+      >
+        {props.data.map((item, index) => (
+          <React.Fragment key={item.id}>{props.itemContent(props.firstItemIndex + index, item)}</React.Fragment>
+        ))}
+      </div>
+    );
+  }),
+}));
 
 // ─── Mock scrollTo for jsdom ─────────────────────────────────────────────────
 
@@ -41,6 +85,10 @@ vi.mock(
 // ─── Import Component Under Test ─────────────────────────────────────────────
 
 import { MessagesPanel } from "@/features/communication/conversations_redesign/components/messages/MessagesPanel";
+
+function renderWithViewport(ui: React.ReactElement) {
+  return render(ui);
+}
 
 // ─── Default Props Factory ───────────────────────────────────────────────────
 
@@ -87,7 +135,7 @@ describe("MessagesPanel", () => {
   it("shows a jump control when messages arrive while scrolled away from the bottom", async () => {
     const initialMessages = [createMessage({ id: "msg-1", body: "First" })];
     const props = createDefaultProps({ messages: initialMessages });
-    const { rerender } = render(<MessagesPanel {...props} />);
+    const { rerender } = renderWithViewport(<MessagesPanel {...props} />);
     const scroller = screen.getByRole("log", { name: "Messages" });
 
     Object.defineProperties(scroller, {
@@ -112,9 +160,10 @@ describe("MessagesPanel", () => {
       await screen.findByRole("button", { name: "1 new message" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "1 new message" }));
-    expect(Element.prototype.scrollTo).toHaveBeenCalledWith({
+    expect(scrollToIndex).toHaveBeenCalledWith({
       behavior: "smooth",
-      top: 1200,
+      align: "end",
+      index: 1_000_001,
     });
   });
 
@@ -129,7 +178,7 @@ describe("MessagesPanel", () => {
       messages: initialMessages,
       onLoadOlder,
     });
-    const { rerender } = render(<MessagesPanel {...props} />);
+    const { rerender } = renderWithViewport(<MessagesPanel {...props} />);
     const scroller = screen.getByRole("log", { name: "Messages" });
     let scrollHeight = 1000;
 
@@ -149,18 +198,21 @@ describe("MessagesPanel", () => {
           messages: [
             createMessage({ id: "msg-1", body: "First" }),
             ...initialMessages,
+            createMessage({ id: "msg-4", body: "Fourth" }),
           ],
           onLoadOlder,
         })}
       />,
     );
 
-    await waitFor(() => expect(scroller.scrollTop).toBe(640));
+    expect(scroller).toHaveAttribute("data-first-item-index", "999999");
+    expect(scroller.scrollTop).toBe(40);
+    expect(await screen.findByRole("button", { name: "1 new message" })).toBeInTheDocument();
   });
 
   it("offers a retry action when messages fail to load", () => {
     const onRetry = vi.fn();
-    render(
+    renderWithViewport(
       <MessagesPanel
         {...createDefaultProps({
           error: "Unable to load messages.",
@@ -182,7 +234,7 @@ describe("MessagesPanel", () => {
   ] as const)(
     "keeps the message panel LTR in the %s locale",
     (locale, labels) => {
-      render(
+      renderWithViewport(
         <MessagesPanel
           {...createDefaultProps({
             labels,
@@ -247,7 +299,7 @@ describe("MessagesPanel", () => {
 
       const initialMessages = [createMessage({ id: "msg-1", body: "Hello" })];
 
-      const { rerender } = render(
+      const { rerender } = renderWithViewport(
         <ParentComponent messages={initialMessages} />,
       );
 
@@ -293,7 +345,7 @@ describe("MessagesPanel", () => {
         );
       }
 
-      const { rerender } = render(<TestContainer messages={[]} />);
+      const { rerender } = renderWithViewport(<TestContainer messages={[]} />);
       expect(siblingRenderCount).toBe(1);
 
       // Add messages
@@ -319,7 +371,7 @@ describe("MessagesPanel", () => {
         typingUsers: [{ userId: "user-002", name: "Alice" }],
       });
 
-      render(<MessagesPanel {...props} />);
+      renderWithViewport(<MessagesPanel {...props} />);
 
       expect(screen.getByText(/Alice/)).toBeInTheDocument();
       expect(screen.getByText(/is typing\.\.\./)).toBeInTheDocument();
@@ -333,7 +385,7 @@ describe("MessagesPanel", () => {
         ],
       });
 
-      render(<MessagesPanel {...props} />);
+      renderWithViewport(<MessagesPanel {...props} />);
 
       // Both names should appear joined by comma
       expect(screen.getByText(/Alice, Bob/)).toBeInTheDocument();
@@ -346,7 +398,7 @@ describe("MessagesPanel", () => {
         userDisplayNames: { "user-002": "Charlie" },
       });
 
-      render(<MessagesPanel {...props} />);
+      renderWithViewport(<MessagesPanel {...props} />);
 
       expect(screen.getByText(/Charlie/)).toBeInTheDocument();
     });
@@ -356,7 +408,7 @@ describe("MessagesPanel", () => {
         typingUsers: [{ userId: "user-002", name: "Charlie" }],
       });
 
-      render(<MessagesPanel {...props} />);
+      renderWithViewport(<MessagesPanel {...props} />);
 
       expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
       expect(screen.getByRole("status")).toHaveTextContent(
@@ -370,7 +422,7 @@ describe("MessagesPanel", () => {
         userDisplayNames: {},
       });
 
-      render(<MessagesPanel {...props} />);
+      renderWithViewport(<MessagesPanel {...props} />);
 
       expect(screen.getByText(/Someone/)).toBeInTheDocument();
     });
@@ -381,7 +433,7 @@ describe("MessagesPanel", () => {
         messages: [createMessage({ id: "msg-1", body: "Hello" })],
       });
 
-      render(<MessagesPanel {...props} />);
+      renderWithViewport(<MessagesPanel {...props} />);
 
       expect(screen.queryByText(/is typing\.\.\./)).not.toBeInTheDocument();
     });
@@ -427,7 +479,7 @@ describe("MessagesPanel", () => {
         );
       }
 
-      const { rerender } = render(<ParentComponent typingUsers={[]} />);
+      const { rerender } = renderWithViewport(<ParentComponent typingUsers={[]} />);
 
       expect(messagesPanelRenderCount).toBe(1);
       expect(participantsPanelRenderCount).toBe(1);
@@ -481,7 +533,7 @@ describe("MessagesPanel", () => {
         );
       }
 
-      const { rerender } = render(<ParentComponent typingUsers={[]} />);
+      const { rerender } = renderWithViewport(<ParentComponent typingUsers={[]} />);
       expect(participantsPanelRenderCount).toBe(1);
 
       // Multiple typing state changes

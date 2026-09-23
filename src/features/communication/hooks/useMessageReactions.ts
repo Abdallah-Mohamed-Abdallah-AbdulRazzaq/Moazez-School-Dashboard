@@ -13,6 +13,7 @@ import type {
   ReactionType,
 } from "@/features/communication/types/message.types";
 import { useCommunicationSocket } from "./useCommunicationSocket";
+import { runBoundedRequests } from "./runBoundedRequests";
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -77,6 +78,7 @@ function mergeReaction(
 export function useMessageReactions(
   messageIds: string[],
   skipInitialFetchMessageIds: string[] = [],
+  visibleMessageIds: string[] = messageIds,
 ) {
   const { socket } = useCommunicationSocket();
   const mountedRef = useRef(false);
@@ -88,6 +90,11 @@ export function useMessageReactions(
   useEffect(() => {
     messageIdsRef.current = new Set(messageIds);
   }, [messageIds]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const refreshMessage = useCallback(async (messageId: string) => {
     const response = await getReactions(messageId);
@@ -111,25 +118,24 @@ export function useMessageReactions(
   }, [skipInitialFetchMessageIds]);
 
   const refreshAll = useCallback(async () => {
-    fetchedIdsRef.current = new Set(messageIds);
-    await Promise.all(messageIds.map((messageId) => refreshMessage(messageId)));
-  }, [messageIds, refreshMessage]);
+    const failedIds = await runBoundedRequests(visibleMessageIds, refreshMessage);
+    failedIds.forEach((id) => fetchedIdsRef.current.delete(id));
+  }, [visibleMessageIds, refreshMessage]);
 
   useEffect(() => {
-    mountedRef.current = true;
     // Only fetch reactions for message IDs we haven't fetched yet
-    const newIds = messageIds.filter((id) => {
+    const newIds = visibleMessageIds.filter((id) => {
+      if (!messageIdsRef.current.has(id)) return false;
       if (fetchedIdsRef.current.has(id)) return false;
       fetchedIdsRef.current.add(id);
       return !skipInitialFetchIdsRef.current.has(id);
     });
     if (newIds.length > 0) {
-      void Promise.all(newIds.map((id) => refreshMessage(id)));
+      void runBoundedRequests(newIds, refreshMessage).then((failedIds) => {
+        failedIds.forEach((id) => fetchedIdsRef.current.delete(id));
+      });
     }
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [messageIds, refreshMessage]);
+  }, [visibleMessageIds, refreshMessage]);
 
   const addReaction = useCallback(
     async (messageId: string, type: ReactionType) => {

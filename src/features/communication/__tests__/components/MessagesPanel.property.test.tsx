@@ -16,6 +16,18 @@ import React from "react";
 import { messageArb } from "../utils/test-data-generators";
 import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 
+vi.mock("react-virtuoso", () => ({
+  Virtuoso: ({ data, firstItemIndex, itemContent }: {
+    data: Array<{ id: string }>;
+    firstItemIndex: number;
+    itemContent: (index: number, item: { id: string }) => React.ReactNode;
+  }) => (
+    <div>{data.map((item, index) => (
+      <React.Fragment key={item.id}>{itemContent(firstItemIndex + index, item)}</React.Fragment>
+    ))}</div>
+  ),
+}));
+
 // ─── Mock scrollTo for jsdom ─────────────────────────────────────────────────
 
 beforeEach(() => {

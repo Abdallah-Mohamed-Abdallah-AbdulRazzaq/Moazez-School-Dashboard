@@ -252,14 +252,16 @@ vi.mock(
   () => ({
     MessagesPanel: ({
       messages,
+      allowActions,
       onDeleteMessage,
       onInfo,
     }: {
       messages?: Array<{ id: string }>;
+      allowActions?: boolean;
       onDeleteMessage?: (messageId: string) => Promise<unknown>;
       onInfo?: (messageId: string) => Promise<unknown>;
     }) => (
-      <div data-testid="messages-panel">
+      <div data-testid="messages-panel" data-allow-actions={String(allowActions)}>
         MessagesPanel
         {messages?.map((message) => (
           <div key={message.id}>
@@ -864,7 +866,7 @@ describe("ConversationDetail", () => {
       });
     });
 
-    it("renders full-component loading spinner and blocks rendering of other elements when conversation loading is true", () => {
+    it("keeps messages visible while conversation details load", () => {
       useConversationMock.mockReturnValue({
         conversation: null,
         isLoading: true,
@@ -872,17 +874,14 @@ describe("ConversationDetail", () => {
         refresh: vi.fn(),
       });
       renderConversationDetail();
-      expect(
-        screen.getByTestId("conversation-loading-spinner"),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByTestId("conversation-header"),
-      ).not.toBeInTheDocument();
-      expect(screen.queryByTestId("conversation-tabs")).not.toBeInTheDocument();
-      expect(screen.queryByTestId("messages-panel")).not.toBeInTheDocument();
+      expect(screen.getByTestId("messages-panel")).toBeInTheDocument();
+      expect(screen.getByTestId("messages-panel")).toHaveAttribute("data-allow-actions", "false");
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.getByTestId("conversation-header")).toBeInTheDocument();
+      expect(screen.queryByTestId("conversation-loading-spinner")).not.toBeInTheDocument();
     });
 
-    it("renders full-component loading spinner and blocks rendering of other elements when participants loading is true", () => {
+    it("keeps messages visible while participants load", () => {
       useConversationParticipantsMock.mockReturnValue({
         participants: [],
         isLoading: true,
@@ -892,12 +891,10 @@ describe("ConversationDetail", () => {
         refresh: vi.fn(),
       });
       renderConversationDetail();
-      expect(
-        screen.getByTestId("conversation-loading-spinner"),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByTestId("conversation-header"),
-      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("messages-panel")).toBeInTheDocument();
+      expect(screen.getByTestId("messages-panel")).toHaveAttribute("data-allow-actions", "false");
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("conversation-loading-spinner")).not.toBeInTheDocument();
     });
 
     it("renders full-component loading spinner and blocks rendering of other elements when messages loading is true", () => {
@@ -923,18 +920,16 @@ describe("ConversationDetail", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("renders full-component loading spinner and blocks rendering of other elements when policy loading is true", () => {
+    it("keeps messages visible while policy loads", () => {
       useCommunicationPolicyMock.mockReturnValue({
         policy: null,
         isLoading: true,
       });
       renderConversationDetail();
-      expect(
-        screen.getByTestId("conversation-loading-spinner"),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByTestId("conversation-header"),
-      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("messages-panel")).toBeInTheDocument();
+      expect(screen.getByTestId("messages-panel")).toHaveAttribute("data-allow-actions", "false");
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("conversation-loading-spinner")).not.toBeInTheDocument();
     });
 
     it("waits for window focus before marking an incoming message as read", async () => {
