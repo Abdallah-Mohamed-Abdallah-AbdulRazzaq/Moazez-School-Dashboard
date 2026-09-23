@@ -271,14 +271,6 @@ export default function ConversationDetail({
       .map((message) => message.id);
     return ids;
   }, [messagesState.messages]);
-  const [visibleMessageIds, setVisibleMessageIds] = useState<string[]>([]);
-  const handleVisibleMessageIdsChange = useCallback((ids: string[]) => {
-    setVisibleMessageIds((current) =>
-      current.length === ids.length && current.every((id, index) => id === ids[index])
-        ? current
-        : ids,
-    );
-  }, []);
   const locallyConfirmedMessageIds = useMemo(
     () =>
       messagesState.messages
@@ -306,7 +298,6 @@ export default function ConversationDetail({
   const reactionsState = useMessageReactions(
     stableMessageIds,
     locallyConfirmedMessageIds,
-    visibleMessageIds,
   );
   const attachmentMessages = useMemo(
     () =>
@@ -318,7 +309,6 @@ export default function ConversationDetail({
   const attachmentsState = useMessageAttachments(
     attachmentMessages,
     policy?.maxAttachmentSizeMb,
-    visibleMessageIds,
   );
   const userDisplayNames = useMemo<UserDisplayNameMap>(() => {
     const names: UserDisplayNameMap = {};
@@ -881,7 +871,6 @@ export default function ConversationDetail({
               setReplyTo(null);
             }}
             onLoadOlder={() => void messagesState.loadOlderMessages()}
-            onVisibleMessageIdsChange={handleVisibleMessageIdsChange}
             onRemoveReaction={(messageId) =>
               runMutation(
                 () => reactionsState.removeMyReaction(messageId),

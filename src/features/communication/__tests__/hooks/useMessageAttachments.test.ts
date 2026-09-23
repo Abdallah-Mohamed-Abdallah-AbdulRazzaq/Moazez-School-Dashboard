@@ -42,20 +42,6 @@ describe("useMessageAttachments", () => {
     apiMocks.getAttachments.mockResolvedValue({ items: [] });
   });
 
-  it("fetches attachment lists only for visible messages without inline attachments", async () => {
-    const messages = ["message-1", "message-2"];
-    const { rerender } = renderHook(
-      ({ visible }: { visible: string[] }) => useMessageAttachments(messages, undefined, visible),
-      { initialProps: { visible: ["message-2"] } },
-    );
-
-    await waitFor(() => expect(apiMocks.getAttachments).toHaveBeenCalledWith("message-2"));
-    expect(apiMocks.getAttachments).not.toHaveBeenCalledWith("message-1");
-
-    rerender({ visible: ["message-1"] });
-    await waitFor(() => expect(apiMocks.getAttachments).toHaveBeenCalledWith("message-1"));
-  });
-
   it("uses inline message attachments without fetching each message attachment list", async () => {
     const messages = [
       {
