@@ -224,7 +224,9 @@ export default function Sidebar({
           }
         });
 
-        return nextExpandedKeys.length === prev.length ? prev : nextExpandedKeys;
+        return nextExpandedKeys.length === prev.length
+          ? prev
+          : nextExpandedKeys;
       });
     });
   }, [pathname, isArabic, visibleMenuItems]);
@@ -459,23 +461,6 @@ export default function Sidebar({
             />
           </GuardedLink>
         </div>
-
-        {/* School Selector (fixed top) */}
-        {isOpen && (
-          <div className="mb-1 shrink-0 p-2">
-            <div className="flex items-center gap-3 p-3 border border-white/20 rounded-xl bg-white/20">
-              <div className="w-10 h-10 rounded-full bg-white flex border-2 border-primary flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-white/60 font-medium">
-                  {t("school")}
-                </p>
-                <p className="text-sm font-bold text-white">{schoolName}</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* âœ… Scrollable Menu Only */}
         {isOpen && (
