@@ -74,10 +74,7 @@ function mergeReaction(
   return [...next, incoming];
 }
 
-export function useMessageReactions(
-  messageIds: string[],
-  skipInitialFetchMessageIds: string[] = [],
-) {
+export function useMessageReactions(messageIds: string[]) {
   const { socket } = useCommunicationSocket();
   const mountedRef = useRef(false);
   const messageIdsRef = useRef<Set<string>>(new Set(messageIds));
@@ -102,13 +99,6 @@ export function useMessageReactions(
   }, []);
 
   const fetchedIdsRef = useRef<Set<string>>(new Set());
-  const skipInitialFetchIdsRef = useRef<Set<string>>(
-    new Set(skipInitialFetchMessageIds),
-  );
-
-  useEffect(() => {
-    skipInitialFetchIdsRef.current = new Set(skipInitialFetchMessageIds);
-  }, [skipInitialFetchMessageIds]);
 
   const refreshAll = useCallback(async () => {
     fetchedIdsRef.current = new Set(messageIds);
@@ -121,7 +111,7 @@ export function useMessageReactions(
     const newIds = messageIds.filter((id) => {
       if (fetchedIdsRef.current.has(id)) return false;
       fetchedIdsRef.current.add(id);
-      return !skipInitialFetchIdsRef.current.has(id);
+      return true;
     });
     if (newIds.length > 0) {
       void Promise.all(newIds.map((id) => refreshMessage(id)));

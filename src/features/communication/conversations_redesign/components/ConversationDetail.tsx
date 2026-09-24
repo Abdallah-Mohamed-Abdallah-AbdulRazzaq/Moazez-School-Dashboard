@@ -271,20 +271,6 @@ export default function ConversationDetail({
       .map((message) => message.id);
     return ids;
   }, [messagesState.messages]);
-  const locallyConfirmedMessageIds = useMemo(
-    () =>
-      messagesState.messages
-        .filter(
-          (message) =>
-            message.id &&
-            message.clientMessageId &&
-            message.deliveryStatus === "sent" &&
-            message.senderId === user?.id,
-        )
-        .map((message) => message.id),
-    [messagesState.messages, user?.id],
-  );
-
   // Stabilize the messageIds array reference — only change when IDs actually differ
   const [stableMessageIds, setStableMessageIds] =
     useState<string[]>(messageIds);
@@ -295,10 +281,7 @@ export default function ConversationDetail({
     setStableMessageIds(messageIds);
   }
 
-  const reactionsState = useMessageReactions(
-    stableMessageIds,
-    locallyConfirmedMessageIds,
-  );
+  const reactionsState = useMessageReactions(stableMessageIds);
   const attachmentMessages = useMemo(
     () =>
       messagesState.messages.filter(
