@@ -1049,14 +1049,6 @@ export const menuItems: MenuItem[] = [
 
 export const bottomItems: MenuItem[] = [
   {
-    key: "system-health",
-    label_en: "System Health",
-    label_ar: "صحة النظام",
-    href_en: "/en/settings/health",
-    href_ar: "/ar/settings/health",
-    icon: Activity,
-  },
-  {
     key: "help",
     label_en: "Get Help",
     label_ar: "المساعدة",
