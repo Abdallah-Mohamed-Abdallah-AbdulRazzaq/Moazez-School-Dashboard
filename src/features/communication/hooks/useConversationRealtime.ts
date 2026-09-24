@@ -174,12 +174,16 @@ export function useConversationRealtime({
     };
     const handleAttachmentLinked = (payload: unknown) => {
       if (isForActiveConversation(payload)) {
-        handlersRef.current.onAttachmentLinked?.(payload);
+        const handler = handlersRef.current.onAttachmentLinked;
+        if (handler) handler(payload);
+        else handlersRef.current.onReconnect();
       }
     };
     const handleAttachmentDeleted = (payload: unknown) => {
       if (isForActiveConversation(payload)) {
-        handlersRef.current.onAttachmentDeleted?.(payload);
+        const handler = handlersRef.current.onAttachmentDeleted;
+        if (handler) handler(payload);
+        else handlersRef.current.onReconnect();
       }
     };
     const handleAnnouncementPublished = (payload: unknown) => {

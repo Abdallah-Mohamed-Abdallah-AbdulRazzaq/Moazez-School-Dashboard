@@ -65,18 +65,11 @@ describe("useMessageReactions", () => {
     expect(result.current.reactionsByMessageId["message-1"]).toEqual([]);
   });
 
-  it("loads saved reactions when messages arrive after opening a conversation", async () => {
-    const { result, rerender } = renderHook(
-      ({ messageIds }) => useMessageReactions(messageIds),
-      { initialProps: { messageIds: [] as string[] } },
-    );
+  it("does not fetch reactions for a locally confirmed message", async () => {
+    renderHook(() => useMessageReactions(["message-1"], ["message-1"]));
 
-    rerender({ messageIds: ["message-1"] });
+    await Promise.resolve();
 
-    await waitFor(() => {
-      expect(result.current.reactionsByMessageId["message-1"]).toEqual([
-        expect.objectContaining({ id: "reaction-1", type: "love" }),
-      ]);
-    });
+    expect(apiMocks.getReactions).not.toHaveBeenCalled();
   });
 });

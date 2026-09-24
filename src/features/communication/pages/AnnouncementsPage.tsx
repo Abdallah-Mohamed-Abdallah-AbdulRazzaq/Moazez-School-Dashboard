@@ -29,7 +29,6 @@ const labels = {
       "Create, publish, archive, and review school communication announcements.",
     newAnnouncement: "New Announcement",
     refresh: "Refresh",
-    loadMore: "Load more",
     loading: "Loading announcements...",
     errorTitle: "Unable to load announcements",
     retry: "Retry",
@@ -68,7 +67,6 @@ const labels = {
     description: "أنشئ وانشر وأرشف وراجع إعلانات التواصل المدرسي.",
     newAnnouncement: "إعلان جديد",
     refresh: "تحديث",
-    loadMore: "عرض المزيد",
     loading: "جار تحميل الإعلانات...",
     errorTitle: "تعذر تحميل الإعلانات",
     retry: "إعادة المحاولة",
@@ -120,10 +118,6 @@ export default function AnnouncementsPage() {
     isLoading,
     isMutating,
     isRefreshing,
-    isLoadingMore,
-    isLoadMoreError,
-    hasMore,
-    loadMore,
     publish,
     refresh,
     setFilters,
@@ -206,7 +200,7 @@ export default function AnnouncementsPage() {
               title={t.errorTitle}
               message={announcementErrorMessage(error, locale)}
               action={
-                <Button type="button" variant="secondary" onClick={() => void (isLoadMoreError ? loadMore() : refresh())}>
+                <Button type="button" variant="secondary" onClick={() => void refresh()}>
                   {t.retry}
                 </Button>
               }
@@ -239,14 +233,6 @@ export default function AnnouncementsPage() {
             onPublish={setPublishingAnnouncement}
             onArchive={setArchivingAnnouncement}
           />
-
-          {hasMore ? (
-            <div className="flex justify-center py-4">
-              <Button type="button" variant="secondary" loading={isLoadingMore} onClick={() => void loadMore()}>
-                {t.loadMore}
-              </Button>
-            </div>
-          ) : null}
 
           <PublishAnnouncementDialog
             open={Boolean(publishingAnnouncement)}

@@ -271,6 +271,20 @@ export default function ConversationDetail({
       .map((message) => message.id);
     return ids;
   }, [messagesState.messages]);
+  const locallyConfirmedMessageIds = useMemo(
+    () =>
+      messagesState.messages
+        .filter(
+          (message) =>
+            message.id &&
+            message.clientMessageId &&
+            message.deliveryStatus === "sent" &&
+            message.senderId === user?.id,
+        )
+        .map((message) => message.id),
+    [messagesState.messages, user?.id],
+  );
+
   // Stabilize the messageIds array reference — only change when IDs actually differ
   const [stableMessageIds, setStableMessageIds] =
     useState<string[]>(messageIds);
@@ -281,7 +295,10 @@ export default function ConversationDetail({
     setStableMessageIds(messageIds);
   }
 
-  const reactionsState = useMessageReactions(stableMessageIds);
+  const reactionsState = useMessageReactions(
+    stableMessageIds,
+    locallyConfirmedMessageIds,
+  );
   const attachmentMessages = useMemo(
     () =>
       messagesState.messages.filter(
@@ -543,22 +560,14 @@ export default function ConversationDetail({
   };
 
   const conversation = conversationState.conversation;
-  const supportingDataLoading =
-    conversationState.isLoading || participantsState.isLoading || isPolicyLoading;
-  const detailsReady =
-    !supportingDataLoading &&
-    Boolean(conversation) &&
-    !participantsState.error &&
-    (!canViewPolicy || Boolean(policy));
   const readOnly = conversationIsReadOnly(conversation);
   const isCommunicationEnabled = policy?.isEnabled !== false;
-  const canManageConversation = detailsReady && permissions.canManageConversation;
-  const canManageParticipants = detailsReady && permissions.canManageParticipants;
-  const canManageInvites = detailsReady && permissions.canManageInvites;
-  const canReviewJoinRequests = detailsReady && permissions.canReviewJoinRequests;
-  const canCreateJoinRequest = detailsReady && permissions.canCreateJoinRequest;
+  const canManageConversation = permissions.canManageConversation;
+  const canManageParticipants = permissions.canManageParticipants;
+  const canManageInvites = permissions.canManageInvites;
+  const canReviewJoinRequests = permissions.canReviewJoinRequests;
+  const canCreateJoinRequest = permissions.canCreateJoinRequest;
   const canLeaveConversation =
-    detailsReady &&
     permissions.canLeaveConversation &&
     hasPermission("communication.conversations.view");
   const canReactToMessages =
@@ -594,7 +603,6 @@ export default function ConversationDetail({
     currentUserStatus === "left" || currentUserStatus === "removed";
   const hasMessageSendPermission = hasPermission("communication.messages.send");
   const canSendMessages =
-    detailsReady &&
     !isMuted &&
     !isRemovedOrLeft &&
     isCommunicationEnabled &&
@@ -745,7 +753,12 @@ export default function ConversationDetail({
     }
   };
 
-  if (messagesState.isLoading) {
+  if (
+    conversationState.isLoading ||
+    participantsState.isLoading ||
+    messagesState.isLoading ||
+    isPolicyLoading
+  ) {
     return (
       <div
         data-testid="conversation-loading-spinner"
@@ -793,8 +806,7 @@ export default function ConversationDetail({
       <div className="min-h-0 flex-1 overflow-hidden">
         {activeTab === "messages" ? (
           <MessagesPanel
-            allowActions={detailsReady}
-            allowReactions={detailsReady && canReactToMessages}
+            allowReactions={canReactToMessages}
             canDeleteMessages={canDeleteMessages}
             canEditMessages={canEditMessages}
             canManageAttachments={canManageAttachments}
@@ -989,19 +1001,7 @@ export default function ConversationDetail({
       </div>
 
       {activeTab === "messages" ? (
-        supportingDataLoading ? (
-          <div
-            className="shrink-0 border-t border-slate-200 bg-white p-4"
-            role="status"
-            aria-busy="true"
-          >
-            <div className="flex h-14 items-center justify-center text-sm text-slate-500">
-              {labels.loading}
-            </div>
-          </div>
-        ) : !detailsReady ? (
-          <ReadOnlyComposer labels={labels} />
-        ) : restrictionBanner ? (
+        restrictionBanner ? (
           <div className="shrink-0 border-t border-slate-200 bg-white p-4">
             <div className="flex h-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-medium text-slate-500 px-4 text-center">
               {restrictionBanner}
