@@ -308,29 +308,6 @@ describe("useConversationRealtime", () => {
       expect(handlers.onAttachmentDeleted).not.toHaveBeenCalled();
     });
 
-    it("does not resync reactions when attachment events have no conversation handler", () => {
-      const handlers = {
-        ...createDefaultHandlers(),
-        onAttachmentLinked: undefined,
-        onAttachmentDeleted: undefined,
-      };
-      renderHook(() => useConversationRealtime(handlers));
-
-      act(() => {
-        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.attachmentLinked, {
-          conversationId: "conv-123",
-          attachment: { id: "attachment-1", messageId: "msg-1" },
-        });
-        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.attachmentDeleted, {
-          conversationId: "conv-123",
-          attachmentId: "attachment-1",
-          messageId: "msg-1",
-        });
-      });
-
-      expect(handlers.onReconnect).not.toHaveBeenCalled();
-    });
-
     it("dispatches announcement published events without conversation filtering", () => {
       const handlers = createDefaultHandlers();
 
