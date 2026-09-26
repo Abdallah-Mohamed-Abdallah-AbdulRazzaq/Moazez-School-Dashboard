@@ -149,7 +149,7 @@ describe("RecentActivitiesPage", () => {
     await user.click(screen.getByRole("button", { name: "Actor type" }));
     await user.click(screen.getByRole("button", { name: "Admin" }));
     await user.type(
-      screen.getByPlaceholderText("Filter by event type"),
+      screen.getByPlaceholderText("Filter by exact event type"),
       "attendance.session.submit",
     );
 
@@ -234,7 +234,7 @@ describe("RecentActivitiesPage", () => {
     expect(await screen.findByText("Recent activities")).toBeInTheDocument();
 
     await user.type(
-      screen.getByPlaceholderText("Filter by event type"),
+      screen.getByPlaceholderText("Filter by exact event type"),
       "attendance.session.submit",
     );
     await waitFor(() => {
@@ -251,6 +251,40 @@ describe("RecentActivitiesPage", () => {
         limit: 20,
       });
     });
-    expect(screen.getByPlaceholderText("Filter by event type")).toHaveValue("");
+    expect(screen.getByPlaceholderText("Filter by exact event type")).toHaveValue("");
+  });
+
+  it("keeps partial event type searches away from the activity API", async () => {
+    const user = userEvent.setup();
+    mockedFetchDashboardActivityFeed.mockResolvedValue(
+      dashboardActivityFeedResponse(),
+    );
+
+    render(<RecentActivitiesPage />);
+    expect(await screen.findByText("Recent activities")).toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText("Filter by exact event type"),
+      "attendance",
+    );
+
+    expect(mockedFetchDashboardActivityFeed).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByText("Enter a dotted event type such as attendance.session.submit.", {
+        selector: "p",
+      }),
+    ).toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText("Filter by exact event type"),
+      ".session.submit",
+    );
+
+    await waitFor(() => {
+      expect(mockedFetchDashboardActivityFeed).toHaveBeenLastCalledWith({
+        eventType: "attendance.session.submit",
+        limit: 20,
+      });
+    });
   });
 });

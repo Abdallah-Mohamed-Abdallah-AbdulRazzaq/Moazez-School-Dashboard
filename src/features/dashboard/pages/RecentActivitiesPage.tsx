@@ -52,6 +52,14 @@ const defaultRecentActivityFilters: RecentActivityFilters = {
   limit: "20",
 };
 
+const dashboardActivityEventTypePattern =
+  /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
+
+function isValidEventTypeFilter(eventType: string) {
+  const trimmedEventType = eventType.trim();
+  return !trimmedEventType || dashboardActivityEventTypePattern.test(trimmedEventType);
+}
+
 export default function RecentActivitiesPage() {
   return (
     <DashboardPermissionGuard permission="dashboard.activity_feed.view">
@@ -84,7 +92,7 @@ function RecentActivitiesContent() {
   }, []);
 
   useEffect(() => {
-    if (isInitializing) {
+    if (isInitializing || !isValidEventTypeFilter(filters.eventType)) {
       return;
     }
 
@@ -125,6 +133,7 @@ function RecentActivitiesContent() {
     if (
       loadState.status !== "success" ||
       loadState.isLoadingMore ||
+      !isValidEventTypeFilter(filters.eventType) ||
       !loadState.activityFeed.pageInfo.nextCursor
     ) {
       return;
@@ -224,7 +233,7 @@ function RecentActivitiesContent() {
       dashboardHref={dashboardPath(pathname)}
       filters={filters}
       hasActiveFilters={hasActiveFilters(filters)}
-      isFiltering={isFiltering}
+      isFiltering={isFiltering && isValidEventTypeFilter(filters.eventType)}
       isLoadingMore={loadState.isLoadingMore}
       locale={locale}
       loadMoreError={loadState.loadMoreError}
@@ -273,7 +282,9 @@ function RecentActivitiesView({
   onToggleFilters: () => void;
 }) {
   const canLoadMore =
-    activityFeed.pageInfo.hasMore && !!activityFeed.pageInfo.nextCursor;
+    isValidEventTypeFilter(filters.eventType) &&
+    activityFeed.pageInfo.hasMore &&
+    !!activityFeed.pageInfo.nextCursor;
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
 
   return (
@@ -315,7 +326,11 @@ function RecentActivitiesView({
       />
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        {isFiltering ? (
+        {!isValidEventTypeFilter(filters.eventType) ? (
+          <p className="text-sm text-gray-600">
+            {t("filters.event_type_error")}
+          </p>
+        ) : isFiltering ? (
           <RecentActivitiesSkeleton t={t} />
         ) : activityFeed.items.length === 0 ? (
           <RecentActivitiesEmptyState t={t} />
@@ -433,6 +448,11 @@ function RecentActivitiesFilters({
           onChange={(event) => onFilterChange("eventType", event.target.value)}
           placeholder={t("filters.event_type_placeholder")}
           helperText={t("filters.event_type_helper")}
+          error={
+            isValidEventTypeFilter(filters.eventType)
+              ? undefined
+              : t("filters.event_type_error")
+          }
         />
       }
       clearAction={

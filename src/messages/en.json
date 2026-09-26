@@ -469,8 +469,9 @@
       "all_severities": "All severities",
       "all_actor_types": "All actor types",
       "include_zero_count": "Include zero-count alerts",
-      "event_type_placeholder": "Filter by event type",
-      "event_type_helper": "Example: attendance.session.submit",
+      "event_type_placeholder": "Filter by exact event type",
+      "event_type_helper": "Enter a full event type, for example attendance.session.submit",
+      "event_type_error": "Enter a dotted event type such as attendance.session.submit.",
       "alert_limit": "{count} alerts",
       "page_size_limit": "{count} per page"
     },
