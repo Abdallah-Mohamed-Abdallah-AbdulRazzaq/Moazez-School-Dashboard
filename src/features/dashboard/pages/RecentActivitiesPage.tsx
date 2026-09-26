@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Activity, ArrowLeft, ArrowRight, RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, DatePicker, FilterPanel, Input, Select } from "@/components/ui";
+import { Button, DatePicker, FilterPanel, Select } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import DashboardPermissionGuard from "@/features/dashboard/components/DashboardPermissionGuard";
@@ -52,13 +52,44 @@ const defaultRecentActivityFilters: RecentActivityFilters = {
   limit: "20",
 };
 
-const dashboardActivityEventTypePattern =
-  /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
-
-function isValidEventTypeFilter(eventType: string) {
-  const trimmedEventType = eventType.trim();
-  return !trimmedEventType || dashboardActivityEventTypePattern.test(trimmedEventType);
-}
+// The backend has no event-type options endpoint; these are its named EVENT_TEXT entries.
+const dashboardActivityEventTypes = [
+  ["admissions.lead.create", "Lead created"],
+  ["admissions.application.create", "Application created"],
+  ["admissions.application.decision", "Application decision recorded"],
+  ["students.enrollment.create", "Enrollment created"],
+  ["students.enrollment.transfer", "Enrollment transferred"],
+  ["students.enrollment.withdraw", "Enrollment withdrawn"],
+  ["students.enrollment.promote", "Enrollment promoted"],
+  ["academics.curriculum.activate", "Curriculum activated"],
+  ["academics.lesson_plan.activate", "Lesson plan activated"],
+  ["academics.lesson_plan.archive", "Lesson plan archived"],
+  ["attendance.session.submit", "Attendance session submitted"],
+  ["attendance.excuse.approve", "Attendance excuse approved"],
+  ["attendance.excuse.reject", "Attendance excuse rejected"],
+  ["grades.assessment.publish", "Assessment published"],
+  ["grades.assessment.lock", "Assessment locked"],
+  ["grades.submission.review.finalize", "Grade submission reviewed"],
+  ["homework.assignment.publish", "Homework published"],
+  ["homework.submission.submit", "Homework submitted"],
+  ["homework.submission.review", "Homework reviewed"],
+  ["homework.grade_sync.submission_sync", "Homework synced to grades"],
+  ["behavior.record.create", "Behavior record created"],
+  ["behavior.record.approve", "Behavior review completed"],
+  ["behavior.record.reject", "Behavior review completed"],
+  ["reinforcement.task.create", "Reinforcement task created"],
+  ["reinforcement.review.approve", "Reinforcement submission reviewed"],
+  ["reinforcement.review.reject", "Reinforcement submission reviewed"],
+  ["reinforcement.reward.redemption.approve", "Reward redemption reviewed"],
+  ["reinforcement.reward.redemption.reject", "Reward redemption reviewed"],
+  ["communication.announcement.publish", "Announcement published"],
+  ["communication.message_report.update", "Message report updated"],
+  ["communication.moderation_action.create", "Moderation action recorded"],
+  ["settings.user.create", "User created"],
+  ["settings.role.permissions.change", "Role permissions changed"],
+  ["settings.login_identity.change", "Login identity settings changed"],
+  ["settings.email.connection.update", "Email connection updated"],
+] as const;
 
 export default function RecentActivitiesPage() {
   return (
@@ -92,7 +123,7 @@ function RecentActivitiesContent() {
   }, []);
 
   useEffect(() => {
-    if (isInitializing || !isValidEventTypeFilter(filters.eventType)) {
+    if (isInitializing) {
       return;
     }
 
@@ -133,7 +164,6 @@ function RecentActivitiesContent() {
     if (
       loadState.status !== "success" ||
       loadState.isLoadingMore ||
-      !isValidEventTypeFilter(filters.eventType) ||
       !loadState.activityFeed.pageInfo.nextCursor
     ) {
       return;
@@ -233,7 +263,7 @@ function RecentActivitiesContent() {
       dashboardHref={dashboardPath(pathname)}
       filters={filters}
       hasActiveFilters={hasActiveFilters(filters)}
-      isFiltering={isFiltering && isValidEventTypeFilter(filters.eventType)}
+      isFiltering={isFiltering}
       isLoadingMore={loadState.isLoadingMore}
       locale={locale}
       loadMoreError={loadState.loadMoreError}
@@ -282,9 +312,7 @@ function RecentActivitiesView({
   onToggleFilters: () => void;
 }) {
   const canLoadMore =
-    isValidEventTypeFilter(filters.eventType) &&
-    activityFeed.pageInfo.hasMore &&
-    !!activityFeed.pageInfo.nextCursor;
+    activityFeed.pageInfo.hasMore && !!activityFeed.pageInfo.nextCursor;
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
 
   return (
@@ -326,11 +354,7 @@ function RecentActivitiesView({
       />
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        {!isValidEventTypeFilter(filters.eventType) ? (
-          <p className="text-sm text-gray-600">
-            {t("filters.event_type_error")}
-          </p>
-        ) : isFiltering ? (
+        {isFiltering ? (
           <RecentActivitiesSkeleton t={t} />
         ) : activityFeed.items.length === 0 ? (
           <RecentActivitiesEmptyState t={t} />
@@ -420,6 +444,15 @@ function RecentActivitiesFilters({
   onToggleFilters: () => void;
 }) {
   const sourceOptions = dashboardSourceOptions(t);
+  const eventTypeOptions = [
+    { value: "", label: t("filters.all_event_types") },
+    ...dashboardActivityEventTypes.map(([eventType, title]) => ({
+      value: eventType,
+      label: `${title} · ${eventType}`,
+      triggerLabel: title,
+      searchText: t(`sources.${eventType.split(".")[0] as DashboardSource}`),
+    })),
+  ];
   const actorTypeOptions = [
     { value: "", label: t("filters.all_actor_types") },
     { value: "system", label: t("actor_types.system") },
@@ -443,16 +476,15 @@ function RecentActivitiesFilters({
       toggleAriaLabel={t("filters.toggle_activities")}
       className="mb-5 border border-gray-200"
       searchSlot={
-        <Input
+        <Select
+          label={t("filters.event_type")}
           value={filters.eventType}
-          onChange={(event) => onFilterChange("eventType", event.target.value)}
-          placeholder={t("filters.event_type_placeholder")}
-          helperText={t("filters.event_type_helper")}
-          error={
-            isValidEventTypeFilter(filters.eventType)
-              ? undefined
-              : t("filters.event_type_error")
-          }
+          onChange={(eventType) => onFilterChange("eventType", eventType)}
+          options={eventTypeOptions}
+          searchable
+          searchLabel={t("filters.event_type_search")}
+          searchPlaceholder={t("filters.event_type_search")}
+          triggerAriaLabel={t("filters.event_type")}
         />
       }
       clearAction={

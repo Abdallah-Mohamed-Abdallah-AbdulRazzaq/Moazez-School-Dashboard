@@ -148,9 +148,15 @@ describe("RecentActivitiesPage", () => {
     await user.click(screen.getByRole("button", { name: "Attendance" }));
     await user.click(screen.getByRole("button", { name: "Actor type" }));
     await user.click(screen.getByRole("button", { name: "Admin" }));
+    await user.click(screen.getByRole("button", { name: "Event type" }));
     await user.type(
-      screen.getByPlaceholderText("Filter by exact event type"),
+      screen.getByRole("textbox", { name: "Search event types" }),
       "attendance.session.submit",
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Attendance session submitted · attendance.session.submit",
+      }),
     );
 
     await waitFor(() => {
@@ -233,9 +239,11 @@ describe("RecentActivitiesPage", () => {
 
     expect(await screen.findByText("Recent activities")).toBeInTheDocument();
 
-    await user.type(
-      screen.getByPlaceholderText("Filter by exact event type"),
-      "attendance.session.submit",
+    await user.click(screen.getByRole("button", { name: "Event type" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "Attendance session submitted · attendance.session.submit",
+      }),
     );
     await waitFor(() => {
       expect(mockedFetchDashboardActivityFeed).toHaveBeenLastCalledWith({
@@ -251,10 +259,12 @@ describe("RecentActivitiesPage", () => {
         limit: 20,
       });
     });
-    expect(screen.getByPlaceholderText("Filter by exact event type")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Event type" })).toHaveTextContent(
+      "All event types",
+    );
   });
 
-  it("keeps partial event type searches away from the activity API", async () => {
+  it("does not send dropdown search text as an activity event type", async () => {
     const user = userEvent.setup();
     mockedFetchDashboardActivityFeed.mockResolvedValue(
       dashboardActivityFeedResponse(),
@@ -263,21 +273,22 @@ describe("RecentActivitiesPage", () => {
     render(<RecentActivitiesPage />);
     expect(await screen.findByText("Recent activities")).toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: "Event type" }));
     await user.type(
-      screen.getByPlaceholderText("Filter by exact event type"),
-      "attendance",
+      screen.getByRole("textbox", { name: "Search event types" }),
+      "a",
     );
 
     expect(mockedFetchDashboardActivityFeed).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByText("Enter a dotted event type such as attendance.session.submit.", {
-        selector: "p",
-      }),
-    ).toBeInTheDocument();
-
+    await user.clear(screen.getByRole("textbox", { name: "Search event types" }));
     await user.type(
-      screen.getByPlaceholderText("Filter by exact event type"),
-      ".session.submit",
+      screen.getByRole("textbox", { name: "Search event types" }),
+      "attendance.session.submit",
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Attendance session submitted · attendance.session.submit",
+      }),
     );
 
     await waitFor(() => {
