@@ -469,8 +469,9 @@
       "all_severities": "كل مستويات الخطورة",
       "all_actor_types": "كل أنواع المنفذين",
       "include_zero_count": "تضمين التنبيهات ذات العدد الصفري",
-      "event_type_placeholder": "تصفية حسب نوع الحدث",
-      "event_type_helper": "مثال: attendance.session.submit",
+      "event_type": "نوع الحدث",
+      "all_event_types": "جميع أنواع الأحداث",
+      "event_type_search": "البحث في أنواع الأحداث",
       "alert_limit": "{count} تنبيه",
       "page_size_limit": "{count} لكل صفحة"
     },

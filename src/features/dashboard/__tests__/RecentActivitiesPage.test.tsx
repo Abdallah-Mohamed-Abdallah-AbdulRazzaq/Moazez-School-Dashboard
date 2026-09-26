@@ -148,9 +148,15 @@ describe("RecentActivitiesPage", () => {
     await user.click(screen.getByRole("button", { name: "Attendance" }));
     await user.click(screen.getByRole("button", { name: "Actor type" }));
     await user.click(screen.getByRole("button", { name: "Admin" }));
+    await user.click(screen.getByRole("button", { name: "Event type" }));
     await user.type(
-      screen.getByPlaceholderText("Filter by event type"),
+      screen.getByRole("textbox", { name: "Search event types" }),
       "attendance.session.submit",
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Attendance session submitted · attendance.session.submit",
+      }),
     );
 
     await waitFor(() => {
@@ -233,9 +239,11 @@ describe("RecentActivitiesPage", () => {
 
     expect(await screen.findByText("Recent activities")).toBeInTheDocument();
 
-    await user.type(
-      screen.getByPlaceholderText("Filter by event type"),
-      "attendance.session.submit",
+    await user.click(screen.getByRole("button", { name: "Event type" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "Attendance session submitted · attendance.session.submit",
+      }),
     );
     await waitFor(() => {
       expect(mockedFetchDashboardActivityFeed).toHaveBeenLastCalledWith({
@@ -251,6 +259,43 @@ describe("RecentActivitiesPage", () => {
         limit: 20,
       });
     });
-    expect(screen.getByPlaceholderText("Filter by event type")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Event type" })).toHaveTextContent(
+      "All event types",
+    );
+  });
+
+  it("does not send dropdown search text as an activity event type", async () => {
+    const user = userEvent.setup();
+    mockedFetchDashboardActivityFeed.mockResolvedValue(
+      dashboardActivityFeedResponse(),
+    );
+
+    render(<RecentActivitiesPage />);
+    expect(await screen.findByText("Recent activities")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Event type" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "Search event types" }),
+      "a",
+    );
+
+    expect(mockedFetchDashboardActivityFeed).toHaveBeenCalledTimes(1);
+    await user.clear(screen.getByRole("textbox", { name: "Search event types" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "Search event types" }),
+      "attendance.session.submit",
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Attendance session submitted · attendance.session.submit",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockedFetchDashboardActivityFeed).toHaveBeenLastCalledWith({
+        eventType: "attendance.session.submit",
+        limit: 20,
+      });
+    });
   });
 });

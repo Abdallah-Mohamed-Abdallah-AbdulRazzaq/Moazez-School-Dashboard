@@ -123,9 +123,9 @@ const dashboardTranslations: Record<string, TranslationEntry> = {
   "dashboard_new.filters.all_severities": "All severities",
   "dashboard_new.filters.all_actor_types": "All actor types",
   "dashboard_new.filters.include_zero_count": "Include zero-count alerts",
-  "dashboard_new.filters.event_type_placeholder": "Filter by event type",
-  "dashboard_new.filters.event_type_helper":
-    "Example: attendance.session.submit",
+  "dashboard_new.filters.event_type": "Event type",
+  "dashboard_new.filters.all_event_types": "All event types",
+  "dashboard_new.filters.event_type_search": "Search event types",
   "dashboard_new.filters.alert_limit": ({ count }) => `${count} alerts`,
   "dashboard_new.filters.page_size_limit": ({ count }) => `${count} per page`,
   "dashboard_new.sources.admissions": "Admissions",
