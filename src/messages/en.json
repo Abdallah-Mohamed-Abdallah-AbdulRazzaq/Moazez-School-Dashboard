@@ -7481,6 +7481,7 @@
           "invalidAnswerKeys": "{count, plural, one {# objective question has an invalid answer key} other {# objective questions have invalid answer keys}}",
           "pendingReviewBadge": "Pending correction",
           "saved": "Objective question scores were saved. Finalize the review when manual correction is complete.",
+          "savedAndFinalized": "Objective scores were saved and the submission was finalized.",
           "detailSummary": "Corrected {corrected} objective answers.",
           "result": {
             "corrected": "Objective answers corrected: {count}",

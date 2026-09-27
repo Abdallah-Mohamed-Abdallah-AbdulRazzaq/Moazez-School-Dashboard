@@ -27,6 +27,7 @@ import type { AssessmentQuestion } from "../../shared/types";
 import SubmissionQuestionAnswerField from "../components/SubmissionQuestionAnswerField";
 import SubmissionAnswerReviewFields from "../components/SubmissionAnswerReviewFields";
 import ManualCorrectionWarning from "../components/ManualCorrectionWarning";
+import { executeAutomaticCorrectionPlan } from "../services/automaticCorrectionExecution";
 import {
   fetchGradeSubmission,
   finalizeSubmissionReview,
@@ -48,6 +49,7 @@ import {
 import {
   buildAutomaticCorrectionPlan,
   getObjectiveAnswerCorrectness,
+  hasManualCorrectionWork,
   type AutomaticCorrectionSummary,
 } from "../utils/automaticCorrection";
 import {
@@ -147,24 +149,29 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
     void loadSubmission();
   }, [loadSubmission]);
 
-  const runAction = async (key: string, action: () => Promise<unknown>) => {
-    if (actionLockRef.current) return false;
+  const runAction = async <ActionResult,>(
+    key: string,
+    action: () => Promise<ActionResult>,
+  ): Promise<ActionResult | null> => {
+    if (actionLockRef.current) return null;
     actionLockRef.current = true;
     setActiveAction(key);
     setError(null);
     try {
-      await action();
+      const actionResult = await action();
       await loadSubmission();
       if (key === "sync") showSuccess(t("messages.synced"));
-      return true;
+      return actionResult;
     } catch (requestError) {
       const descriptor = describeGradesApiError(requestError);
       const mappedError = { message: errorT(descriptor.key), traceId: descriptor.traceId };
       if (key === "sync") showError(mappedError.message);
       const stale = ["submission_already_submitted", "submission_locked", "submission_not_submitted", "review_already_finalized", "review_pending_answers"].includes(descriptor.key);
-      if (stale) await loadSubmission({ preserveReviews: true, error: mappedError });
+      if (key === "auto-correct" || stale) {
+        await loadSubmission({ preserveReviews: true, error: mappedError });
+      }
       else setError(mappedError);
-      return false;
+      return null;
     } finally {
       setActiveAction(null);
       actionLockRef.current = false;
@@ -223,24 +230,25 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
 
   const runAutomaticCorrection = async () => {
     if (!submission || !automaticCorrectionPlan || !canAutoCorrect) return;
-    if (automaticCorrectionPlan.reviews.length === 0) {
+    if (
+      automaticCorrectionPlan.reviews.length === 0
+      && hasManualCorrectionWork(automaticCorrectionPlan)
+    ) {
       setAutomaticCorrectionSummary(automaticCorrectionPlan.summary);
       return;
     }
 
-    const saved = await runAction(
+    const execution = await runAction(
       "auto-correct",
-      () => reviewSubmissionAnswers(
-        submission.id,
-        automaticCorrectionPlan.reviews.map(({ answerId, awardedPoints }) => ({
-          answerId,
-          awardedPoints,
-        })),
-      ),
+      () => executeAutomaticCorrectionPlan(submission.id, automaticCorrectionPlan),
     );
-    if (!saved) return;
+    if (!execution) return;
     setAutomaticCorrectionSummary(automaticCorrectionPlan.summary);
-    showSuccess(t("autoCorrection.saved"));
+    showSuccess(t(
+      execution.finalized
+        ? "autoCorrection.savedAndFinalized"
+        : "autoCorrection.saved",
+    ));
   };
 
   useEffect(() => {

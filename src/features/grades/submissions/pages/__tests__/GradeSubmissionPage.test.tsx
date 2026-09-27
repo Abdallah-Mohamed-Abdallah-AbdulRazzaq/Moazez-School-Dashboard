@@ -176,7 +176,7 @@ beforeEach(() => {
 });
 
 describe("GradeSubmissionPage review actions", () => {
-  it("auto-corrects an eligible objective answer without finalizing or syncing", async () => {
+  it("auto-corrects and finalizes a complete objective submission without syncing", async () => {
     const user = userEvent.setup();
     mockSubmissionRequests(objectiveSubmissionDetail(), assessmentQuestions("mcq_single"));
 
@@ -187,14 +187,14 @@ describe("GradeSubmissionPage review actions", () => {
       `/grades/submissions/${submissionId}/answers/review`,
       { reviews: [{ answerId, awardedPoints: 3 }] },
     ));
-    expect(api.apiPost).not.toHaveBeenCalledWith(
+    expect(api.apiPost).toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/review/finalize`,
     );
     expect(api.apiPost).not.toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/sync-grade-item`,
     );
     expect(submissionRequestCount()).toBe(2);
-    expect(toast.showSuccess).toHaveBeenCalledWith("autoCorrection.saved");
+    expect(toast.showSuccess).toHaveBeenCalledWith("autoCorrection.savedAndFinalized");
   });
 
   it("re-runs auto-correction over an existing objective score", async () => {
@@ -214,10 +214,16 @@ describe("GradeSubmissionPage review actions", () => {
   });
 
   it("shows manual work and requires question visibility for auto-correction", async () => {
+    const user = userEvent.setup();
     const { rerender } = render(<GradeSubmissionPage submissionId={submissionId} />);
 
     expect(await screen.findByText("needsManual 1")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "autoCorrection.detailAction" })).toBeEnabled();
+    const autoCorrect = screen.getByRole("button", { name: "autoCorrection.detailAction" });
+    expect(autoCorrect).toBeEnabled();
+    await user.click(autoCorrect);
+    expect(api.apiPost).not.toHaveBeenCalledWith(
+      `/grades/submissions/${submissionId}/review/finalize`,
+    );
 
     permissions.delete("grades.questions.view");
     rerender(<GradeSubmissionPage submissionId={submissionId} />);
@@ -225,6 +231,24 @@ describe("GradeSubmissionPage review actions", () => {
     await waitFor(() => expect(
       screen.queryByRole("button", { name: "autoCorrection.detailAction" }),
     ).not.toBeInTheDocument());
+  });
+
+  it("reloads saved objective scores when automatic finalization fails", async () => {
+    const user = userEvent.setup();
+    mockSubmissionRequests(objectiveSubmissionDetail(), assessmentQuestions("mcq_single"));
+    api.apiPost.mockRejectedValueOnce(new ApiError(
+      "Finalize failed",
+      409,
+      "grades.review.pending_answers",
+    ));
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+    await user.click(await screen.findByRole("button", { name: "autoCorrection.detailAction" }));
+
+    await waitFor(() => expect(api.apiPut).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("review_pending_answers")).toBeInTheDocument();
+    expect(submissionRequestCount()).toBe(2);
+    expect(toast.showSuccess).not.toHaveBeenCalled();
   });
 
   it("explains when an objective question has no answer record", async () => {
