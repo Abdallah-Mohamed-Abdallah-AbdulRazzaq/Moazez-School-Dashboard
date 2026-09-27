@@ -14,6 +14,7 @@ interface QuestionsOutlineProps {
   onAddQuestion: () => void;
   onMoveQuestion: (questionId: string, direction: "up" | "down") => void;
   onDeleteQuestion: (questionId: string) => void;
+  isQuestionReadOnly?: (question: AssignmentQuestion) => boolean;
 }
 
 export default function QuestionsOutline({
@@ -24,6 +25,7 @@ export default function QuestionsOutline({
   onAddQuestion,
   onMoveQuestion,
   onDeleteQuestion,
+  isQuestionReadOnly,
 }: QuestionsOutlineProps) {
   const t = useTranslations("academics.curriculum.assignmentBuilder");
 
@@ -76,7 +78,8 @@ export default function QuestionsOutline({
               onDelete={() => onDeleteQuestion(q.id)}
               canMoveUp={index > 0}
               canMoveDown={index < questions.length - 1}
-              isReadOnly={isReadOnly}
+              isReadOnly={isReadOnly || (isQuestionReadOnly?.(q) ?? false)}
+              isLegacyReadOnly={isQuestionReadOnly?.(q) ?? false}
             />
           ))}
         </div>

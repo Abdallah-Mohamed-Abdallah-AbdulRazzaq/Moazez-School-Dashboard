@@ -12,6 +12,10 @@ import QuestionDrawer from "@/features/academics/curriculum/components/QuestionD
 import { distributePoints } from "@/features/academics/curriculum/utils/distributePoints";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { Assessment, AssessmentQuestion } from "../types";
+import {
+  ASSESSMENT_AUTHORING_QUESTION_TYPES,
+  isRetiredAssessmentQuestionType,
+} from "../utils/assessmentQuestionAvailability";
 
 interface AssessmentQuestionsBuilderProps {
   assessment: Assessment;
@@ -40,6 +44,8 @@ export default function AssessmentQuestionsBuilder({
   const [questionToDelete, setQuestionToDelete] = useState<AssessmentQuestion | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDistributing, setIsDistributing] = useState(false);
+  const hasRetiredQuestions = questions.some((question) =>
+    isRetiredAssessmentQuestionType(question.questionType));
 
   const pointsSummary = useMemo(() => {
     const totalPoints = questions.reduce((sum, item) => sum + item.points, 0);
@@ -52,6 +58,7 @@ export default function AssessmentQuestionsBuilder({
   }, [assessment.maxScore, questions]);
 
   const handleSave = async (payload: Partial<AssignmentQuestion>) => {
+    if (editingQuestion && isRetiredAssessmentQuestionType(editingQuestion.questionType)) return;
     setIsSaving(true);
     try {
       if (editingQuestion) {
@@ -108,7 +115,7 @@ export default function AssessmentQuestionsBuilder({
         totalPoints={pointsSummary.totalPoints}
         difference={pointsSummary.difference}
         isMatch={pointsSummary.isMatch}
-        canAutoDistribute={!isReadOnly && questions.length > 0 && !isDistributing}
+        canAutoDistribute={!isReadOnly && !hasRetiredQuestions && questions.length > 0 && !isDistributing}
         onAutoDistribute={() => void handleAutoDistribute()}
         isReadOnly={isReadOnly}
       />
@@ -162,9 +169,9 @@ export default function AssessmentQuestionsBuilder({
                 question={question as AssignmentQuestion}
                 index={index}
                 isSelected={false}
-                isReadOnly={isReadOnly}
+                isReadOnly={isReadOnly || isRetiredAssessmentQuestionType(question.questionType)}
                 onClick={() => {
-                  if (!isReadOnly) {
+                  if (!isReadOnly && !isRetiredAssessmentQuestionType(question.questionType)) {
                     setEditingQuestion(question);
                     setIsDrawerOpen(true);
                   }
@@ -173,7 +180,9 @@ export default function AssessmentQuestionsBuilder({
                   setEditingQuestion(question);
                   setIsDrawerOpen(true);
                 }}
-                onDelete={() => setQuestionToDelete(question)}
+                onDelete={() => {
+                  if (!isRetiredAssessmentQuestionType(question.questionType)) setQuestionToDelete(question);
+                }}
               />
             ))}
           </div>
@@ -189,7 +198,8 @@ export default function AssessmentQuestionsBuilder({
         }}
         onSave={handleSave}
         question={(editingQuestion ?? null) as AssignmentQuestion | null}
-        isReadOnly={isReadOnly || isSaving}
+        isReadOnly={isReadOnly || isSaving || Boolean(editingQuestion && isRetiredAssessmentQuestionType(editingQuestion.questionType))}
+        allowedQuestionTypes={ASSESSMENT_AUTHORING_QUESTION_TYPES}
       />
 
       <ConfirmDialog

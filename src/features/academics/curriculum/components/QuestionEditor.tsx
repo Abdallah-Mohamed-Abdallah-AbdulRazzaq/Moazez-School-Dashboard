@@ -168,7 +168,9 @@ export default function QuestionEditor({
     { value: "FILL_IN_BLANK", label: t("question_types.FILL_IN_BLANK") },
     { value: "MATCHING", label: t("question_types.MATCHING") },
     { value: "MEDIA", label: t("question_types.MEDIA") },
-  ].filter(({ value }) => !allowedQuestionTypes || allowedQuestionTypes.includes(value as QuestionType));
+  ].filter(({ value }) => !allowedQuestionTypes
+    || allowedQuestionTypes.includes(value as QuestionType)
+    || (isReadOnly && value === questionType));
 
   const isMCQ = questionType === "MCQ_SINGLE" || questionType === "MCQ_MULTI";
   const canRemoveOption = options.length > 2;

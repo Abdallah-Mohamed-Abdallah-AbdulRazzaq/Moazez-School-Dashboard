@@ -16,6 +16,7 @@ interface QuestionOutlineItemProps {
   canMoveUp: boolean;
   canMoveDown: boolean;
   isReadOnly: boolean;
+  isLegacyReadOnly?: boolean;
 }
 
 export default function QuestionOutlineItem({
@@ -29,9 +30,11 @@ export default function QuestionOutlineItem({
   canMoveUp,
   canMoveDown,
   isReadOnly,
+  isLegacyReadOnly = false,
 }: QuestionOutlineItemProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
+  const tGrades = useTranslations("academics.grades.questions");
   const locale = useLocale();
 
   const displayText =
@@ -95,6 +98,11 @@ export default function QuestionOutlineItem({
             <span className="text-xs font-medium text-gray-600">
               {question.points} {t("points")}
             </span>
+            {isLegacyReadOnly ? (
+              <span className="rounded bg-[var(--warning-bg)] px-2 py-0.5 text-xs font-medium text-[var(--warning-text)]">
+                {tGrades("legacyReadOnly")}
+              </span>
+            ) : null}
           </div>
           <p className="text-sm text-gray-900 truncate">{displayText || t("question_text")}</p>
         </div>

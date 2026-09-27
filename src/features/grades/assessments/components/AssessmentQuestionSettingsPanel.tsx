@@ -35,6 +35,7 @@ interface AssessmentQuestionSettingsPanelProps {
   isReadOnly: boolean;
   onUpdate: (updates: Partial<Assessment>) => void;
   onAutoDistributePoints: () => void;
+  isAutoDistributeDisabled?: boolean;
 }
 
 export default function AssessmentQuestionSettingsPanel({
@@ -48,6 +49,7 @@ export default function AssessmentQuestionSettingsPanel({
   isReadOnly,
   onUpdate,
   onAutoDistributePoints,
+  isAutoDistributeDisabled = false,
 }: AssessmentQuestionSettingsPanelProps) {
   const locale = useLocale();
   const t = useTranslations("academics.grades.questions");
@@ -275,6 +277,7 @@ export default function AssessmentQuestionSettingsPanel({
               variant="secondary"
               size="sm"
               className="mt-2 w-full"
+              disabled={isAutoDistributeDisabled}
             >
               {t("autoDistribute")}
             </Button>

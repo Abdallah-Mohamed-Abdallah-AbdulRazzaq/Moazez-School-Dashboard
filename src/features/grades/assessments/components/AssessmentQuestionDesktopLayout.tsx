@@ -10,6 +10,7 @@ import EmptyQuestionState from "@/features/academics/curriculum/components/Empty
 import QuestionEditor from "@/features/academics/curriculum/components/QuestionEditor";
 import type { Assessment, ExamScopeType, ScopeEntityOption, ScopeOption } from "../types";
 import AssessmentQuestionSettingsPanel from "./AssessmentQuestionSettingsPanel";
+import { ASSESSMENT_AUTHORING_QUESTION_TYPES } from "../utils/assessmentQuestionAvailability";
 
 interface AssessmentQuestionDesktopLayoutProps {
   questions: AssignmentQuestion[];
@@ -34,6 +35,8 @@ interface AssessmentQuestionDesktopLayoutProps {
   onUpdateAssessment: (updates: Partial<Assessment>) => void;
   onAutoDistributePoints: () => void;
   onSaveQuestion: () => Promise<void>;
+  isQuestionReadOnly: (question: AssignmentQuestion) => boolean;
+  isAutoDistributeDisabled: boolean;
 }
 
 export default function AssessmentQuestionDesktopLayout({
@@ -59,8 +62,12 @@ export default function AssessmentQuestionDesktopLayout({
   onUpdateAssessment,
   onAutoDistributePoints,
   onSaveQuestion,
+  isQuestionReadOnly,
+  isAutoDistributeDisabled,
 }: AssessmentQuestionDesktopLayoutProps) {
   const tCommon = useTranslations("common");
+  const selectedQuestionReadOnly = isReadOnly
+    || Boolean(selectedQuestion && isQuestionReadOnly(selectedQuestion));
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -72,6 +79,7 @@ export default function AssessmentQuestionDesktopLayout({
         onAddQuestion={onAddQuestion}
         onMoveQuestion={onMoveQuestion}
         onDeleteQuestion={onDeleteQuestion}
+        isQuestionReadOnly={isQuestionReadOnly}
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto border-x bg-gray-50" style={{ borderColor: "var(--border-color)" }}>
@@ -81,7 +89,7 @@ export default function AssessmentQuestionDesktopLayout({
               <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
                 {tCommon("edit")} {tCommon("question")}
               </h2>
-              {!isReadOnly && (
+              {!selectedQuestionReadOnly && (
                 <Button
                   onClick={onSaveQuestion}
                   variant="primary"
@@ -99,7 +107,8 @@ export default function AssessmentQuestionDesktopLayout({
                 key={selectedQuestion.id}
                 question={selectedQuestion}
                 onChange={(updates) => onUpdateQuestion(selectedQuestion.id, updates)}
-                isReadOnly={isReadOnly}
+                isReadOnly={selectedQuestionReadOnly}
+                allowedQuestionTypes={ASSESSMENT_AUTHORING_QUESTION_TYPES}
                 validationErrors={validationErrors.questions?.[selectedQuestion.id]}
               />
             </div>
@@ -124,6 +133,7 @@ export default function AssessmentQuestionDesktopLayout({
             isReadOnly={isAssessmentReadOnly}
             onUpdate={onUpdateAssessment}
             onAutoDistributePoints={onAutoDistributePoints}
+            isAutoDistributeDisabled={isAutoDistributeDisabled}
           />
         </div>
       </div>

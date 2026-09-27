@@ -45,6 +45,7 @@ import { canEditAssessmentQuestions } from "../utils/assessmentContract";
 import { distributeQuestionPoints } from "../utils/distributeQuestionPoints";
 import { getEligibleAssessmentSubjects } from "../utils/assessmentSubjects";
 import { mapAssessmentQuestionApiError } from "../utils/assessmentQuestionApiErrors";
+import { isRetiredAssessmentQuestionType } from "../utils/assessmentQuestionAvailability";
 import {
   getPartialQuestionCreationFailure,
   PARTIAL_QUESTION_CREATION_RECOVERY,
@@ -502,6 +503,11 @@ export default function AssessmentQuestionsPage({
     if (!questionDraft || !lastSavedQuestion) return false;
     return JSON.stringify(questionDraft) !== JSON.stringify(lastSavedQuestion);
   }, [questionDraft, lastSavedQuestion]);
+  const hasRetiredQuestions = useMemo(
+    () => questions.some((question) =>
+      isRetiredAssessmentQuestionType(question.questionType)),
+    [questions],
+  );
 
   const canSaveAssessment = useMemo(() => {
     if (isCreateMode) {
@@ -734,6 +740,10 @@ export default function AssessmentQuestionsPage({
   ) => {
     if (!canEditQuestions) return;
     if (!questionDraft || questionDraft.id !== questionId) return;
+    if (isRetiredAssessmentQuestionType(questionDraft.questionType)) {
+      showError(t("retiredQuestionReadOnly"));
+      return;
+    }
     const nextQuestion = { ...questionDraft, ...updates };
     setQuestionDraft(nextQuestion);
     setQuestions((current) =>
@@ -746,6 +756,10 @@ export default function AssessmentQuestionsPage({
   const handleSaveQuestion = async () => {
     if (!canEditQuestions) return;
     if (!questionDraft || !isQuestionDirty) return;
+    if (isRetiredAssessmentQuestionType(questionDraft.questionType)) {
+      showError(t("retiredQuestionReadOnly"));
+      return;
+    }
     const errors = validateQuestion(
       questionDraft as AssignmentQuestion,
       tValidation,
@@ -823,6 +837,11 @@ export default function AssessmentQuestionsPage({
 
   const handleDeleteQuestion = async (questionId: string) => {
     if (!canEditQuestions) return;
+    const question = questions.find((candidate) => candidate.id === questionId);
+    if (question && isRetiredAssessmentQuestionType(question.questionType)) {
+      showError(t("retiredQuestionReadOnly"));
+      return;
+    }
     if (isCreateMode || isTemporaryQuestionId(questionId)) {
       setQuestions((current) =>
         current
@@ -859,6 +878,11 @@ export default function AssessmentQuestionsPage({
       return;
     }
     const nextIndex = direction === "up" ? index - 1 : index + 1;
+    if ([questions[index], questions[nextIndex]].some((question) =>
+      isRetiredAssessmentQuestionType(question.questionType))) {
+      showError(t("retiredQuestionReadOnly"));
+      return;
+    }
     const reordered = [...questions];
     [reordered[index], reordered[nextIndex]] = [
       reordered[nextIndex],
@@ -898,6 +922,10 @@ export default function AssessmentQuestionsPage({
 
   const handleAutoDistributePoints = async () => {
     if (!canEditQuestions) return;
+    if (hasRetiredQuestions) {
+      showError(t("retiredQuestionReadOnly"));
+      return;
+    }
     const maxScore = assessmentDraft?.maxScore || 0;
     const questionCount = questions.length;
     if (maxScore <= 0 || questionCount === 0) return;
@@ -1064,6 +1092,8 @@ export default function AssessmentQuestionsPage({
           onUpdateAssessment={updateAssessmentDraft}
           onAutoDistributePoints={() => void handleAutoDistributePoints()}
           onSaveQuestion={handleSaveQuestion}
+          isQuestionReadOnly={(question) => isRetiredAssessmentQuestionType(question.questionType)}
+          isAutoDistributeDisabled={hasRetiredQuestions}
         />
       ) : (
         <AssessmentQuestionDesktopLayout
@@ -1098,6 +1128,8 @@ export default function AssessmentQuestionsPage({
           onUpdateAssessment={updateAssessmentDraft}
           onAutoDistributePoints={() => void handleAutoDistributePoints()}
           onSaveQuestion={handleSaveQuestion}
+          isQuestionReadOnly={(question) => isRetiredAssessmentQuestionType(question.questionType)}
+          isAutoDistributeDisabled={hasRetiredQuestions}
         />
       )}
 
