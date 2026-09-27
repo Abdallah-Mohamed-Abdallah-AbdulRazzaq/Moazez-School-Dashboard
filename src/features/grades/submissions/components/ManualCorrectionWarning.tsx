@@ -6,7 +6,6 @@ interface ManualCorrectionWarningProps {
   pendingCount: number;
   compact?: boolean;
 }
-
 export default function ManualCorrectionWarning({
   pendingCount,
   compact = false,
@@ -28,4 +27,3 @@ export default function ManualCorrectionWarning({
     </div>
   );
 }
-

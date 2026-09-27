@@ -216,4 +216,3 @@ describe("buildAutomaticCorrectionPlan", () => {
     expect(correctionPlan.summary.invalidKeyCount).toBe(1);
   });
 });
-

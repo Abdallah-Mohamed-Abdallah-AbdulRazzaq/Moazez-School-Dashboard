@@ -13,7 +13,6 @@ export interface AutomaticCorrectionReview {
   questionId: string;
   awardedPoints: number;
 }
-
 export interface AutomaticCorrectionSummary {
   correctedCount: number;
   manualCount: number;
@@ -177,4 +176,3 @@ function countSkipped(
 ): number {
   return skipped.filter((entry) => entry.reason === reason).length;
 }
-
