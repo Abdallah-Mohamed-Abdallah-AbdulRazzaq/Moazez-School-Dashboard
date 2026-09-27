@@ -15,7 +15,7 @@ import type { AssessmentQuestion, ScopeEntityOption } from "../../shared/types";
 import AutomaticCorrectionDialog, {
   type AutomaticCorrectionScope,
 } from "../components/AutomaticCorrectionDialog";
-import ManualCorrectionWarning from "../components/ManualCorrectionWarning";
+import { PendingCorrectionBadge } from "../components/ManualCorrectionWarning";
 import {
   runAutomaticCorrectionBatch,
   type AutomaticCorrectionBatchProgress,
@@ -153,7 +153,7 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
       label: t("pending"),
       sortable: false,
       render: (_value, row) => row.progress.pendingCorrectionCount > 0
-        ? <ManualCorrectionWarning pendingCount={row.progress.pendingCorrectionCount} compact />
+        ? <PendingCorrectionBadge />
         : 0,
     },
     {

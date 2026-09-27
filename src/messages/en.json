@@ -7475,7 +7475,9 @@
           "eligible": "{count, plural, one {# submitted student} other {# submitted students}} eligible",
           "progress": "Processed {processed} of {total} submissions",
           "needsManual": "{count, plural, one {# question needs manual correction} other {# questions need manual correction}}",
-          "needsManualBadge": "Needs manual correction",
+          "missingAnswerRecords": "{count, plural, one {# objective question has no answer record and needs review} other {# objective questions have no answer records and need review}}",
+          "invalidAnswerKeys": "{count, plural, one {# objective question has an invalid answer key} other {# objective questions have invalid answer keys}}",
+          "pendingReviewBadge": "Pending correction",
           "saved": "Objective question scores were saved. Finalize the review when manual correction is complete.",
           "detailSummary": "Corrected {corrected} answers and preserved {preserved} existing reviews.",
           "result": {

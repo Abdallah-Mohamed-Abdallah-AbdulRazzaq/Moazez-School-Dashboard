@@ -211,11 +211,11 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
       : null,
     [questionDefinitions, submission],
   );
-  const manualCorrectionCount = automaticCorrectionPlan
+  const hasAutomaticCorrectionWarning = automaticCorrectionPlan
     ? automaticCorrectionPlan.summary.manualCount
       + automaticCorrectionPlan.summary.missingAnswerCount
-      + automaticCorrectionPlan.summary.invalidKeyCount
-    : 0;
+      + automaticCorrectionPlan.summary.invalidKeyCount > 0
+    : false;
   const canFinalize = Boolean(canReview && !hasDirtyReviews && !hasInvalidDirtyReviews && submission?.progress.pendingCorrectionCount === 0);
 
   const runAutomaticCorrection = async () => {
@@ -403,8 +403,8 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
 
       {error ? <div role="alert" className="border border-[var(--error-border)] bg-[var(--error-bg)] p-4 text-sm text-[var(--error-text)]"><div>{error.message}</div>{error.traceId ? <div className="mt-1" aria-label={`Trace ID ${error.traceId}`}>{t("traceId", { traceId: error.traceId })}</div> : null}</div> : null}
 
-      {manualCorrectionCount > 0 ? (
-        <ManualCorrectionWarning pendingCount={manualCorrectionCount} />
+      {hasAutomaticCorrectionWarning && automaticCorrectionPlan ? (
+        <ManualCorrectionWarning summary={automaticCorrectionPlan.summary} />
       ) : null}
 
       {automaticCorrectionSummary ? (

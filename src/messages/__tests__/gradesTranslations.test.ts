@@ -116,7 +116,9 @@ describe("assessment automatic-correction translations", () => {
     "confirm",
     "progress",
     "needsManual",
-    "needsManualBadge",
+    "missingAnswerRecords",
+    "invalidAnswerKeys",
+    "pendingReviewBadge",
     "retryFailed",
   ] as const;
 

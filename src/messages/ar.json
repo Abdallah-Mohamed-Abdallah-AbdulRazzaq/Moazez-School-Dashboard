@@ -7476,7 +7476,9 @@
           "eligible": "عدد التسليمات المؤهلة: {count}",
           "progress": "تمت معالجة {processed} من {total} تسليمات",
           "needsManual": "يوجد {count} سؤال يحتاج إلى تصحيح يدوي",
-          "needsManualBadge": "يحتاج إلى تصحيح يدوي",
+          "missingAnswerRecords": "يوجد {count} سؤال موضوعي بلا سجل إجابة ويحتاج إلى مراجعة",
+          "invalidAnswerKeys": "يوجد {count} سؤال موضوعي بمفتاح إجابة غير صالح",
+          "pendingReviewBadge": "بانتظار التصحيح",
           "saved": "تم حفظ درجات الأسئلة الموضوعية. أنهِ المراجعة بعد إكمال التصحيح اليدوي.",
           "detailSummary": "تم تصحيح {corrected} إجابات مع الحفاظ على {preserved} مراجعات سابقة.",
           "result": {

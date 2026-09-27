@@ -118,7 +118,7 @@ describe("AssessmentSubmissionsPage", () => {
     mockApiWithRows();
     render(<AssessmentSubmissionsPage assessmentId={uuid} />);
 
-    expect(await screen.findByText("needsManualBadge")).toBeInTheDocument();
+    expect(await screen.findByText("pendingReviewBadge")).toBeInTheDocument();
     await user.type(screen.getByLabelText("search"), "Adam");
     await user.click(screen.getByRole("button", { name: "autoCorrection.open" }));
     await waitFor(() => expect(api.apiGet).toHaveBeenCalledWith(

@@ -211,6 +211,19 @@ describe("GradeSubmissionPage review actions", () => {
     ).not.toBeInTheDocument());
   });
 
+  it("explains when an objective question has no answer record", async () => {
+    const detail = objectiveSubmissionDetail();
+    detail.questions[0].answer = null;
+    detail.answers = [];
+    detail.progress.answeredCount = 0;
+    mockSubmissionRequests(detail, assessmentQuestions("mcq_single"));
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+
+    expect(await screen.findByText("missingAnswerRecords 1")).toBeInTheDocument();
+    expect(screen.queryByText("needsManual 1")).not.toBeInTheDocument();
+  });
+
   it("displays the question type in the question header", async () => {
     render(<GradeSubmissionPage submissionId={submissionId} />);
 
