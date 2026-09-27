@@ -42,7 +42,7 @@ const assessmentId = "123e4567-e89b-42d3-a456-426614174001";
 const submissionId = "123e4567-e89b-42d3-a456-426614174002";
 const answerId = "123e4567-e89b-42d3-a456-426614174003";
 
-function submissionDetail(status: "submitted" | "corrected" = "submitted") {
+function submissionDetail(status: "in_progress" | "submitted" | "corrected" = "submitted") {
   return {
     id: submissionId,
     termId: assessmentId,
@@ -51,7 +51,7 @@ function submissionDetail(status: "submitted" | "corrected" = "submitted") {
     enrollmentId: assessmentId,
     status,
     startedAt: "2026-01-01T00:00:00Z",
-    submittedAt: "2026-01-01T01:00:00Z",
+    submittedAt: status === "in_progress" ? null : "2026-01-01T01:00:00Z",
     correctedAt: status === "corrected" ? "2026-01-01T02:00:00Z" : null,
     totalScore: 2,
     maxScore: 3,
@@ -244,6 +244,40 @@ describe("GradeSubmissionPage review actions", () => {
     render(<GradeSubmissionPage submissionId={submissionId} />);
 
     expect(await screen.findByText("questionTypes.essay")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["correct", "answerCorrect"],
+    ["wrong", "answerIncorrect"],
+  ] as const)("shows whether the submitted objective answer is %s", async (
+    selectedOptionId,
+    expectedLabel,
+  ) => {
+    const detail = objectiveSubmissionDetail();
+    detail.questions[0].answer!.selectedOptions[0] = {
+      optionId: selectedOptionId,
+      label: selectedOptionId,
+      labelAr: null,
+      value: null,
+    };
+    mockSubmissionRequests(detail, assessmentQuestions("mcq_single"));
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+
+    expect(await screen.findByText(expectedLabel)).toBeInTheDocument();
+  });
+
+  it("does not show answer correctness before submission", async () => {
+    const detail = objectiveSubmissionDetail();
+    detail.status = "in_progress";
+    detail.submittedAt = null;
+    mockSubmissionRequests(detail, assessmentQuestions("mcq_single"));
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+
+    expect(await screen.findByText("questionTypes.singleChoice")).toBeInTheDocument();
+    expect(screen.queryByText("answerCorrect")).not.toBeInTheDocument();
+    expect(screen.queryByText("answerIncorrect")).not.toBeInTheDocument();
   });
 
   it("saves bilingual review fields once and locks other mutations while pending", async () => {

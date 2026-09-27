@@ -82,32 +82,36 @@ function scoreObjectiveAnswer(
   submissionAnswer: GradeSubmissionAnswer,
   definition: AssessmentQuestion,
 ): number | null {
-  if (definition.questionType === "TRUE_FALSE") {
-    return scoreTrueFalseAnswer(submissionAnswer, definition);
-  }
-  return scoreChoiceAnswer(submissionAnswer, definition);
+  const isCorrect = getObjectiveAnswerCorrectness(submissionAnswer, definition);
+  if (isCorrect === null) return null;
+  return isCorrect ? definition.points : 0;
 }
 
-function scoreChoiceAnswer(
-  submissionAnswer: GradeSubmissionAnswer,
-  definition: AssessmentQuestion,
-): number | null {
+export function getObjectiveAnswerCorrectness(
+  submissionAnswer: GradeSubmissionAnswer | null,
+  definition: AssessmentQuestion | undefined,
+): boolean | null {
+  if (!submissionAnswer || !definition || !AUTO_CORRECTABLE_TYPES.has(definition.questionType)) {
+    return null;
+  }
+  if (definition.questionType === "TRUE_FALSE") {
+    return getTrueFalseAnswerCorrectness(submissionAnswer, definition);
+  }
   const correctOptionIds = definition.options
     ?.filter((option) => option.isCorrect)
     .map((option) => option.id);
   if (!isValidChoiceKey(definition.questionType, correctOptionIds)) return null;
-
   const selectedOptionIds = submissionAnswer.selectedOptions.map(({ optionId }) => optionId);
-  return sameIdSet(selectedOptionIds, correctOptionIds) ? definition.points : 0;
+  return sameIdSet(selectedOptionIds, correctOptionIds);
 }
 
-function scoreTrueFalseAnswer(
+function getTrueFalseAnswerCorrectness(
   submissionAnswer: GradeSubmissionAnswer,
   definition: AssessmentQuestion,
-): number | null {
+): boolean | null {
   if (typeof definition.correctAnswer !== "boolean" || !definition.options) return null;
-  if (submissionAnswer.selectedOptions.length === 0) return 0;
-  if (submissionAnswer.selectedOptions.length !== 1) return 0;
+  if (submissionAnswer.selectedOptions.length === 0) return false;
+  if (submissionAnswer.selectedOptions.length !== 1) return false;
 
   const selectedOptionId = submissionAnswer.selectedOptions[0].optionId;
   const selectedOption = definition.options.find(({ id }) => id === selectedOptionId);
@@ -116,8 +120,7 @@ function scoreTrueFalseAnswer(
   const selectedBoolean = parseBooleanOptionValue(
     selectedOption.value ?? selectedOption.textEn ?? selectedOption.textAr,
   );
-  if (selectedBoolean === null) return null;
-  return selectedBoolean === definition.correctAnswer ? definition.points : 0;
+  return selectedBoolean === null ? null : selectedBoolean === definition.correctAnswer;
 }
 
 function isValidChoiceKey(

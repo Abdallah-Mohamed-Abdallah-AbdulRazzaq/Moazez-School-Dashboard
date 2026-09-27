@@ -121,6 +121,10 @@ describe("assessment automatic-correction translations", () => {
     "pendingReviewBadge",
     "retryFailed",
   ] as const;
+  const answerCorrectnessKeys = [
+    "answerCorrect",
+    "answerIncorrect",
+  ] as const;
 
   it.each([
     ["en", enMessages],
@@ -136,5 +140,8 @@ describe("assessment automatic-correction translations", () => {
     expect(autoCorrection.result.failed).toBeTruthy();
     expect(messages.academics.grades.questions.legacyReadOnly).toBeTruthy();
     expect(messages.academics.grades.questions.retiredQuestionReadOnly).toBeTruthy();
+    for (const key of answerCorrectnessKeys) {
+      expect(messages.academics.grades.submissions[key]).toBeTruthy();
+    }
   });
 });

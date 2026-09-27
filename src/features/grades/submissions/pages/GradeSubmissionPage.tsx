@@ -8,11 +8,13 @@ import {
   ArrowRight,
   BookOpenCheck,
   CalendarClock,
+  CheckCircle2,
   CircleGauge,
   ClipboardCheck,
   type LucideIcon,
   School,
   UserRound,
+  XCircle,
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { ConfirmDialog, EmptyState } from "@/components/ui";
@@ -45,6 +47,7 @@ import {
 } from "../utils/submissionAnswerPayload";
 import {
   buildAutomaticCorrectionPlan,
+  getObjectiveAnswerCorrectness,
   type AutomaticCorrectionSummary,
 } from "../utils/automaticCorrection";
 import {
@@ -440,6 +443,9 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
             || hasCompleteMatchingAnswer(definition, draft);
           const showCorrectionDetails = submission.status !== "in_progress" && Boolean(question.answer);
           const answer = question.answer;
+          const answerCorrectness = submission.status === "in_progress"
+            ? null
+            : getObjectiveAnswerCorrectness(answer, definition);
 
           return (
             <section key={question.id} className="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--surface-color)] shadow-sm">
@@ -452,10 +458,13 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
                     {locale === "ar" ? question.promptAr || question.prompt : question.prompt}
                   </h2>
                 </div>
-                <div className="flex shrink-0 items-center gap-2 text-sm">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 text-sm">
                   <span className="rounded-full border border-[var(--border-color)] bg-[var(--surface-color)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)]">
                     {t(`questionTypes.${questionTypeMessageKey(question.type)}`)}
                   </span>
+                  {answerCorrectness !== null
+                    ? <AnswerCorrectnessBadge isCorrect={answerCorrectness} />
+                    : null}
                   {question.required ? <span className="rounded-full bg-[var(--warning-bg)] px-2.5 py-1 text-xs font-semibold text-[var(--warning-text)]">{t("required")}</span> : null}
                   <span className="rounded-full border border-[var(--border-color)] bg-[var(--surface-color)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)]">{question.points} {t("points")}</span>
                 </div>
@@ -551,6 +560,21 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
       />
       <ConfirmDialog isOpen={isDiscardDialogOpen} onClose={() => setIsDiscardDialogOpen(false)} onConfirm={() => router.push(returnHref)} title={t("discardReviewTitle")} description={t("discardReviewDescription")} confirmLabel={t("discardReviewConfirm")} cancelLabel={commonT("cancel")} severity="warning" />
     </div>
+  );
+}
+
+function AnswerCorrectnessBadge({ isCorrect }: { isCorrect: boolean }) {
+  const t = useTranslations("academics.grades.submissions");
+  const Icon = isCorrect ? CheckCircle2 : XCircle;
+  const colorClasses = isCorrect
+    ? "border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success-text)]"
+    : "border-[var(--error-border)] bg-[var(--error-bg)] text-[var(--error-text)]";
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClasses}`}>
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {t(isCorrect ? "answerCorrect" : "answerIncorrect")}
+    </span>
   );
 }
 

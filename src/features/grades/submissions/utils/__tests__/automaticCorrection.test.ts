@@ -3,6 +3,7 @@ import type { AssessmentQuestion } from "../../../shared/types";
 import type { GradeSubmissionAnswer, GradeSubmissionDetail } from "../../types";
 import {
   buildAutomaticCorrectionPlan,
+  getObjectiveAnswerCorrectness,
   hasManualCorrectionWork,
 } from "../automaticCorrection";
 
@@ -217,5 +218,33 @@ describe("buildAutomaticCorrectionPlan", () => {
 
     expect(correctionPlan.reviews).toEqual([]);
     expect(correctionPlan.summary.invalidKeyCount).toBe(1);
+  });
+});
+
+describe("getObjectiveAnswerCorrectness", () => {
+  it.each([
+    ["MCQ_SINGLE", ["a"], true],
+    ["MCQ_SINGLE", ["wrong"], false],
+    ["MCQ_MULTI", ["a", "b"], true],
+    ["MCQ_MULTI", ["a"], false],
+  ] as const)(
+    "reports whether a submitted %s selection is correct",
+    (questionType, selectedOptionIds, expectedCorrectness) => {
+      expect(getObjectiveAnswerCorrectness(
+        answer([...selectedOptionIds]),
+        choiceDefinition(questionType),
+      )).toBe(expectedCorrectness);
+    },
+  );
+
+  it.each([
+    [null, choiceDefinition("MCQ_SINGLE")],
+    [answer(["a"]), definition("ESSAY")],
+    [answer(["a"]), definition("MCQ_SINGLE", { options: [] })],
+  ] as const)("does not report correctness without a gradeable objective answer", (
+    submissionAnswer,
+    questionDefinition,
+  ) => {
+    expect(getObjectiveAnswerCorrectness(submissionAnswer, questionDefinition)).toBeNull();
   });
 });
