@@ -12,6 +12,10 @@ const api = vi.hoisted(() => ({
 }));
 const router = vi.hoisted(() => ({ push: vi.fn() }));
 const toast = vi.hoisted(() => ({ showError: vi.fn(), showSuccess: vi.fn() }));
+const permissions = vi.hoisted(() => new Set([
+  "grades.submissions.review",
+  "grades.questions.view",
+]));
 const translate = vi.hoisted(() => (key: string, values?: Record<string, unknown>) =>
   values ? `${key} ${Object.values(values).join(" ")}` : key,
 );
@@ -30,7 +34,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
-    hasPermission: (permission: string) => permission === "grades.submissions.review",
+    hasPermission: (permission: string) => permissions.has(permission),
   }),
 }));
 
@@ -90,6 +94,69 @@ function submissionDetail(status: "submitted" | "corrected" = "submitted") {
   };
 }
 
+function assessmentQuestions(type = "essay") {
+  return {
+    assessmentId,
+    totalQuestions: 1,
+    totalPoints: 3,
+    pointsMatchMaxScore: true,
+    questions: [{
+      id: assessmentId,
+      assessmentId,
+      prompt: "Prompt",
+      promptAr: "سؤال",
+      type,
+      points: 3,
+      sortOrder: 1,
+      required: true,
+      options: type === "mcq_single"
+        ? [
+            { id: "correct", label: "Correct", labelAr: "صحيح", isCorrect: true, sortOrder: 1 },
+            { id: "wrong", label: "Wrong", labelAr: "خطأ", isCorrect: false, sortOrder: 2 },
+          ]
+        : undefined,
+    }],
+  };
+}
+
+function objectiveSubmissionDetail() {
+  const detail = submissionDetail();
+  return {
+    ...detail,
+    progress: { ...detail.progress, pendingCorrectionCount: 1 },
+    questions: [{
+      ...detail.questions[0],
+      type: "mcq_single",
+      answer: {
+        ...detail.questions[0].answer,
+        type: "mcq_single",
+        awardedPoints: null,
+        reviewerComment: null,
+        reviewerCommentAr: null,
+        selectedOptions: [{
+          optionId: "correct",
+          label: "Correct",
+          labelAr: "صحيح",
+          value: null,
+        }],
+      },
+    }],
+  };
+}
+
+function mockSubmissionRequests(
+  detail: ReturnType<typeof submissionDetail>,
+  questions = assessmentQuestions(),
+) {
+  api.apiGet.mockImplementation((url: string) =>
+    url.endsWith("/questions") ? Promise.resolve(questions) : Promise.resolve(detail));
+}
+
+function submissionRequestCount() {
+  return api.apiGet.mock.calls.filter(([url]) =>
+    url === `/grades/submissions/${submissionId}`).length;
+}
+
 async function editEnglishReview(user: ReturnType<typeof userEvent.setup>, value: string) {
   const comment = await screen.findByRole("textbox", { name: "reviewCommentEn" });
   await user.clear(comment);
@@ -99,13 +166,51 @@ async function editEnglishReview(user: ReturnType<typeof userEvent.setup>, value
 
 beforeEach(() => {
   vi.clearAllMocks();
-  api.apiGet.mockResolvedValue(submissionDetail());
+  permissions.clear();
+  permissions.add("grades.submissions.review");
+  permissions.add("grades.questions.view");
+  mockSubmissionRequests(submissionDetail());
   api.apiPost.mockResolvedValue({});
   api.apiPatch.mockResolvedValue({});
   api.apiPut.mockResolvedValue({});
 });
 
 describe("GradeSubmissionPage review actions", () => {
+  it("auto-corrects an eligible objective answer without finalizing or syncing", async () => {
+    const user = userEvent.setup();
+    mockSubmissionRequests(objectiveSubmissionDetail(), assessmentQuestions("mcq_single"));
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+    await user.click(await screen.findByRole("button", { name: "autoCorrection.detailAction" }));
+
+    await waitFor(() => expect(api.apiPut).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionId}/answers/review`,
+      { reviews: [{ answerId, awardedPoints: 3 }] },
+    ));
+    expect(api.apiPost).not.toHaveBeenCalledWith(
+      `/grades/submissions/${submissionId}/review/finalize`,
+    );
+    expect(api.apiPost).not.toHaveBeenCalledWith(
+      `/grades/submissions/${submissionId}/sync-grade-item`,
+    );
+    expect(submissionRequestCount()).toBe(2);
+    expect(toast.showSuccess).toHaveBeenCalledWith("autoCorrection.saved");
+  });
+
+  it("shows manual work and requires question visibility for auto-correction", async () => {
+    const { rerender } = render(<GradeSubmissionPage submissionId={submissionId} />);
+
+    expect(await screen.findByText("needsManual 1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "autoCorrection.detailAction" })).toBeEnabled();
+
+    permissions.delete("grades.questions.view");
+    rerender(<GradeSubmissionPage submissionId={submissionId} />);
+
+    await waitFor(() => expect(
+      screen.queryByRole("button", { name: "autoCorrection.detailAction" }),
+    ).not.toBeInTheDocument());
+  });
+
   it("displays the question type in the question header", async () => {
     render(<GradeSubmissionPage submissionId={submissionId} />);
 
@@ -135,7 +240,7 @@ describe("GradeSubmissionPage review actions", () => {
     expect(saveReview).toBeDisabled();
 
     resolvePatch();
-    await waitFor(() => expect(api.apiGet).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(submissionRequestCount()).toBe(2));
     expect(api.apiPatch).toHaveBeenCalledTimes(1);
   });
 
@@ -157,7 +262,7 @@ describe("GradeSubmissionPage review actions", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("submission_locked");
     expect(screen.getByRole("alert")).toHaveTextContent("trace-1");
     expect(screen.getByRole("textbox", { name: "reviewCommentEn" })).toHaveValue("Keep this draft");
-    expect(api.apiGet).toHaveBeenCalledTimes(2);
+    expect(submissionRequestCount()).toBe(2);
   });
 
   it("shows partial recovery after a failed bulk review and successful reload", async () => {
@@ -179,21 +284,26 @@ describe("GradeSubmissionPage review actions", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("save-trace");
     expect(screen.getByRole("textbox", { name: "reviewCommentEn" })).toHaveValue("Bulk draft");
     expect(api.apiPut).toHaveBeenCalledTimes(1);
-    expect(api.apiGet).toHaveBeenCalledTimes(2);
+    expect(submissionRequestCount()).toBe(2);
   });
 
   it("retains drafts and reports both errors when bulk recovery reload fails", async () => {
     const user = userEvent.setup();
-    api.apiGet
-      .mockResolvedValueOnce(submissionDetail())
-      .mockRejectedValueOnce(new ApiError(
-        "Reload locked",
-        409,
-        "grades.submission.locked",
-        undefined,
-        undefined,
-        "reload-trace",
-      ));
+    let detailRequests = 0;
+    api.apiGet.mockImplementation((url: string) => {
+      if (url.endsWith("/questions")) return Promise.resolve(assessmentQuestions());
+      detailRequests += 1;
+      return detailRequests === 1
+        ? Promise.resolve(submissionDetail())
+        : Promise.reject(new ApiError(
+            "Reload locked",
+            409,
+            "grades.submission.locked",
+            undefined,
+            undefined,
+            "reload-trace",
+          ));
+    });
     api.apiPut.mockRejectedValueOnce(new ApiError(
       "Save failed",
       500,
@@ -215,7 +325,7 @@ describe("GradeSubmissionPage review actions", () => {
   });
 
   it("renders corrected submissions read-only, blocks finalize, and enables sync", async () => {
-    api.apiGet.mockResolvedValue(submissionDetail("corrected"));
+    mockSubmissionRequests(submissionDetail("corrected"));
     render(<GradeSubmissionPage submissionId={submissionId} />);
 
     expect(await screen.findByRole("textbox", { name: "reviewCommentEn" })).toBeDisabled();
@@ -226,7 +336,7 @@ describe("GradeSubmissionPage review actions", () => {
 
   it("notifies when syncing a corrected submission succeeds", async () => {
     const user = userEvent.setup();
-    api.apiGet.mockResolvedValue(submissionDetail("corrected"));
+    mockSubmissionRequests(submissionDetail("corrected"));
     render(<GradeSubmissionPage submissionId={submissionId} />);
 
     await user.click(await screen.findByRole("button", { name: "sync" }));
@@ -236,7 +346,7 @@ describe("GradeSubmissionPage review actions", () => {
 
   it("notifies when syncing a corrected submission fails", async () => {
     const user = userEvent.setup();
-    api.apiGet.mockResolvedValue(submissionDetail("corrected"));
+    mockSubmissionRequests(submissionDetail("corrected"));
     api.apiPost.mockRejectedValueOnce(new ApiError(
       "Sync locked",
       409,

@@ -24,6 +24,7 @@ import { describeGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import type { AssessmentQuestion } from "../../shared/types";
 import SubmissionQuestionAnswerField from "../components/SubmissionQuestionAnswerField";
 import SubmissionAnswerReviewFields from "../components/SubmissionAnswerReviewFields";
+import ManualCorrectionWarning from "../components/ManualCorrectionWarning";
 import {
   fetchGradeSubmission,
   finalizeSubmissionReview,
@@ -42,6 +43,10 @@ import {
   hasSubmissionAnswer,
   isMatchingQuestion,
 } from "../utils/submissionAnswerPayload";
+import {
+  buildAutomaticCorrectionPlan,
+  type AutomaticCorrectionSummary,
+} from "../utils/automaticCorrection";
 import {
   buildDirtyReviewPayloads,
   createSubmissionReviewDraft,
@@ -97,6 +102,8 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
   const [error, setError] = useState<{ message: string; traceId?: string } | null>(null);
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false);
+  const [automaticCorrectionSummary, setAutomaticCorrectionSummary] =
+    useState<AutomaticCorrectionSummary | null>(null);
 
   const loadSubmission = useCallback(async (options: { preserveReviews?: boolean; error?: { message: string; traceId?: string } } = {}) => {
     const previousDrafts = reviewDraftsRef.current;
@@ -138,7 +145,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
   }, [loadSubmission]);
 
   const runAction = async (key: string, action: () => Promise<unknown>) => {
-    if (actionLockRef.current) return;
+    if (actionLockRef.current) return false;
     actionLockRef.current = true;
     setActiveAction(key);
     setError(null);
@@ -146,6 +153,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
       await action();
       await loadSubmission();
       if (key === "sync") showSuccess(t("messages.synced"));
+      return true;
     } catch (requestError) {
       const descriptor = describeGradesApiError(requestError);
       const mappedError = { message: errorT(descriptor.key), traceId: descriptor.traceId };
@@ -153,6 +161,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
       const stale = ["submission_already_submitted", "submission_locked", "submission_not_submitted", "review_already_finalized", "review_pending_answers"].includes(descriptor.key);
       if (stale) await loadSubmission({ preserveReviews: true, error: mappedError });
       else setError(mappedError);
+      return false;
     } finally {
       setActiveAction(null);
       actionLockRef.current = false;
@@ -184,6 +193,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
 
   const canEnter = hasPermission("grades.submissions.submit") && submission?.status === "in_progress";
   const canReview = hasPermission("grades.submissions.review") && submission?.status === "submitted";
+  const canAutoCorrect = Boolean(canReview && canViewQuestions);
   const canViewReview = hasPermission("grades.submissions.review") && (submission?.status === "submitted" || submission?.status === "corrected");
   const canSubmit = canEnter && submission.progress.requiredAnsweredCount === submission.progress.requiredQuestionCount;
   const sortedQuestions = useMemo(
@@ -195,7 +205,40 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
   const hasDirtyReviews = dirtyAnswerIds.length > 0;
   const hasInvalidDirtyReviews = dirtyAnswerIds.some((id) => hasSubmissionReviewErrors(validateSubmissionReviewDraft(reviewDrafts[id], reviewAnswers.find((answer) => answer.id === id)?.maxPoints ?? 0)));
   const bulkReviewPayloads = useMemo(() => buildDirtyReviewPayloads(reviewDrafts, initialReviewDrafts, reviewAnswers), [initialReviewDrafts, reviewAnswers, reviewDrafts]);
+  const automaticCorrectionPlan = useMemo(
+    () => submission
+      ? buildAutomaticCorrectionPlan(submission, questionDefinitions)
+      : null,
+    [questionDefinitions, submission],
+  );
+  const manualCorrectionCount = automaticCorrectionPlan
+    ? automaticCorrectionPlan.summary.manualCount
+      + automaticCorrectionPlan.summary.missingAnswerCount
+      + automaticCorrectionPlan.summary.invalidKeyCount
+    : 0;
   const canFinalize = Boolean(canReview && !hasDirtyReviews && !hasInvalidDirtyReviews && submission?.progress.pendingCorrectionCount === 0);
+
+  const runAutomaticCorrection = async () => {
+    if (!submission || !automaticCorrectionPlan || !canAutoCorrect) return;
+    if (automaticCorrectionPlan.reviews.length === 0) {
+      setAutomaticCorrectionSummary(automaticCorrectionPlan.summary);
+      return;
+    }
+
+    const saved = await runAction(
+      "auto-correct",
+      () => reviewSubmissionAnswers(
+        submission.id,
+        automaticCorrectionPlan.reviews.map(({ answerId, awardedPoints }) => ({
+          answerId,
+          awardedPoints,
+        })),
+      ),
+    );
+    if (!saved) return;
+    setAutomaticCorrectionSummary(automaticCorrectionPlan.summary);
+    showSuccess(t("autoCorrection.saved"));
+  };
 
   useEffect(() => {
     if (!hasDirtyReviews) return;
@@ -298,6 +341,16 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
                     {t("saveAll")}
                   </Button>
                 ) : null}
+                {canAutoCorrect ? (
+                  <Button
+                    variant="secondary"
+                    loading={activeAction === "auto-correct"}
+                    disabled={activeAction !== null}
+                    onClick={() => void runAutomaticCorrection()}
+                  >
+                    {t("autoCorrection.detailAction")}
+                  </Button>
+                ) : null}
                 {canReview ? (
                   <Button
                     variant="secondary"
@@ -349,6 +402,19 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
       </header>
 
       {error ? <div role="alert" className="border border-[var(--error-border)] bg-[var(--error-bg)] p-4 text-sm text-[var(--error-text)]"><div>{error.message}</div>{error.traceId ? <div className="mt-1" aria-label={`Trace ID ${error.traceId}`}>{t("traceId", { traceId: error.traceId })}</div> : null}</div> : null}
+
+      {manualCorrectionCount > 0 ? (
+        <ManualCorrectionWarning pendingCount={manualCorrectionCount} />
+      ) : null}
+
+      {automaticCorrectionSummary ? (
+        <div role="status" className="rounded-xl border border-[var(--border-color)] bg-[var(--surface-secondary)] p-4 text-sm text-[var(--text-secondary)]">
+          {t("autoCorrection.detailSummary", {
+            corrected: automaticCorrectionSummary.correctedCount,
+            preserved: automaticCorrectionSummary.preservedCount,
+          })}
+        </div>
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SubmissionSummaryItem
