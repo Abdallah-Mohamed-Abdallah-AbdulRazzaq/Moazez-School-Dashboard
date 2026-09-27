@@ -141,14 +141,13 @@ describe("runAutomaticCorrectionBatch", () => {
       "corrected",
       "manual_only",
       "failed",
-      "skipped",
+      "corrected",
     ]);
-    expect(api.apiPut).toHaveBeenCalledTimes(1);
+    expect(api.apiPut).toHaveBeenCalledTimes(2);
     expect(batch.failedSubmissionIds).toEqual([submissionIds[2]]);
     expect(batch.totals).toMatchObject({
-      correctedCount: 1,
+      correctedCount: 2,
       missingAnswerCount: 1,
-      preservedCount: 1,
       studentsProcessed: 4,
       studentsFailed: 1,
     });

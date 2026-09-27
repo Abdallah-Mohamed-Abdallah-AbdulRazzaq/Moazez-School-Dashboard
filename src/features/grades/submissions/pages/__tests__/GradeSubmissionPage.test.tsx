@@ -197,6 +197,22 @@ describe("GradeSubmissionPage review actions", () => {
     expect(toast.showSuccess).toHaveBeenCalledWith("autoCorrection.saved");
   });
 
+  it("re-runs auto-correction over an existing objective score", async () => {
+    const user = userEvent.setup();
+    const detail = objectiveSubmissionDetail();
+    detail.questions[0].answer!.awardedPoints = 1;
+    detail.questions[0].answer!.correctionStatus = "corrected";
+    mockSubmissionRequests(detail, assessmentQuestions("mcq_single"));
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+    await user.click(await screen.findByRole("button", { name: "autoCorrection.detailAction" }));
+
+    await waitFor(() => expect(api.apiPut).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionId}/answers/review`,
+      { reviews: [{ answerId, awardedPoints: 3 }] },
+    ));
+  });
+
   it("shows manual work and requires question visibility for auto-correction", async () => {
     const { rerender } = render(<GradeSubmissionPage submissionId={submissionId} />);
 

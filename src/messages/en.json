@@ -7479,11 +7479,10 @@
           "invalidAnswerKeys": "{count, plural, one {# objective question has an invalid answer key} other {# objective questions have invalid answer keys}}",
           "pendingReviewBadge": "Pending correction",
           "saved": "Objective question scores were saved. Finalize the review when manual correction is complete.",
-          "detailSummary": "Corrected {corrected} answers and preserved {preserved} existing reviews.",
+          "detailSummary": "Corrected {corrected} objective answers.",
           "result": {
             "corrected": "Objective answers corrected: {count}",
             "manual": "Manual questions: {count}",
-            "preserved": "Existing reviews preserved: {count}",
             "missingAnswers": "Missing answer records: {count}",
             "invalidKeys": "Invalid answer keys: {count}",
             "failed": "Students failed: {count}"

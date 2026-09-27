@@ -411,7 +411,6 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
         <div role="status" className="rounded-xl border border-[var(--border-color)] bg-[var(--surface-secondary)] p-4 text-sm text-[var(--text-secondary)]">
           {t("autoCorrection.detailSummary", {
             corrected: automaticCorrectionSummary.correctedCount,
-            preserved: automaticCorrectionSummary.preservedCount,
           })}
         </div>
       ) : null}

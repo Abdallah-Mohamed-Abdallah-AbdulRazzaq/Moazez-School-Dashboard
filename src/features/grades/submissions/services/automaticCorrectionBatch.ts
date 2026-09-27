@@ -42,7 +42,6 @@ interface AutomaticCorrectionBatchArgs {
 const EMPTY_SUMMARY: AutomaticCorrectionSummary = {
   correctedCount: 0,
   manualCount: 0,
-  preservedCount: 0,
   missingAnswerCount: 0,
   invalidKeyCount: 0,
 };
@@ -134,7 +133,6 @@ function addStudentResult(
     ...totals,
     correctedCount: totals.correctedCount + result.summary.correctedCount,
     manualCount: totals.manualCount + result.summary.manualCount,
-    preservedCount: totals.preservedCount + result.summary.preservedCount,
     missingAnswerCount: totals.missingAnswerCount + result.summary.missingAnswerCount,
     invalidKeyCount: totals.invalidKeyCount + result.summary.invalidKeyCount,
   };

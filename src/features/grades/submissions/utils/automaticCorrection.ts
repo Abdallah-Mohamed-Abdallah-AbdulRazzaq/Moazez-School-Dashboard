@@ -4,7 +4,6 @@ import type { GradeSubmissionAnswer, GradeSubmissionDetail } from "../types";
 
 export type AutomaticCorrectionSkipReason =
   | "manual_question"
-  | "already_reviewed"
   | "missing_answer_record"
   | "invalid_answer_key";
 
@@ -16,7 +15,6 @@ export interface AutomaticCorrectionReview {
 export interface AutomaticCorrectionSummary {
   correctedCount: number;
   manualCount: number;
-  preservedCount: number;
   missingAnswerCount: number;
   invalidKeyCount: number;
 }
@@ -70,7 +68,6 @@ function decideQuestionCorrection(
     return skipQuestion(question.id, "manual_question");
   }
   if (!question.answer) return skipQuestion(question.id, "missing_answer_record");
-  if (isReviewed(question.answer)) return skipQuestion(question.id, "already_reviewed");
 
   const awardedPoints = scoreObjectiveAnswer(question.answer, definition);
   if (awardedPoints === null) return skipQuestion(question.id, "invalid_answer_key");
@@ -138,12 +135,6 @@ function sameIdSet(left: readonly string[], right: readonly string[]): boolean {
   return left.every((optionId) => expectedIds.has(optionId));
 }
 
-function isReviewed(submissionAnswer: GradeSubmissionAnswer): boolean {
-  return submissionAnswer.reviewedAt !== null
-    || submissionAnswer.awardedPoints !== null
-    || submissionAnswer.correctionStatus.toLowerCase() === "corrected";
-}
-
 function parseBooleanOptionValue(optionValue: string | undefined): boolean | null {
   if (optionValue?.toLowerCase() === "true") return true;
   if (optionValue?.toLowerCase() === "false") return false;
@@ -164,7 +155,6 @@ function summarizeCorrectionPlan(
   return {
     correctedCount,
     manualCount: countSkipped(skipped, "manual_question"),
-    preservedCount: countSkipped(skipped, "already_reviewed"),
     missingAnswerCount: countSkipped(skipped, "missing_answer_record"),
     invalidKeyCount: countSkipped(skipped, "invalid_answer_key"),
   };

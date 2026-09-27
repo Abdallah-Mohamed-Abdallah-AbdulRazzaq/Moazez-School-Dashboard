@@ -96,7 +96,6 @@ export default function AutomaticCorrectionDialog({
           <div className="grid gap-2 rounded-xl bg-[var(--surface-secondary)] p-4 text-sm sm:grid-cols-2">
             <span>{t("result.corrected", { count: result.totals.correctedCount })}</span>
             <span>{t("result.manual", { count: result.totals.manualCount })}</span>
-            <span>{t("result.preserved", { count: result.totals.preservedCount })}</span>
             <span>{t("result.missingAnswers", { count: result.totals.missingAnswerCount })}</span>
             <span>{t("result.invalidKeys", { count: result.totals.invalidKeyCount })}</span>
             <span>{t("result.failed", { count: result.totals.studentsFailed })}</span>

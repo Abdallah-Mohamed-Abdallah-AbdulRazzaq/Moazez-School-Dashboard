@@ -14,7 +14,7 @@
 
 - Auto-grade only MCQ_SINGLE, MCQ_MULTI, and TRUE_FALSE.
 - Use full-or-zero scoring; MCQ_MULTI requires exact set equality.
-- Skip every previously reviewed answer; never overwrite a manual override.
+- Recalculate every objective answer on each run, overwriting existing objective scores.
 - An objective question with no answerId remains pending because no backend change is allowed.
 - Never finalize a submission or sync a grade item from Auto-correct.
 - Require grades.submissions.review and grades.questions.view.
@@ -76,7 +76,6 @@
 ~~~ts
 export type AutomaticCorrectionSkipReason =
   | "manual_question"
-  | "already_reviewed"
   | "missing_answer_record"
   | "invalid_answer_key";
 
@@ -89,7 +88,6 @@ export interface AutomaticCorrectionReview {
 export interface AutomaticCorrectionSummary {
   correctedCount: number;
   manualCount: number;
-  preservedCount: number;
   missingAnswerCount: number;
   invalidKeyCount: number;
 }
@@ -170,12 +168,12 @@ function parseBooleanOptionValue(value: string | undefined): boolean | null {
 
 Use answer.selectedOptions optionId values. For MCQ types, derive correct IDs from definition.options isCorrect. For true/false, resolve the selected option value and compare it with definition.correctAnswer. Invalid correct-option counts or missing values return invalid_answer_key.
 
-- [ ] **Step 4: Add failing skip and preservation tests**
+- [ ] **Step 4: Add failing skip and repeat-run tests**
 
 ~~~ts
 expect(planForManualType("ESSAY").summary.manualCount).toBe(1);
 expect(planForManualType("MATCHING").summary.manualCount).toBe(1);
-expect(planForReviewedObjective().summary.preservedCount).toBe(1);
+expect(planForReviewedObjective().reviews[0]?.awardedPoints).toBe(expectedPoints);
 expect(planForMissingAnswerRecord().summary.missingAnswerCount).toBe(1);
 expect(planForExistingBlankAnswer().reviews[0]?.awardedPoints).toBe(0);
 expect(planForMalformedSingleChoiceKey().summary.invalidKeyCount).toBe(1);
@@ -192,8 +190,6 @@ if (!definition || !AUTO_CORRECTABLE_TYPES.has(definition.questionType)) {
   recordSkip(question.id, "manual_question");
 } else if (!question.answer) {
   recordSkip(question.id, "missing_answer_record");
-} else if (isReviewed(question.answer)) {
-  recordSkip(question.id, "already_reviewed");
 } else {
   const awardedPoints = scoreObjectiveAnswer(question, definition);
   if (awardedPoints === null) recordSkip(question.id, "invalid_answer_key");
@@ -201,7 +197,7 @@ if (!definition || !AUTO_CORRECTABLE_TYPES.has(definition.questionType)) {
 }
 ~~~
 
-hasManualCorrectionWork returns true for manual, missing-answer, or invalid-key counts; preserved reviews are not pending work.
+hasManualCorrectionWork returns true for manual, missing-answer, or invalid-key counts.
 
 - [ ] **Step 6: Run focused verification**
 
@@ -258,7 +254,7 @@ expect(api.apiPost).not.toHaveBeenCalledWith(
 );
 ~~~
 
-Also test permission denial, corrected/in-progress state, reload after success, preserved review, and manual warning.
+Also test permission denial, corrected/in-progress state, reload after success, repeat-run overwrite, and manual warning.
 
 - [ ] **Step 2: Verify red**
 
@@ -674,7 +670,6 @@ const automaticCorrectionKeys = [
   "needsManualBadge",
   "result.corrected",
   "result.manual",
-  "result.preserved",
   "result.missingAnswers",
   "result.invalidKeys",
   "result.failed",

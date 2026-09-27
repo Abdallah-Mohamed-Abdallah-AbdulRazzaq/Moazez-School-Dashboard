@@ -178,14 +178,17 @@ describe("buildAutomaticCorrectionPlan", () => {
     },
   );
 
-  it("preserves an answer that already has awarded points", () => {
+  it("recalculates an objective answer that already has awarded points", () => {
     const correctionPlan = buildAutomaticCorrectionPlan(
       submission("mcq_single", answer(["a"], { awardedPoints: 2 })),
       { [questionId]: choiceDefinition("MCQ_SINGLE") },
     );
 
-    expect(correctionPlan.reviews).toEqual([]);
-    expect(correctionPlan.summary.preservedCount).toBe(1);
+    expect(correctionPlan.reviews).toEqual([{
+      answerId,
+      questionId,
+      awardedPoints: 4,
+    }]);
     expect(hasManualCorrectionWork(correctionPlan)).toBe(false);
   });
 

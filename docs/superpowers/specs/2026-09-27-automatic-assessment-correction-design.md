@@ -31,7 +31,7 @@ The submission detail response does not include answer keys. The dashboard must 
 
 The existing review endpoints update answers by `answerId`. An unanswered question may have no answer record. Because this design remains strictly frontend-only, an objective question without an answer record cannot be assigned zero automatically. It remains pending and is reported as requiring manual correction.
 
-The current response identifies whether an answer has been reviewed but does not reliably distinguish an automatic review from a manual override. Auto-correction will therefore preserve every previously reviewed answer.
+The current response does not distinguish an automatic review from a manual override. Re-running Auto-correct therefore recalculates and overwrites every objective-question score, including teacher-entered scores. Manual question types remain untouched.
 
 ## Supported Grading Rules
 
@@ -66,7 +66,7 @@ Do not guess when an answer key is missing, contradictory, or structurally inval
 Add a focused utility within the grades submissions feature. It accepts assessment question definitions and a submission detail record, and returns:
 
 - review payloads for eligible unreviewed objective answers;
-- counts for corrected answers, manual answers, preserved reviews, missing answer records, invalid definitions, and skipped answers;
+- counts for corrected answers, manual answers, missing answer records, invalid definitions, and skipped answers;
 - stable reason codes that the UI can translate.
 
 The utility performs no network requests and contains no UI state. Question-type predicates and set comparison helpers remain small and independently testable.
@@ -99,7 +99,7 @@ Auto-correction requires both `grades.submissions.review` and `grades.questions.
 
 ## Manual Override Preservation
 
-Any answer with an existing review state or review timestamp is excluded from generated review payloads. This rule preserves manual corrections and also makes repeat runs safe. Due to the existing contract, repeat Auto-correct cannot intentionally recalculate an already auto-corrected answer; it is preserved like any other reviewed answer.
+Every objective answer with an answer record is recalculated on each run. Existing awarded points and review state do not exclude it, so repeat runs intentionally overwrite prior automatic or manual objective scores.
 
 ## User Experience
 
@@ -108,9 +108,9 @@ Any answer with an existing review state or review timestamp is excluded from ge
 - Place an **Auto-correct** action near the page heading using the existing UI button.
 - Open an existing UI-folder dialog that offers **All assessment** and **Current filters** scopes.
 - Show the eligible student count before confirmation.
-- Explain which statuses are excluded and that previous reviews are preserved.
+- Explain which statuses are excluded and that objective scores are recalculated on repeat runs.
 - During correction, disable conflicting actions and announce processed/total progress accessibly.
-- After completion, show counts for students processed, objective answers corrected, manual answers remaining, reviews preserved, missing answer records, invalid keys, skipped submissions, and failures.
+- After completion, show counts for students processed, objective answers corrected, manual answers remaining, missing answer records, invalid keys, skipped submissions, and failures.
 - Offer **Retry failed students** when failures occur. The retry targets only the failed submission IDs.
 - Show a **Needs manual correction** warning badge for submitted rows when the assessment has manual question types and pending corrections remain.
 
@@ -167,7 +167,7 @@ Frontend validation must reject attempts to create or update a retired type, inc
 - Objective blank with an answer record scores zero.
 - Objective question without an answer record is skipped and remains pending.
 - Manual and retired types never create review payloads.
-- Previously reviewed answers are preserved.
+- Previously reviewed objective answers are recalculated and overwritten.
 - Mixed submissions produce correct summary counts.
 
 ### Component and page tests
