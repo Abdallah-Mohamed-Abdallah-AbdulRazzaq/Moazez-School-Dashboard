@@ -568,8 +568,8 @@ function AnswerCorrectnessBadge({ isCorrect }: { isCorrect: boolean }) {
   const t = useTranslations("academics.grades.submissions");
   const Icon = isCorrect ? CheckCircle2 : XCircle;
   const colorClasses = isCorrect
-    ? "border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success-text)]"
-    : "border-[var(--error-border)] bg-[var(--error-bg)] text-[var(--error-text)]";
+    ? "border-emerald-300 bg-emerald-100 text-emerald-800"
+    : "border-red-300 bg-red-100 text-red-800";
 
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClasses}`}>

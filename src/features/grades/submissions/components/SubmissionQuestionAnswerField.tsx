@@ -183,10 +183,10 @@ function ChoiceAnswerField({
 function submittedChoiceClasses(answerCorrectness: boolean | null): string {
   const baseClasses = "rounded-xl border px-4 py-3 text-sm font-medium";
   if (answerCorrectness === true) {
-    return `${baseClasses} border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success-text)]`;
+    return `${baseClasses} border-emerald-400 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200`;
   }
   if (answerCorrectness === false) {
-    return `${baseClasses} border-[var(--error-border)] bg-[var(--error-bg)] text-[var(--error-text)]`;
+    return `${baseClasses} border-red-400 bg-red-50 text-red-900 ring-1 ring-red-200`;
   }
   return `${baseClasses} border-[var(--border-color)] bg-[var(--surface-secondary)] text-[var(--text-primary)]`;
 }

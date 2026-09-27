@@ -247,11 +247,12 @@ describe("GradeSubmissionPage review actions", () => {
   });
 
   it.each([
-    ["correct", "answerCorrect"],
-    ["wrong", "answerIncorrect"],
+    ["correct", "answerCorrect", "bg-emerald-100"],
+    ["wrong", "answerIncorrect", "bg-red-100"],
   ] as const)("shows whether the submitted objective answer is %s", async (
     selectedOptionId,
     expectedLabel,
+    expectedClass,
   ) => {
     const detail = objectiveSubmissionDetail();
     detail.questions[0].answer!.selectedOptions[0] = {
@@ -264,7 +265,7 @@ describe("GradeSubmissionPage review actions", () => {
 
     render(<GradeSubmissionPage submissionId={submissionId} />);
 
-    expect(await screen.findByText(expectedLabel)).toBeInTheDocument();
+    expect(await screen.findByText(expectedLabel)).toHaveClass(expectedClass);
   });
 
   it("does not show answer correctness before submission", async () => {

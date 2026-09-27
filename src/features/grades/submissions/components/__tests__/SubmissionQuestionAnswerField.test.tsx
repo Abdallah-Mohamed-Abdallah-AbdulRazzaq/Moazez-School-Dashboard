@@ -79,8 +79,8 @@ describe("SubmissionQuestionAnswerField", () => {
   });
 
   it.each([
-    ["correct", true, "correct", "Correct", "border-[var(--success-border)]"],
-    ["incorrect", false, "wrong", "Wrong", "border-[var(--error-border)]"],
+    ["correct", true, "correct", "Correct", "border-emerald-400"],
+    ["incorrect", false, "wrong", "Wrong", "border-red-400"],
   ] as const)("highlights a submitted %s choice without revealing other options", (
     _scenario,
     answerCorrectness,
