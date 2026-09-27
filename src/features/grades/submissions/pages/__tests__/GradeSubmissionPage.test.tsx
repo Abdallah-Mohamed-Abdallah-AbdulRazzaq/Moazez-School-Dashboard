@@ -176,7 +176,7 @@ beforeEach(() => {
 });
 
 describe("GradeSubmissionPage review actions", () => {
-  it("auto-corrects and finalizes a complete objective submission without syncing", async () => {
+  it("auto-corrects, finalizes, and syncs a complete objective submission", async () => {
     const user = userEvent.setup();
     mockSubmissionRequests(objectiveSubmissionDetail(), assessmentQuestions("mcq_single"));
 
@@ -190,11 +190,11 @@ describe("GradeSubmissionPage review actions", () => {
     expect(api.apiPost).toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/review/finalize`,
     );
-    expect(api.apiPost).not.toHaveBeenCalledWith(
+    expect(api.apiPost).toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/sync-grade-item`,
     );
     expect(submissionRequestCount()).toBe(2);
-    expect(toast.showSuccess).toHaveBeenCalledWith("autoCorrection.savedAndFinalized");
+    expect(toast.showSuccess).toHaveBeenCalledWith("autoCorrection.savedFinalizedAndSynced");
   });
 
   it("re-runs auto-correction over an existing objective score", async () => {

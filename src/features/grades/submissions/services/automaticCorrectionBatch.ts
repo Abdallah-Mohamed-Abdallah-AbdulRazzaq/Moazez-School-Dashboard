@@ -6,7 +6,10 @@ import {
   type AutomaticCorrectionSummary,
 } from "../utils/automaticCorrection";
 import { executeAutomaticCorrectionPlan } from "./automaticCorrectionExecution";
-import { fetchGradeSubmission } from "./gradesSubmissionsService";
+import {
+  fetchGradeSubmission,
+  syncSubmissionGradeItem,
+} from "./gradesSubmissionsService";
 
 export interface AutomaticCorrectionStudentResult {
   submissionId: string;
@@ -83,6 +86,10 @@ async function correctSubmission(
   try {
     const submission = await fetchGradeSubmission(submissionId);
     const plan = buildAutomaticCorrectionPlan(submission, definitionsByQuestionId);
+    if (submission.status === "corrected") {
+      await syncSubmissionGradeItem(submissionId);
+      return successfulStudentResult(submissionId, plan, true);
+    }
     const execution = await executeAutomaticCorrectionPlan(submissionId, plan);
     return successfulStudentResult(submissionId, plan, execution.finalized);
   } catch (error) {

@@ -119,7 +119,7 @@ describe("assessment automatic-correction translations", () => {
     "missingAnswerRecords",
     "invalidAnswerKeys",
     "pendingReviewBadge",
-    "savedAndFinalized",
+    "savedFinalizedAndSynced",
     "retryFailed",
   ] as const;
   const answerCorrectnessKeys = [

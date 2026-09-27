@@ -145,12 +145,18 @@ describe("runAutomaticCorrectionBatch", () => {
       "corrected",
     ]);
     expect(api.apiPut).toHaveBeenCalledTimes(2);
-    expect(api.apiPost).toHaveBeenCalledTimes(2);
+    expect(api.apiPost).toHaveBeenCalledTimes(4);
     expect(api.apiPost).toHaveBeenCalledWith(
       `/grades/submissions/${submissionIds[0]}/review/finalize`,
     );
     expect(api.apiPost).toHaveBeenCalledWith(
       `/grades/submissions/${submissionIds[3]}/review/finalize`,
+    );
+    expect(api.apiPost).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionIds[0]}/sync-grade-item`,
+    );
+    expect(api.apiPost).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionIds[3]}/sync-grade-item`,
     );
     expect(api.apiPost).not.toHaveBeenCalledWith(
       `/grades/submissions/${submissionIds[1]}/review/finalize`,
@@ -185,6 +191,9 @@ describe("runAutomaticCorrectionBatch", () => {
     expect(api.apiPost).toHaveBeenCalledWith(
       `/grades/submissions/${submissionIds[2]}/review/finalize`,
     );
+    expect(api.apiPost).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionIds[2]}/sync-grade-item`,
+    );
   });
 
   it("keeps saved scores retryable when finalization fails and continues the batch", async () => {
@@ -203,9 +212,28 @@ describe("runAutomaticCorrectionBatch", () => {
     });
 
     expect(api.apiPut).toHaveBeenCalledTimes(2);
-    expect(api.apiPost).toHaveBeenCalledTimes(2);
+    expect(api.apiPost).toHaveBeenCalledTimes(3);
     expect(batch.results.map(({ status }) => status)).toEqual(["failed", "corrected"]);
     expect(batch.failedSubmissionIds).toEqual([ids[0]]);
     expect(batch.totals.studentsFinalized).toBe(1);
+  });
+
+  it("retries grade synchronization without re-reviewing a finalized submission", async () => {
+    const correctedSubmission = submission(submissionIds[0]);
+    correctedSubmission.status = "corrected";
+    correctedSubmission.correctedAt = "2026-09-28T00:00:00.000Z";
+    api.apiGet.mockResolvedValue(correctedSubmission);
+
+    const batch = await runAutomaticCorrectionBatch({
+      submissionIds: [submissionIds[0]],
+      definitionsByQuestionId: { [questionId]: definition("MCQ_SINGLE") },
+    });
+
+    expect(api.apiPut).not.toHaveBeenCalled();
+    expect(api.apiPost).toHaveBeenCalledOnce();
+    expect(api.apiPost).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionIds[0]}/sync-grade-item`,
+    );
+    expect(batch.results[0].status).toBe("corrected");
   });
 });

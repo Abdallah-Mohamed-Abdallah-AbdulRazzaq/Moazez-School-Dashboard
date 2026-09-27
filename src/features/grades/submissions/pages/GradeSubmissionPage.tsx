@@ -246,7 +246,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
     setAutomaticCorrectionSummary(automaticCorrectionPlan.summary);
     showSuccess(t(
       execution.finalized
-        ? "autoCorrection.savedAndFinalized"
+        ? "autoCorrection.savedFinalizedAndSynced"
         : "autoCorrection.saved",
     ));
   };

@@ -5,6 +5,7 @@ import {
 import {
   finalizeSubmissionReview,
   reviewSubmissionAnswers,
+  syncSubmissionGradeItem,
 } from "./gradesSubmissionsService";
 
 export interface AutomaticCorrectionExecutionResult {
@@ -22,7 +23,11 @@ export async function executeAutomaticCorrectionPlan(
     );
   }
 
-  const finalized = !hasManualCorrectionWork(plan);
-  if (finalized) await finalizeSubmissionReview(submissionId);
-  return { finalized };
+  if (hasManualCorrectionWork(plan)) {
+    return { finalized: false };
+  }
+
+  await finalizeSubmissionReview(submissionId);
+  await syncSubmissionGradeItem(submissionId);
+  return { finalized: true };
 }
