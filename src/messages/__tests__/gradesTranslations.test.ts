@@ -106,3 +106,33 @@ describe("Grades Tab i18n Translations (Task 2)", () => {
     expect(gradesAr.pending_tag).toBe("معلق");
   });
 });
+
+describe("assessment automatic-correction translations", () => {
+  const automaticCorrectionKeys = [
+    "open",
+    "detailAction",
+    "title",
+    "cancel",
+    "confirm",
+    "progress",
+    "needsManual",
+    "needsManualBadge",
+    "retryFailed",
+  ] as const;
+
+  it.each([
+    ["en", enMessages],
+    ["ar", arMessages],
+  ] as const)("defines the workflow copy in %s", (_locale, messages) => {
+    const autoCorrection = messages.academics.grades.submissions.autoCorrection;
+    for (const key of automaticCorrectionKeys) {
+      expect(autoCorrection[key]).toBeTruthy();
+    }
+    expect(autoCorrection.scope.all).toBeTruthy();
+    expect(autoCorrection.scope.filtered).toBeTruthy();
+    expect(autoCorrection.result.corrected).toBeTruthy();
+    expect(autoCorrection.result.failed).toBeTruthy();
+    expect(messages.academics.grades.questions.legacyReadOnly).toBeTruthy();
+    expect(messages.academics.grades.questions.retiredQuestionReadOnly).toBeTruthy();
+  });
+});
