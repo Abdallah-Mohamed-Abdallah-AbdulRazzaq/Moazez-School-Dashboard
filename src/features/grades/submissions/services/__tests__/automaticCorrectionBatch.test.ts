@@ -107,6 +107,7 @@ function submissionIdFromUrl(url: string): string {
 beforeEach(() => {
   vi.clearAllMocks();
   api.apiPut.mockResolvedValue({});
+  api.apiPost.mockResolvedValue({});
 });
 
 describe("runAutomaticCorrectionBatch", () => {
@@ -144,12 +145,23 @@ describe("runAutomaticCorrectionBatch", () => {
       "corrected",
     ]);
     expect(api.apiPut).toHaveBeenCalledTimes(2);
+    expect(api.apiPost).toHaveBeenCalledTimes(2);
+    expect(api.apiPost).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionIds[0]}/review/finalize`,
+    );
+    expect(api.apiPost).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionIds[3]}/review/finalize`,
+    );
+    expect(api.apiPost).not.toHaveBeenCalledWith(
+      `/grades/submissions/${submissionIds[1]}/review/finalize`,
+    );
     expect(batch.failedSubmissionIds).toEqual([submissionIds[2]]);
     expect(batch.totals).toMatchObject({
       correctedCount: 2,
       missingAnswerCount: 1,
       studentsProcessed: 4,
       studentsFailed: 1,
+      studentsFinalized: 2,
     });
     expect(progress).toHaveBeenCalledTimes(4);
     expect(progress).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -170,5 +182,30 @@ describe("runAutomaticCorrectionBatch", () => {
     expect(api.apiGet).toHaveBeenCalledTimes(1);
     expect(api.apiGet).toHaveBeenCalledWith(`/grades/submissions/${submissionIds[2]}`);
     expect(api.apiPut).toHaveBeenCalledTimes(1);
+    expect(api.apiPost).toHaveBeenCalledWith(
+      `/grades/submissions/${submissionIds[2]}/review/finalize`,
+    );
+  });
+
+  it("keeps saved scores retryable when finalization fails and continues the batch", async () => {
+    const ids = submissionIds.slice(0, 2);
+    api.apiGet.mockImplementation((url: string) =>
+      Promise.resolve(submission(submissionIdFromUrl(url))));
+    api.apiPost.mockImplementation((url: string) => {
+      if (url.includes(ids[0])) return Promise.reject(new Error("Finalize failed"));
+      return Promise.resolve({});
+    });
+
+    const batch = await runAutomaticCorrectionBatch({
+      submissionIds: ids,
+      definitionsByQuestionId: { [questionId]: definition("MCQ_SINGLE") },
+      concurrency: 1,
+    });
+
+    expect(api.apiPut).toHaveBeenCalledTimes(2);
+    expect(api.apiPost).toHaveBeenCalledTimes(2);
+    expect(batch.results.map(({ status }) => status)).toEqual(["failed", "corrected"]);
+    expect(batch.failedSubmissionIds).toEqual([ids[0]]);
+    expect(batch.totals.studentsFinalized).toBe(1);
   });
 });

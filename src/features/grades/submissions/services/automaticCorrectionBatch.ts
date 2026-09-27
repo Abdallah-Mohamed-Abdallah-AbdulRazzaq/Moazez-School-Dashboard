@@ -5,10 +5,8 @@ import {
   type AutomaticCorrectionPlan,
   type AutomaticCorrectionSummary,
 } from "../utils/automaticCorrection";
-import {
-  fetchGradeSubmission,
-  reviewSubmissionAnswers,
-} from "./gradesSubmissionsService";
+import { executeAutomaticCorrectionPlan } from "./automaticCorrectionExecution";
+import { fetchGradeSubmission } from "./gradesSubmissionsService";
 
 export interface AutomaticCorrectionStudentResult {
   submissionId: string;
@@ -29,6 +27,7 @@ export interface AutomaticCorrectionBatchResult {
   totals: AutomaticCorrectionSummary & {
     studentsProcessed: number;
     studentsFailed: number;
+    studentsFinalized: number;
   };
 }
 
@@ -84,24 +83,19 @@ async function correctSubmission(
   try {
     const submission = await fetchGradeSubmission(submissionId);
     const plan = buildAutomaticCorrectionPlan(submission, definitionsByQuestionId);
-    if (plan.reviews.length > 0) {
-      await reviewSubmissionAnswers(submissionId, plan.reviews.map(toReviewPayload));
-    }
-    return successfulStudentResult(submissionId, plan);
+    const execution = await executeAutomaticCorrectionPlan(submissionId, plan);
+    return successfulStudentResult(submissionId, plan, execution.finalized);
   } catch (error) {
     return { submissionId, status: "failed", summary: null, error };
   }
 }
 
-function toReviewPayload(review: { answerId: string; awardedPoints: number }) {
-  return { answerId: review.answerId, awardedPoints: review.awardedPoints };
-}
-
 function successfulStudentResult(
   submissionId: string,
   plan: AutomaticCorrectionPlan,
+  finalized: boolean,
 ): AutomaticCorrectionStudentResult {
-  const status = plan.reviews.length > 0
+  const status = finalized
     ? "corrected"
     : hasManualCorrectionWork(plan) ? "manual_only" : "skipped";
   return { submissionId, status, summary: plan.summary, error: null };
@@ -120,6 +114,7 @@ function buildBatchResult(
       ...EMPTY_SUMMARY,
       studentsProcessed: results.length,
       studentsFailed: failedSubmissionIds.length,
+      studentsFinalized: results.filter(({ status }) => status === "corrected").length,
     }),
   };
 }

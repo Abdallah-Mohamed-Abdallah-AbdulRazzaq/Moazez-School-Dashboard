@@ -7486,6 +7486,7 @@
           "detailSummary": "تم تصحيح {corrected} إجابات موضوعية.",
           "result": {
             "corrected": "الإجابات الموضوعية المصححة: {count}",
+            "finalized": "التسليمات التي تم إنهاء تصحيحها: {count}",
             "manual": "الأسئلة اليدوية: {count}",
             "missingAnswers": "سجلات الإجابة المفقودة: {count}",
             "invalidKeys": "مفاتيح الإجابة غير الصالحة: {count}",

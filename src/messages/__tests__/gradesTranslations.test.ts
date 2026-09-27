@@ -138,6 +138,7 @@ describe("assessment automatic-correction translations", () => {
     expect(autoCorrection.scope.all).toBeTruthy();
     expect(autoCorrection.scope.filtered).toBeTruthy();
     expect(autoCorrection.result.corrected).toBeTruthy();
+    expect(autoCorrection.result.finalized).toBeTruthy();
     expect(autoCorrection.result.failed).toBeTruthy();
     expect(messages.academics.grades.questions.legacyReadOnly).toBeTruthy();
     expect(messages.academics.grades.questions.retiredQuestionReadOnly).toBeTruthy();

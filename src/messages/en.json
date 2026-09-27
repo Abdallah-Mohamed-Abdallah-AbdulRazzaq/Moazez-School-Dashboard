@@ -7485,6 +7485,7 @@
           "detailSummary": "Corrected {corrected} objective answers.",
           "result": {
             "corrected": "Objective answers corrected: {count}",
+            "finalized": "Submissions finalized: {count}",
             "manual": "Manual questions: {count}",
             "missingAnswers": "Missing answer records: {count}",
             "invalidKeys": "Invalid answer keys: {count}",
