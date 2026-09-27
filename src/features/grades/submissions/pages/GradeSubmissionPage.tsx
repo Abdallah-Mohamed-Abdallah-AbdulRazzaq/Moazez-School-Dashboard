@@ -476,6 +476,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
                   definition={definition}
                   draft={draft}
                   canEnter={canEnter}
+                  answerCorrectness={answerCorrectness}
                   onAnswerTextChange={(answerText) => updateDraft(setDrafts, question.id, { answerText })}
                   onSelectedOptionIdsChange={(selectedOptionIds) => updateDraft(setDrafts, question.id, { selectedOptionIds })}
                   onMatchingAnswerChange={(promptId, selectedPairId) => updateMatchingDraft(

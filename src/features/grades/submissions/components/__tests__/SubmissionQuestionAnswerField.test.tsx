@@ -25,6 +25,22 @@ const matchingQuestion: AssessmentQuestion = {
   createdAt: "",
 };
 
+const choiceQuestion: AssessmentQuestion = {
+  id: "question-2",
+  assessmentId: "assessment-1",
+  assignmentId: "",
+  questionTextAr: "اختر الإجابة",
+  questionTextEn: "Choose the answer",
+  questionType: "MCQ_SINGLE",
+  points: 2,
+  order: 2,
+  options: [
+    { id: "correct", textAr: "صحيح", textEn: "Correct", isCorrect: true, order: 1 },
+    { id: "wrong", textAr: "خطأ", textEn: "Wrong", isCorrect: false, order: 2 },
+  ],
+  createdAt: "",
+};
+
 describe("SubmissionQuestionAnswerField", () => {
   it("keeps used matching choices selectable so completed answers can be changed", async () => {
     const user = userEvent.setup();
@@ -49,6 +65,7 @@ describe("SubmissionQuestionAnswerField", () => {
           matchingAnswers: { "pair-1": "pair-1", "pair-2": "pair-2" },
         }}
         canEnter
+        answerCorrectness={null}
         onAnswerTextChange={vi.fn()}
         onSelectedOptionIdsChange={vi.fn()}
         onMatchingAnswerChange={onMatchingAnswerChange}
@@ -59,5 +76,61 @@ describe("SubmissionQuestionAnswerField", () => {
     await user.click(screen.getByRole("button", { name: "Paris" }));
 
     expect(onMatchingAnswerChange).toHaveBeenCalledWith("pair-1", "pair-2");
+  });
+
+  it.each([
+    ["correct", true, "correct", "Correct", "border-[var(--success-border)]"],
+    ["incorrect", false, "wrong", "Wrong", "border-[var(--error-border)]"],
+  ] as const)("highlights a submitted %s choice without revealing other options", (
+    _scenario,
+    answerCorrectness,
+    selectedOptionId,
+    selectedLabel,
+    expectedClass,
+  ) => {
+    render(
+      <SubmissionQuestionAnswerField
+        question={{
+          id: "question-2",
+          type: "mcq_single",
+          prompt: "Choose the answer",
+          promptAr: "اختر الإجابة",
+          points: 2,
+          sortOrder: 2,
+          required: true,
+          answer: {
+            id: "answer-1",
+            questionId: "question-2",
+            type: "mcq_single",
+            answerText: null,
+            answerJson: null,
+            awardedPoints: null,
+            maxPoints: 2,
+            correctionStatus: "pending",
+            reviewerComment: null,
+            reviewerCommentAr: null,
+            reviewedAt: null,
+            selectedOptions: [{
+              optionId: selectedOptionId,
+              label: selectedLabel,
+              labelAr: null,
+              value: null,
+            }],
+            createdAt: "",
+            updatedAt: "",
+          },
+        }}
+        definition={choiceQuestion}
+        draft={{ answerText: "", selectedOptionIds: [selectedOptionId], matchingAnswers: {} }}
+        canEnter={false}
+        answerCorrectness={answerCorrectness}
+        onAnswerTextChange={vi.fn()}
+        onSelectedOptionIdsChange={vi.fn()}
+        onMatchingAnswerChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(selectedLabel)).toHaveClass(expectedClass);
+    if (!answerCorrectness) expect(screen.queryByText("Correct")).not.toBeInTheDocument();
   });
 });

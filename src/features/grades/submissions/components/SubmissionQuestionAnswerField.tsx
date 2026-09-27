@@ -17,6 +17,7 @@ interface SubmissionQuestionAnswerFieldProps {
   definition?: AssessmentQuestion;
   draft: SubmissionAnswerDraft;
   canEnter: boolean;
+  answerCorrectness: boolean | null;
   onAnswerTextChange: (answerText: string) => void;
   onSelectedOptionIdsChange: (selectedOptionIds: string[]) => void;
   onMatchingAnswerChange: (promptId: string, selectedPairId: string) => void;
@@ -27,6 +28,7 @@ export default function SubmissionQuestionAnswerField({
   definition,
   draft,
   canEnter,
+  answerCorrectness,
   onAnswerTextChange,
   onSelectedOptionIdsChange,
   onMatchingAnswerChange,
@@ -45,6 +47,7 @@ export default function SubmissionQuestionAnswerField({
         definition={definition}
         draft={draft}
         canEnter={canEnter}
+        answerCorrectness={answerCorrectness}
         onSelectedOptionIdsChange={onSelectedOptionIdsChange}
       />
     );
@@ -119,8 +122,9 @@ function ChoiceAnswerField({
   definition,
   draft,
   canEnter,
+  answerCorrectness,
   onSelectedOptionIdsChange,
-}: Pick<SubmissionQuestionAnswerFieldProps, "question" | "definition" | "draft" | "canEnter" | "onSelectedOptionIdsChange">) {
+}: Pick<SubmissionQuestionAnswerFieldProps, "question" | "definition" | "draft" | "canEnter" | "answerCorrectness" | "onSelectedOptionIdsChange">) {
   const t = useTranslations("academics.grades.submissions");
   const locale = useLocale();
   const options = definition?.options ?? [];
@@ -129,7 +133,7 @@ function ChoiceAnswerField({
     return (
       <div className="space-y-2">
         {question.answer?.selectedOptions.map((option) => (
-          <div key={option.optionId} className="rounded-xl border border-[var(--border-color)] bg-[var(--surface-secondary)] px-4 py-3 text-sm font-medium text-[var(--text-primary)]">
+          <div key={option.optionId} className={submittedChoiceClasses(answerCorrectness)}>
             {locale === "ar" ? option.labelAr || option.label : option.label}
           </div>
         ))}
@@ -174,6 +178,17 @@ function ChoiceAnswerField({
       })}
     </div>
   );
+}
+
+function submittedChoiceClasses(answerCorrectness: boolean | null): string {
+  const baseClasses = "rounded-xl border px-4 py-3 text-sm font-medium";
+  if (answerCorrectness === true) {
+    return `${baseClasses} border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success-text)]`;
+  }
+  if (answerCorrectness === false) {
+    return `${baseClasses} border-[var(--error-border)] bg-[var(--error-bg)] text-[var(--error-text)]`;
+  }
+  return `${baseClasses} border-[var(--border-color)] bg-[var(--surface-secondary)] text-[var(--text-primary)]`;
 }
 
 function MatchingAnswerField({
