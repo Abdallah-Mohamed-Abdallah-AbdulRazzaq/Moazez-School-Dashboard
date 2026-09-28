@@ -7458,8 +7458,40 @@
         "correctedAt": "Corrected",
         "correctionStatus": "Correction status",
         "reviewedAt": "Reviewed at",
+        "answerCorrect": "Correct",
+        "answerIncorrect": "Incorrect",
         "messages": {
           "synced": "The submission grade was synced to the gradebook."
+        },
+        "autoCorrection": {
+          "open": "Auto-correct",
+          "detailAction": "Auto-correct objective questions",
+          "title": "Auto-correct submissions",
+          "cancel": "Close",
+          "scope": {
+            "all": "All submitted students",
+            "filtered": "Current filters"
+          },
+          "confirm": "Start correction",
+          "loadingEligible": "Checking eligible submissions...",
+          "eligible": "{count, plural, one {# submitted student} other {# submitted students}} eligible",
+          "progress": "Processed {processed} of {total} submissions",
+          "needsManual": "{count, plural, one {# question needs manual correction} other {# questions need manual correction}}",
+          "missingAnswerRecords": "{count, plural, one {# objective question has no answer record and needs review} other {# objective questions have no answer records and need review}}",
+          "invalidAnswerKeys": "{count, plural, one {# objective question has an invalid answer key} other {# objective questions have invalid answer keys}}",
+          "pendingReviewBadge": "Pending correction",
+          "saved": "Objective question scores were saved. Finalize the review when manual correction is complete.",
+          "savedFinalizedAndSynced": "Objective scores were saved, the submission was finalized, and the grade was synced.",
+          "detailSummary": "Corrected {corrected} objective answers.",
+          "result": {
+            "corrected": "Objective answers corrected: {count}",
+            "finalized": "Submissions finalized and synced: {count}",
+            "manual": "Manual questions: {count}",
+            "missingAnswers": "Missing answer records: {count}",
+            "invalidKeys": "Invalid answer keys: {count}",
+            "failed": "Students failed: {count}"
+          },
+          "retryFailed": "Retry failed students"
         },
         "assessmentStatuses": {
           "draft": "Draft",
@@ -8172,6 +8204,8 @@
         },
         "saveAssessment": "Save Assessment",
         "readOnly": "Read-only",
+        "legacyReadOnly": "Legacy question — read-only",
+        "retiredQuestionReadOnly": "This legacy question type is read-only and cannot be changed.",
         "settingsTitle": "Assessment Settings",
         "assessmentTitle": "Assessment Title",
         "assessmentDate": "Assessment Date",

@@ -12,6 +12,7 @@ vi.mock("@/lib/api", () => ({
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import {
   AssessmentQuestionsCreationError,
+  createAssessmentQuestion,
   createAssessmentWithQuestions,
   fetchAssessmentQuestions,
   updateAssessmentQuestion,
@@ -135,4 +136,27 @@ describe("grades assessments contract adapter", () => {
       }),
     );
   });
+
+  it.each(["MATCHING", "FILL_IN_BLANK", "MEDIA"] as const)(
+    "blocks %s create and update mutations before an API request",
+    async (questionType) => {
+      const retiredQuestion = { ...question, questionType };
+
+      await expect(createAssessmentQuestion(
+        "year-1",
+        "term-1",
+        "assessment-1",
+        retiredQuestion,
+      )).rejects.toThrow("Retired assessment question types are read-only");
+      await expect(updateAssessmentQuestion(
+        "year-1",
+        "term-1",
+        "question-1",
+        retiredQuestion,
+      )).rejects.toThrow("Retired assessment question types are read-only");
+
+      expect(mockedApiPost).not.toHaveBeenCalled();
+      expect(mockedApiPatch).not.toHaveBeenCalled();
+    },
+  );
 });

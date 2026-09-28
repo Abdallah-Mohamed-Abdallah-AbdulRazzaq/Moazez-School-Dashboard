@@ -23,6 +23,7 @@ import {
   toBackendGradeItemStatus,
   mapBackendAssessmentToAssessment,
 } from "../../gradebook/utils/gradebookMappers";
+import { isRetiredAssessmentQuestionType } from "../utils/assessmentQuestionAvailability";
 
 const BACKEND_QUESTION_TYPE_TO_UI: Record<string, AssessmentQuestion["questionType"]> = {
   mcq_single: "MCQ_SINGLE",
@@ -383,6 +384,7 @@ export async function createAssessmentQuestion(
   assessmentId: string,
   questionPayload: AssessmentQuestion,
 ): Promise<AssessmentQuestion> {
+  assertSupportedAssessmentQuestionMutation(questionPayload);
   const response = await apiPost<BackendAssessmentQuestionResponse>(
     `/grades/assessments/${assessmentId}/questions`,
     toBackendQuestionPayload(questionPayload),
@@ -400,6 +402,7 @@ export async function updateAssessmentQuestion(
   questionId: string,
   questionPayload: AssessmentQuestion,
 ): Promise<AssessmentQuestion> {
+  assertSupportedAssessmentQuestionMutation(questionPayload);
   const response = await apiPatch<BackendAssessmentQuestionResponse>(
     `/grades/questions/${questionId}`,
     toBackendQuestionPayload(questionPayload),
@@ -407,6 +410,14 @@ export async function updateAssessmentQuestion(
   void academicYearId;
   void termId;
   return mapBackendQuestionToUi(response);
+}
+
+function assertSupportedAssessmentQuestionMutation(
+  question: AssessmentQuestion,
+): void {
+  if (isRetiredAssessmentQuestionType(question.questionType)) {
+    throw new Error("Retired assessment question types are read-only");
+  }
 }
 
 // ── 15. Delete assessment question ───────────────────────────────────

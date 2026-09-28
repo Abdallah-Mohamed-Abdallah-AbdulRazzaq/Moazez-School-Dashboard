@@ -7459,8 +7459,40 @@
         "correctedAt": "تم التصحيح في",
         "correctionStatus": "حالة التصحيح",
         "reviewedAt": "تمت المراجعة في",
+        "answerCorrect": "إجابة صحيحة",
+        "answerIncorrect": "إجابة غير صحيحة",
         "messages": {
           "synced": "تمت مزامنة درجة التسليم مع سجل الدرجات."
+        },
+        "autoCorrection": {
+          "open": "تصحيح تلقائي",
+          "detailAction": "تصحيح الأسئلة الموضوعية تلقائيًا",
+          "title": "التصحيح التلقائي للتسليمات",
+          "cancel": "إغلاق",
+          "scope": {
+            "all": "كل الطلاب الذين سلّموا",
+            "filtered": "عوامل التصفية الحالية"
+          },
+          "confirm": "بدء التصحيح",
+          "loadingEligible": "جارٍ التحقق من التسليمات المؤهلة...",
+          "eligible": "عدد التسليمات المؤهلة: {count}",
+          "progress": "تمت معالجة {processed} من {total} تسليمات",
+          "needsManual": "يوجد {count} سؤال يحتاج إلى تصحيح يدوي",
+          "missingAnswerRecords": "يوجد {count} سؤال موضوعي بلا سجل إجابة ويحتاج إلى مراجعة",
+          "invalidAnswerKeys": "يوجد {count} سؤال موضوعي بمفتاح إجابة غير صالح",
+          "pendingReviewBadge": "بانتظار التصحيح",
+          "saved": "تم حفظ درجات الأسئلة الموضوعية. أنهِ المراجعة بعد إكمال التصحيح اليدوي.",
+          "savedFinalizedAndSynced": "تم حفظ درجات الأسئلة الموضوعية وإنهاء تصحيح التسليم ومزامنة الدرجة.",
+          "detailSummary": "تم تصحيح {corrected} إجابات موضوعية.",
+          "result": {
+            "corrected": "الإجابات الموضوعية المصححة: {count}",
+            "finalized": "التسليمات التي تم إنهاء تصحيحها ومزامنة درجاتها: {count}",
+            "manual": "الأسئلة اليدوية: {count}",
+            "missingAnswers": "سجلات الإجابة المفقودة: {count}",
+            "invalidKeys": "مفاتيح الإجابة غير الصالحة: {count}",
+            "failed": "الطلاب الذين فشل التصحيح لهم: {count}"
+          },
+          "retryFailed": "إعادة محاولة الطلاب المتعذر تصحيحهم"
         },
         "assessmentStatuses": {
           "draft": "مسودة",
@@ -8175,6 +8207,8 @@
         },
         "saveAssessment": "حفظ التقييم",
         "readOnly": "للقراءة فقط",
+        "legacyReadOnly": "سؤال قديم — للقراءة فقط",
+        "retiredQuestionReadOnly": "نوع السؤال القديم هذا للقراءة فقط ولا يمكن تعديله.",
         "settingsTitle": "إعدادات التقييم",
         "assessmentTitle": "عنوان التقييم",
         "assessmentDate": "تاريخ التقييم",

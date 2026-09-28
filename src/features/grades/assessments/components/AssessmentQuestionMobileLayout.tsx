@@ -12,6 +12,7 @@ import EmptyQuestionState from "@/features/academics/curriculum/components/Empty
 import QuestionEditor from "@/features/academics/curriculum/components/QuestionEditor";
 import type { Assessment, ExamScopeType, ScopeEntityOption, ScopeOption } from "../types";
 import AssessmentQuestionSettingsPanel from "./AssessmentQuestionSettingsPanel";
+import { ASSESSMENT_AUTHORING_QUESTION_TYPES } from "../utils/assessmentQuestionAvailability";
 
 interface AssessmentQuestionMobileLayoutProps {
   questions: AssignmentQuestion[];
@@ -36,6 +37,8 @@ interface AssessmentQuestionMobileLayoutProps {
   onUpdateAssessment: (updates: Partial<Assessment>) => void;
   onAutoDistributePoints: () => void;
   onSaveQuestion: () => Promise<void>;
+  isQuestionReadOnly: (question: AssignmentQuestion) => boolean;
+  isAutoDistributeDisabled: boolean;
 }
 
 export default function AssessmentQuestionMobileLayout({
@@ -61,11 +64,15 @@ export default function AssessmentQuestionMobileLayout({
   onUpdateAssessment,
   onAutoDistributePoints,
   onSaveQuestion,
+  isQuestionReadOnly,
+  isAutoDistributeDisabled,
 }: AssessmentQuestionMobileLayoutProps) {
   const t = useTranslations("academics.curriculum.assignmentBuilder");
   const tCommon = useTranslations("common");
   const [mobileTab, setMobileTab] = useState<"questions" | "settings">("questions");
   const [questionsDrawerOpen, setQuestionsDrawerOpen] = useState(false);
+  const selectedQuestionReadOnly = isReadOnly
+    || Boolean(selectedQuestion && isQuestionReadOnly(selectedQuestion));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -89,7 +96,7 @@ export default function AssessmentQuestionMobileLayout({
                 {t("questionsOutline")} ({questions.length})
               </Button>
 
-              {!isReadOnly && selectedQuestion && (
+              {!selectedQuestionReadOnly && selectedQuestion && (
                 <Button
                   onClick={onSaveQuestion}
                   variant="primary"
@@ -108,7 +115,8 @@ export default function AssessmentQuestionMobileLayout({
                   key={selectedQuestion.id}
                   question={selectedQuestion}
                   onChange={(updates) => onUpdateQuestion(selectedQuestion.id, updates)}
-                  isReadOnly={isReadOnly}
+                  isReadOnly={selectedQuestionReadOnly}
+                  allowedQuestionTypes={ASSESSMENT_AUTHORING_QUESTION_TYPES}
                   validationErrors={validationErrors.questions?.[selectedQuestion.id]}
                 />
               ) : (
@@ -131,6 +139,7 @@ export default function AssessmentQuestionMobileLayout({
               isReadOnly={isAssessmentReadOnly}
               onUpdate={onUpdateAssessment}
               onAutoDistributePoints={onAutoDistributePoints}
+              isAutoDistributeDisabled={isAutoDistributeDisabled}
             />
           </div>
         )}
@@ -173,7 +182,8 @@ export default function AssessmentQuestionMobileLayout({
                 onDelete={() => onDeleteQuestion(question.id)}
                 canMoveUp={index > 0}
                 canMoveDown={index < questions.length - 1}
-                isReadOnly={isReadOnly}
+                isReadOnly={isReadOnly || isQuestionReadOnly(question)}
+                isLegacyReadOnly={isQuestionReadOnly(question)}
               />
             ))}
           </div>
