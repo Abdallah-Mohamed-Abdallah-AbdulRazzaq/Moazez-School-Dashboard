@@ -39,6 +39,9 @@ describe("New translation labels", () => {
       "newMessage",
       "newMessages",
       "endOfConversation",
+      "previousPage",
+      "nextPage",
+      "conversationPageOf",
     ] as const;
 
     for (const key of keys) {

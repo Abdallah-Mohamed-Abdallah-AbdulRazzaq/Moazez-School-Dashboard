@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -11,7 +12,6 @@ import {
   Check,
   ChevronDown,
   Lock,
-  Pin,
   Plus,
   RefreshCw,
   Search,
@@ -27,6 +27,7 @@ import { useLocale } from "next-intl";
 import Input from "@/components/ui/input/Input";
 import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
+import ConversationPagination from "@/features/communication/conversations_redesign/components/ConversationPagination";
 import {
   labelsForLocale,
   type ConversationRedesignLabels,
@@ -64,8 +65,9 @@ export interface ConversationSidebarProps {
   onCreateConversation: () => void;
   canCreateConversation?: boolean;
   className?: string;
-  loadMore?: () => void;
-  hasMore?: boolean;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 const primaryFilters: Array<{
@@ -253,14 +255,26 @@ export default function ConversationSidebar({
   onSelect,
   search,
   selectedConversationId,
-  loadMore,
-  hasMore,
+  page,
+  totalPages,
+  onPageChange,
 }: ConversationSidebarProps) {
   const locale = useLocale();
   const labels = labelsForLocale(locale);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
   const filterTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const pendingPageScrollTopRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    const scrollTop = pendingPageScrollTopRef.current;
+    if (scrollTop === null || !listRef.current) {
+      return;
+    }
+    listRef.current.scrollTop = scrollTop;
+    pendingPageScrollTopRef.current = null;
+  }, [page]);
 
   useEffect(() => {
     if (!isFilterMenuOpen) return;
@@ -295,8 +309,32 @@ export default function ConversationSidebar({
     rowMatchesFilter(c, filter, typeFilter),
   );
 
-  const pinnedConversations = visibleConversations.filter((c) => c.isPinned);
-  const unpinnedConversations = visibleConversations.filter((c) => !c.isPinned);
+  const resetListScroll = () => {
+    pendingPageScrollTopRef.current = null;
+    if (listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    pendingPageScrollTopRef.current = listRef.current?.scrollTop ?? 0;
+    onPageChange(nextPage);
+  };
+
+  const handleSearchChange = (value: string) => {
+    resetListScroll();
+    onSearchChange(value);
+  };
+
+  const handleFilterChange = (nextFilter: ConversationRedesignFilter) => {
+    resetListScroll();
+    onFilterChange(nextFilter);
+  };
+
+  const handleTypeFilterChange = (type: string) => {
+    resetListScroll();
+    onTypeFilterChange(type);
+  };
 
   return (
     <aside
@@ -366,7 +404,7 @@ export default function ConversationSidebar({
           <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
           <Input
             value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={labels.searchConversations}
             type="search"
             variant="default"
@@ -375,7 +413,7 @@ export default function ConversationSidebar({
           {search && (
             <button
               type="button"
-              onClick={() => onSearchChange("")}
+              onClick={() => handleSearchChange("")}
               aria-label={labels.clearSearch}
               className="absolute end-2.5 top-1/2 -translate-y-1/2 cursor-pointer rounded p-0.5 text-slate-500 transition-colors hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
@@ -391,7 +429,7 @@ export default function ConversationSidebar({
                 key={item.value}
                 type="button"
                 aria-pressed={filter === item.value}
-                onClick={() => onFilterChange(item.value)}
+                onClick={() => handleFilterChange(item.value)}
                 className={`h-8 shrink-0 cursor-pointer rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   filter === item.value
                     ? "bg-primary-50 text-primary-700"
@@ -433,22 +471,22 @@ export default function ConversationSidebar({
                 <FilterMenuItem
                   checked={!typeFilter}
                   label={labels.allTypes}
-                  onClick={() => onTypeFilterChange("")}
+                  onClick={() => handleTypeFilterChange("")}
                 />
                 <FilterMenuItem
                   checked={typeFilter === "direct"}
                   label={labels.direct}
-                  onClick={() => onTypeFilterChange("direct")}
+                  onClick={() => handleTypeFilterChange("direct")}
                 />
                 <FilterMenuItem
                   checked={typeFilter === "group"}
                   label={labels.group}
-                  onClick={() => onTypeFilterChange("group")}
+                  onClick={() => handleTypeFilterChange("group")}
                 />
                 <FilterMenuItem
                   checked={typeFilter === "classroom"}
                   label={labels.classType}
-                  onClick={() => onTypeFilterChange("classroom")}
+                  onClick={() => handleTypeFilterChange("classroom")}
                 />
                 <div className="my-1 border-t border-slate-100" />
                 <FilterMenuLabel>{labels.filters}</FilterMenuLabel>
@@ -457,15 +495,15 @@ export default function ConversationSidebar({
                     key={item.value}
                     checked={filter === item.value}
                     label={labels[item.labelKey]}
-                    onClick={() => onFilterChange(item.value)}
+                    onClick={() => handleFilterChange(item.value)}
                   />
                 ))}
                 <button
                   type="button"
                   role="menuitem"
                   onClick={() => {
-                    onFilterChange("all");
-                    onTypeFilterChange("");
+                    handleFilterChange("all");
+                    handleTypeFilterChange("");
                     setIsFilterMenuOpen(false);
                   }}
                   className="mt-1 flex w-full cursor-pointer items-center rounded-md border-t border-slate-100 px-2 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -479,13 +517,11 @@ export default function ConversationSidebar({
       </div>
 
       {/* ── List ── */}
-      <div className="min-h-0 flex-1 overflow-y-auto" onScroll={(event) => {
-        if (isLoading || isRefreshing || !hasMore || !loadMore) return;
-        const target = event.currentTarget;
-        if (target.scrollHeight - target.scrollTop - target.clientHeight < 100) {
-          loadMore();
-        }
-      }}>
+      <div
+        ref={listRef}
+        data-testid="conversation-list"
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
         {isLoading ? (
           <div
             role="status"
@@ -536,9 +572,9 @@ export default function ConversationSidebar({
               <button
                 type="button"
                 onClick={() => {
-                  onFilterChange("all");
-                  onTypeFilterChange("");
-                  onSearchChange("");
+                  handleFilterChange("all");
+                  handleTypeFilterChange("");
+                  handleSearchChange("");
                 }}
                 className="mt-3 cursor-pointer text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
@@ -556,54 +592,26 @@ export default function ConversationSidebar({
             ) : null}
           </div>
         ) : (
-          <>
-            {/* Pinned section */}
-            {pinnedConversations.length > 0 && (
-              <>
-                <div className="sticky top-0 z-10 flex items-center gap-2 bg-white/90 px-4 py-2 backdrop-blur-sm">
-                  <Pin className="h-3 w-3 text-amber-500" />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/80">
-                    {labels.pinned}
-                  </span>
-                </div>
-                {pinnedConversations.map((c) => (
-                  <ConversationRow
-                    key={c.id}
-                    conversation={c}
-                    selected={selectedConversationId === c.id}
-                    locale={locale}
-                    labels={labels}
-                    onSelect={onSelect}
-                  />
-                ))}
-              </>
-            )}
-
-            {/* All others */}
-            {unpinnedConversations.length > 0 && (
-              <>
-                {pinnedConversations.length > 0 && (
-                  <div className="sticky top-0 z-10 flex items-center gap-2 bg-white/90 px-4 py-2 backdrop-blur-sm">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">
-                      {labels.recent}
-                    </span>
-                  </div>
-                )}
-                {unpinnedConversations.map((c) => (
-                  <ConversationRow
-                    key={c.id}
-                    conversation={c}
-                    selected={selectedConversationId === c.id}
-                    locale={locale}
-                    labels={labels}
-                    onSelect={onSelect}
-                  />
-                ))}
-              </>
-            )}
-          </>
+          visibleConversations.map((conversation) => (
+            <ConversationRow
+              key={conversation.id}
+              conversation={conversation}
+              selected={selectedConversationId === conversation.id}
+              locale={locale}
+              labels={labels}
+              onSelect={onSelect}
+            />
+          ))
         )}
       </div>
+      <ConversationPagination
+        page={page}
+        totalPages={totalPages}
+        isLoading={isRefreshing}
+        isRTL={locale === "ar"}
+        labels={labels}
+        onPageChange={handlePageChange}
+      />
     </aside>
   );
 }
