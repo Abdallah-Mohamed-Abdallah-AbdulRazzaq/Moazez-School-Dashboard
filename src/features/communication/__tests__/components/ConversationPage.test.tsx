@@ -35,6 +35,9 @@ vi.mock("next-intl", () => ({
 const mockConversationsState = {
   conversations: [] as ConversationListItemModel[],
   total: 0,
+  page: 1,
+  pageSize: 100,
+  totalPages: 0,
   filters: { search: "", status: "all" as string, type: "all" as string },
   setFilters: vi.fn(),
   isLoading: false,
@@ -42,8 +45,10 @@ const mockConversationsState = {
   isMutating: false,
   error: null as string | null,
   clearError: vi.fn(),
+  retry: vi.fn().mockResolvedValue(undefined),
   hasFilters: false,
   refresh: vi.fn().mockResolvedValue(undefined),
+  goToPage: vi.fn().mockResolvedValue(undefined),
   markAsRead: vi.fn(),
   create: vi.fn().mockResolvedValue({ id: "new-conv" }),
   update: vi.fn().mockResolvedValue({}),
@@ -161,6 +166,8 @@ describe("ConversationPage", () => {
     hasPermissionMock.mockReturnValue(true);
     mockConversationsState.conversations = [];
     mockConversationsState.total = 0;
+    mockConversationsState.page = 1;
+    mockConversationsState.totalPages = 0;
     mockConversationsState.isLoading = false;
     mockConversationsState.isRefreshing = false;
     mockConversationsState.isMutating = false;
@@ -223,6 +230,19 @@ describe("ConversationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     expect(mockConversationsState.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("retries the intended page after a navigation failure", () => {
+    mockConversationsState.conversations = [
+      createConversationListItem({ id: "conversation-stable" }),
+    ];
+    mockConversationsState.error = "Page failed";
+
+    render(<ConversationPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(mockConversationsState.retry).toHaveBeenCalledOnce();
+    expect(mockConversationsState.refresh).not.toHaveBeenCalled();
   });
 
   it("offers conversation creation from the unfiltered empty state", () => {

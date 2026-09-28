@@ -235,8 +235,9 @@ export default function ConversationPage({
           }}
           search={search}
           selectedConversationId={selectedConversationId}
-          loadMore={conversationsState.loadMore}
-          hasMore={conversationsState.hasMore}
+          page={conversationsState.page}
+          totalPages={conversationsState.totalPages}
+          onPageChange={(nextPage) => void conversationsState.goToPage(nextPage)}
         />
 
         <div className="hidden md:flex">
@@ -273,7 +274,7 @@ export default function ConversationPage({
           message={conversationsState.error}
           closeLabel={labels.dismiss}
           actionLabel={labels.retry}
-          onAction={() => void conversationsState.refresh()}
+          onAction={() => void conversationsState.retry()}
           onClose={conversationsState.clearError}
         />
       ) : null}
