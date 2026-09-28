@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 
-interface ConversationPaginationProps {
+export interface ConversationPaginationProps {
   page: number;
   totalPages: number;
   isLoading: boolean;
