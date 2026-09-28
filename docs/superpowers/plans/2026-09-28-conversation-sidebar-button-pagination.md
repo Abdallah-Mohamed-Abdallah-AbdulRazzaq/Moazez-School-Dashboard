@@ -809,3 +809,4 @@ After required verification succeeds, use a normal push only:
 
 Create one Draft PR targeting `main`; never force-push and never merge. Include Summary, Scope, Changed Files, Verification, known limitations about pinned-only completeness and unread counts, and the final MOAZEZ handoff fields from `Must Read Before Push.txt`.
 
+**Implementation status:** Local implementation, focused tests, lint, typecheck, and production build are complete. The full test suite, push, and Draft PR remain pending owner approval and final delivery.
