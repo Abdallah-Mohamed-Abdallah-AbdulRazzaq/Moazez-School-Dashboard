@@ -75,6 +75,9 @@ vi.mock("@/features/communication/utils/communication-metadata", () => ({
 describe("useConversations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetConversations.mockReset();
+    mockGetMessages.mockReset();
+    mockCreateConversation.mockReset();
     vi.useFakeTimers();
     mockSocket = createMockSocket();
     mockResyncVersion = 0;
@@ -118,7 +121,7 @@ describe("useConversations", () => {
       });
 
       expect(mockGetConversations).toHaveBeenCalledTimes(1);
-      expect(mockGetConversations).toHaveBeenCalledWith({ limit: 20, page: 1 });
+      expect(mockGetConversations).toHaveBeenCalledWith({ limit: 100, page: 1 });
       expect(result.current.hasFilters).toBe(false);
     });
 
@@ -281,7 +284,7 @@ describe("useConversations", () => {
           search: "hello",
           status: "closed",
           type: "classroom",
-          limit: 20,
+          limit: 100,
           page: 1,
         }),
       );
@@ -409,7 +412,7 @@ describe("useConversations", () => {
         await vi.runAllTimersAsync();
       });
 
-      expect(mockGetConversations).toHaveBeenCalledWith({ limit: 20, page: 1 });
+      expect(mockGetConversations).toHaveBeenCalledWith({ limit: 100, page: 1 });
     });
 
     it("does not repeat the initial request for an existing resync version", async () => {
@@ -466,6 +469,175 @@ describe("useConversations", () => {
         expect.objectContaining({ id: "conv-resync" }),
       ]);
       expect(result.current.error).toBe("Reconnect resync failed");
+    });
+  });
+
+  describe("server pagination", () => {
+    it("replaces the current page while preserving backend order", async () => {
+      const firstPage = [
+        createConversation({ id: "conversation-b", lastMessageAt: "2026-01-01T00:00:00.000Z" }),
+        createConversation({ id: "conversation-a", lastMessageAt: "2026-09-01T00:00:00.000Z" }),
+      ];
+      const secondPage = [
+        createConversation({ id: "conversation-d", lastMessageAt: "2026-02-01T00:00:00.000Z" }),
+        createConversation({ id: "conversation-c", lastMessageAt: "2026-10-01T00:00:00.000Z" }),
+      ];
+      mockGetConversations
+        .mockResolvedValueOnce({ data: { items: firstPage, total: 200 } })
+        .mockResolvedValueOnce({ data: { items: secondPage, total: 200 } });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      await act(async () => {
+        await result.current.goToPage(2);
+      });
+
+      expect(mockGetConversations).toHaveBeenLastCalledWith({ limit: 100, page: 2 });
+      expect(result.current.conversations.map(({ id }) => id)).toEqual([
+        "conversation-d",
+        "conversation-c",
+      ]);
+      expect(result.current.page).toBe(2);
+      expect(result.current.totalPages).toBe(2);
+      expect(result.current.pageSize).toBe(100);
+    });
+
+    it("keeps the successful page when navigation fails and retries the target", async () => {
+      const firstPage = [createConversation({ id: "conversation-stable" })];
+      const secondPage = [createConversation({ id: "conversation-retried" })];
+      mockGetConversations
+        .mockResolvedValueOnce({ data: { items: firstPage, total: 101 } })
+        .mockRejectedValueOnce(new Error("Page failed"))
+        .mockResolvedValueOnce({ data: { items: secondPage, total: 101 } });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+      await act(async () => {
+        await result.current.goToPage(2);
+      });
+
+      expect(result.current.page).toBe(1);
+      expect(result.current.conversations.map(({ id }) => id)).toEqual([
+        "conversation-stable",
+      ]);
+      expect(result.current.error).toBe("Page failed");
+
+      await act(async () => {
+        await result.current.retry();
+      });
+      expect(result.current.page).toBe(2);
+      expect(result.current.conversations[0]?.id).toBe("conversation-retried");
+    });
+
+    it("refreshes the current page", async () => {
+      mockGetConversations
+        .mockResolvedValueOnce({ data: { items: [createConversation({ id: "conversation-page-1" })], total: 101 } })
+        .mockResolvedValueOnce({ data: { items: [createConversation({ id: "conversation-page-2" })], total: 101 } })
+        .mockResolvedValueOnce({ data: { items: [createConversation({ id: "conversation-page-2-fresh" })], total: 101 } });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+      await act(async () => {
+        await result.current.goToPage(2);
+      });
+      await act(async () => {
+        await result.current.refresh();
+      });
+
+      expect(mockGetConversations).toHaveBeenLastCalledWith({ limit: 100, page: 2 });
+      expect(result.current.page).toBe(2);
+      expect(result.current.conversations[0]?.id).toBe("conversation-page-2-fresh");
+    });
+
+    it("resets to an empty first page when an active filter request fails", async () => {
+      const filteredConversation = createConversation({
+        id: "conversation-filtered",
+        status: "closed",
+      });
+      mockGetConversations
+        .mockResolvedValueOnce({
+          data: {
+            items: [createConversation({ id: "conversation-page-1" })],
+            total: 101,
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            items: [createConversation({ id: "conversation-page-2" })],
+            total: 101,
+          },
+        })
+        .mockRejectedValueOnce(new Error("Filter failed"))
+        .mockResolvedValueOnce({
+          data: { items: [filteredConversation], total: 1 },
+        });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+      await act(async () => {
+        await result.current.goToPage(2);
+      });
+      await act(async () => {
+        result.current.setFilters((current) => ({
+          ...current,
+          status: "closed",
+        }));
+        await vi.runAllTimersAsync();
+      });
+
+      expect(mockGetConversations).toHaveBeenLastCalledWith({
+        status: "closed",
+        limit: 100,
+        page: 1,
+      });
+      expect(result.current.conversations).toEqual([]);
+      expect(result.current.total).toBe(0);
+      expect(result.current.page).toBe(1);
+      expect(result.current.error).toBe("Filter failed");
+
+      await act(async () => {
+        await result.current.retry();
+      });
+      expect(result.current.conversations[0]?.id).toBe("conversation-filtered");
+      expect(mockGetConversations).toHaveBeenLastCalledWith({
+        status: "closed",
+        limit: 100,
+        page: 1,
+      });
+    });
+
+    it("falls back to the last valid page when totals shrink", async () => {
+      mockGetConversations
+        .mockResolvedValueOnce({ data: { items: [createConversation({ id: "conversation-page-1" })], total: 101 } })
+        .mockResolvedValueOnce({ data: { items: [], total: 50 } })
+        .mockResolvedValueOnce({ data: { items: [createConversation({ id: "conversation-fallback" })], total: 50 } });
+
+      const useConversations = await importHook();
+      const { result } = renderHook(() => useConversations());
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+      await act(async () => {
+        await result.current.goToPage(2);
+      });
+
+      expect(mockGetConversations).toHaveBeenNthCalledWith(2, { limit: 100, page: 2 });
+      expect(mockGetConversations).toHaveBeenNthCalledWith(3, { limit: 100, page: 1 });
+      expect(result.current.page).toBe(1);
+      expect(result.current.conversations[0]?.id).toBe("conversation-fallback");
     });
   });
 
@@ -591,19 +763,15 @@ describe("useConversations", () => {
     });
   });
 
-  // ─── Property 6: Enrichment Preserves Newer Real-Time Data ───────────────
-
-  describe("Property 6: Real-time Last Message Preservation", () => {
-    it("preserves newer real-time lastMessage when a refresh response has no lastMessage", async () => {
+  describe("Real-time page stability", () => {
+    it("updates a matching row without changing response order", async () => {
       const newerTimestamp = "2025-06-01T12:00:00.000Z";
-      const conv = createConversation({
-        id: "conv-400",
-        unreadCount: 0,
-      });
+      const conv = createConversation({ id: "conv-400", unreadCount: 0 });
+      const second = createConversation({ id: "conv-401", unreadCount: 0 });
 
       // First call returns the conversation without lastMessage
       mockGetConversations.mockResolvedValue({
-        data: { items: [conv], total: 1 },
+        data: { items: [conv, second], total: 2 },
       });
 
       const useConversations = await importHook();
@@ -618,12 +786,12 @@ describe("useConversations", () => {
         mockSocket.simulateEvent(
           "communication.chat.message.created",
           {
-            conversationId: "conv-400",
+          conversationId: "conv-401",
             message: {
               id: "msg-realtime",
-              conversationId: "conv-400",
+              conversationId: "conv-401",
               senderId: "other-user-123",
-              body: "Newer real-time message",
+              body: "new body",
               status: "sent",
               createdAt: newerTimestamp,
             },
@@ -635,35 +803,17 @@ describe("useConversations", () => {
         await vi.runAllTimersAsync();
       });
 
-      // The lastMessage should be the newer real-time one
-      const conversation = result.current.conversations[0];
-      expect(conversation?.lastMessage?.body).toBe("Newer real-time message");
-      expect(conversation?.lastMessage?.createdAt).toBe(newerTimestamp);
-
-      // Now trigger a refresh that would re-run enrichment with older data
-      mockGetConversations.mockResolvedValue({
-        data: { items: [{ ...conv }], total: 1 },
-      });
-
-      await act(async () => {
-        await result.current.refresh();
-        await vi.runAllTimersAsync();
-      });
-
-      // The newer real-time lastMessage should be preserved (not overwritten by enrichment)
-      const afterRefresh = result.current.conversations[0];
-      expect(afterRefresh?.lastMessage?.body).toBe("Newer real-time message");
-      expect(afterRefresh?.lastMessage?.createdAt).toBe(newerTimestamp);
-      expect(mockGetMessages).not.toHaveBeenCalled();
+      expect(result.current.conversations.map(({ id }) => id)).toEqual([
+        "conv-400",
+        "conv-401",
+      ]);
+      expect(result.current.conversations[1]?.lastMessage?.body).toBe("new body");
     });
 
-    it("uses a newer API lastMessage after an older real-time message", async () => {
-      const conversation = createConversation({
-        id: "conv-401",
-        unreadCount: 0,
-      });
+    it("ignores realtime events for conversations outside the current page", async () => {
+      const conversation = createConversation({ id: "conv-visible" });
       mockGetConversations.mockResolvedValue({
-        data: { items: [conversation], total: 1 },
+        data: { items: [conversation], total: 101 },
       });
 
       const useConversations = await importHook();
@@ -672,49 +822,28 @@ describe("useConversations", () => {
         await vi.runAllTimersAsync();
       });
 
+      mockGetConversations.mockClear();
       act(() => {
         mockSocket.simulateEvent("communication.chat.message.created", {
-          conversationId: "conv-401",
+          conversationId: "conv-outside-page",
           message: {
-            id: "msg-realtime-old",
-            conversationId: "conv-401",
+            id: "msg-outside",
+            conversationId: "conv-outside-page",
             senderId: "other-user-123",
-            body: "Older real-time message",
+            body: "outside",
             status: "sent",
-            createdAt: "2025-06-01T12:00:00.000Z",
+            createdAt: "2026-09-28T12:00:00.000Z",
           },
         });
       });
-
-      mockGetConversations.mockResolvedValue({
-        data: {
-          items: [
-            {
-              ...conversation,
-              lastMessageAt: "2025-06-01T12:05:00.000Z",
-              lastMessage: {
-                id: "msg-api-new",
-                conversationId: "conv-401",
-                body: "Newer API message",
-                type: "text",
-                status: "sent",
-                sentAt: "2025-06-01T12:05:00.000Z",
-                createdAt: "2025-06-01T12:05:00.000Z",
-              },
-            },
-          ],
-          total: 1,
-        },
-      });
-
       await act(async () => {
-        await result.current.refresh();
-        await vi.runAllTimersAsync();
+        await vi.advanceTimersByTimeAsync(500);
       });
 
-      expect(result.current.conversations[0]?.lastMessage?.body).toBe(
-        "Newer API message",
-      );
+      expect(result.current.conversations.map(({ id }) => id)).toEqual([
+        "conv-visible",
+      ]);
+      expect(mockGetConversations).not.toHaveBeenCalled();
     });
   });
 

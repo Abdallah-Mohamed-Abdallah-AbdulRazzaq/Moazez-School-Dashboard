@@ -75,8 +75,26 @@ const DEFAULT_FILTERS: ConversationFiltersState = {
   type: "all",
 };
 
-const CONVERSATIONS_PAGE_SIZE = 20;
+const CONVERSATIONS_PAGE_SIZE = 100;
 const SEARCH_DEBOUNCE_MS = 350;
+
+type PageRequestFailureMode = "clear-list" | "preserve-list";
+
+interface ConversationPageRequest {
+  page: number;
+  failureMode: PageRequestFailureMode;
+}
+
+interface ResolvedConversationPage {
+  conversations: ConversationListItemModel[];
+  page: number;
+  total: number;
+}
+
+type ConversationRequestCache = Map<
+  string,
+  Promise<CommunicationList<Conversation>>
+>;
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -188,94 +206,79 @@ function toConversationListItem(
   };
 }
 
-function sortConversations(
-  conversations: ConversationListItemModel[],
-): ConversationListItemModel[] {
-  return [...conversations].sort((left, right) => {
-    if (left.isPinned !== right.isPinned) return left.isPinned ? -1 : 1;
-
-    const leftDate =
-      left.pinnedAt ??
-      left.lastMessage?.createdAt ??
-      left.lastMessage?.sentAt ??
-      left.lastMessageAt ??
-      left.updatedAt ??
-      left.createdAt ??
-      "";
-    const rightDate =
-      right.pinnedAt ??
-      right.lastMessage?.createdAt ??
-      right.lastMessage?.sentAt ??
-      right.lastMessageAt ??
-      right.updatedAt ??
-      right.createdAt ??
-      "";
-
-    return new Date(rightDate).getTime() - new Date(leftDate).getTime();
-  });
+function totalPagesFromTotal(total: number): number {
+  return total === 0 ? 0 : Math.ceil(total / CONVERSATIONS_PAGE_SIZE);
 }
 
-function dedupeConversations(
-  conversations: ConversationListItemModel[],
-): ConversationListItemModel[] {
-  const seen = new Set<string>();
-  const output: ConversationListItemModel[] = [];
-
-  for (const conversation of conversations) {
-    const id = stringFromUnknown(conversation.id);
-    if (id && seen.has(id)) continue;
-    if (id) seen.add(id);
-    output.push(conversation);
-  }
-
-  return output;
-}
-
-function lastMessageTimestamp(
-  message: ConversationLastMessage | null | undefined,
-  fallback?: string | null,
-): number | null {
-  const value =
-    message?.createdAt ?? message?.sentAt ?? message?.updatedAt ?? fallback;
-  if (!value) return null;
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? timestamp : null;
-}
-
-function mergeSameLastMessage(
-  apiMessage: ConversationLastMessage,
-  localMessage: ConversationLastMessage,
-): ConversationLastMessage {
+function conversationPageParams(
+  status: ConversationStatusFilter,
+  type: ConversationTypeFilter,
+  search: string,
+  page: number,
+): ListConversationsParams {
   return {
-    ...localMessage,
-    ...apiMessage,
-    body: apiMessage.body ?? localMessage.body,
-    type: apiMessage.type ?? localMessage.type,
-    status: apiMessage.status ?? localMessage.status,
-    sentAt: apiMessage.sentAt ?? localMessage.sentAt,
-    createdAt: apiMessage.createdAt ?? localMessage.createdAt,
-    updatedAt: apiMessage.updatedAt ?? localMessage.updatedAt,
-    senderName: apiMessage.senderName ?? localMessage.senderName,
+    ...(status !== "all" ? { status: status as ConversationStatus } : {}),
+    ...(type !== "all" ? { type } : {}),
+    ...(search ? { search } : {}),
+    limit: CONVERSATIONS_PAGE_SIZE,
+    page,
   };
 }
 
-function newerLastMessage(
-  apiMessage: ConversationLastMessage | null | undefined,
-  localMessage: ConversationLastMessage | null | undefined,
-  apiFallback?: string | null,
-  localFallback?: string | null,
-): ConversationLastMessage | null {
-  if (!apiMessage) return localMessage ?? null;
-  if (!localMessage) return apiMessage;
-  if (apiMessage.id && apiMessage.id === localMessage.id) {
-    return mergeSameLastMessage(apiMessage, localMessage);
+async function fetchConversationList(
+  params: ListConversationsParams,
+  requestCache: ConversationRequestCache,
+): Promise<CommunicationList<Conversation>> {
+  const requestKey = JSON.stringify(params);
+  let request = requestCache.get(requestKey);
+
+  if (!request) {
+    request = getConversations(params).then((response) =>
+      unwrapList<Conversation>(response),
+    );
+    requestCache.set(requestKey, request);
   }
 
-  const apiTimestamp = lastMessageTimestamp(apiMessage, apiFallback);
-  const localTimestamp = lastMessageTimestamp(localMessage, localFallback);
-  if (apiTimestamp === null) return localMessage;
-  if (localTimestamp === null) return apiMessage;
-  return apiTimestamp >= localTimestamp ? apiMessage : localMessage;
+  try {
+    return await request;
+  } finally {
+    if (requestCache.get(requestKey) === request) {
+      requestCache.delete(requestKey);
+    }
+  }
+}
+
+async function resolveConversationPage(
+  initialPage: number,
+  status: ConversationStatusFilter,
+  type: ConversationTypeFilter,
+  search: string,
+  requestCache: ConversationRequestCache,
+): Promise<ResolvedConversationPage> {
+  let requestedPage = initialPage;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const list = await fetchConversationList(
+      conversationPageParams(status, type, search, requestedPage),
+      requestCache,
+    );
+    const conversations = list.items.map(toConversationListItem);
+    const total = list.total ?? conversations.length;
+    const totalPages = totalPagesFromTotal(total);
+
+    if (totalPages > 0 && requestedPage > totalPages && attempt === 0) {
+      requestedPage = totalPages;
+      continue;
+    }
+
+    return {
+      conversations,
+      page: totalPages === 0 ? 1 : requestedPage,
+      total,
+    };
+  }
+
+  throw new Error("Unable to resolve a valid conversations page.");
 }
 
 function errorMessageFromUnknown(error: unknown): string {
@@ -408,17 +411,17 @@ export function useConversations() {
   );
   const lastHandledResyncVersionRef = useRef(resyncVersion);
   const userIdRef = useRef(user?.id);
+  const failedPageRequestRef = useRef<ConversationPageRequest | null>(null);
+  const pageNavigationInFlightRef = useRef(false);
   useEffect(() => {
     userIdRef.current = user?.id;
   }, [user?.id]);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [filters, setFilters] = useState<ConversationFiltersState>(DEFAULT_FILTERS);
   const [conversations, setConversations] = useState<ConversationListItemModel[]>(
     [],
   );
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -428,128 +431,102 @@ export function useConversations() {
     SEARCH_DEBOUNCE_MS,
   );
 
-  const refresh = useCallback(async (pageToFetch: number = 1) => {
-    const requestParams: ListConversationsParams = {
-      ...(filters.status !== "all"
-        ? { status: filters.status as ConversationStatus }
-        : {}),
-      ...(filters.type !== "all" ? { type: filters.type } : {}),
-      ...(debouncedSearch ? { search: debouncedSearch } : {}),
-      limit: CONVERSATIONS_PAGE_SIZE,
-      page: pageToFetch,
-    };
-    const requestKey = JSON.stringify(requestParams);
-    const requestId = ++latestRequestIdRef.current;
-    const isFirstPage = pageToFetch === 1;
-    const isInitialLoad = isFirstPage && !hasCompletedInitialLoadRef.current;
+  const requestPage = useCallback(
+    async (request: ConversationPageRequest) => {
+      const requestId = ++latestRequestIdRef.current;
+      const isInitialLoad = !hasCompletedInitialLoadRef.current;
 
-    if (isFirstPage) {
       if (isInitialLoad) {
         setIsLoading(true);
       } else {
         setIsRefreshing(true);
       }
-      setPage(1);
-      setHasMore(true);
-    } else {
-      setIsRefreshing(true);
-    }
-    setLoadError(null);
+      setLoadError(null);
+      failedPageRequestRef.current = null;
 
-    try {
-      let conversationListRequest = inFlightRequestsRef.current.get(requestKey);
-      if (!conversationListRequest) {
-        conversationListRequest = getConversations(requestParams).then((response) =>
-          unwrapList<Conversation>(response),
+      try {
+        const resolvedPage = await resolveConversationPage(
+          request.page,
+          filters.status,
+          filters.type,
+          debouncedSearch,
+          inFlightRequestsRef.current,
         );
-        inFlightRequestsRef.current.set(requestKey, conversationListRequest);
+
+        if (!mountedRef.current || requestId !== latestRequestIdRef.current) {
+          return;
+        }
+        setConversations(resolvedPage.conversations);
+        setTotal(resolvedPage.total);
+        setPage(resolvedPage.page);
+        failedPageRequestRef.current = null;
+      } catch (nextError) {
+        if (!mountedRef.current || requestId !== latestRequestIdRef.current) {
+          return;
+        }
+        setLoadError(errorMessageFromUnknown(nextError));
+        failedPageRequestRef.current = request;
+
+        if (request.failureMode === "clear-list") {
+          setConversations([]);
+          setTotal(0);
+          setPage(1);
+        }
+      } finally {
+        if (mountedRef.current && requestId === latestRequestIdRef.current) {
+          hasCompletedInitialLoadRef.current = true;
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
-      const list = await conversationListRequest;
-
-      const normalized = sortConversations(
-        dedupeConversations(
-          list.items.map((conversation) => toConversationListItem(conversation)),
-        ),
-      );
-
-      if (!mountedRef.current || requestId !== latestRequestIdRef.current) return;
-      // Merge with existing data to preserve lastMessage from previous enrichment/realtime
-      setConversations((current) => {
-        const existingMap = new Map(current.map((c) => [c.id, c]));
-        const merged = normalized.map((conversation) => {
-          const existing = existingMap.get(conversation.id);
-          if (!existing) return conversation;
-          return {
-            ...conversation,
-            lastMessage: newerLastMessage(
-              conversation.lastMessage,
-              existing.lastMessage,
-              conversation.lastMessageAt,
-              existing.lastMessageAt,
-            ),
-            // Prefer the API's unreadCount (source of truth) unless it's undefined/null,
-            // in which case fall back to the existing local value
-            unreadCount: conversation.unreadCount ?? existing.unreadCount,
-          };
-        });
-
-        const baseList = pageToFetch === 1 ? merged : [...merged, ...current];
-        return sortConversations(dedupeConversations(baseList));
-      });
-      const totalItems = list.total ?? normalized.length;
-      setTotal(totalItems);
-
-      const fetchedCount = list.items.length;
-      setHasMore(
-        fetchedCount > 0 &&
-          pageToFetch * CONVERSATIONS_PAGE_SIZE < totalItems,
-      );
-
-    } catch (nextError) {
-      if (!mountedRef.current || requestId !== latestRequestIdRef.current) return;
-      setLoadError(errorMessageFromUnknown(nextError));
-      if (isInitialLoad) {
-        setConversations([]);
-        setTotal(0);
-      }
-      if (isInitialLoad || !isFirstPage) setHasMore(false);
-    } finally {
-      if (inFlightRequestsRef.current.get(requestKey)) {
-        inFlightRequestsRef.current.delete(requestKey);
-      }
-      if (mountedRef.current && requestId === latestRequestIdRef.current) {
-        if (isFirstPage) hasCompletedInitialLoadRef.current = true;
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
-    }
-  }, [debouncedSearch, filters.status, filters.type]);
-
-  const debouncedRefresh = useCallback(() => {
-    if (refreshTimerRef.current) {
-      clearTimeout(refreshTimerRef.current);
-    }
-
-    refreshTimerRef.current = setTimeout(() => {
-      refreshTimerRef.current = null;
-      void refresh();
-    }, 500);
-  }, [refresh]);
+    },
+    [debouncedSearch, filters.status, filters.type],
+  );
 
   useEffect(() => {
     mountedRef.current = true;
 
     return () => {
       mountedRef.current = false;
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current);
-      }
     };
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void requestPage({ page: 1, failureMode: "clear-list" });
+  }, [requestPage]);
+
+  const refresh = useCallback(
+    () => requestPage({ page, failureMode: "preserve-list" }),
+    [page, requestPage],
+  );
+
+  const retry = useCallback(() => {
+    const failedRequest = failedPageRequestRef.current;
+    return failedRequest ? requestPage(failedRequest) : refresh();
+  }, [refresh, requestPage]);
+
+  const totalPages = useMemo(() => totalPagesFromTotal(total), [total]);
+
+  const goToPage = useCallback(
+    async (nextPage: number) => {
+      if (
+        pageNavigationInFlightRef.current ||
+        nextPage === page ||
+        nextPage < 1 ||
+        nextPage > totalPages
+      ) {
+        return;
+      }
+
+      pageNavigationInFlightRef.current = true;
+      try {
+        await requestPage({ page: nextPage, failureMode: "preserve-list" });
+      } finally {
+        pageNavigationInFlightRef.current = false;
+      }
+    },
+    [page, requestPage, totalPages],
+  );
 
   useEffect(() => {
     if (
@@ -569,7 +546,6 @@ export function useConversations() {
     const handleCreated = (payload: unknown) => {
       const { conversationId, senderUserId, message } = lastMessageFromPayload(payload);
       if (!conversationId || !message) {
-        debouncedRefresh();
         return;
       }
 
@@ -595,19 +571,13 @@ export function useConversations() {
           };
         });
 
-        if (!found) {
-          debouncedRefresh();
-          return current;
-        }
-
-        return sortConversations(next);
+        return found ? next : current;
       });
     };
 
     const handleUpdated = (payload: unknown) => {
       const { conversationId, message } = lastMessageFromPayload(payload);
       if (!conversationId || !message?.id) {
-        debouncedRefresh();
         return;
       }
 
@@ -634,7 +604,6 @@ export function useConversations() {
     const handleDeleted = (payload: unknown) => {
       const { conversationId, message } = lastMessageFromPayload(payload);
       if (!conversationId || !message?.id) {
-        debouncedRefresh();
         return;
       }
 
@@ -670,7 +639,7 @@ export function useConversations() {
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageUpdated, handleUpdated);
       socket.off(COMMUNICATION_SOCKET_EVENTS.messageDeleted, handleDeleted);
     };
-  }, [debouncedRefresh, socket]);
+  }, [socket]);
 
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
@@ -745,18 +714,14 @@ export function useConversations() {
     );
   }, []);
 
-  const loadMore = useCallback(() => {
-    if (isLoading || isRefreshing || !hasMore) return;
-    const nextPage = page + 1;
-    setPage(nextPage);
-    void refresh(nextPage);
-  }, [isLoading, isRefreshing, hasMore, page, refresh]);
-
   const clearError = useCallback(() => setLoadError(null), []);
 
   return {
     conversations,
     total,
+    page,
+    pageSize: CONVERSATIONS_PAGE_SIZE,
+    totalPages,
     filters,
     setFilters,
     isLoading,
@@ -764,15 +729,15 @@ export function useConversations() {
     isMutating,
     error: loadError,
     clearError,
+    retry,
     hasFilters,
     refresh,
+    goToPage,
     markAsRead,
     create,
     update,
     close,
     reopen,
     archive,
-    loadMore,
-    hasMore,
   };
 }
