@@ -101,6 +101,11 @@ export interface ListAcademicContentQuery {
   search?: string;
 }
 
+export interface AcademicContentPaginationQuery {
+  page?: number;
+  limit?: number;
+}
+
 export interface AcademicContentTargetDraft {
   scopeType: AcademicContentTargetScope;
   stageId?: string | null;
