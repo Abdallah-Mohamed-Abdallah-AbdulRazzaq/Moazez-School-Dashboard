@@ -1,27 +1,33 @@
-export type AcademicContentStatus =
-  | "DRAFT"
-  | "SUBMITTED"
-  | "CHANGES_REQUESTED"
-  | "APPROVED"
-  | "SCHEDULED"
-  | "PUBLISHED"
-  | "EXPIRED"
-  | "ARCHIVED"
-  | "CANCELLED";
+export const ACADEMIC_CONTENT_STATUSES = [
+  "DRAFT",
+  "SUBMITTED",
+  "CHANGES_REQUESTED",
+  "APPROVED",
+  "SCHEDULED",
+  "PUBLISHED",
+  "EXPIRED",
+  "ARCHIVED",
+  "CANCELLED",
+] as const;
+export type AcademicContentStatus = (typeof ACADEMIC_CONTENT_STATUSES)[number];
 
-export type AcademicContentType =
-  | "TEACHER_PREPARATION"
-  | "WEEKLY_PLAN"
-  | "GUARDIAN_WEEKLY_NOTE"
-  | "SUBJECT_RESOURCE"
-  | "ONLINE_SESSION"
-  | "GENERAL_RESOURCE";
+export const ACADEMIC_CONTENT_TYPES = [
+  "TEACHER_PREPARATION",
+  "WEEKLY_PLAN",
+  "GUARDIAN_WEEKLY_NOTE",
+  "SUBJECT_RESOURCE",
+  "ONLINE_SESSION",
+  "GENERAL_RESOURCE",
+] as const;
+export type AcademicContentType = (typeof ACADEMIC_CONTENT_TYPES)[number];
 
-export type AcademicContentAudience =
-  | "INTERNAL_STAFF"
-  | "STUDENTS"
-  | "GUARDIANS"
-  | "STUDENTS_AND_GUARDIANS";
+export const ACADEMIC_CONTENT_AUDIENCES = [
+  "INTERNAL_STAFF",
+  "STUDENTS",
+  "GUARDIANS",
+  "STUDENTS_AND_GUARDIANS",
+] as const;
+export type AcademicContentAudience = (typeof ACADEMIC_CONTENT_AUDIENCES)[number];
 
 export type AcademicContentTargetScope =
   | "SCHOOL"
@@ -30,25 +36,37 @@ export type AcademicContentTargetScope =
   | "SECTION"
   | "CLASSROOM";
 
-export type AcademicGuardianNotePriority = "NORMAL" | "IMPORTANT" | "URGENT";
+export const ACADEMIC_GUARDIAN_NOTE_PRIORITIES = [
+  "NORMAL",
+  "IMPORTANT",
+  "URGENT",
+] as const;
+export type AcademicGuardianNotePriority =
+  (typeof ACADEMIC_GUARDIAN_NOTE_PRIORITIES)[number];
 
+export const ACADEMIC_SUBJECT_RESOURCE_CATEGORIES = [
+  "WORKSHEET",
+  "PRESENTATION",
+  "REFERENCE",
+  "REVISION",
+  "ACTIVITY",
+  "EXAM_PREPARATION",
+  "VIDEO",
+  "DOCUMENT",
+  "OTHER",
+] as const;
 export type AcademicSubjectResourceCategory =
-  | "WORKSHEET"
-  | "PRESENTATION"
-  | "REFERENCE"
-  | "REVISION"
-  | "ACTIVITY"
-  | "EXAM_PREPARATION"
-  | "VIDEO"
-  | "DOCUMENT"
-  | "OTHER";
+  (typeof ACADEMIC_SUBJECT_RESOURCE_CATEGORIES)[number];
 
+export const ACADEMIC_ONLINE_SESSION_PLATFORMS = [
+  "GOOGLE_MEET",
+  "ZOOM",
+  "MICROSOFT_TEAMS",
+  "WEBEX",
+  "OTHER",
+] as const;
 export type AcademicOnlineSessionPlatform =
-  | "GOOGLE_MEET"
-  | "ZOOM"
-  | "MICROSOFT_TEAMS"
-  | "WEBEX"
-  | "OTHER";
+  (typeof ACADEMIC_ONLINE_SESSION_PLATFORMS)[number];
 
 export type FileUploadSessionStatus =
   | "CREATED"
