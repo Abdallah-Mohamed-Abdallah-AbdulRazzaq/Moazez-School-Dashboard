@@ -10,6 +10,8 @@ import { useAcademicContentEditor } from "../useAcademicContentEditor";
 const api = vi.hoisted(() => ({
   getAcademicContent: vi.fn(),
   getAcademicContentReadiness: vi.fn(),
+  replaceAcademicContentLinks: vi.fn(),
+  replaceAcademicContentTags: vi.fn(),
   replaceAcademicContentTargets: vi.fn(),
   replaceGuardianNoteDetail: vi.fn(),
   replaceOnlineSessionDetail: vi.fn(),
@@ -63,6 +65,8 @@ describe("useAcademicContentEditor", () => {
     api.getAcademicContent.mockReset().mockResolvedValue(detail("content-1"));
     api.getAcademicContentReadiness.mockReset().mockResolvedValue(ready);
     api.updateAcademicContent.mockReset().mockResolvedValue(detail("content-1"));
+    api.replaceAcademicContentLinks.mockReset().mockResolvedValue({ links: [] });
+    api.replaceAcademicContentTags.mockReset().mockResolvedValue({ tags: [] });
     api.replaceAcademicContentTargets.mockReset().mockResolvedValue({
       targets: [
         {
@@ -210,5 +214,34 @@ describe("useAcademicContentEditor", () => {
       requiresAcknowledgement: true,
     });
     expect(api.getAcademicContentReadiness).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the server-normalized tag list after replacing tags", async () => {
+    const canonicalTags = [
+      { id: "tag-1", value: "algebra", sortOrder: 0 },
+      { id: "tag-2", value: "revision", sortOrder: 1 },
+    ];
+    api.replaceAcademicContentTags.mockResolvedValue({ tags: canonicalTags });
+    api.getAcademicContent
+      .mockResolvedValueOnce(detail("content-1"))
+      .mockResolvedValueOnce({ ...detail("content-1"), tags: canonicalTags });
+    const { result } = renderHook(() => useAcademicContentEditor("content-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(() =>
+      result.current.saveTags([
+        { value: " Algebra " },
+        { value: "Revision" },
+        { value: "algebra" },
+      ]),
+    );
+
+    expect(api.replaceAcademicContentTags).toHaveBeenCalledWith("content-1", [
+      { value: " Algebra " },
+      { value: "Revision" },
+      { value: "algebra" },
+    ]);
+    expect(result.current.content?.tags).toEqual(canonicalTags);
+    expect(result.current.sections.tags.dirty).toBe(false);
   });
 });

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getAcademicContent,
   getAcademicContentReadiness,
+  replaceAcademicContentLinks,
+  replaceAcademicContentTags,
   replaceAcademicContentTargets,
   replaceGuardianNoteDetail,
   replaceOnlineSessionDetail,
@@ -18,7 +20,9 @@ import {
 } from "../services/academicContentErrors";
 import type {
   AcademicContentDetail,
+  AcademicContentLinkInput,
   AcademicContentReadinessResponse,
+  AcademicContentTagInput,
   AcademicContentTargetDraft,
   ReplaceAcademicContentGuardianNoteDetailRequest,
   ReplaceAcademicContentOnlineSessionDetailRequest,
@@ -197,6 +201,60 @@ export function useAcademicContentEditor(contentId: string) {
     [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
   );
 
+  const saveLinks = useCallback(
+    async (links: AcademicContentLinkInput[]): Promise<boolean> => {
+      if (content?.status === "ARCHIVED") return false;
+
+      setSectionState("links", { saving: true, error: null });
+      try {
+        const response = await replaceAcademicContentLinks(contentId, links);
+        if (activeContentIdRef.current !== contentId) return false;
+        setContent((currentContent) =>
+          currentContent ? { ...currentContent, links: response.links } : null,
+        );
+        await Promise.all([refreshAggregate(), refreshReadiness()]);
+        if (activeContentIdRef.current !== contentId) return false;
+        setSectionState("links", { dirty: false, saving: false, error: null });
+        return true;
+      } catch (saveError) {
+        if (activeContentIdRef.current !== contentId) return false;
+        setSectionState("links", {
+          saving: false,
+          error: academicContentUiError(saveError),
+        });
+        return false;
+      }
+    },
+    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+  );
+
+  const saveTags = useCallback(
+    async (tags: AcademicContentTagInput[]): Promise<boolean> => {
+      if (content?.status === "ARCHIVED") return false;
+
+      setSectionState("tags", { saving: true, error: null });
+      try {
+        const response = await replaceAcademicContentTags(contentId, tags);
+        if (activeContentIdRef.current !== contentId) return false;
+        setContent((currentContent) =>
+          currentContent ? { ...currentContent, tags: response.tags } : null,
+        );
+        await Promise.all([refreshAggregate(), refreshReadiness()]);
+        if (activeContentIdRef.current !== contentId) return false;
+        setSectionState("tags", { dirty: false, saving: false, error: null });
+        return true;
+      } catch (saveError) {
+        if (activeContentIdRef.current !== contentId) return false;
+        setSectionState("tags", {
+          saving: false,
+          error: academicContentUiError(saveError),
+        });
+        return false;
+      }
+    },
+    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+  );
+
   const saveDetailsMutation = useCallback(
     async (mutation: () => Promise<unknown>): Promise<boolean> => {
       if (content?.status === "ARCHIVED") return false;
@@ -264,6 +322,8 @@ export function useAcademicContentEditor(contentId: string) {
     refreshReadiness,
     saveMetadata,
     saveTargets,
+    saveLinks,
+    saveTags,
     savePreparationDetails,
     saveWeeklyPlanDetails,
     saveGuardianNoteDetails,

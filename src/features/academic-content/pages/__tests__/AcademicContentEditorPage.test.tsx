@@ -46,6 +46,8 @@ function editorState(
     markSectionDirty: vi.fn(),
     saveMetadata: vi.fn(async () => true),
     saveTargets: vi.fn(async () => true),
+    saveLinks: vi.fn(async () => true),
+    saveTags: vi.fn(async () => true),
     savePreparationDetails: vi.fn(async () => true),
     saveWeeklyPlanDetails: vi.fn(async () => true),
     saveGuardianNoteDetails: vi.fn(async () => true),

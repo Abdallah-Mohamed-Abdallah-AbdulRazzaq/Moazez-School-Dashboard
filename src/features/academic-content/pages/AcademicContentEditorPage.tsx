@@ -10,6 +10,8 @@ import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/Aca
 import { usePermissions } from "@/hooks/usePermissions";
 import BasicInformationSection from "../components/editor/BasicInformationSection";
 import AcademicTargetsSection from "../components/editor/AcademicTargetsSection";
+import LinksSection from "../components/editor/LinksSection";
+import TagsSection from "../components/editor/TagsSection";
 import EditorSectionNav, {
   EDITOR_SECTIONS,
   type AcademicContentEditorPanel,
@@ -141,6 +143,24 @@ export function AcademicContentEditorView({
               onSaveGuardianNote={editor.saveGuardianNoteDetails}
               onSaveSubjectResource={editor.saveSubjectResourceDetails}
               onSaveOnlineSession={editor.saveOnlineSessionDetails}
+            />
+          ) : activeSection === "links" ? (
+            <LinksSection
+              key={JSON.stringify(content.links)}
+              initial={content.links}
+              disabled={editingDisabled}
+              sectionState={editor.sections.links}
+              onDirty={() => editor.markSectionDirty("links", true)}
+              onSave={editor.saveLinks}
+            />
+          ) : activeSection === "tags" ? (
+            <TagsSection
+              key={JSON.stringify(content.tags)}
+              initial={content.tags}
+              disabled={editingDisabled}
+              sectionState={editor.sections.tags}
+              onDirty={() => editor.markSectionDirty("tags", true)}
+              onSave={editor.saveTags}
             />
           ) : (
             <section
