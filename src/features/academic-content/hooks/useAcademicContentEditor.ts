@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getAcademicContent,
   getAcademicContentReadiness,
+  replaceAcademicContentTargets,
   updateAcademicContent,
 } from "../services/academicContentApi";
 import {
@@ -13,6 +14,7 @@ import {
 import type {
   AcademicContentDetail,
   AcademicContentReadinessResponse,
+  AcademicContentTargetDraft,
   UpdateAcademicContentRequest,
 } from "../types/contracts";
 
@@ -158,6 +160,33 @@ export function useAcademicContentEditor(contentId: string) {
     [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
   );
 
+  const saveTargets = useCallback(
+    async (targets: AcademicContentTargetDraft[]): Promise<boolean> => {
+      if (content?.status === "ARCHIVED") return false;
+
+      setSectionState("targets", { saving: true, error: null });
+      try {
+        const response = await replaceAcademicContentTargets(contentId, targets);
+        if (activeContentIdRef.current !== contentId) return false;
+        setContent((currentContent) =>
+          currentContent ? { ...currentContent, targets: response.targets } : null,
+        );
+        await Promise.all([refreshAggregate(), refreshReadiness()]);
+        if (activeContentIdRef.current !== contentId) return false;
+        setSectionState("targets", { dirty: false, saving: false, error: null });
+        return true;
+      } catch (saveError) {
+        if (activeContentIdRef.current !== contentId) return false;
+        setSectionState("targets", {
+          saving: false,
+          error: academicContentUiError(saveError),
+        });
+        return false;
+      }
+    },
+    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+  );
+
   const hasUnsavedChanges = useMemo(
     () => SECTION_KEYS.some((section) => sections[section].dirty),
     [sections],
@@ -175,6 +204,7 @@ export function useAcademicContentEditor(contentId: string) {
     refreshAggregate,
     refreshReadiness,
     saveMetadata,
+    saveTargets,
     reload: load,
   };
 }

@@ -8,6 +8,7 @@ import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
 import { usePermissions } from "@/hooks/usePermissions";
 import BasicInformationSection from "../components/editor/BasicInformationSection";
+import AcademicTargetsSection from "../components/editor/AcademicTargetsSection";
 import EditorSectionNav, {
   EDITOR_SECTIONS,
   type AcademicContentEditorPanel,
@@ -114,6 +115,14 @@ export function AcademicContentEditorView({
               sectionState={editor.sections.metadata}
               onDirtyChange={(dirty) => editor.markSectionDirty("metadata", dirty)}
               onSave={editor.saveMetadata}
+            />
+          ) : activeSection === "targets" ? (
+            <AcademicTargetsSection
+              content={content}
+              disabled={editingDisabled}
+              sectionState={editor.sections.targets}
+              onDirtyChange={(dirty) => editor.markSectionDirty("targets", dirty)}
+              onSave={editor.saveTargets}
             />
           ) : (
             <section

@@ -10,6 +10,7 @@ import { useAcademicContentEditor } from "../useAcademicContentEditor";
 const api = vi.hoisted(() => ({
   getAcademicContent: vi.fn(),
   getAcademicContentReadiness: vi.fn(),
+  replaceAcademicContentTargets: vi.fn(),
   updateAcademicContent: vi.fn(),
 }));
 
@@ -57,6 +58,20 @@ describe("useAcademicContentEditor", () => {
     api.getAcademicContent.mockReset().mockResolvedValue(detail("content-1"));
     api.getAcademicContentReadiness.mockReset().mockResolvedValue(ready);
     api.updateAcademicContent.mockReset().mockResolvedValue(detail("content-1"));
+    api.replaceAcademicContentTargets.mockReset().mockResolvedValue({
+      targets: [
+        {
+          id: "target-1",
+          scopeType: "SCHOOL",
+          stageId: null,
+          gradeId: null,
+          sectionId: null,
+          classroomId: null,
+          subjectId: null,
+          teacherSubjectAllocationId: null,
+        },
+      ],
+    });
   });
 
   it("loads aggregate detail and readiness", async () => {
@@ -141,5 +156,29 @@ describe("useAcademicContentEditor", () => {
 
     await act(async () => first.resolve(detail("content-1")));
     expect(result.current.content?.id).toBe("content-2");
+  });
+
+  it("replaces all targets and refreshes the aggregate and readiness", async () => {
+    const { result } = renderHook(() => useAcademicContentEditor("content-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(() =>
+      result.current.saveTargets([
+        {
+          scopeType: "SCHOOL",
+          stageId: null,
+          gradeId: null,
+          sectionId: null,
+          classroomId: null,
+          subjectId: null,
+          teacherSubjectAllocationId: null,
+        },
+      ]),
+    );
+
+    expect(api.replaceAcademicContentTargets).toHaveBeenCalledOnce();
+    expect(api.getAcademicContent).toHaveBeenCalledTimes(2);
+    expect(api.getAcademicContentReadiness).toHaveBeenCalledTimes(2);
+    expect(result.current.sections.targets.dirty).toBe(false);
   });
 });
