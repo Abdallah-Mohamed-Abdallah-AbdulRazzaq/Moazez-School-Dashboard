@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button/Button";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import BasicInformationSection from "../components/editor/BasicInformationSection";
 import AcademicTargetsSection from "../components/editor/AcademicTargetsSection";
@@ -14,17 +15,20 @@ import EditorSectionNav, {
   type AcademicContentEditorPanel,
 } from "../components/editor/EditorSectionNav";
 import { useAcademicContentEditor } from "../hooks/useAcademicContentEditor";
+import TypeDetailSection from "../components/editor/details/TypeDetailSection";
 
 type AcademicContentEditorState = ReturnType<typeof useAcademicContentEditor>;
 
 interface AcademicContentEditorViewProps {
   editor: AcademicContentEditorState;
   canManage: boolean;
+  termBounds?: { startDate: string; endDate: string };
 }
 
 export function AcademicContentEditorView({
   editor,
   canManage,
+  termBounds,
 }: AcademicContentEditorViewProps) {
   const [activeSection, setActiveSection] =
     useState<AcademicContentEditorPanel>("metadata");
@@ -124,6 +128,20 @@ export function AcademicContentEditorView({
               onDirtyChange={(dirty) => editor.markSectionDirty("targets", dirty)}
               onSave={editor.saveTargets}
             />
+          ) : activeSection === "details" ? (
+            <TypeDetailSection
+              content={content}
+              disabled={editingDisabled}
+              sectionState={editor.sections.details}
+              termStartDate={termBounds?.startDate}
+              termEndDate={termBounds?.endDate}
+              onDirty={() => editor.markSectionDirty("details", true)}
+              onSavePreparation={editor.savePreparationDetails}
+              onSaveWeeklyPlan={editor.saveWeeklyPlanDetails}
+              onSaveGuardianNote={editor.saveGuardianNoteDetails}
+              onSaveSubjectResource={editor.saveSubjectResourceDetails}
+              onSaveOnlineSession={editor.saveOnlineSessionDetails}
+            />
           ) : (
             <section
               id={activeSection}
@@ -147,6 +165,7 @@ export function AcademicContentEditorView({
 export default function AcademicContentEditorPage({ contentId }: { contentId: string }) {
   const editor = useAcademicContentEditor(contentId);
   const { hasPermission } = usePermissions();
+  const { selectedTerm } = useAcademicYearTermLayoutContext();
   const confirmDiscard = useCallback(
     () => window.confirm("Discard unsaved academic content changes?"),
     [],
@@ -171,6 +190,11 @@ export default function AcademicContentEditorPage({ contentId }: { contentId: st
     <AcademicContentEditorView
       editor={editor}
       canManage={hasPermission("academics.academic_content.manage")}
+      termBounds={
+        selectedTerm && selectedTerm.id === editor.content?.termId
+          ? { startDate: selectedTerm.startDate, endDate: selectedTerm.endDate }
+          : undefined
+      }
     />
   );
 }

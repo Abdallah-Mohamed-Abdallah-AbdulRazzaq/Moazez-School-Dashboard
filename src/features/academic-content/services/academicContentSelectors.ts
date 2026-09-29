@@ -99,7 +99,7 @@ export function hasDuplicateTargets(
   return false;
 }
 
-function targetGradeIds(
+export function targetGradeIds(
   options: AcademicTargetOptions,
   target: AcademicContentTargetDraft,
 ): string[] {

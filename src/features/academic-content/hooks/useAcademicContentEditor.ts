@@ -5,6 +5,11 @@ import {
   getAcademicContent,
   getAcademicContentReadiness,
   replaceAcademicContentTargets,
+  replaceGuardianNoteDetail,
+  replaceOnlineSessionDetail,
+  replacePreparationDetail,
+  replaceSubjectResourceDetail,
+  replaceWeeklyPlanDetail,
   updateAcademicContent,
 } from "../services/academicContentApi";
 import {
@@ -15,6 +20,11 @@ import type {
   AcademicContentDetail,
   AcademicContentReadinessResponse,
   AcademicContentTargetDraft,
+  ReplaceAcademicContentGuardianNoteDetailRequest,
+  ReplaceAcademicContentOnlineSessionDetailRequest,
+  ReplaceAcademicContentPreparationDetailRequest,
+  ReplaceAcademicContentSubjectResourceDetailRequest,
+  ReplaceAcademicContentWeeklyPlanDetailRequest,
   UpdateAcademicContentRequest,
 } from "../types/contracts";
 
@@ -187,6 +197,55 @@ export function useAcademicContentEditor(contentId: string) {
     [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
   );
 
+  const saveDetailsMutation = useCallback(
+    async (mutation: () => Promise<unknown>): Promise<boolean> => {
+      if (content?.status === "ARCHIVED") return false;
+
+      setSectionState("details", { saving: true, error: null });
+      try {
+        await mutation();
+        await Promise.all([refreshAggregate(), refreshReadiness()]);
+        if (activeContentIdRef.current !== contentId) return false;
+        setSectionState("details", { dirty: false, saving: false, error: null });
+        return true;
+      } catch (saveError) {
+        if (activeContentIdRef.current !== contentId) return false;
+        setSectionState("details", {
+          saving: false,
+          error: academicContentUiError(saveError),
+        });
+        return false;
+      }
+    },
+    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+  );
+
+  const savePreparationDetails = useCallback(
+    (request: ReplaceAcademicContentPreparationDetailRequest) =>
+      saveDetailsMutation(() => replacePreparationDetail(contentId, request)),
+    [contentId, saveDetailsMutation],
+  );
+  const saveWeeklyPlanDetails = useCallback(
+    (request: ReplaceAcademicContentWeeklyPlanDetailRequest) =>
+      saveDetailsMutation(() => replaceWeeklyPlanDetail(contentId, request)),
+    [contentId, saveDetailsMutation],
+  );
+  const saveGuardianNoteDetails = useCallback(
+    (request: ReplaceAcademicContentGuardianNoteDetailRequest) =>
+      saveDetailsMutation(() => replaceGuardianNoteDetail(contentId, request)),
+    [contentId, saveDetailsMutation],
+  );
+  const saveSubjectResourceDetails = useCallback(
+    (request: ReplaceAcademicContentSubjectResourceDetailRequest) =>
+      saveDetailsMutation(() => replaceSubjectResourceDetail(contentId, request)),
+    [contentId, saveDetailsMutation],
+  );
+  const saveOnlineSessionDetails = useCallback(
+    (request: ReplaceAcademicContentOnlineSessionDetailRequest) =>
+      saveDetailsMutation(() => replaceOnlineSessionDetail(contentId, request)),
+    [contentId, saveDetailsMutation],
+  );
+
   const hasUnsavedChanges = useMemo(
     () => SECTION_KEYS.some((section) => sections[section].dirty),
     [sections],
@@ -205,6 +264,11 @@ export function useAcademicContentEditor(contentId: string) {
     refreshReadiness,
     saveMetadata,
     saveTargets,
+    savePreparationDetails,
+    saveWeeklyPlanDetails,
+    saveGuardianNoteDetails,
+    saveSubjectResourceDetails,
+    saveOnlineSessionDetails,
     reload: load,
   };
 }

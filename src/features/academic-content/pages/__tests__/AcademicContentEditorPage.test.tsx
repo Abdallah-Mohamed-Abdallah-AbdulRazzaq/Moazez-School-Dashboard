@@ -46,6 +46,11 @@ function editorState(
     markSectionDirty: vi.fn(),
     saveMetadata: vi.fn(async () => true),
     saveTargets: vi.fn(async () => true),
+    savePreparationDetails: vi.fn(async () => true),
+    saveWeeklyPlanDetails: vi.fn(async () => true),
+    saveGuardianNoteDetails: vi.fn(async () => true),
+    saveSubjectResourceDetails: vi.fn(async () => true),
+    saveOnlineSessionDetails: vi.fn(async () => true),
     reload: vi.fn(),
   } as const;
 }

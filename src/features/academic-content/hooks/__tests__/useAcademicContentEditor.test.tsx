@@ -11,6 +11,11 @@ const api = vi.hoisted(() => ({
   getAcademicContent: vi.fn(),
   getAcademicContentReadiness: vi.fn(),
   replaceAcademicContentTargets: vi.fn(),
+  replaceGuardianNoteDetail: vi.fn(),
+  replaceOnlineSessionDetail: vi.fn(),
+  replacePreparationDetail: vi.fn(),
+  replaceSubjectResourceDetail: vi.fn(),
+  replaceWeeklyPlanDetail: vi.fn(),
   updateAcademicContent: vi.fn(),
 }));
 
@@ -72,6 +77,11 @@ describe("useAcademicContentEditor", () => {
         },
       ],
     });
+    api.replaceGuardianNoteDetail.mockReset().mockResolvedValue({});
+    api.replaceOnlineSessionDetail.mockReset().mockResolvedValue({});
+    api.replacePreparationDetail.mockReset().mockResolvedValue({});
+    api.replaceSubjectResourceDetail.mockReset().mockResolvedValue({});
+    api.replaceWeeklyPlanDetail.mockReset().mockResolvedValue({});
   });
 
   it("loads aggregate detail and readiness", async () => {
@@ -180,5 +190,25 @@ describe("useAcademicContentEditor", () => {
     expect(api.getAcademicContent).toHaveBeenCalledTimes(2);
     expect(api.getAcademicContentReadiness).toHaveBeenCalledTimes(2);
     expect(result.current.sections.targets.dirty).toBe(false);
+  });
+
+  it("saves a type detail through its exact endpoint and refreshes readiness", async () => {
+    const { result } = renderHook(() => useAcademicContentEditor("content-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(() =>
+      result.current.saveGuardianNoteDetails({
+        body: "Bring the workbook",
+        priority: "IMPORTANT",
+        requiresAcknowledgement: true,
+      }),
+    );
+
+    expect(api.replaceGuardianNoteDetail).toHaveBeenCalledWith("content-1", {
+      body: "Bring the workbook",
+      priority: "IMPORTANT",
+      requiresAcknowledgement: true,
+    });
+    expect(api.getAcademicContentReadiness).toHaveBeenCalledTimes(2);
   });
 });
