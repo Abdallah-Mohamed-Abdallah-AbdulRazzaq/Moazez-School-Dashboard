@@ -43,20 +43,19 @@ describe("Students & Guardians navigation", () => {
 });
 
 describe("Academic Content Hub navigation", () => {
-  it("links to the upcoming Academic Content Hub page", () => {
-    expect(menuItems).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          key: "academic-content-hub",
-          href_en: "/en/academic-content-hub",
-          href_ar: "/ar/academic-content-hub",
-          statusBadge: {
-            label_en: "Coming soon",
-            label_ar: "قريبًا",
-          },
-        }),
-      ]),
+  it("links to the active Academic Content workspace", () => {
+    const academicContent = menuItems.find(
+      (menuItem) => menuItem.key === "academic-content-hub",
     );
+
+    expect(academicContent).toEqual(
+      expect.objectContaining({
+        key: "academic-content-hub",
+        href_en: "/en/academic-content-hub",
+        href_ar: "/ar/academic-content-hub",
+      }),
+    );
+    expect(academicContent?.statusBadge).toBeUndefined();
   });
 });
 

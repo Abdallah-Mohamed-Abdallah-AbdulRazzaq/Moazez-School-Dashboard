@@ -575,7 +575,6 @@ export const menuItems: MenuItem[] = [
     href_en: "/en/academic-content-hub",
     href_ar: "/ar/academic-content-hub",
     icon: LibraryBig,
-    statusBadge: { label_en: "Coming soon", label_ar: "قريبًا" },
   },
 
   {

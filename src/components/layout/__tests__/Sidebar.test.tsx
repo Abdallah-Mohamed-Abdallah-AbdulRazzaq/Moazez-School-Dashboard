@@ -54,21 +54,32 @@ vi.mock("next/image", () => ({
 }));
 
 describe("Sidebar toggle control", () => {
-  it("shows public navigation destinations without a membership permission", () => {
+  it("hides Academic Content without its view permission", () => {
     navigationState.grantedPermissions = new Set();
 
     try {
       render(<Sidebar isOpen onToggle={vi.fn()} />);
 
       expect(
-        screen.getByRole("link", { name: "System Health" }),
-      ).toBeInTheDocument();
+        screen.queryByRole("link", { name: "Academic Content Hub" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      navigationState.grantedPermissions = null;
+    }
+  });
+
+  it("shows the active Academic Content workspace with view permission", () => {
+    navigationState.grantedPermissions = new Set([
+      "academics.academic_content.view",
+    ]);
+
+    try {
+      render(<Sidebar isOpen onToggle={vi.fn()} />);
+
       expect(
-        screen.getByRole("link", {
-          name: "Academic Content Hub Coming soon",
-        }),
-      ).toBeInTheDocument();
-      expect(screen.getByText("Coming soon")).toBeInTheDocument();
+        screen.getByRole("link", { name: "Academic Content Hub" }),
+      ).toHaveAttribute("href", "/en/academic-content-hub");
+      expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
     } finally {
       navigationState.grantedPermissions = null;
     }
