@@ -1,3 +1,6 @@
+"use client";
+
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import type { AcademicContentStatus } from "../../types/contracts";
 
 const STATUS_STYLES: Record<AcademicContentStatus, string> = {
@@ -12,24 +15,17 @@ const STATUS_STYLES: Record<AcademicContentStatus, string> = {
   CANCELLED: "bg-red-100 text-red-800",
 };
 
-function statusLabel(status: AcademicContentStatus): string {
-  return status
-    .toLowerCase()
-    .split("_")
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ");
-}
-
 export default function AcademicContentStatusBadge({
   status,
 }: {
   status: AcademicContentStatus;
 }) {
+  const t = useAcademicContentTranslations("statuses");
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[status]}`}
     >
-      {statusLabel(status)}
+      {t(status)}
     </span>
   );
 }

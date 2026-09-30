@@ -10,6 +10,7 @@ import {
   type AcademicGuardianNotePriority,
 } from "../../../types/contracts";
 import DetailFormShell from "./DetailFormShell";
+import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 interface GuardianWeeklyNoteFormProps {
   initial: AcademicContentGuardianNoteDetail;
@@ -28,6 +29,7 @@ export default function GuardianWeeklyNoteForm({
 }: GuardianWeeklyNoteFormProps) {
   const [form, setForm] = useState(initial);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations();
   const update = <K extends keyof AcademicContentGuardianNoteDetail>(
     field: K,
     value: AcademicContentGuardianNoteDetail[K],
@@ -38,7 +40,7 @@ export default function GuardianWeeklyNoteForm({
   };
   const save = async () => {
     if (!form.body.trim()) {
-      setValidationError("Note body is required.");
+      setValidationError(t("details.body_required"));
       return;
     }
     setValidationError(null);
@@ -47,26 +49,26 @@ export default function GuardianWeeklyNoteForm({
 
   return (
     <DetailFormShell
-      title="Guardian weekly note"
-      description="Acknowledgement is configuration only; this editor does not acknowledge on behalf of guardians."
+      title={t("details.guardian_title")}
+      description={t("details.guardian_description")}
       disabled={disabled}
       sectionState={sectionState}
       validationError={validationError}
       onSave={() => void save()}
     >
-      <TextArea label="Note body" aria-label="Note body" value={form.body} maxLength={10000} rows={8} required disabled={disabled} onChange={(event) => update("body", event.target.value)} />
+      <TextArea label={t("fields.note_body")} aria-label={t("fields.note_body")} value={form.body} maxLength={10000} rows={8} required disabled={disabled} onChange={(event) => update("body", event.target.value)} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
-          label="Priority"
-          triggerAriaLabel="Priority"
+          label={t("fields.priority")}
+          triggerAriaLabel={t("fields.priority")}
           value={form.priority}
-          options={ACADEMIC_GUARDIAN_NOTE_PRIORITIES.map((priority) => ({ value: priority, label: priority }))}
+          options={ACADEMIC_GUARDIAN_NOTE_PRIORITIES.map((priority) => ({ value: priority, label: t(`priorities.${priority}`) }))}
           disabled={disabled}
           onChange={(value) => update("priority", value as AcademicGuardianNotePriority)}
         />
         <label className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-700">
           <input type="checkbox" checked={form.requiresAcknowledgement} disabled={disabled} onChange={(event) => update("requiresAcknowledgement", event.target.checked)} />
-          Require guardian acknowledgement
+          {t("fields.require_guardian_acknowledgement")}
         </label>
       </div>
     </DetailFormShell>

@@ -1,6 +1,7 @@
 "use client";
 
 import Select, { type SelectOption } from "@/components/ui/input/Select";
+import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 export interface AcademicReferenceOption {
   value: string;
@@ -20,14 +21,15 @@ export function OptionalReferenceSelect({
   disabled: boolean;
   onChange: (value: string | null) => void;
 }) {
+  const t = useAcademicContentTranslations("details");
   const selectOptions: SelectOption[] = [
-    { value: "", label: `No ${label.toLowerCase()}` },
+    { value: "", label: t("no_reference", { label: label.toLowerCase() }) },
     ...options,
   ];
   if (value && !options.some((option) => option.value === value)) {
     selectOptions.push({
       value,
-      label: `Unavailable (${value})`,
+      label: t("unavailable_reference", { id: value }),
       disabled: true,
     });
   }
@@ -59,20 +61,21 @@ export function ReferenceChecklist({
   maximumItems?: number;
   onChange: (values: string[]) => void;
 }) {
+  const t = useAcademicContentTranslations("details");
   const selectedValues = new Set(values);
   const availableValues = new Set(options.map((option) => option.value));
   const displayedOptions = [
     ...options,
     ...[...new Set(values)]
       .filter((value) => !availableValues.has(value))
-      .map((value) => ({ value, label: `Unavailable (${value})` })),
+      .map((value) => ({ value, label: t("unavailable_reference", { id: value }) })),
   ];
 
   return (
     <fieldset className="rounded-lg border border-gray-200 p-3">
       <legend className="px-1 text-sm font-medium text-gray-700">{label}</legend>
       {displayedOptions.length === 0 ? (
-        <p className="text-sm text-gray-500">No matching references are available.</p>
+        <p className="text-sm text-gray-500">{t("no_references")}</p>
       ) : (
         <div className="max-h-48 space-y-2 overflow-y-auto">
           {displayedOptions.map((option) => {

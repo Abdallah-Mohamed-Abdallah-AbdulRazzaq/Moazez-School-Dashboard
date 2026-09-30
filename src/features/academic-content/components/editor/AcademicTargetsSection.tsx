@@ -21,6 +21,7 @@ import type { AcademicContentEditorSectionState } from "../../hooks/useAcademicC
 import AcademicTargetCard, {
   type EditableAcademicTarget,
 } from "./AcademicTargetCard";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 interface AcademicTargetsSectionProps {
   content: AcademicContentDetail;
@@ -75,6 +76,7 @@ export default function AcademicTargetsSection({
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations("targets");
   const contentVersion = `${content.id}:${content.updatedAt}`;
   const [syncedContentVersion, setSyncedContentVersion] = useState(contentVersion);
 
@@ -111,7 +113,7 @@ export default function AcademicTargetsSection({
       })
       .catch((error: unknown) => {
         if (active) {
-          setLoadError(error instanceof Error ? error.message : "Target options unavailable");
+          setLoadError(error instanceof Error ? error.message : t("options_unavailable"));
         }
       })
       .finally(() => {
@@ -121,7 +123,7 @@ export default function AcademicTargetsSection({
     return () => {
       active = false;
     };
-  }, [content.academicYearId, content.termId, loadOptions]);
+  }, [content.academicYearId, content.termId, loadOptions, t]);
 
   const updateRow = (key: string, update: Partial<EditableAcademicTarget>) => {
     setRows((currentRows) =>
@@ -140,13 +142,13 @@ export default function AcademicTargetsSection({
       const invalidFields = validateTargetDraft(targets[invalidTargetIndex], content.type);
       setValidationError(
         invalidFields.includes("subjectId")
-          ? `Target ${invalidTargetIndex + 1}: Subject is required.`
-          : `Target ${invalidTargetIndex + 1}: Choose the required hierarchy value.`,
+          ? t("subject_required", { index: invalidTargetIndex + 1 })
+          : t("hierarchy_required", { index: invalidTargetIndex + 1 }),
       );
       return;
     }
     if (hasDuplicateTargets(targets)) {
-      setValidationError("Duplicate targets are not allowed.");
+      setValidationError(t("duplicate"));
       return;
     }
     const unavailableAllocationIndex = options
@@ -161,7 +163,7 @@ export default function AcademicTargetsSection({
       : -1;
     if (unavailableAllocationIndex >= 0) {
       setValidationError(
-        `Target ${unavailableAllocationIndex + 1}: Teacher allocation is unavailable.`,
+        t("teacher_unavailable", { index: unavailableAllocationIndex + 1 }),
       );
       return;
     }
@@ -192,10 +194,10 @@ export default function AcademicTargetsSection({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="targets-heading" className="text-lg font-semibold text-gray-900">
-            Academic targets
+            {t("title")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Each card is an alternative (OR). Values inside a card apply together (AND).
+            {t("description")}
           </p>
         </div>
         {!disabled && (
@@ -206,7 +208,7 @@ export default function AcademicTargetsSection({
             leftIcon={<Plus aria-hidden="true" className="size-4" />}
             onClick={addTarget}
           >
-            Add target
+            {t("add")}
           </Button>
         )}
       </div>
@@ -223,13 +225,13 @@ export default function AcademicTargetsSection({
       {isLoading ? (
         <div className="mt-6 flex items-center gap-2 text-sm text-gray-500">
           <RefreshCw aria-hidden="true" className="size-4 animate-spin" />
-          Loading academic options…
+          {t("loading")}
         </div>
       ) : options ? (
         <div className="mt-5 space-y-4">
           {rows.length === 0 ? (
             <p className="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
-              No academic targets. Add one or save the empty target set.
+              {t("empty")}
             </p>
           ) : null}
           {rows.map((row, index) => (
@@ -255,7 +257,7 @@ export default function AcademicTargetsSection({
             disabled={!sectionState.dirty || Boolean(loadError)}
             onClick={() => void save()}
           >
-            Save targets
+            {t("save")}
           </Button>
         </div>
       )}

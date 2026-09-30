@@ -1,15 +1,8 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import type { AcademicContentLibrarySummary } from "../../types/contracts";
-
-function enumLabel(enumValue: string): string {
-  return enumValue
-    .toLowerCase()
-    .split("_")
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ");
-}
 
 function dateOnlyLabel(date: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(
@@ -30,34 +23,40 @@ export default function AcademicContentSummary({
   summary: AcademicContentLibrarySummary | null;
 }) {
   const locale = useLocale();
-  if (!summary) return <span className="text-gray-500">No details yet</span>;
+  const t = useAcademicContentTranslations();
+  if (!summary) return <span className="text-gray-500">{t("library.summary.none")}</span>;
 
   switch (summary.type) {
     case "TEACHER_PREPARATION":
-      return <span>{summary.topic || "No topic yet"}</span>;
+      return <span>{summary.topic || t("library.summary.no_topic")}</span>;
     case "WEEKLY_PLAN":
       return (
         <span>
-          {dateOnlyLabel(summary.weekStartDate, locale)} –{" "}
-          {dateOnlyLabel(summary.weekEndDate, locale)}
+          {t("library.summary.week", {
+            start: dateOnlyLabel(summary.weekStartDate, locale),
+            end: dateOnlyLabel(summary.weekEndDate, locale),
+          })}
         </span>
       );
     case "GUARDIAN_WEEKLY_NOTE":
       return (
         <span>
-          {enumLabel(summary.priority)}
-          {summary.requiresAcknowledgement ? " · Acknowledgement required" : ""}
+          {t(`priorities.${summary.priority}`)} · {t(
+            summary.requiresAcknowledgement
+              ? "library.summary.acknowledgement_required"
+              : "library.summary.acknowledgement_not_required",
+          )}
         </span>
       );
     case "SUBJECT_RESOURCE":
-      return <span>{enumLabel(summary.resourceCategory)}</span>;
+      return <span>{t(`resource_categories.${summary.resourceCategory}`)}</span>;
     case "ONLINE_SESSION":
       return (
         <span>
-          {enumLabel(summary.platform)} · {instantLabel(summary.startAt, locale)} –{" "}
-          {new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(
-            new Date(summary.endAt),
-          )}
+          {t("library.summary.session", {
+            platform: t(`platforms.${summary.platform}`),
+            start: `${instantLabel(summary.startAt, locale)} – ${new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(new Date(summary.endAt))}`,
+          })}
         </span>
       );
   }

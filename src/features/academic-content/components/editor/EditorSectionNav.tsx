@@ -1,5 +1,7 @@
 "use client";
 
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
+
 export type AcademicContentEditorPanel =
   | "metadata"
   | "targets"
@@ -12,16 +14,16 @@ export type AcademicContentEditorPanel =
 
 export const EDITOR_SECTIONS: readonly {
   id: AcademicContentEditorPanel;
-  label: string;
+  labelKey: string;
 }[] = [
-  { id: "metadata", label: "Basic information" },
-  { id: "targets", label: "Targets" },
-  { id: "details", label: "Type details" },
-  { id: "links", label: "Links" },
-  { id: "tags", label: "Tags" },
-  { id: "files", label: "Files" },
-  { id: "readiness", label: "Readiness" },
-  { id: "revisions", label: "Revisions" },
+  { id: "metadata", labelKey: "metadata" },
+  { id: "targets", labelKey: "targets" },
+  { id: "details", labelKey: "details" },
+  { id: "links", labelKey: "links" },
+  { id: "tags", labelKey: "tags" },
+  { id: "files", labelKey: "files" },
+  { id: "readiness", labelKey: "readiness" },
+  { id: "revisions", labelKey: "revisions" },
 ] as const;
 
 interface EditorSectionNavProps {
@@ -36,10 +38,11 @@ export default function EditorSectionNav({
   variant,
 }: EditorSectionNavProps) {
   const isDesktop = variant === "desktop";
+  const t = useAcademicContentTranslations("editor");
 
   return (
     <nav
-      aria-label="Editor sections"
+      aria-label={t("sections_label")}
       className={
         isDesktop
           ? "hidden rounded-xl border border-gray-200 bg-white p-2 shadow-sm md:block"
@@ -64,7 +67,7 @@ export default function EditorSectionNav({
                 : "border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             }`}
           >
-            {section.label}
+            {t(`sections.${section.labelKey}`)}
           </button>
         );
       })}

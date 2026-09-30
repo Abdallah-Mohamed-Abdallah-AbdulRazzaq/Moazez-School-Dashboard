@@ -18,6 +18,7 @@ import {
 } from "../../../types/contracts";
 import DetailFormShell from "./DetailFormShell";
 import { OptionalReferenceSelect } from "./AcademicReferenceFields";
+import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 interface OnlineSessionFormProps {
   initial: AcademicContentOnlineSessionDetail;
@@ -51,6 +52,7 @@ function validTimeZone(value: string): boolean {
 export default function OnlineSessionForm({ initial, disabled, sectionState, options = EMPTY_ACADEMIC_CONTENT_DETAIL_OPTIONS, onDirty, onSave }: OnlineSessionFormProps) {
   const [form, setForm] = useState(initial);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations();
   const update = <K extends keyof AcademicContentOnlineSessionDetail>(field: K, value: AcademicContentOnlineSessionDetail[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
     setValidationError(null);
@@ -58,19 +60,19 @@ export default function OnlineSessionForm({ initial, disabled, sectionState, opt
   };
   const save = async () => {
     if (!isValidHttpsUrl(form.joinUrl)) {
-      setValidationError("Join URL must be an HTTPS URL without credentials.");
+      setValidationError(t("details.https_required"));
       return;
     }
     if (form.platform === "OTHER" && !form.providerName?.trim()) {
-      setValidationError("Provider name is required for Other.");
+      setValidationError(t("details.provider_required"));
       return;
     }
     if (!form.startAt || !form.endAt || form.startAt >= form.endAt) {
-      setValidationError("Session end must be after its start.");
+      setValidationError(t("details.session_order"));
       return;
     }
     if (!validTimeZone(form.timezone)) {
-      setValidationError("Enter a valid IANA timezone.");
+      setValidationError(t("details.timezone_invalid"));
       return;
     }
     setValidationError(null);
@@ -87,23 +89,23 @@ export default function OnlineSessionForm({ initial, disabled, sectionState, opt
     });
   };
   return (
-    <DetailFormShell title="Online session" description="Configure the meeting only; attendance actions are not part of this workspace." disabled={disabled} sectionState={sectionState} validationError={validationError} onSave={() => void save()}>
+    <DetailFormShell title={t("details.session_title")} description={t("details.session_description")} disabled={disabled} sectionState={sectionState} validationError={validationError} onSave={() => void save()}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Select label="Platform" triggerAriaLabel="Platform" value={form.platform} options={ACADEMIC_ONLINE_SESSION_PLATFORMS.map((platform) => ({ value: platform, label: platform }))} required disabled={disabled} onChange={(value) => {
+        <Select label={t("fields.platform")} triggerAriaLabel={t("fields.platform")} value={form.platform} options={ACADEMIC_ONLINE_SESSION_PLATFORMS.map((platform) => ({ value: platform, label: t(`platforms.${platform}`) }))} required disabled={disabled} onChange={(value) => {
           const platform = value as AcademicOnlineSessionPlatform;
           setForm((current) => ({ ...current, platform, providerName: platform === "OTHER" ? current.providerName : null }));
           setValidationError(null);
           onDirty();
         }} />
-        {form.platform === "OTHER" && <Input label="Provider name" aria-label="Provider name" value={form.providerName ?? ""} maxLength={180} required disabled={disabled} onChange={(event) => update("providerName", event.target.value)} />}
-        <Input label="Join URL" aria-label="Join URL" type="url" value={form.joinUrl} maxLength={2048} required disabled={disabled} onChange={(event) => update("joinUrl", event.target.value)} />
-        <Input label="Access code" aria-label="Access code" value={form.accessCode ?? ""} maxLength={255} disabled={disabled} onChange={(event) => update("accessCode", event.target.value)} />
-        <Input label="Starts at" aria-label="Starts at" type="datetime-local" value={localDateTimeValue(form.startAt)} required disabled={disabled} onChange={(event) => update("startAt", toIsoInstant(event.target.value))} />
-        <Input label="Ends at" aria-label="Ends at" type="datetime-local" value={localDateTimeValue(form.endAt)} required disabled={disabled} onChange={(event) => update("endAt", toIsoInstant(event.target.value))} />
-        <Input label="Timezone" aria-label="Timezone" value={form.timezone} maxLength={100} required disabled={disabled} onChange={(event) => update("timezone", event.target.value)} />
-        <OptionalReferenceSelect label="Timetable entry" value={form.timetableEntryId} options={options.timetableEntries.map((entry) => ({ value: entry.id, label: `${entry.classroom.nameEn} · ${entry.subject?.nameEn ?? "Unassigned"} · ${entry.period.label}` }))} disabled={disabled} onChange={(value) => update("timetableEntryId", value)} />
+        {form.platform === "OTHER" && <Input label={t("fields.provider_name")} aria-label={t("fields.provider_name")} value={form.providerName ?? ""} maxLength={180} required disabled={disabled} onChange={(event) => update("providerName", event.target.value)} />}
+        <Input label={t("fields.join_url")} aria-label={t("fields.join_url")} type="url" value={form.joinUrl} maxLength={2048} required disabled={disabled} onChange={(event) => update("joinUrl", event.target.value)} />
+        <Input label={t("fields.access_code")} aria-label={t("fields.access_code")} value={form.accessCode ?? ""} maxLength={255} disabled={disabled} onChange={(event) => update("accessCode", event.target.value)} />
+        <Input label={t("fields.starts_at")} aria-label={t("fields.starts_at")} type="datetime-local" value={localDateTimeValue(form.startAt)} required disabled={disabled} onChange={(event) => update("startAt", toIsoInstant(event.target.value))} />
+        <Input label={t("fields.ends_at")} aria-label={t("fields.ends_at")} type="datetime-local" value={localDateTimeValue(form.endAt)} required disabled={disabled} onChange={(event) => update("endAt", toIsoInstant(event.target.value))} />
+        <Input label={t("fields.timezone")} aria-label={t("fields.timezone")} value={form.timezone} maxLength={100} required disabled={disabled} onChange={(event) => update("timezone", event.target.value)} />
+        <OptionalReferenceSelect label={t("fields.timetable_entry")} value={form.timetableEntryId} options={options.timetableEntries.map((entry) => ({ value: entry.id, label: `${entry.classroom.nameEn} · ${entry.subject?.nameEn ?? t("common.unassigned")} · ${entry.period.label}` }))} disabled={disabled} onChange={(value) => update("timetableEntryId", value)} />
       </div>
-      <TextArea label="Instructions" aria-label="Instructions" value={form.instructions ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("instructions", event.target.value)} />
+      <TextArea label={t("fields.instructions")} aria-label={t("fields.instructions")} value={form.instructions ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("instructions", event.target.value)} />
     </DetailFormShell>
   );
 }

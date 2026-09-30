@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button/Button";
 import type { AcademicContentEditorSectionState } from "../../../hooks/useAcademicContentEditor";
+import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 interface DetailFormShellProps {
   title: string;
@@ -23,6 +24,7 @@ export default function DetailFormShell({
   validationError,
   onSave,
 }: DetailFormShellProps) {
+  const t = useAcademicContentTranslations("details");
   return (
     <section
       id="details"
@@ -52,7 +54,7 @@ export default function DetailFormShell({
             disabled={!sectionState.dirty}
             onClick={onSave}
           >
-            Save type details
+            {t("save")}
           </Button>
         </div>
       )}

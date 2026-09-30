@@ -16,47 +16,41 @@ import type {
   AcademicContentFilePolicy,
   UpdateAcademicContentFilePolicyRequest,
 } from "../types/contracts";
+import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 
 const HARD_MAXIMUM_BYTES = BigInt("10737418240");
 
 const BOOLEAN_FIELDS: readonly {
   key: Exclude<keyof AcademicContentFilePolicy, "maximumFileSizeBytes">;
-  label: string;
-  description: string;
+  messageKey: string;
 }[] = [
   {
     key: "attachmentsEnabled",
-    label: "Attachments",
-    description: "Allow academic content to include uploaded files.",
+    messageKey: "attachments",
   },
   {
     key: "documentsEnabled",
-    label: "Documents",
-    description: "Allow PDF, text, CSV, Word, Excel, and PowerPoint files.",
+    messageKey: "documents",
   },
-  { key: "imagesEnabled", label: "Images", description: "Allow supported image files." },
-  { key: "videosEnabled", label: "Videos", description: "Allow supported video files." },
-  { key: "audioEnabled", label: "Audio", description: "Allow supported audio files." },
-  { key: "archivesEnabled", label: "Archives", description: "Allow ZIP and 7Z files." },
+  { key: "imagesEnabled", messageKey: "images" },
+  { key: "videosEnabled", messageKey: "videos" },
+  { key: "audioEnabled", messageKey: "audio" },
+  { key: "archivesEnabled", messageKey: "archives" },
   {
     key: "otherFilesEnabled",
-    label: "Other files",
-    description: "Apply the server policy for other registered file formats.",
+    messageKey: "other",
   },
   {
     key: "allowStudentDownload",
-    label: "Student downloads",
-    description: "Allow students to download available attachments.",
+    messageKey: "student_downloads",
   },
   {
     key: "allowGuardianDownload",
-    label: "Guardian downloads",
-    description: "Allow guardians to download available attachments.",
+    messageKey: "guardian_downloads",
   },
   {
     key: "allowInlinePreview",
-    label: "Inline preview",
-    description: "Allow inline preview when the registered format supports it.",
+    messageKey: "inline_preview",
   },
 ];
 
@@ -83,6 +77,7 @@ export default function AcademicContentFilePolicyPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const loadRequestId = useRef(0);
+  const t = useAcademicContentTranslations();
 
   const load = useCallback(() => {
     const requestId = loadRequestId.current + 1;
@@ -121,11 +116,11 @@ export default function AcademicContentFilePolicyPage() {
   const save = async () => {
     if (!draft || !isDirty) return;
     if (!/^[1-9][0-9]*$/u.test(draft.maximumFileSizeBytes)) {
-      setError("Maximum file size must be a positive decimal byte count.");
+      setError(t("settings.positive_error"));
       return;
     }
     if (BigInt(draft.maximumFileSizeBytes) > HARD_MAXIMUM_BYTES) {
-      setError("Maximum file size cannot exceed the 10 GiB platform limit.");
+      setError(t("settings.hard_max_error"));
       return;
     }
 
@@ -156,9 +151,9 @@ export default function AcademicContentFilePolicyPage() {
     return (
       <main className="mx-auto max-w-3xl p-4 sm:p-6">
         <EmptyState
-          title="File policy unavailable"
-          message={error ?? "The file policy could not be loaded."}
-          action={<Button onClick={load}>Retry</Button>}
+          title={t("settings.unavailable_title")}
+          message={error ?? t("settings.unavailable_message")}
+          action={<Button onClick={load}>{t("common.retry")}</Button>}
         />
       </main>
     );
@@ -172,9 +167,9 @@ export default function AcademicContentFilePolicyPage() {
             <Settings2 aria-hidden="true" className="size-5" />
           </span>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Academic content file policy</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("settings.title")}</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Review upload categories, size limits, downloads, and preview behavior.
+              {t("settings.description")}
             </p>
           </div>
         </div>
@@ -192,24 +187,24 @@ export default function AcademicContentFilePolicyPage() {
             role="status"
             className="mt-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
           >
-            File policy saved.
+            {t("settings.saved")}
           </div>
         )}
         {!canManage && (
           <p className="mt-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-            You can view this policy, but only file-policy managers can change it.
+            {t("settings.read_only")}
           </p>
         )}
 
         <div className="mt-6">
           <Input
-            label="Maximum file size in bytes"
-            aria-label="Maximum file size in bytes"
+            label={t("settings.maximum")}
+            aria-label={t("settings.maximum")}
             value={draft.maximumFileSizeBytes}
             inputMode="numeric"
             maxLength={11}
             disabled={!canManage || isSaving}
-            helperText="Positive decimal bytes; platform maximum is 10 GiB (10737418240 bytes)."
+            helperText={t("settings.maximum_help")}
             onChange={(event) => {
               setDraft((current) =>
                 current
@@ -229,7 +224,7 @@ export default function AcademicContentFilePolicyPage() {
             >
               <input
                 type="checkbox"
-                aria-label={field.label}
+                aria-label={t(`settings.${field.messageKey}`)}
                 checked={draft[field.key]}
                 disabled={!canManage || isSaving}
                 onChange={(event) => {
@@ -243,8 +238,8 @@ export default function AcademicContentFilePolicyPage() {
                 className="mt-1 size-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span>
-                <span className="block text-sm font-medium text-gray-900">{field.label}</span>
-                <span className="mt-1 block text-xs text-gray-500">{field.description}</span>
+                <span className="block text-sm font-medium text-gray-900">{t(`settings.${field.messageKey}`)}</span>
+                <span className="mt-1 block text-xs text-gray-500">{t(`settings.${field.messageKey}_help`)}</span>
               </span>
             </label>
           ))}
@@ -259,7 +254,7 @@ export default function AcademicContentFilePolicyPage() {
               leftIcon={<Save aria-hidden="true" className="size-4" />}
               onClick={() => void save()}
             >
-              Save file policy
+              {t("settings.save")}
             </Button>
           </div>
         )}

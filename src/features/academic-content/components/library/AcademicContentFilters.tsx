@@ -8,6 +8,7 @@ import Input from "@/components/ui/input/Input";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import { teacherApi } from "@/features/teachers/services/teacherApi";
 import type { AcademicContentLibraryFilters } from "../../hooks/useAcademicContentLibrary";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import {
   ACADEMIC_CONTENT_AUDIENCES,
   ACADEMIC_CONTENT_STATUSES,
@@ -26,24 +27,6 @@ interface AcademicContentFiltersProps {
   ) => void;
   onClear: () => void;
 }
-
-const option = (enumValue: string): SelectOption => ({
-  value: enumValue,
-  label: enumValue
-    .toLowerCase()
-    .split("_")
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" "),
-});
-
-const FILTER_OPTIONS = {
-  type: ACADEMIC_CONTENT_TYPES.map(option),
-  status: ACADEMIC_CONTENT_STATUSES.map(option),
-  audience: ACADEMIC_CONTENT_AUDIENCES.map(option),
-  resourceCategory: ACADEMIC_SUBJECT_RESOURCE_CATEGORIES.map(option),
-  sessionPlatform: ACADEMIC_ONLINE_SESSION_PLATFORMS.map(option),
-  guardianPriority: ACADEMIC_GUARDIAN_NOTE_PRIORITIES.map(option),
-} as const;
 
 function selectOptions(options: readonly SelectOption[], allLabel: string) {
   return [{ value: "", label: allLabel }, ...options];
@@ -70,6 +53,20 @@ export default function AcademicContentFilters({
   const [showFilters, setShowFilters] = useState(false);
   const [teacherOptions, setTeacherOptions] = useState<SelectOption[]>([]);
   const [teacherLoadFailed, setTeacherLoadFailed] = useState(false);
+  const t = useAcademicContentTranslations();
+  const localizedOptions = (values: readonly string[], namespace: string) =>
+    values.map((value) => ({ value, label: t(`${namespace}.${value}`) }));
+  const filterOptions = {
+    type: localizedOptions(ACADEMIC_CONTENT_TYPES, "types"),
+    status: localizedOptions(ACADEMIC_CONTENT_STATUSES, "statuses"),
+    audience: localizedOptions(ACADEMIC_CONTENT_AUDIENCES, "audiences"),
+    resourceCategory: localizedOptions(
+      ACADEMIC_SUBJECT_RESOURCE_CATEGORIES,
+      "resource_categories",
+    ),
+    sessionPlatform: localizedOptions(ACADEMIC_ONLINE_SESSION_PLATFORMS, "platforms"),
+    guardianPriority: localizedOptions(ACADEMIC_GUARDIAN_NOTE_PRIORITIES, "priorities"),
+  };
   const hasActiveFilters = useMemo(
     () =>
       Boolean(search) ||
@@ -132,15 +129,15 @@ export default function AcademicContentFilters({
 
   return (
     <FilterPanel
-      title="Content library"
-      subtitle="Search and filter the selected academic year and term."
+      title={t("library.title")}
+      subtitle={t("library.subtitle")}
       showFilters={showFilters}
       onToggleFilters={() => setShowFilters((isVisible) => !isVisible)}
-      toggleAriaLabel={showFilters ? "Hide filters" : "Show filters"}
+      toggleAriaLabel={t(showFilters ? "library.hide_filters" : "library.show_filters")}
       hasActiveFilters={hasActiveFilters}
       searchSlot={
         <Input
-          label="Search content"
+          label={t("library.search")}
           value={search}
           maxLength={120}
           leftIcon={<Search aria-hidden="true" className="size-4" />}
@@ -154,37 +151,37 @@ export default function AcademicContentFilters({
           leftIcon={<X aria-hidden="true" className="size-4" />}
           onClick={onClear}
         >
-          Clear filters
+          {t("library.clear_filters")}
         </Button>
       }
       filtersSlot={
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {selectFilter("type", "Content type", selectOptions(FILTER_OPTIONS.type, "All types"))}
-          {selectFilter("status", "Status", selectOptions(FILTER_OPTIONS.status, "All statuses"))}
-          {selectFilter("audience", "Audience", selectOptions(FILTER_OPTIONS.audience, "All audiences"))}
-          {inputFilter("stageId", "Stage ID")}
-          {inputFilter("gradeId", "Grade ID")}
-          {inputFilter("sectionId", "Section ID")}
-          {inputFilter("classroomId", "Classroom ID")}
-          {inputFilter("subjectId", "Subject ID")}
+          {selectFilter("type", t("library.filters.type"), selectOptions(filterOptions.type, t("library.all_types")))}
+          {selectFilter("status", t("library.filters.status"), selectOptions(filterOptions.status, t("library.all_statuses")))}
+          {selectFilter("audience", t("library.filters.audience"), selectOptions(filterOptions.audience, t("library.all_audiences")))}
+          {inputFilter("stageId", t("library.filters.stage"))}
+          {inputFilter("gradeId", t("library.filters.grade"))}
+          {inputFilter("sectionId", t("library.filters.section"))}
+          {inputFilter("classroomId", t("library.filters.classroom"))}
+          {inputFilter("subjectId", t("library.filters.subject"))}
           <Select
-            label="Teacher"
-            triggerAriaLabel="Teacher"
+            label={t("library.filters.teacher")}
+            triggerAriaLabel={t("library.filters.teacher")}
             value={filters.teacherUserId}
-            options={selectOptions(teacherOptions, "All teachers")}
+            options={selectOptions(teacherOptions, t("library.all_teachers"))}
             searchable
-            error={teacherLoadFailed ? "Teachers could not be loaded" : undefined}
+            error={teacherLoadFailed ? t("library.teachers_load_error") : undefined}
             onChange={(teacherUserId) => onFiltersChange({ teacherUserId })}
           />
           {selectFilter(
             "resourceCategory",
-            "Resource category",
-            selectOptions(FILTER_OPTIONS.resourceCategory, "All categories"),
+            t("library.filters.resource_category"),
+            selectOptions(filterOptions.resourceCategory, t("library.all_categories")),
           )}
-          {inputFilter("weeklyDateFrom", "Week from", "date")}
-          {inputFilter("weeklyDateTo", "Week to", "date")}
+          {inputFilter("weeklyDateFrom", t("library.filters.week_from"), "date")}
+          {inputFilter("weeklyDateTo", t("library.filters.week_to"), "date")}
           <Input
-            label="Session from"
+            label={t("library.filters.session_from")}
             type="datetime-local"
             value={localDateTime(filters.sessionStartAtFrom)}
             onChange={(event) =>
@@ -192,7 +189,7 @@ export default function AcademicContentFilters({
             }
           />
           <Input
-            label="Session to"
+            label={t("library.filters.session_to")}
             type="datetime-local"
             value={localDateTime(filters.sessionStartAtTo)}
             onChange={(event) =>
@@ -201,15 +198,15 @@ export default function AcademicContentFilters({
           />
           {selectFilter(
             "sessionPlatform",
-            "Session platform",
-            selectOptions(FILTER_OPTIONS.sessionPlatform, "All platforms"),
+            t("library.filters.session_platform"),
+            selectOptions(filterOptions.sessionPlatform, t("library.all_platforms")),
           )}
           {selectFilter(
             "guardianPriority",
-            "Guardian priority",
-            selectOptions(FILTER_OPTIONS.guardianPriority, "All priorities"),
+            t("library.filters.guardian_priority"),
+            selectOptions(filterOptions.guardianPriority, t("library.all_priorities")),
           )}
-          {inputFilter("tag", "Tag", "text", 80)}
+          {inputFilter("tag", t("library.filters.tag"), "text", 80)}
         </div>
       }
     />

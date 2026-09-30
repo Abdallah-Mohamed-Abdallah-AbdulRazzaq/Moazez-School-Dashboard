@@ -7,6 +7,7 @@ import { formatByteCount } from "../../model/academicContentPolicy";
 import { getAcademicContentRevision } from "../../services/academicContentApi";
 import { academicContentUiError } from "../../services/academicContentErrors";
 import type { AcademicContentRevisionDetail } from "../../types/contracts";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 interface RevisionDetailModalProps {
   contentId: string;
@@ -26,6 +27,7 @@ export default function RevisionDetailModal({
     revisionId: string;
     message: string;
   } | null>(null);
+  const t = useAcademicContentTranslations("revisions");
 
   useEffect(() => {
     if (!isOpen || !revisionId) return;
@@ -36,7 +38,7 @@ export default function RevisionDetailModal({
         if (loadedRevision.id !== revisionId) {
           setLoadError({
             revisionId,
-            message: "The revision response did not match the requested snapshot.",
+            message: t("mismatch"),
           });
           return;
         }
@@ -53,7 +55,7 @@ export default function RevisionDetailModal({
     return () => {
       active = false;
     };
-  }, [contentId, isOpen, revisionId]);
+  }, [contentId, isOpen, revisionId, t]);
 
   const currentRevision = revision?.id === revisionId ? revision : null;
   const currentError = loadError?.revisionId === revisionId ? loadError.message : null;
@@ -63,7 +65,7 @@ export default function RevisionDetailModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={currentRevision ? `Revision ${currentRevision.revisionNumber}` : "Revision snapshot"}
+      title={currentRevision ? t("modal_number", { number: currentRevision.revisionNumber }) : t("modal_title")}
       size="xl"
     >
       {isLoading ? (
@@ -77,18 +79,18 @@ export default function RevisionDetailModal({
       ) : currentRevision ? (
         <div className="space-y-5 pb-4">
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            Immutable historical snapshot · Snapshot contract v{currentRevision.snapshotContractVersion}
+            {t("immutable", { version: currentRevision.snapshotContractVersion })}
           </div>
 
           <dl className="grid gap-3 sm:grid-cols-2">
             {[
-              ["Title", currentRevision.title],
-              ["Type", currentRevision.type],
-              ["Audience", currentRevision.audience],
-              ["Source status", currentRevision.sourceStatus],
-              ["Academic year", currentRevision.academicYearId],
-              ["Term", currentRevision.termId],
-              ["Captured at", currentRevision.capturedAt],
+              [t("field_title"), currentRevision.title],
+              [t("field_type"), currentRevision.type],
+              [t("field_audience"), currentRevision.audience],
+              [t("field_source_status"), currentRevision.sourceStatus],
+              [t("field_academic_year"), currentRevision.academicYearId],
+              [t("field_term"), currentRevision.termId],
+              [t("field_captured_at"), currentRevision.capturedAt],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg bg-gray-50 px-3 py-2">
                 <dt className="text-xs font-medium text-gray-500">{label}</dt>
@@ -99,16 +101,16 @@ export default function RevisionDetailModal({
 
           {currentRevision.description && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-900">Description</h3>
+              <h3 className="text-sm font-semibold text-gray-900">{t("description_label")}</h3>
               <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{currentRevision.description}</p>
             </section>
           )}
 
           <section>
-            <h3 className="text-sm font-semibold text-gray-900">Type details</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("type_details")}</h3>
             {currentRevision.details === null ? (
               <p className="mt-2 text-sm text-gray-500">
-                No type-specific details in this snapshot.
+                {t("no_details")}
               </p>
             ) : (
               <pre className="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-700">
@@ -118,9 +120,9 @@ export default function RevisionDetailModal({
           </section>
 
           <section>
-            <h3 className="text-sm font-semibold text-gray-900">Targets</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("targets")}</h3>
             {currentRevision.targets.length === 0 ? (
-              <p className="mt-2 text-sm text-gray-500">No historical targets.</p>
+              <p className="mt-2 text-sm text-gray-500">{t("no_targets")}</p>
             ) : (
               <pre className="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-700">
                 {JSON.stringify(currentRevision.targets, null, 2)}
@@ -129,7 +131,7 @@ export default function RevisionDetailModal({
           </section>
 
           <section>
-            <h3 className="text-sm font-semibold text-gray-900">Files</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("files")}</h3>
             <ul className="mt-2 space-y-2">
               {currentRevision.assets.map((asset) => (
                 <li key={`${asset.fileId}:${asset.sortOrder}`} className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
@@ -139,13 +141,13 @@ export default function RevisionDetailModal({
                   </span>
                 </li>
               ))}
-              {currentRevision.assets.length === 0 && <li className="text-sm text-gray-500">No historical files.</li>}
+              {currentRevision.assets.length === 0 && <li className="text-sm text-gray-500">{t("no_files")}</li>}
             </ul>
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">Links</h3>
+              <h3 className="text-sm font-semibold text-gray-900">{t("links")}</h3>
               <ul className="mt-2 space-y-2">
                 {currentRevision.links.map((link) => (
                   <li key={link.id} className="text-sm">
@@ -154,18 +156,18 @@ export default function RevisionDetailModal({
                     </a>
                   </li>
                 ))}
-                {currentRevision.links.length === 0 && <li className="text-sm text-gray-500">No historical links.</li>}
+                {currentRevision.links.length === 0 && <li className="text-sm text-gray-500">{t("no_links")}</li>}
               </ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">Tags</h3>
+              <h3 className="text-sm font-semibold text-gray-900">{t("tags")}</h3>
               <ul className="mt-2 flex flex-wrap gap-2">
                 {currentRevision.tags.map((tag) => (
                   <li key={tag.id} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">
                     {tag.value}
                   </li>
                 ))}
-                {currentRevision.tags.length === 0 && <li className="text-sm text-gray-500">No historical tags.</li>}
+                {currentRevision.tags.length === 0 && <li className="text-sm text-gray-500">{t("no_tags")}</li>}
               </ul>
             </div>
           </section>

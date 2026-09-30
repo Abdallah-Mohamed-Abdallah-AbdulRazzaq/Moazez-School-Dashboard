@@ -6,25 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button/Button";
 import { usePermissions } from "@/hooks/usePermissions";
-
-const shellLabels = {
-  ar: {
-    archived: "المؤرشف",
-    create: "إنشاء محتوى",
-    drafts: "المسودات",
-    library: "المكتبة",
-    settings: "الإعدادات",
-    title: "مركز المحتوى الأكاديمي",
-  },
-  en: {
-    archived: "Archived",
-    create: "Create content",
-    drafts: "Drafts",
-    library: "Library",
-    settings: "Settings",
-    title: "Academic Content Hub",
-  },
-} as const;
+import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 
 function contextQuery(
   searchParams: { get: (key: string) => string | null },
@@ -50,14 +32,14 @@ export default function AcademicContentShell({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { hasPermission } = usePermissions();
-  const labels = locale === "ar" ? shellLabels.ar : shellLabels.en;
+  const t = useAcademicContentTranslations("shell");
   const rootPath = `/${locale}/academic-content-hub`;
   const selectedStatus = searchParams.get("contentStatus");
   const canManage = hasPermission("academics.academic_content.manage");
   const libraryTabs = [
-    { icon: LibraryBig, label: labels.library, status: null },
-    { icon: FilePlus2, label: labels.drafts, status: "DRAFT" },
-    { icon: Archive, label: labels.archived, status: "ARCHIVED" },
+    { icon: LibraryBig, label: t("library"), status: null },
+    { icon: FilePlus2, label: t("drafts"), status: "DRAFT" },
+    { icon: Archive, label: t("archived"), status: "ARCHIVED" },
   ] as const;
 
   return (
@@ -69,7 +51,7 @@ export default function AcademicContentShell({
               <Files aria-hidden="true" className="size-5" />
             </span>
             <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">
-              {labels.title}
+              {t("title")}
             </h1>
           </div>
           {canManage && (
@@ -80,12 +62,12 @@ export default function AcademicContentShell({
                 router.push(`${rootPath}/new${contextQuery(searchParams)}`)
               }
             >
-              {labels.create}
+              {t("create")}
             </Button>
           )}
         </div>
         <nav
-          aria-label={labels.title}
+          aria-label={t("nav_label")}
           className="mx-auto mt-4 flex max-w-screen-2xl gap-1 overflow-x-auto"
         >
           {libraryTabs.map(({ icon: Icon, label, status }) => {
@@ -116,7 +98,7 @@ export default function AcademicContentShell({
             }`}
           >
             <Settings2 aria-hidden="true" className="size-4" />
-            {labels.settings}
+            {t("settings")}
           </Link>
         </nav>
       </header>

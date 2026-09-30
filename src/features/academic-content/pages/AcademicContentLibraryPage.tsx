@@ -8,6 +8,7 @@ import EmptyState from "@/components/ui/empty-state/EmptyState";
 import AcademicContentFilters from "../components/library/AcademicContentFilters";
 import AcademicContentTable from "../components/library/AcademicContentTable";
 import { useAcademicContentLibrary } from "../hooks/useAcademicContentLibrary";
+import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 
 export function AcademicContentLibraryView({
   library,
@@ -17,6 +18,7 @@ export function AcademicContentLibraryView({
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useAcademicContentTranslations();
 
   const openContent = (contentId: string) => {
     const query = searchParams.toString();
@@ -31,17 +33,17 @@ export function AcademicContentLibraryView({
   const content = library.error ? (
     <div role="alert" className="rounded-xl border border-red-200 bg-white shadow-sm">
       <EmptyState
-        title="Content library unavailable"
+        title={t("library.unavailable_title")}
         message={library.error.message}
         icon={<RefreshCw aria-hidden="true" className="size-10" />}
-        action={<Button onClick={library.reload}>Retry</Button>}
+        action={<Button onClick={library.reload}>{t("common.retry")}</Button>}
       />
     </div>
   ) : !library.isLoading && library.total === 0 ? (
     <div className="rounded-xl bg-white shadow-sm">
       <EmptyState
-        title="No academic content yet"
-        message="Create content or change the current filters."
+        title={t("library.empty_title")}
+        message={t("library.empty_description")}
         icon={<LibraryBig aria-hidden="true" className="size-10" />}
       />
     </div>

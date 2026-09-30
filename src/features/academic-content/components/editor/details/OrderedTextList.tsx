@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
+import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 interface OrderedTextListProps {
   label: string;
@@ -31,6 +32,7 @@ export default function OrderedTextList({
   maximumLength = 500,
 }: OrderedTextListProps) {
   const itemLabel = singularLabel(label);
+  const t = useAcademicContentTranslations("details");
 
   const updateItem = (index: number, value: string) => {
     onChange(values.map((item, itemIndex) => (itemIndex === index ? value : item)));
@@ -65,7 +67,7 @@ export default function OrderedTextList({
             type="button"
             variant="ghost"
             size="sm"
-            aria-label={`Move ${itemLabel} ${index + 1} up`}
+            aria-label={t("move_up", { label: itemLabel, index: index + 1 })}
             disabled={disabled || index === 0}
             onClick={() => moveItem(index, -1)}
           >
@@ -75,7 +77,7 @@ export default function OrderedTextList({
             type="button"
             variant="ghost"
             size="sm"
-            aria-label={`Move ${itemLabel} ${index + 1} down`}
+            aria-label={t("move_down", { label: itemLabel, index: index + 1 })}
             disabled={disabled || index === values.length - 1}
             onClick={() => moveItem(index, 1)}
           >
@@ -85,7 +87,7 @@ export default function OrderedTextList({
             type="button"
             variant="ghost"
             size="sm"
-            aria-label={`Remove ${itemLabel} ${index + 1}`}
+            aria-label={t("remove_item", { label: itemLabel, index: index + 1 })}
             disabled={disabled}
             onClick={() => onChange(values.filter((_, itemIndex) => itemIndex !== index))}
           >
@@ -101,7 +103,7 @@ export default function OrderedTextList({
         disabled={disabled || values.length >= maximumItems}
         onClick={() => onChange([...values, ""])}
       >
-        Add {itemLabel}
+        {t("add_item", { label: itemLabel })}
       </Button>
     </fieldset>
   );

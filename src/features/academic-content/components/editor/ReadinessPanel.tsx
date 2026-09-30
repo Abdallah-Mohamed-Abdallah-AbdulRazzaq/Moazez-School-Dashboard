@@ -5,6 +5,7 @@ import { CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { academicContentUiError } from "../../services/academicContentErrors";
 import type { AcademicContentReadinessResponse } from "../../types/contracts";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 interface ReadinessPanelProps {
   readiness: AcademicContentReadinessResponse | null;
@@ -17,6 +18,7 @@ export default function ReadinessPanel({
 }: ReadinessPanelProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations("readiness");
 
   const refresh = async () => {
     setIsRefreshing(true);
@@ -41,10 +43,10 @@ export default function ReadinessPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="readiness-heading" className="text-lg font-semibold text-gray-900">
-            Readiness
+            {t("title")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Server-authoritative checks for whether this content can advance.
+            {t("description")}
           </p>
         </div>
         <Button
@@ -55,7 +57,7 @@ export default function ReadinessPanel({
           leftIcon={<RefreshCw aria-hidden="true" className="size-4" />}
           onClick={() => void refresh()}
         >
-          Refresh readiness
+          {t("refresh")}
         </Button>
       </div>
 
@@ -82,7 +84,7 @@ export default function ReadinessPanel({
           <XCircle aria-hidden="true" className="size-5 shrink-0" />
         )}
         <span className="font-medium">
-          {isReady ? "Ready" : readiness ? "Incomplete" : "Readiness unavailable"}
+          {isReady ? t("ready") : readiness ? t("incomplete") : t("unavailable")}
         </span>
       </div>
 

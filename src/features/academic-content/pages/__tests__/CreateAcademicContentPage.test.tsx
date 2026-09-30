@@ -12,11 +12,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: state.push }),
 }));
 
-vi.mock("next-intl", () => ({
-  useLocale: () => "en",
-  useTranslations: () => (key: string) => key,
-}));
-
 vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
     hasPermission: (permission: string) =>

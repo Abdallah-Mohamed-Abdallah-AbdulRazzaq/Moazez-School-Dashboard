@@ -12,6 +12,7 @@ import TextArea from "@/components/ui/input/TextArea";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { allowedAudiences } from "../model/academicContentPolicy";
+import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 import { createAcademicContent } from "../services/academicContentApi";
 import { academicContentUiError } from "../services/academicContentErrors";
 import {
@@ -19,22 +20,6 @@ import {
   type AcademicContentAudience,
   type AcademicContentType,
 } from "../types/contracts";
-
-const TYPE_LABELS: Record<AcademicContentType, string> = {
-  TEACHER_PREPARATION: "Teacher preparation",
-  WEEKLY_PLAN: "Weekly plan",
-  GUARDIAN_WEEKLY_NOTE: "Guardian weekly note",
-  SUBJECT_RESOURCE: "Subject resource",
-  ONLINE_SESSION: "Online session",
-  GENERAL_RESOURCE: "General resource",
-};
-
-const AUDIENCE_LABELS: Record<AcademicContentAudience, string> = {
-  INTERNAL_STAFF: "Internal staff",
-  STUDENTS: "Students",
-  GUARDIANS: "Guardians",
-  STUDENTS_AND_GUARDIANS: "Students and guardians",
-};
 
 export default function CreateAcademicContentPage() {
   const locale = useLocale();
@@ -49,6 +34,7 @@ export default function CreateAcademicContentPage() {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations();
 
   if (!isPermissionsReady) return null;
   if (!hasPermission("academics.academic_content.manage")) {
@@ -61,11 +47,11 @@ export default function CreateAcademicContentPage() {
 
   const typeOptions = ACADEMIC_CONTENT_TYPES.map((contentType) => ({
     value: contentType,
-    label: TYPE_LABELS[contentType],
+    label: t(`types.${contentType}`),
   }));
   const audienceOptions = allowedAudiences(type).map((contentAudience) => ({
     value: contentAudience,
-    label: AUDIENCE_LABELS[contentAudience],
+    label: t(`audiences.${contentAudience}`),
   }));
   const isClosed = termStatus === "closed";
   const cannotCreate =
@@ -85,7 +71,7 @@ export default function CreateAcademicContentPage() {
     event.preventDefault();
     const normalizedTitle = title.trim();
     if (!normalizedTitle) {
-      setError("Title is required");
+      setError(t("create.title_required"));
       return;
     }
     if (cannotCreate) return;
@@ -120,9 +106,9 @@ export default function CreateAcademicContentPage() {
             <FilePlus2 aria-hidden="true" className="size-5" />
           </span>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Create academic content</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("create.title")}</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Start a draft in the selected academic year and term.
+              {t("create.description")}
             </p>
           </div>
         </div>
@@ -132,7 +118,7 @@ export default function CreateAcademicContentPage() {
             role="alert"
             className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
           >
-            You cannot create content in a closed term.
+            {t("create.closed_term")}
           </div>
         )}
         {error && (
@@ -147,8 +133,8 @@ export default function CreateAcademicContentPage() {
         <form className="space-y-4" onSubmit={submit} noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
             <Select
-              label="Content type"
-              triggerAriaLabel="Content type"
+              label={t("editor.content_type")}
+              triggerAriaLabel={t("editor.content_type")}
               value={type}
               options={typeOptions}
               required
@@ -156,8 +142,8 @@ export default function CreateAcademicContentPage() {
               onChange={(value) => changeType(value as AcademicContentType)}
             />
             <Select
-              label="Audience"
-              triggerAriaLabel="Audience"
+              label={t("metadata.audience")}
+              triggerAriaLabel={t("metadata.audience")}
               value={audience}
               options={audienceOptions}
               required
@@ -166,8 +152,8 @@ export default function CreateAcademicContentPage() {
             />
           </div>
           <Input
-            label="Title"
-            aria-label="Title"
+            label={t("metadata.field_title")}
+            aria-label={t("metadata.field_title")}
             value={title}
             maxLength={180}
             required
@@ -175,8 +161,8 @@ export default function CreateAcademicContentPage() {
             onChange={(event) => setTitle(event.target.value)}
           />
           <TextArea
-            label="Description"
-            aria-label="Description"
+            label={t("metadata.field_description")}
+            aria-label={t("metadata.field_description")}
             value={description}
             maxLength={4000}
             rows={7}
@@ -186,7 +172,7 @@ export default function CreateAcademicContentPage() {
           />
           <div className="flex justify-end pt-2">
             <Button type="submit" loading={isSubmitting} disabled={cannotCreate}>
-              Create draft
+              {t("create.action")}
             </Button>
           </div>
         </form>

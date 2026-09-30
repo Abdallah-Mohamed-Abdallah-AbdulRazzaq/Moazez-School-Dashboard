@@ -14,6 +14,7 @@ import type {
   AcademicContentTargetScope,
   AcademicContentType,
 } from "../../types/contracts";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 export interface EditableAcademicTarget extends AcademicContentTargetDraft {
   key: string;
@@ -32,14 +33,6 @@ interface AcademicTargetCardProps {
   onRemove: () => void;
 }
 
-const SCOPE_OPTIONS: SelectOption[] = [
-  { value: "SCHOOL", label: "Whole school" },
-  { value: "STAGE", label: "Stage" },
-  { value: "GRADE", label: "Grade" },
-  { value: "SECTION", label: "Section" },
-  { value: "CLASSROOM", label: "Classroom" },
-];
-
 function selectOptions<T extends { id: string; name: string }>(items: T[]): SelectOption[] {
   return items.map((item) => ({ value: item.id, label: item.name }));
 }
@@ -47,13 +40,14 @@ function selectOptions<T extends { id: string; name: string }>(items: T[]): Sele
 function withSelectedFallback(
   options: SelectOption[],
   selectedValue: string | null | undefined,
+  unavailableLabel: (id: string) => string,
 ): SelectOption[] {
   if (!selectedValue || options.some((option) => option.value === selectedValue)) {
     return options;
   }
   return [
     ...options,
-    { value: selectedValue, label: `Unavailable (${selectedValue})`, disabled: true },
+    { value: selectedValue, label: unavailableLabel(selectedValue), disabled: true },
   ];
 }
 
@@ -66,7 +60,16 @@ export default function AcademicTargetCard({
   onUpdate,
   onRemove,
 }: AcademicTargetCardProps) {
+  const t = useAcademicContentTranslations("targets");
   const position = index + 1;
+  const scopeOptions: SelectOption[] = [
+    { value: "SCHOOL", label: t("whole_school") },
+    { value: "STAGE", label: t("stage") },
+    { value: "GRADE", label: t("grade") },
+    { value: "SECTION", label: t("section") },
+    { value: "CLASSROOM", label: t("classroom") },
+  ];
+  const unavailableLabel = (id: string) => t("unavailable_value", { id });
   const showsGrade = ["GRADE", "SECTION", "CLASSROOM"].includes(row.scopeType);
   const showsSection = ["SECTION", "CLASSROOM"].includes(row.scopeType);
   const subjectIsRequired = requiresSubject(contentType);
@@ -87,8 +90,8 @@ export default function AcademicTargetCard({
     (allocation) => ({
       value: allocation.id,
       label: allocation.teacherId
-        ? `Teacher assignment ${allocation.teacherId}`
-        : `Teacher assignment ${allocation.id}`,
+        ? t("teacher_assignment", { id: allocation.teacherId })
+        : t("teacher_assignment", { id: allocation.id }),
     }),
   );
 
@@ -110,45 +113,46 @@ export default function AcademicTargetCard({
   return (
     <div>
       {index > 0 && (
-        <div className="mb-4 flex items-center gap-3" aria-label="Alternative target">
+        <div className="mb-4 flex items-center gap-3" aria-label={t("alternative")}>
           <span className="h-px flex-1 bg-gray-200" />
-          <span className="text-xs font-bold text-gray-500">OR</span>
+          <span className="text-xs font-bold text-gray-500">{t("or")}</span>
           <span className="h-px flex-1 bg-gray-200" />
         </div>
       )}
       <article className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="font-semibold text-gray-900">Target {position}</h3>
+          <h3 className="font-semibold text-gray-900">{t("target", { index: position })}</h3>
           {!disabled && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              aria-label={`Remove target ${position}`}
+              aria-label={t("remove", { index: position })}
               leftIcon={<Trash2 aria-hidden="true" className="size-4" />}
               onClick={onRemove}
             >
-              Remove
+              {t("remove", { index: position })}
             </Button>
           )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <Select
-            label="Scope"
-            triggerAriaLabel={`Scope ${position}`}
+            label={t("scope")}
+            triggerAriaLabel={`${t("scope")} ${position}`}
             value={row.scopeType}
-            options={SCOPE_OPTIONS}
+            options={scopeOptions}
             disabled={disabled}
             onChange={(value) => changeScope(value as AcademicContentTargetScope)}
           />
           {row.scopeType !== "SCHOOL" && (
             <Select
-              label="Stage"
-              triggerAriaLabel={`Stage ${position}`}
+              label={t("stage")}
+              triggerAriaLabel={`${t("stage")} ${position}`}
               value={row.stageContextId}
               options={withSelectedFallback(
                 selectOptions(options.structure.stages),
                 row.stageContextId,
+                unavailableLabel,
               )}
               disabled={disabled}
               onChange={(value) =>
@@ -168,10 +172,10 @@ export default function AcademicTargetCard({
           )}
           {showsGrade && (
             <Select
-              label="Grade"
-              triggerAriaLabel={`Grade ${position}`}
+              label={t("grade")}
+              triggerAriaLabel={`${t("grade")} ${position}`}
               value={row.gradeContextId}
-              options={withSelectedFallback(selectOptions(grades), row.gradeContextId)}
+              options={withSelectedFallback(selectOptions(grades), row.gradeContextId, unavailableLabel)}
               disabled={disabled || !row.stageContextId}
               onChange={(value) =>
                 onUpdate({
@@ -188,12 +192,13 @@ export default function AcademicTargetCard({
           )}
           {showsSection && (
             <Select
-              label="Section"
-              triggerAriaLabel={`Section ${position}`}
+              label={t("section")}
+              triggerAriaLabel={`${t("section")} ${position}`}
               value={row.sectionContextId}
               options={withSelectedFallback(
                 selectOptions(sections),
                 row.sectionContextId,
+                unavailableLabel,
               )}
               disabled={disabled || !row.gradeContextId}
               onChange={(value) =>
@@ -209,10 +214,10 @@ export default function AcademicTargetCard({
           )}
           {row.scopeType === "CLASSROOM" && (
             <Select
-              label="Classroom"
-              triggerAriaLabel={`Classroom ${position}`}
+              label={t("classroom")}
+              triggerAriaLabel={`${t("classroom")} ${position}`}
               value={row.classroomId ?? ""}
-              options={withSelectedFallback(selectOptions(classrooms), row.classroomId)}
+              options={withSelectedFallback(selectOptions(classrooms), row.classroomId, unavailableLabel)}
               disabled={disabled || !row.sectionContextId}
               onChange={(value) =>
                 onUpdate({
@@ -224,12 +229,12 @@ export default function AcademicTargetCard({
             />
           )}
           <Select
-            label={subjectIsRequired ? "Subject" : "Subject (optional)"}
-            triggerAriaLabel={`Subject ${position}`}
+            label={subjectIsRequired ? t("subject") : t("optional", { label: t("subject") })}
+            triggerAriaLabel={`${t("subject")} ${position}`}
             value={row.subjectId ?? ""}
             options={[
-              ...(subjectIsRequired ? [] : [{ value: "", label: "No subject" }]),
-              ...withSelectedFallback(subjectOptions, row.subjectId),
+              ...(subjectIsRequired ? [] : [{ value: "", label: t("no_subject") }]),
+              ...withSelectedFallback(subjectOptions, row.subjectId, unavailableLabel),
             ]}
             disabled={disabled}
             required={subjectIsRequired}
@@ -242,14 +247,15 @@ export default function AcademicTargetCard({
           />
           {row.scopeType === "CLASSROOM" && row.subjectId && (
             <Select
-              label="Teacher allocation (optional)"
-              triggerAriaLabel={`Teacher allocation ${position}`}
+              label={t("optional", { label: t("teacher_allocation") })}
+              triggerAriaLabel={`${t("teacher_allocation")} ${position}`}
               value={row.teacherSubjectAllocationId ?? ""}
               options={[
-                { value: "", label: "No teacher allocation" },
+                { value: "", label: t("no_teacher_allocation") },
                 ...withSelectedFallback(
                   allocationOptions,
                   row.teacherSubjectAllocationId,
+                  unavailableLabel,
                 ),
               ]}
               disabled={disabled}
@@ -260,7 +266,7 @@ export default function AcademicTargetCard({
           )}
         </div>
         <p className="mt-3 text-xs font-medium text-gray-500">
-          The hierarchy and subject in this card are combined with AND.
+          {t("and_hint")}
         </p>
       </article>
     </div>

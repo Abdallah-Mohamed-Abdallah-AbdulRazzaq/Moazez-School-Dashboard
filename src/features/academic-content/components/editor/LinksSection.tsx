@@ -9,6 +9,7 @@ import type {
   AcademicContentLink,
   AcademicContentLinkInput,
 } from "../../types/contracts";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 const MAX_LINKS = 100;
 let linkKeySequence = 0;
@@ -57,6 +58,7 @@ export default function LinksSection({
 }: LinksSectionProps) {
   const [rows, setRows] = useState<EditableLink[]>(() => initial.map(editableLink));
   const [validationError, setValidationError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations("links");
 
   const updateRow = (key: string, update: Partial<AcademicContentLinkInput>) => {
     setRows((currentRows) =>
@@ -87,12 +89,12 @@ export default function LinksSection({
     }));
     const incompleteIndex = links.findIndex((link) => !link.label || !link.url);
     if (incompleteIndex >= 0) {
-      setValidationError(`Link ${incompleteIndex + 1}: Label and URL are required.`);
+      setValidationError(t("required", { index: incompleteIndex + 1 }));
       return;
     }
     const unsafeIndex = links.findIndex((link) => !isSafeHttpUrl(link.url));
     if (unsafeIndex >= 0) {
-      setValidationError(`Link ${unsafeIndex + 1}: URL must use HTTP or HTTPS.`);
+      setValidationError(t("unsafe", { index: unsafeIndex + 1 }));
       return;
     }
 
@@ -109,10 +111,10 @@ export default function LinksSection({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="links-heading" className="text-lg font-semibold text-gray-900">
-            Links
+            {t("title")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Add up to 100 ordered web resources using secure HTTP or HTTPS URLs.
+            {t("description")}
           </p>
         </div>
         {!disabled && (
@@ -127,7 +129,7 @@ export default function LinksSection({
               onDirty();
             }}
           >
-            Add link
+            {t("add")}
           </Button>
         )}
       </div>
@@ -144,7 +146,7 @@ export default function LinksSection({
       <div className="mt-5 space-y-4">
         {rows.length === 0 ? (
           <p className="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
-            No links have been added.
+            {t("empty")}
           </p>
         ) : null}
         {rows.map((row, index) => (
@@ -153,8 +155,8 @@ export default function LinksSection({
             className="grid gap-3 rounded-lg border border-gray-200 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] lg:items-end"
           >
             <Input
-              label="Label"
-              aria-label={`Link ${index + 1} label`}
+              label={t("label")}
+              aria-label={t("label_aria", { index: index + 1 })}
               value={row.label}
               maxLength={180}
               required
@@ -162,8 +164,8 @@ export default function LinksSection({
               onChange={(event) => updateRow(row.key, { label: event.target.value })}
             />
             <Input
-              label="URL"
-              aria-label={`Link ${index + 1} URL`}
+              label={t("url")}
+              aria-label={t("url_aria", { index: index + 1 })}
               value={row.url}
               maxLength={2048}
               required
@@ -176,7 +178,7 @@ export default function LinksSection({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  aria-label={`Move link ${index + 1} up`}
+                  aria-label={t("move_up", { index: index + 1 })}
                   disabled={index === 0}
                   onClick={() => moveRow(index, -1)}
                 >
@@ -186,7 +188,7 @@ export default function LinksSection({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  aria-label={`Move link ${index + 1} down`}
+                  aria-label={t("move_down", { index: index + 1 })}
                   disabled={index === rows.length - 1}
                   onClick={() => moveRow(index, 1)}
                 >
@@ -196,7 +198,7 @@ export default function LinksSection({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  aria-label={`Remove link ${index + 1}`}
+                  aria-label={t("remove", { index: index + 1 })}
                   onClick={() => {
                     setRows((currentRows) =>
                       currentRows.filter((candidate) => candidate.key !== row.key),
@@ -220,7 +222,7 @@ export default function LinksSection({
             disabled={!sectionState.dirty}
             onClick={() => void save()}
           >
-            Save links
+            {t("save")}
           </Button>
         </div>
       )}

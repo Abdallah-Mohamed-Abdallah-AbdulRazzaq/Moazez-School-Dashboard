@@ -19,10 +19,10 @@ import LifecycleActions from "../components/editor/LifecycleActions";
 import ReadinessPanel from "../components/editor/ReadinessPanel";
 import RevisionHistoryPanel from "../components/editor/RevisionHistoryPanel";
 import EditorSectionNav, {
-  EDITOR_SECTIONS,
   type AcademicContentEditorPanel,
 } from "../components/editor/EditorSectionNav";
 import { useAcademicContentEditor } from "../hooks/useAcademicContentEditor";
+import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 import TypeDetailSection from "../components/editor/details/TypeDetailSection";
 import type { AcademicContentBase } from "../types/contracts";
 
@@ -45,6 +45,7 @@ export function AcademicContentEditorView({
 }: AcademicContentEditorViewProps) {
   const [activeSection, setActiveSection] =
     useState<AcademicContentEditorPanel>("metadata");
+  const t = useAcademicContentTranslations();
 
   if (editor.isLoading) {
     return (
@@ -59,10 +60,10 @@ export function AcademicContentEditorView({
       <main className="mx-auto max-w-3xl p-4 sm:p-6">
         <div role="alert" className="rounded-xl border border-red-200 bg-white shadow-sm">
           <EmptyState
-            title="Content unavailable"
-            message={editor.error?.message ?? "The content could not be loaded."}
+            title={t("editor.unavailable_title")}
+            message={editor.error?.message ?? t("editor.unavailable_message")}
             icon={<RefreshCw aria-hidden="true" className="size-10" />}
-            action={<Button onClick={editor.reload}>Retry</Button>}
+            action={<Button onClick={editor.reload}>{t("common.retry")}</Button>}
           />
         </div>
       </main>
@@ -71,15 +72,13 @@ export function AcademicContentEditorView({
 
   const content = editor.content;
   const editingDisabled = editor.isReadOnly || !canManage;
-  const activeLabel =
-    EDITOR_SECTIONS.find((section) => section.id === activeSection)?.label ?? "Section";
 
   return (
     <main className="mx-auto max-w-screen-2xl space-y-4 p-4 sm:p-6">
       <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-primary">{content.status}</p>
+            <p className="text-sm font-medium text-primary">{t(`statuses.${content.status}`)}</p>
             <h2 className="mt-1 truncate text-xl font-bold text-gray-900 sm:text-2xl">
               {content.title}
             </h2>
@@ -91,7 +90,7 @@ export function AcademicContentEditorView({
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700"
               >
                 <Archive aria-hidden="true" className="size-4" />
-                Archived content is read-only
+                {t("editor.archived_read_only")}
               </div>
             )}
             <LifecycleActions
@@ -104,9 +103,9 @@ export function AcademicContentEditorView({
         </div>
         <dl className="mt-5 grid gap-3 sm:grid-cols-3">
           {[
-            ["Content type", content.type],
-            ["Academic year", content.academicYearId],
-            ["Term", content.termId],
+            [t("editor.content_type"), t(`types.${content.type}`)],
+            [t("editor.academic_year"), content.academicYearId],
+            [t("editor.term"), content.termId],
           ].map(([label, value]) => (
             <div key={label} className="rounded-lg bg-gray-50 px-3 py-2">
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -198,21 +197,8 @@ export function AcademicContentEditorView({
               readiness={editor.readiness}
               onRefresh={editor.refreshReadiness}
             />
-          ) : activeSection === "revisions" ? (
-            <RevisionHistoryPanel key={content.id} contentId={content.id} />
           ) : (
-            <section
-              id={activeSection}
-              aria-labelledby={`${activeSection}-heading`}
-              className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-            >
-              <h2 id={`${activeSection}-heading`} className="text-lg font-semibold text-gray-900">
-                {activeLabel}
-              </h2>
-              <p className="mt-2 text-sm text-gray-500">
-                This editor section is available in the next implementation step.
-              </p>
-            </section>
+            <RevisionHistoryPanel key={content.id} contentId={content.id} />
           )}
         </div>
       </div>
@@ -227,9 +213,10 @@ export default function AcademicContentEditorPage({ contentId }: { contentId: st
   const searchParams = useSearchParams();
   const { hasPermission } = usePermissions();
   const { selectedTerm } = useAcademicYearTermLayoutContext();
+  const t = useAcademicContentTranslations("editor");
   const confirmDiscard = useCallback(
-    () => window.confirm("Discard unsaved academic content changes?"),
-    [],
+    () => window.confirm(t("discard_changes")),
+    [t],
   );
 
   useGuardedAcademicContextChange({

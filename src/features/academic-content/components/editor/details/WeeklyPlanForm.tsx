@@ -15,6 +15,7 @@ import {
 import { ReferenceChecklist } from "./AcademicReferenceFields";
 import DetailFormShell, { normalizeOrderedText } from "./DetailFormShell";
 import OrderedTextList from "./OrderedTextList";
+import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 interface WeeklyPlanFormProps {
   initial: AcademicContentWeeklyPlanDetail;
@@ -39,6 +40,7 @@ export default function WeeklyPlanForm({
 }: WeeklyPlanFormProps) {
   const [form, setForm] = useState(initial);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations();
   const update = <K extends keyof AcademicContentWeeklyPlanDetail>(
     field: K,
     value: AcademicContentWeeklyPlanDetail[K],
@@ -50,18 +52,18 @@ export default function WeeklyPlanForm({
 
   const save = async () => {
     if (!form.weekStartDate || !form.weekEndDate || form.weekStartDate > form.weekEndDate) {
-      setValidationError("Choose an ordered start and end date.");
+      setValidationError(t("details.date_order"));
       return;
     }
     if (
       (termStartDate && form.weekStartDate < termStartDate) ||
       (termEndDate && form.weekEndDate > termEndDate)
     ) {
-      setValidationError("The week must stay inside the selected term.");
+      setValidationError(t("details.term_bounds"));
       return;
     }
     if ([...form.objectives, ...form.topics].some((value) => !value.trim())) {
-      setValidationError("Remove or complete empty list items before saving.");
+      setValidationError(t("details.empty_items"));
       return;
     }
     setValidationError(null);
@@ -80,29 +82,29 @@ export default function WeeklyPlanForm({
 
   return (
     <DetailFormShell
-      title="Weekly plan"
-      description="Plan a term-bounded week and optionally link existing homework and assessments."
+      title={t("details.weekly_title")}
+      description={t("details.weekly_description")}
       disabled={disabled}
       sectionState={sectionState}
       validationError={validationError}
       onSave={() => void save()}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Week start date" aria-label="Week start date" type="date" value={form.weekStartDate} min={termStartDate} max={termEndDate} required disabled={disabled} onChange={(event) => update("weekStartDate", event.target.value)} />
-        <Input label="Week end date" aria-label="Week end date" type="date" value={form.weekEndDate} min={termStartDate} max={termEndDate} required disabled={disabled} onChange={(event) => update("weekEndDate", event.target.value)} />
+        <Input label={t("fields.week_start")} aria-label={t("fields.week_start")} type="date" value={form.weekStartDate} min={termStartDate} max={termEndDate} required disabled={disabled} onChange={(event) => update("weekStartDate", event.target.value)} />
+        <Input label={t("fields.week_end")} aria-label={t("fields.week_end")} type="date" value={form.weekEndDate} min={termStartDate} max={termEndDate} required disabled={disabled} onChange={(event) => update("weekEndDate", event.target.value)} />
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
-        <OrderedTextList label="Objectives" values={form.objectives} disabled={disabled} onChange={(value) => update("objectives", value)} />
-        <OrderedTextList label="Topics" values={form.topics} disabled={disabled} onChange={(value) => update("topics", value)} />
+        <OrderedTextList label={t("fields.objectives")} values={form.objectives} disabled={disabled} onChange={(value) => update("objectives", value)} />
+        <OrderedTextList label={t("fields.topics")} values={form.topics} disabled={disabled} onChange={(value) => update("topics", value)} />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <TextArea label="Expected homework" aria-label="Expected homework" value={form.expectedHomework ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("expectedHomework", event.target.value)} />
-        <TextArea label="Upcoming assessments" aria-label="Upcoming assessments" value={form.upcomingAssessments ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("upcomingAssessments", event.target.value)} />
-        <TextArea label="Notes" aria-label="Notes" value={form.notes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("notes", event.target.value)} />
+        <TextArea label={t("fields.expected_homework")} aria-label={t("fields.expected_homework")} value={form.expectedHomework ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("expectedHomework", event.target.value)} />
+        <TextArea label={t("fields.upcoming_assessments")} aria-label={t("fields.upcoming_assessments")} value={form.upcomingAssessments ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("upcomingAssessments", event.target.value)} />
+        <TextArea label={t("fields.notes")} aria-label={t("fields.notes")} value={form.notes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("notes", event.target.value)} />
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
-        <ReferenceChecklist label="Homework assignments" values={form.homeworkAssignmentIds} options={options.homeworkAssignments.map((homework) => ({ value: homework.id, label: homework.title }))} disabled={disabled} onChange={(value) => update("homeworkAssignmentIds", value)} />
-        <ReferenceChecklist label="Grade assessments" values={form.gradeAssessmentIds} options={options.assessments.map((assessment) => ({ value: assessment.id, label: assessment.title }))} disabled={disabled} onChange={(value) => update("gradeAssessmentIds", value)} />
+        <ReferenceChecklist label={t("fields.homework_assignments")} values={form.homeworkAssignmentIds} options={options.homeworkAssignments.map((homework) => ({ value: homework.id, label: homework.title }))} disabled={disabled} onChange={(value) => update("homeworkAssignmentIds", value)} />
+        <ReferenceChecklist label={t("fields.grade_assessments")} values={form.gradeAssessmentIds} options={options.assessments.map((assessment) => ({ value: assessment.id, label: assessment.title }))} disabled={disabled} onChange={(value) => update("gradeAssessmentIds", value)} />
       </div>
     </DetailFormShell>
   );

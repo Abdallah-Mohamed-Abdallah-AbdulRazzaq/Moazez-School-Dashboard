@@ -15,6 +15,7 @@ import {
 import { OptionalReferenceSelect } from "./AcademicReferenceFields";
 import DetailFormShell, { normalizeOrderedText } from "./DetailFormShell";
 import OrderedTextList from "./OrderedTextList";
+import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 interface TeacherPreparationFormProps {
   initial: AcademicContentPreparationDetail;
@@ -35,6 +36,7 @@ export default function TeacherPreparationForm({
 }: TeacherPreparationFormProps) {
   const [form, setForm] = useState(initial);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations();
   const selectedCurriculum = options.curricula.find(
     (curriculum) => curriculum.id === form.curriculumId,
   );
@@ -65,7 +67,7 @@ export default function TeacherPreparationForm({
       form.activities,
     ];
     if (lists.some((values) => values.some((value) => !value.trim()))) {
-      setValidationError("Remove or complete empty list items before saving.");
+      setValidationError(t("details.empty_items"));
       return;
     }
     setValidationError(null);
@@ -89,48 +91,48 @@ export default function TeacherPreparationForm({
 
   return (
     <DetailFormShell
-      title="Teacher preparation"
-      description="Capture the instructional plan and optional academic references."
+      title={t("details.preparation_title")}
+      description={t("details.preparation_description")}
       disabled={disabled}
       sectionState={sectionState}
       validationError={validationError}
       onSave={() => void save()}
     >
       <Input
-        label="Topic"
-        aria-label="Topic"
+        label={t("fields.topic")}
+        aria-label={t("fields.topic")}
         value={form.topic ?? ""}
         maxLength={500}
         disabled={disabled}
         onChange={(event) => update("topic", event.target.value)}
       />
       <div className="grid gap-5 lg:grid-cols-2">
-        <OrderedTextList label="Objectives" values={form.objectives} disabled={disabled} onChange={(value) => update("objectives", value)} />
-        <OrderedTextList label="Learning outcomes" values={form.learningOutcomes} disabled={disabled} onChange={(value) => update("learningOutcomes", value)} />
-        <OrderedTextList label="Teaching strategies" values={form.teachingStrategies} disabled={disabled} onChange={(value) => update("teachingStrategies", value)} />
-        <OrderedTextList label="Activities" values={form.activities} disabled={disabled} onChange={(value) => update("activities", value)} />
+        <OrderedTextList label={t("fields.objectives")} values={form.objectives} disabled={disabled} onChange={(value) => update("objectives", value)} />
+        <OrderedTextList label={t("fields.learning_outcomes")} values={form.learningOutcomes} disabled={disabled} onChange={(value) => update("learningOutcomes", value)} />
+        <OrderedTextList label={t("fields.teaching_strategies")} values={form.teachingStrategies} disabled={disabled} onChange={(value) => update("teachingStrategies", value)} />
+        <OrderedTextList label={t("fields.activities")} values={form.activities} disabled={disabled} onChange={(value) => update("activities", value)} />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <TextArea label="Resource notes" aria-label="Resource notes" value={form.resourceNotes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("resourceNotes", event.target.value)} />
-        <TextArea label="Assessment notes" aria-label="Assessment notes" value={form.assessmentNotes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("assessmentNotes", event.target.value)} />
-        <TextArea label="Teacher notes" aria-label="Teacher notes" value={form.teacherNotes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("teacherNotes", event.target.value)} />
+        <TextArea label={t("fields.resource_notes")} aria-label={t("fields.resource_notes")} value={form.resourceNotes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("resourceNotes", event.target.value)} />
+        <TextArea label={t("fields.assessment_notes")} aria-label={t("fields.assessment_notes")} value={form.assessmentNotes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("assessmentNotes", event.target.value)} />
+        <TextArea label={t("fields.teacher_notes")} aria-label={t("fields.teacher_notes")} value={form.teacherNotes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("teacherNotes", event.target.value)} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <OptionalReferenceSelect label="Curriculum" value={form.curriculumId} options={options.curricula.map((curriculum) => ({ value: curriculum.id, label: curriculum.title }))} disabled={disabled} onChange={(value) => {
+        <OptionalReferenceSelect label={t("fields.curriculum")} value={form.curriculumId} options={options.curricula.map((curriculum) => ({ value: curriculum.id, label: curriculum.title }))} disabled={disabled} onChange={(value) => {
           setForm((current) => ({ ...current, curriculumId: value, curriculumUnitId: null, curriculumLessonId: null, lessonPlanId: null, lessonPlanItemId: null }));
           onDirty();
         }} />
-        <OptionalReferenceSelect label="Curriculum unit" value={form.curriculumUnitId} options={(selectedCurriculum?.units ?? []).map((unit) => ({ value: unit.id, label: unit.title }))} disabled={disabled || !form.curriculumId} onChange={(value) => {
+        <OptionalReferenceSelect label={t("fields.curriculum_unit")} value={form.curriculumUnitId} options={(selectedCurriculum?.units ?? []).map((unit) => ({ value: unit.id, label: unit.title }))} disabled={disabled || !form.curriculumId} onChange={(value) => {
           setForm((current) => ({ ...current, curriculumUnitId: value, curriculumLessonId: null }));
           onDirty();
         }} />
-        <OptionalReferenceSelect label="Curriculum lesson" value={form.curriculumLessonId} options={(selectedUnit?.lessons ?? []).map((lesson) => ({ value: lesson.id, label: lesson.title }))} disabled={disabled || !form.curriculumUnitId} onChange={(value) => update("curriculumLessonId", value)} />
-        <OptionalReferenceSelect label="Lesson plan" value={form.lessonPlanId} options={availableLessonPlans.map((plan) => ({ value: plan.id, label: plan.title }))} disabled={disabled} onChange={(value) => {
+        <OptionalReferenceSelect label={t("fields.curriculum_lesson")} value={form.curriculumLessonId} options={(selectedUnit?.lessons ?? []).map((lesson) => ({ value: lesson.id, label: lesson.title }))} disabled={disabled || !form.curriculumUnitId} onChange={(value) => update("curriculumLessonId", value)} />
+        <OptionalReferenceSelect label={t("fields.lesson_plan")} value={form.lessonPlanId} options={availableLessonPlans.map((plan) => ({ value: plan.id, label: plan.title }))} disabled={disabled} onChange={(value) => {
           setForm((current) => ({ ...current, lessonPlanId: value, lessonPlanItemId: null }));
           onDirty();
         }} />
-        <OptionalReferenceSelect label="Lesson plan item" value={form.lessonPlanItemId} options={(selectedLessonPlan?.items ?? []).map((item) => ({ value: item.id, label: item.title || item.lessonTitle }))} disabled={disabled || !form.lessonPlanId} onChange={(value) => update("lessonPlanItemId", value)} />
-        <OptionalReferenceSelect label="Timetable entry" value={form.timetableEntryId} options={options.timetableEntries.map((entry) => ({ value: entry.id, label: `${entry.classroom.nameEn} · ${entry.subject?.nameEn ?? "Unassigned"} · ${entry.period.label}` }))} disabled={disabled} onChange={(value) => update("timetableEntryId", value)} />
+        <OptionalReferenceSelect label={t("fields.lesson_plan_item")} value={form.lessonPlanItemId} options={(selectedLessonPlan?.items ?? []).map((item) => ({ value: item.id, label: item.title || item.lessonTitle }))} disabled={disabled || !form.lessonPlanId} onChange={(value) => update("lessonPlanItemId", value)} />
+        <OptionalReferenceSelect label={t("fields.timetable_entry")} value={form.timetableEntryId} options={options.timetableEntries.map((entry) => ({ value: entry.id, label: `${entry.classroom.nameEn} · ${entry.subject?.nameEn ?? t("common.unassigned")} · ${entry.period.label}` }))} disabled={disabled} onChange={(value) => update("timetableEntryId", value)} />
       </div>
     </DetailFormShell>
   );

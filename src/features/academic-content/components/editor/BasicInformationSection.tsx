@@ -12,13 +12,7 @@ import type {
   UpdateAcademicContentRequest,
 } from "../../types/contracts";
 import type { AcademicContentEditorSectionState } from "../../hooks/useAcademicContentEditor";
-
-const AUDIENCE_LABELS: Record<AcademicContentAudience, string> = {
-  INTERNAL_STAFF: "Internal staff",
-  STUDENTS: "Students",
-  GUARDIANS: "Guardians",
-  STUDENTS_AND_GUARDIANS: "Students and guardians",
-};
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 interface BasicInformationSectionProps {
   content: AcademicContentDetail;
@@ -39,15 +33,16 @@ export default function BasicInformationSection({
   const [description, setDescription] = useState(content.description ?? "");
   const [audience, setAudience] = useState<AcademicContentAudience>(content.audience);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations();
   const contentVersion = `${content.id}:${content.updatedAt}`;
   const [syncedContentVersion, setSyncedContentVersion] = useState(contentVersion);
   const audienceOptions = useMemo(
     () =>
       allowedAudiences(content.type).map((allowedAudience) => ({
         value: allowedAudience,
-        label: AUDIENCE_LABELS[allowedAudience],
+        label: t(`audiences.${allowedAudience}`),
       })),
-    [content.type],
+    [content.type, t],
   );
 
   if (!sectionState.dirty && syncedContentVersion !== contentVersion) {
@@ -63,7 +58,7 @@ export default function BasicInformationSection({
   const save = async () => {
     const normalizedTitle = title.trim();
     if (!normalizedTitle) {
-      setValidationError("Title is required");
+      setValidationError(t("metadata.title_required"));
       return;
     }
 
@@ -84,15 +79,15 @@ export default function BasicInformationSection({
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="metadata-heading" className="text-lg font-semibold text-gray-900">
-            Basic information
+            {t("metadata.title")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Edit the reader-facing title, description, and audience.
+            {t("metadata.description")}
           </p>
         </div>
         {sectionState.dirty && !disabled ? (
           <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">
-            Unsaved changes
+            {t("metadata.unsaved")}
           </span>
         ) : null}
       </div>
@@ -108,8 +103,8 @@ export default function BasicInformationSection({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Input
-          label="Title"
-          aria-label="Title"
+          label={t("metadata.field_title")}
+          aria-label={t("metadata.field_title")}
           value={title}
           maxLength={180}
           required
@@ -120,8 +115,8 @@ export default function BasicInformationSection({
           }}
         />
         <Select
-          label="Audience"
-          triggerAriaLabel="Audience"
+          label={t("metadata.audience")}
+          triggerAriaLabel={t("metadata.audience")}
           value={audience}
           options={audienceOptions}
           disabled={disabled}
@@ -133,8 +128,8 @@ export default function BasicInformationSection({
         />
         <div className="lg:col-span-2">
           <TextArea
-            label="Description"
-            aria-label="Description"
+            label={t("metadata.field_description")}
+            aria-label={t("metadata.field_description")}
             value={description}
             maxLength={4000}
             rows={6}
@@ -156,7 +151,7 @@ export default function BasicInformationSection({
             disabled={!sectionState.dirty}
             onClick={() => void save()}
           >
-            Save basic information
+            {t("metadata.save")}
           </Button>
         </div>
       )}

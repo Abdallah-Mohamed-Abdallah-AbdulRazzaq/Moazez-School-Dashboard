@@ -63,7 +63,7 @@ describe("AcademicContentEditorPage", () => {
     const editor = editorState("DRAFT", true);
     render(<AcademicContentEditorView editor={editor} canManage />);
 
-    expect(screen.getByText("GENERAL_RESOURCE")).toBeInTheDocument();
+    expect(screen.getByText("General resource")).toBeInTheDocument();
     expect(screen.getByText("year-1")).toBeInTheDocument();
     expect(screen.getByText("term-1")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Title"), {

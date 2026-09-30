@@ -14,6 +14,7 @@ import type {
   AcademicContentBase,
   AcademicContentDetail,
 } from "../../types/contracts";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 type LifecycleAction = "archive" | "restore" | "delete";
 
@@ -26,24 +27,24 @@ interface LifecycleActionsProps {
 
 const DIALOG_COPY: Record<
   LifecycleAction,
-  { title: string; description: string; confirmLabel: string; severity: "warning" | "danger" }
+  { titleKey: string; descriptionKey: string; confirmKey: string; severity: "warning" | "danger" }
 > = {
   archive: {
-    title: "Archive academic content",
-    description: "Archive this draft and make its editor read-only? Unsaved local changes are not included.",
-    confirmLabel: "Confirm archive",
+    titleKey: "archive_title",
+    descriptionKey: "archive_description",
+    confirmKey: "archive_confirm",
     severity: "warning",
   },
   restore: {
-    title: "Restore academic content",
-    description: "Restore this archived content to a draft? The backend will verify eligibility.",
-    confirmLabel: "Confirm restore",
+    titleKey: "restore_title",
+    descriptionKey: "restore_description",
+    confirmKey: "restore_confirm",
     severity: "warning",
   },
   delete: {
-    title: "Delete draft",
-    description: "Permanently delete this draft? This action cannot be undone.",
-    confirmLabel: "Confirm delete",
+    titleKey: "delete_title",
+    descriptionKey: "delete_description",
+    confirmKey: "delete_confirm",
     severity: "danger",
   },
 };
@@ -57,6 +58,8 @@ export default function LifecycleActions({
   const [pendingAction, setPendingAction] = useState<LifecycleAction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations("lifecycle");
+  const commonT = useAcademicContentTranslations("common");
 
   if (!canManage || (content.status !== "DRAFT" && content.status !== "ARCHIVED")) {
     return null;
@@ -75,7 +78,7 @@ export default function LifecycleActions({
         await onChanged(updatedContent);
       } else {
         const response = await deleteAcademicContent(content.id);
-        if (!response.ok) throw new Error("The draft was not deleted.");
+        if (!response.ok) throw new Error(t("delete_failed"));
         onDeleted();
       }
       setPendingAction(null);
@@ -106,7 +109,7 @@ export default function LifecycleActions({
               leftIcon={<Archive aria-hidden="true" className="size-4" />}
               onClick={() => setPendingAction("archive")}
             >
-              Archive
+              {t("archive")}
             </Button>
             <Button
               type="button"
@@ -115,7 +118,7 @@ export default function LifecycleActions({
               leftIcon={<Trash2 aria-hidden="true" className="size-4" />}
               onClick={() => setPendingAction("delete")}
             >
-              Delete draft
+              {t("delete")}
             </Button>
           </>
         ) : (
@@ -126,7 +129,7 @@ export default function LifecycleActions({
             leftIcon={<RotateCcw aria-hidden="true" className="size-4" />}
             onClick={() => setPendingAction("restore")}
           >
-            Restore
+            {t("restore")}
           </Button>
         )}
       </div>
@@ -136,10 +139,10 @@ export default function LifecycleActions({
           isOpen
           onClose={() => setPendingAction(null)}
           onConfirm={() => void confirm()}
-          title={dialogCopy.title}
-          description={dialogCopy.description}
-          confirmLabel={dialogCopy.confirmLabel}
-          cancelLabel="Cancel"
+          title={t(dialogCopy.titleKey)}
+          description={t(dialogCopy.descriptionKey)}
+          confirmLabel={t(dialogCopy.confirmKey)}
+          cancelLabel={commonT("cancel")}
           loading={isSubmitting}
           severity={dialogCopy.severity}
         />

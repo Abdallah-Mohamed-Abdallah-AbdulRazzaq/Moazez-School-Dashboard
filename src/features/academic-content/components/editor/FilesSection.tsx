@@ -21,6 +21,7 @@ import type {
   AcademicContentAsset,
   AcademicContentFilePolicy,
 } from "../../types/contracts";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 type UploadState =
   | "uploading"
@@ -64,6 +65,7 @@ export default function FilesSection({
   const [queue, setQueue] = useState<UploadQueueItem[]>([]);
   const [unlinkingAssetId, setUnlinkingAssetId] = useState<string | null>(null);
   const controllers = useRef(new Map<string, AbortController>());
+  const t = useAcademicContentTranslations("files");
 
   useEffect(() => {
     let active = true;
@@ -97,7 +99,7 @@ export default function FilesSection({
     updateQueueItem(item.key, {
       state: "uploading",
       percent: 0,
-      message: "Uploading…",
+      message: t("uploading"),
     });
 
     try {
@@ -108,24 +110,24 @@ export default function FilesSection({
         onProgress: (progress) =>
           updateQueueItem(item.key, {
             percent: progress.percent,
-            message: `${progress.percent}% uploaded`,
+            message: t("progress", { percent: progress.percent }),
           }),
       });
       updateQueueItem(item.key, {
         state: "completed",
         percent: 100,
-        message: "Upload complete. Refreshing files…",
+        message: t("complete_refreshing"),
       });
       await onFilesChanged();
       setQueue((currentQueue) =>
         currentQueue.filter((candidate) => candidate.key !== item.key),
       );
-      setStatus(`${item.file.name} uploaded and attached.`);
+      setStatus(t("uploaded", { name: item.file.name }));
     } catch (uploadError) {
       if (uploadError instanceof DOMException && uploadError.name === "AbortError") {
         updateQueueItem(item.key, {
           state: "cancelled",
-          message: "Upload cancelled.",
+          message: t("cancelled"),
         });
       } else if (uploadError instanceof AcademicContentUploadRestartRequiredError) {
         updateQueueItem(item.key, {
@@ -155,7 +157,7 @@ export default function FilesSection({
           file,
           state: "uploading",
           percent: 0,
-          message: "Preparing upload…",
+          message: t("preparing"),
         };
         setQueue((currentQueue) => [...currentQueue, item]);
         void startUpload(item);
@@ -172,7 +174,7 @@ export default function FilesSection({
     try {
       await unlinkAcademicContentAsset(contentId, asset.assetId);
       await onFilesChanged();
-      setStatus(`${asset.originalName} was removed from this content.`);
+      setStatus(t("removed", { name: asset.originalName }));
     } catch (unlinkError) {
       setError(academicContentUiError(unlinkError).message);
     } finally {
@@ -188,10 +190,10 @@ export default function FilesSection({
     >
       <div>
         <h2 id="files-heading" className="text-lg font-semibold text-gray-900">
-          Files
+          {t("title")}
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          Upload registered formats directly to secure resumable storage.
+          {t("description")}
         </p>
       </div>
 
@@ -215,13 +217,13 @@ export default function FilesSection({
       {!disabled && (
         <div className="mt-5">
           <DragDropUploadArea
-            title="Add files"
-            subtitle="Files are checked against the current school policy before upload."
-            buttonLabel="Choose files"
+            title={t("add")}
+            subtitle={t("add_description")}
+            buttonLabel={t("choose")}
             helperText={
               policy
-                ? `Maximum ${formatByteCount(policy.maximumFileSizeBytes)}`
-                : "Loading file policy…"
+                ? t("maximum", { size: formatByteCount(policy.maximumFileSizeBytes) })
+                : t("loading_policy")
             }
             accept={ACADEMIC_CONTENT_FILE_ACCEPT}
             maxSizeBytes={policy ? Number(policy.maximumFileSizeBytes) : undefined}
@@ -250,7 +252,7 @@ export default function FilesSection({
                     leftIcon={<X aria-hidden="true" className="size-4" />}
                     onClick={() => controllers.current.get(item.key)?.abort()}
                   >
-                    Cancel upload
+                    {t("cancel_upload")}
                   </Button>
                 ) : item.state !== "completed" ? (
                   <Button
@@ -260,13 +262,13 @@ export default function FilesSection({
                     leftIcon={<RefreshCw aria-hidden="true" className="size-4" />}
                     onClick={() => void startUpload(item)}
                   >
-                    Retry upload
+                    {t("retry_upload")}
                   </Button>
                 ) : null}
               </div>
               <div
                 role="progressbar"
-                aria-label={`${item.file.name} upload progress`}
+                aria-label={t("progress_aria", { name: item.file.name })}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={item.percent}
@@ -283,10 +285,10 @@ export default function FilesSection({
       )}
 
       <div className="mt-6">
-        <h3 className="text-sm font-semibold text-gray-900">Attached files</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{t("attached")}</h3>
         {assets.length === 0 ? (
           <p className="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
-            No files are attached.
+            {t("empty")}
           </p>
         ) : (
           <div className="mt-3">
@@ -297,13 +299,13 @@ export default function FilesSection({
                 title={asset.originalName}
                 subtitle={`${asset.mimeType} · ${formatByteCount(asset.sizeBytes)}`}
                 disabled={unlinkingAssetId === asset.assetId}
-                actionsLabel={`Actions for ${asset.originalName}`}
+                actionsLabel={t("actions", { name: asset.originalName })}
                 actions={
                   disabled
                     ? []
                     : [
                         {
-                          label: "Unlink",
+                          label: t("unlink"),
                           icon: <Trash2 aria-hidden="true" className="size-4" />,
                           color: "error",
                           onClick: () => void unlink(asset),
@@ -318,7 +320,7 @@ export default function FilesSection({
 
       <p className="mt-4 flex items-start gap-2 text-xs text-gray-500">
         <UploadCloud aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        Unlinking removes the asset from this content; it does not claim immediate physical file deletion.
+        {t("unlink_notice")}
       </p>
     </section>
   );

@@ -8,6 +8,7 @@ import { listAcademicContentRevisions } from "../../services/academicContentApi"
 import { academicContentUiError } from "../../services/academicContentErrors";
 import type { AcademicContentRevisionListResponse } from "../../types/contracts";
 import RevisionDetailModal from "./RevisionDetailModal";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 const PAGE_SIZE = 10;
 
@@ -20,6 +21,7 @@ export default function RevisionHistoryPanel({ contentId }: { contentId: string 
   const [loadError, setLoadError] = useState<{ key: string; message: string } | null>(null);
   const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(null);
   const requestKey = `${contentId}:${page}`;
+  const t = useAcademicContentTranslations("revisions");
 
   useEffect(() => {
     let active = true;
@@ -53,10 +55,10 @@ export default function RevisionHistoryPanel({ contentId }: { contentId: string 
         <History aria-hidden="true" className="mt-0.5 size-5 text-primary" />
         <div>
           <h2 id="revisions-heading" className="text-lg font-semibold text-gray-900">
-            Revision history
+            {t("title")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Open immutable snapshots captured by the backend.
+            {t("description")}
           </p>
         </div>
       </div>
@@ -75,14 +77,14 @@ export default function RevisionHistoryPanel({ contentId }: { contentId: string 
             <button
               key={revision.id}
               type="button"
-              aria-label={`Open revision ${revision.revisionNumber}`}
+              aria-label={t("open", { number: revision.revisionNumber })}
               onClick={() => setSelectedRevisionId(revision.id)}
               className="flex w-full flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3 text-start transition-colors hover:border-primary hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <span>
                 <span className="block text-sm font-semibold text-gray-900">{revision.title}</span>
                 <span className="mt-1 block text-xs text-gray-500">
-                  Revision {revision.revisionNumber} · Snapshot v{revision.snapshotContractVersion}
+                  {t("summary", { number: revision.revisionNumber, version: revision.snapshotContractVersion })}
                 </span>
               </span>
               <span className="text-xs text-gray-500">{revision.capturedAt}</span>
@@ -91,7 +93,7 @@ export default function RevisionHistoryPanel({ contentId }: { contentId: string 
         </div>
       ) : (
         <p className="mt-5 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
-          No revisions have been captured.
+          {t("empty")}
         </p>
       )}
 
@@ -101,18 +103,18 @@ export default function RevisionHistoryPanel({ contentId }: { contentId: string 
             type="button"
             variant="secondary"
             size="sm"
-            aria-label="Previous revisions page"
+            aria-label={t("previous_page")}
             disabled={page <= 1 || isLoading}
             onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
           >
             <ChevronLeft aria-hidden="true" className="size-4" />
           </Button>
-          <span className="text-sm text-gray-600">Page {page} of {totalPages}</span>
+          <span className="text-sm text-gray-600">{t("page", { page, total: totalPages })}</span>
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            aria-label="Next revisions page"
+            aria-label={t("next_page")}
             disabled={page >= totalPages || isLoading}
             onClick={() => setPage((currentPage) => currentPage + 1)}
           >

@@ -9,6 +9,7 @@ import type {
   AcademicContentTag,
   AcademicContentTagInput,
 } from "../../types/contracts";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 const MAX_TAGS = 100;
 let tagKeySequence = 0;
@@ -43,6 +44,7 @@ export default function TagsSection({
 }: TagsSectionProps) {
   const [rows, setRows] = useState<EditableTag[]>(() => initial.map(editableTag));
   const [validationError, setValidationError] = useState<string | null>(null);
+  const t = useAcademicContentTranslations("tags");
 
   const moveRow = (index: number, offset: -1 | 1) => {
     const destination = index + offset;
@@ -62,7 +64,7 @@ export default function TagsSection({
     const tags = rows.map(({ value }) => ({ value: value.trim() }));
     const emptyIndex = tags.findIndex((tag) => !tag.value);
     if (emptyIndex >= 0) {
-      setValidationError(`Tag ${emptyIndex + 1}: Value is required.`);
+      setValidationError(t("required", { index: emptyIndex + 1 }));
       return;
     }
 
@@ -79,10 +81,10 @@ export default function TagsSection({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="tags-heading" className="text-lg font-semibold text-gray-900">
-            Tags
+            {t("title")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Add up to 100 ordered tags. The server applies canonical normalization.
+            {t("description")}
           </p>
         </div>
         {!disabled && (
@@ -97,7 +99,7 @@ export default function TagsSection({
               onDirty();
             }}
           >
-            Add tag
+            {t("add")}
           </Button>
         )}
       </div>
@@ -114,7 +116,7 @@ export default function TagsSection({
       <div className="mt-5 space-y-3">
         {rows.length === 0 ? (
           <p className="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
-            No tags have been added.
+            {t("empty")}
           </p>
         ) : null}
         {rows.map((row, index) => (
@@ -124,8 +126,8 @@ export default function TagsSection({
           >
             <div className="min-w-0 flex-1">
               <Input
-                label={`Tag ${index + 1}`}
-                aria-label={`Tag ${index + 1}`}
+                label={t("field", { index: index + 1 })}
+                aria-label={t("field", { index: index + 1 })}
                 value={row.value}
                 maxLength={80}
                 required
@@ -149,7 +151,7 @@ export default function TagsSection({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  aria-label={`Move tag ${index + 1} up`}
+                  aria-label={t("move_up", { index: index + 1 })}
                   disabled={index === 0}
                   onClick={() => moveRow(index, -1)}
                 >
@@ -159,7 +161,7 @@ export default function TagsSection({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  aria-label={`Move tag ${index + 1} down`}
+                  aria-label={t("move_down", { index: index + 1 })}
                   disabled={index === rows.length - 1}
                   onClick={() => moveRow(index, 1)}
                 >
@@ -169,7 +171,7 @@ export default function TagsSection({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  aria-label={`Remove tag ${index + 1}`}
+                  aria-label={t("remove", { index: index + 1 })}
                   onClick={() => {
                     setRows((currentRows) =>
                       currentRows.filter((candidate) => candidate.key !== row.key),
@@ -193,7 +195,7 @@ export default function TagsSection({
             disabled={!sectionState.dirty}
             onClick={() => void save()}
           >
-            Save tags
+            {t("save")}
           </Button>
         </div>
       )}

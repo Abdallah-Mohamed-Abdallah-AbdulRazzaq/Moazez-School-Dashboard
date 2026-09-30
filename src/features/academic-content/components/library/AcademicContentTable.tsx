@@ -5,17 +5,10 @@ import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
 import AcademicContentStatusBadge from "./AcademicContentStatusBadge";
 import AcademicContentSummary from "./AcademicContentSummary";
 import type { AcademicContentLibraryItem } from "../../types/contracts";
+import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 type AcademicContentTableRow = AcademicContentLibraryItem &
   Record<string, unknown>;
-
-function enumLabel(enumValue: string): string {
-  return enumValue
-    .toLowerCase()
-    .split("_")
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ");
-}
 
 interface AcademicContentTableProps {
   items: AcademicContentLibraryItem[];
@@ -41,16 +34,17 @@ export default function AcademicContentTable({
   onPageSizeChange,
 }: AcademicContentTableProps) {
   const locale = useLocale();
+  const t = useAcademicContentTranslations();
   const columns: Column<AcademicContentTableRow>[] = [
-    { key: "title", label: "Title", searchable: true },
+    { key: "title", label: t("library.columns.title"), searchable: true },
     {
       key: "type",
-      label: "Type",
-      render: (type) => enumLabel(String(type)),
+      label: t("library.columns.type"),
+      render: (type) => t(`types.${String(type)}`),
     },
     {
       key: "status",
-      label: "Status",
+      label: t("library.columns.status"),
       render: (status) => (
         <AcademicContentStatusBadge
           status={status as AcademicContentLibraryItem["status"]}
@@ -59,17 +53,17 @@ export default function AcademicContentTable({
     },
     {
       key: "audience",
-      label: "Audience",
-      render: (audience) => enumLabel(String(audience)),
+      label: t("library.columns.audience"),
+      render: (audience) => t(`audiences.${String(audience)}`),
     },
     {
       key: "summary",
-      label: "Summary",
+      label: t("library.columns.summary"),
       render: (_, row) => <AcademicContentSummary summary={row.summary} />,
     },
     {
       key: "updatedAt",
-      label: "Updated",
+      label: t("library.columns.updated"),
       render: (updatedAt) =>
         new Intl.DateTimeFormat(locale, {
           dateStyle: "medium",
@@ -87,8 +81,8 @@ export default function AcademicContentTable({
       onRowClick={(row) => onOpen(row)}
       isLoading={isLoading}
       searchQuery={searchQuery}
-      emptyTitle="No academic content yet"
-      emptyDescription="Create content or change the current filters."
+      emptyTitle={t("library.empty_title")}
+      emptyDescription={t("library.empty_description")}
       serverPagination={{
         enabled: true,
         currentPage: page,

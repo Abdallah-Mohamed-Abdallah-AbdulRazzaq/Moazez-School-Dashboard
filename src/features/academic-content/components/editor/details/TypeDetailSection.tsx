@@ -22,6 +22,7 @@ import OnlineSessionForm from "./OnlineSessionForm";
 import SubjectResourceForm from "./SubjectResourceForm";
 import TeacherPreparationForm from "./TeacherPreparationForm";
 import WeeklyPlanForm from "./WeeklyPlanForm";
+import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 interface TypeDetailSectionProps {
   content: AcademicContentDetail;
@@ -67,6 +68,7 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [retryKey, setRetryKey] = useState(0);
+  const t = useAcademicContentTranslations("details");
 
   useEffect(() => {
     let active = true;
@@ -77,7 +79,7 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
       .catch((error: unknown) => {
         if (active) {
           setLoadError(
-            error instanceof Error ? error.message : "Reference options unavailable",
+            error instanceof Error ? error.message : t("references_unavailable"),
           );
         }
       })
@@ -87,14 +89,14 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
     return () => {
       active = false;
     };
-  }, [content, props.loadOptions, retryKey]);
+  }, [content, props.loadOptions, retryKey, t]);
 
   if (isLoading) {
     return (
       <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <RefreshCw aria-hidden="true" className="size-4 animate-spin" />
-          Loading academic references…
+          {t("loading_references")}
         </div>
       </section>
     );
@@ -103,7 +105,7 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
   if (loadError || !options) {
     return (
       <section role="alert" className="rounded-xl border border-red-200 bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-700">{loadError ?? "Reference options unavailable"}</p>
+        <p className="text-sm text-red-700">{loadError ?? t("references_unavailable")}</p>
         <Button
           className="mt-4"
           variant="secondary"
@@ -113,7 +115,7 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
             setRetryKey((key) => key + 1);
           }}
         >
-          Retry references
+          {t("retry_references")}
         </Button>
       </section>
     );
