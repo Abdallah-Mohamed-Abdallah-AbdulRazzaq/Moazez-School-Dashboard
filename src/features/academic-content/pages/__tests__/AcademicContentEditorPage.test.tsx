@@ -44,6 +44,7 @@ function editorState(
     },
     hasUnsavedChanges: false,
     markSectionDirty: vi.fn(),
+    applyContentBase: vi.fn(),
     saveMetadata: vi.fn(async () => true),
     saveTargets: vi.fn(async () => true),
     saveLinks: vi.fn(async () => true),

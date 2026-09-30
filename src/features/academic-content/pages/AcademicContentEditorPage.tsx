@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Archive, RefreshCw } from "lucide-react";
+import { useLocale } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button/Button";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
@@ -13,12 +15,16 @@ import AcademicTargetsSection from "../components/editor/AcademicTargetsSection"
 import LinksSection from "../components/editor/LinksSection";
 import TagsSection from "../components/editor/TagsSection";
 import FilesSection from "../components/editor/FilesSection";
+import LifecycleActions from "../components/editor/LifecycleActions";
+import ReadinessPanel from "../components/editor/ReadinessPanel";
+import RevisionHistoryPanel from "../components/editor/RevisionHistoryPanel";
 import EditorSectionNav, {
   EDITOR_SECTIONS,
   type AcademicContentEditorPanel,
 } from "../components/editor/EditorSectionNav";
 import { useAcademicContentEditor } from "../hooks/useAcademicContentEditor";
 import TypeDetailSection from "../components/editor/details/TypeDetailSection";
+import type { AcademicContentBase } from "../types/contracts";
 
 type AcademicContentEditorState = ReturnType<typeof useAcademicContentEditor>;
 
@@ -26,12 +32,16 @@ interface AcademicContentEditorViewProps {
   editor: AcademicContentEditorState;
   canManage: boolean;
   termBounds?: { startDate: string; endDate: string };
+  onLifecycleChanged?: (updatedContent: AcademicContentBase) => Promise<unknown>;
+  onDeleted?: () => void;
 }
 
 export function AcademicContentEditorView({
   editor,
   canManage,
   termBounds,
+  onLifecycleChanged = async () => undefined,
+  onDeleted = () => undefined,
 }: AcademicContentEditorViewProps) {
   const [activeSection, setActiveSection] =
     useState<AcademicContentEditorPanel>("metadata");
@@ -74,15 +84,23 @@ export function AcademicContentEditorView({
               {content.title}
             </h2>
           </div>
-          {editor.isReadOnly && (
-            <div
-              role="status"
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700"
-            >
-              <Archive aria-hidden="true" className="size-4" />
-              Archived content is read-only
-            </div>
-          )}
+          <div className="flex flex-col items-end gap-2">
+            {editor.isReadOnly && (
+              <div
+                role="status"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700"
+              >
+                <Archive aria-hidden="true" className="size-4" />
+                Archived content is read-only
+              </div>
+            )}
+            <LifecycleActions
+              content={content}
+              canManage={canManage}
+              onChanged={onLifecycleChanged}
+              onDeleted={onDeleted}
+            />
+          </div>
         </div>
         <dl className="mt-5 grid gap-3 sm:grid-cols-3">
           {[
@@ -175,6 +193,13 @@ export function AcademicContentEditorView({
                 ]);
               }}
             />
+          ) : activeSection === "readiness" ? (
+            <ReadinessPanel
+              readiness={editor.readiness}
+              onRefresh={editor.refreshReadiness}
+            />
+          ) : activeSection === "revisions" ? (
+            <RevisionHistoryPanel key={content.id} contentId={content.id} />
           ) : (
             <section
               id={activeSection}
@@ -197,6 +222,9 @@ export function AcademicContentEditorView({
 
 export default function AcademicContentEditorPage({ contentId }: { contentId: string }) {
   const editor = useAcademicContentEditor(contentId);
+  const locale = useLocale();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { hasPermission } = usePermissions();
   const { selectedTerm } = useAcademicYearTermLayoutContext();
   const confirmDiscard = useCallback(
@@ -223,6 +251,21 @@ export default function AcademicContentEditorPage({ contentId }: { contentId: st
     <AcademicContentEditorView
       editor={editor}
       canManage={hasPermission("academics.academic_content.manage")}
+      onLifecycleChanged={async (updatedContent) => {
+        editor.applyContentBase(updatedContent);
+        await Promise.all([editor.refreshAggregate(), editor.refreshReadiness()]);
+      }}
+      onDeleted={() => {
+        const query = new URLSearchParams();
+        for (const key of ["year", "term"]) {
+          const value = searchParams.get(key);
+          if (value) query.set(key, value);
+        }
+        const serializedQuery = query.toString();
+        router.push(
+          `/${locale}/academic-content-hub${serializedQuery ? `?${serializedQuery}` : ""}`,
+        );
+      }}
       termBounds={
         selectedTerm && selectedTerm.id === editor.content?.termId
           ? { startDate: selectedTerm.startDate, endDate: selectedTerm.endDate }

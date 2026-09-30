@@ -127,6 +127,16 @@ describe("useAcademicContentEditor", () => {
     expect(result.current.isReadOnly).toBe(true);
   });
 
+  it("applies a lifecycle response before the aggregate refresh completes", async () => {
+    const { result } = renderHook(() => useAcademicContentEditor("content-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.applyContentBase(detail("content-1", "ARCHIVED")));
+
+    expect(result.current.content?.status).toBe("ARCHIVED");
+    expect(result.current.isReadOnly).toBe(true);
+  });
+
   it("narrows metadata payload and refreshes aggregate and readiness after saving", async () => {
     const updated = { ...detail("content-1"), title: "Updated" };
     api.getAcademicContent

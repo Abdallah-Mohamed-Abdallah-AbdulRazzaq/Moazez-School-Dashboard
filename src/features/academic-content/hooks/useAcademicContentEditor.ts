@@ -19,6 +19,7 @@ import {
   type AcademicContentUiError,
 } from "../services/academicContentErrors";
 import type {
+  AcademicContentBase,
   AcademicContentDetail,
   AcademicContentLinkInput,
   AcademicContentReadinessResponse,
@@ -144,6 +145,30 @@ export function useAcademicContentEditor(contentId: string) {
     },
     [setSectionState],
   );
+
+  const applyContentBase = useCallback((updatedContent: AcademicContentBase) => {
+    setContent((currentContent) => {
+      if (
+        !currentContent ||
+        currentContent.id !== updatedContent.id ||
+        currentContent.type !== updatedContent.type
+      ) {
+        return currentContent;
+      }
+      return {
+        ...currentContent,
+        academicYearId: updatedContent.academicYearId,
+        termId: updatedContent.termId,
+        audience: updatedContent.audience,
+        title: updatedContent.title,
+        description: updatedContent.description,
+        status: updatedContent.status,
+        archivedAt: updatedContent.archivedAt,
+        createdAt: updatedContent.createdAt,
+        updatedAt: updatedContent.updatedAt,
+      };
+    });
+  }, []);
 
   const saveMetadata = useCallback(
     async (request: UpdateAcademicContentRequest): Promise<boolean> => {
@@ -318,6 +343,7 @@ export function useAcademicContentEditor(contentId: string) {
     hasUnsavedChanges,
     error,
     markSectionDirty,
+    applyContentBase,
     refreshAggregate,
     refreshReadiness,
     saveMetadata,
