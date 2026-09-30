@@ -11,18 +11,15 @@ import type {
   UserDisplayNameMap,
 } from "@/features/communication/conversations_redesign/types";
 import {
-  createInviteDialogLabels,
   createJoinRequestDialogLabels,
   editParticipantDialogLabels,
   leaveConversationDialogLabels,
   participantDialogLabels,
-  rejectInviteDialogLabels,
   removeParticipantDialogLabels,
   reviewJoinRequestDialogLabels,
 } from "@/features/communication/conversations_redesign/utils/dialogLabels";
 import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
 import { useConversation } from "@/features/communication/hooks/useConversation";
-import { useConversationInvites } from "@/features/communication/hooks/useConversationInvites";
 import { useConversationJoinRequests } from "@/features/communication/hooks/useConversationJoinRequests";
 import { useConversationMessages } from "@/features/communication/hooks/useConversationMessages";
 import { useConversationParticipants } from "@/features/communication/hooks/useConversationParticipants";
@@ -36,18 +33,15 @@ import { useMessageReactions } from "@/features/communication/hooks/useMessageRe
 import { usePresence } from "@/features/communication/hooks/usePresence";
 import { useTypingIndicator } from "@/features/communication/hooks/useTypingIndicator";
 import type {
-  ConversationInvite,
   ConversationJoinRequest,
   ConversationParticipant,
 } from "@/features/communication/types/conversation.types";
 import AddParticipantDialog from "@/features/communication/components/conversations/AddParticipantDialog";
-import CreateInviteDialog from "@/features/communication/components/conversations/CreateInviteDialog";
 import CreateJoinRequestDialog from "@/features/communication/components/conversations/CreateJoinRequestDialog";
 import EditParticipantRoleDialog, {
   type ParticipantDialogMode,
 } from "@/features/communication/components/conversations/EditParticipantRoleDialog";
 import LeaveConversationDialog from "@/features/communication/components/conversations/LeaveConversationDialog";
-import RejectInviteDialog from "@/features/communication/components/conversations/RejectInviteDialog";
 import RemoveParticipantDialog from "@/features/communication/components/conversations/RemoveParticipantDialog";
 import ReviewJoinRequestDialog, {
   type ReviewJoinRequestMode,
@@ -83,7 +77,6 @@ import {
   ReadOnlyComposer,
 } from "@/features/communication/conversations_redesign/components/MessagesPanel";
 import ParticipantsPanel from "@/features/communication/conversations_redesign/components/ParticipantsPanel";
-import InvitesPanel from "@/features/communication/conversations_redesign/components/InvitesPanel";
 import JoinRequestsPanel from "@/features/communication/conversations_redesign/components/JoinRequestsPanel";
 import {
   archiveConversation,
@@ -182,7 +175,6 @@ export default function ConversationDetail({
   const [loadedTabs, setLoadedTabs] = useState<Record<DetailTab, boolean>>({
     messages: true,
     participants: false,
-    invites: false,
     joinRequests: false,
   });
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
@@ -193,11 +185,7 @@ export default function ConversationDetail({
   const [participantToRemove, setParticipantToRemove] =
     useState<ConversationParticipant | null>(null);
   const [isLeaveConversationOpen, setIsLeaveConversationOpen] = useState(false);
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isJoinRequestOpen, setIsJoinRequestOpen] = useState(false);
-  const [rejectInvite, setRejectInvite] = useState<ConversationInvite | null>(
-    null,
-  );
   const [reviewRequest, setReviewRequest] = useState<{
     mode: ReviewJoinRequestMode;
     request: ConversationJoinRequest;
@@ -240,11 +228,6 @@ export default function ConversationDetail({
     ],
   );
   const canJoinRealtimeRoom = permissions.canJoinRealtimeRoom;
-  const invitesState = useConversationInvites(conversationId, {
-    enabled:
-      loadedTabs.invites &&
-      permissions.canManageInvites,
-  });
   const canLoadJoinRequests =
     permissions.canReviewJoinRequests ||
     (loadedTabs.joinRequests && permissions.canCreateJoinRequest);
@@ -329,18 +312,6 @@ export default function ConversationDetail({
       );
     });
 
-    invitesState.invites.forEach((invite) => {
-      addDisplayName(
-        names,
-        [
-          invite.invitedUserId,
-          invite.invitedUser?.userId,
-          invite.invitedUser?.id,
-        ],
-        actorName(invite.invitedUser),
-      );
-    });
-
     joinRequestsState.joinRequests.forEach((request) => {
       addDisplayName(
         names,
@@ -360,7 +331,6 @@ export default function ConversationDetail({
 
     return names;
   }, [
-    invitesState.invites,
     joinRequestsState.joinRequests,
     labels,
     messagesState.messages,
@@ -385,14 +355,11 @@ export default function ConversationDetail({
     void conversationState.refresh();
     void messagesState.refresh();
     void participantsState.refresh();
-    if (loadedTabs.invites) void invitesState.refresh();
     if (loadedTabs.joinRequests) void joinRequestsState.refresh();
     void reactionsState.refreshAll();
   }, [
     conversationState,
-    invitesState,
     joinRequestsState,
-    loadedTabs.invites,
     loadedTabs.joinRequests,
     messagesState,
     participantsState,
@@ -477,9 +444,7 @@ export default function ConversationDetail({
     setLoadedTabs((current) => ({
       ...current,
       [tab]: true,
-      ...(tab === "invites" || tab === "joinRequests"
-        ? { participants: true }
-        : {}),
+      ...(tab === "joinRequests" ? { participants: true } : {}),
     }));
   };
 
@@ -564,7 +529,6 @@ export default function ConversationDetail({
   const isCommunicationEnabled = policy?.isEnabled !== false;
   const canManageConversation = permissions.canManageConversation;
   const canManageParticipants = permissions.canManageParticipants;
-  const canManageInvites = permissions.canManageInvites;
   const canReviewJoinRequests = permissions.canReviewJoinRequests;
   const canCreateJoinRequest = permissions.canCreateJoinRequest;
   const canLeaveConversation =
@@ -582,7 +546,6 @@ export default function ConversationDetail({
   const availableTabs: DetailTab[] = [
     "messages",
     "participants",
-    ...(canManageInvites ? (["invites"] as const) : []),
     ...(canReviewJoinRequests || canCreateJoinRequest
       ? (["joinRequests"] as const)
       : []),
@@ -952,31 +915,6 @@ export default function ConversationDetail({
           />
         ) : null}
 
-        {activeTab === "invites" ? (
-          <InvitesPanel
-            canCreate={canManageInvites}
-            currentUserId={user?.id}
-            error={invitesState.error}
-            invites={invitesState.invites}
-            isLoading={invitesState.isLoading}
-            isMutating={invitesState.isMutating}
-            labels={labels}
-            locale={locale}
-            onAcceptInvite={(invite) =>
-              runMutation(
-                () => invitesState.accept(invite.id),
-                labels.inviteAccepted,
-                labels.unableToAcceptInvite,
-              )
-            }
-            onCreateInvite={() => setIsInviteOpen(true)}
-            onRejectInvite={setRejectInvite}
-            onRetry={() => void invitesState.refresh()}
-            total={invitesState.total}
-            userDisplayNames={userDisplayNames}
-          />
-        ) : null}
-
         {activeTab === "joinRequests" ? (
           <JoinRequestsPanel
             canCreate={canCreateJoinRequest}
@@ -1197,39 +1135,6 @@ export default function ConversationDetail({
               labels.conversationLeft,
               labels.unableToLeaveConversation,
             ).then(() => setIsLeaveConversationOpen(false))
-          }
-        />
-      ) : null}
-
-      {isInviteOpen ? (
-        <CreateInviteDialog
-          labels={createInviteDialogLabels(labels)}
-          open={isInviteOpen}
-          isSubmitting={invitesState.isMutating}
-          onClose={() => setIsInviteOpen(false)}
-          onSubmit={(values) =>
-            runMutation(
-              () => invitesState.create(values),
-              labels.inviteCreated,
-              labels.unableToCreateInvite,
-            ).then(() => setIsInviteOpen(false))
-          }
-        />
-      ) : null}
-
-      {rejectInvite ? (
-        <RejectInviteDialog
-          invite={rejectInvite}
-          labels={rejectInviteDialogLabels(labels)}
-          open={Boolean(rejectInvite)}
-          isSubmitting={invitesState.isMutating}
-          onClose={() => setRejectInvite(null)}
-          onSubmit={(values) =>
-            runMutation(
-              () => invitesState.reject(rejectInvite.id, values),
-              labels.inviteRejected,
-              labels.unableToRejectInvite,
-            ).then(() => setRejectInvite(null))
           }
         />
       ) : null}

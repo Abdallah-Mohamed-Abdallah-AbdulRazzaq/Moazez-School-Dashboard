@@ -1,4 +1,4 @@
-export type DetailTab = "messages" | "participants" | "invites" | "joinRequests";
+export type DetailTab = "messages" | "participants" | "joinRequests";
 
 export type ToastState = {
   tone: "success" | "error" | "info";

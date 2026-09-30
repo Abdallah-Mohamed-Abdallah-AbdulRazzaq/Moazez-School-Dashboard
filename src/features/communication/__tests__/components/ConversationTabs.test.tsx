@@ -37,12 +37,24 @@ describe("ConversationTabs", () => {
     );
 
     const messagesTab = screen.getByRole("tab", { name: "Messages" });
-    expect(
-      screen.queryByRole("tab", { name: "Invites" }),
-    ).not.toBeInTheDocument();
 
     fireEvent.keyDown(messagesTab, { key: "ArrowRight" });
     expect(onTabChange).toHaveBeenCalledWith("joinRequests");
+  });
+
+  it("does not expose invitations in chat navigation", () => {
+    render(
+      <ConversationTabs
+        activeTab="messages"
+        hasPendingJoinRequests={false}
+        labels={conversationRedesignLabels.en}
+        onTabChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("tab", { name: "Invites" }),
+    ).not.toBeInTheDocument();
   });
 
   it("marks the join requests tab when a request is pending review", () => {

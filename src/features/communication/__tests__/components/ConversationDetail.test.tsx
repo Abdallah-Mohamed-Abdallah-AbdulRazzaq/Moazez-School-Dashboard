@@ -22,7 +22,6 @@ import { ApiError } from "@/lib/api-error";
 const useConversationMock = vi.hoisted(() => vi.fn());
 const useConversationMessagesMock = vi.hoisted(() => vi.fn());
 const useConversationParticipantsMock = vi.hoisted(() => vi.fn());
-const useConversationInvitesMock = vi.hoisted(() => vi.fn());
 const useConversationJoinRequestsMock = vi.hoisted(() => vi.fn());
 const useConversationRealtimeMock = vi.hoisted(() => vi.fn());
 const usePresenceMock = vi.hoisted(() => vi.fn());
@@ -55,10 +54,6 @@ vi.mock("@/features/communication/hooks/useConversationMessages", () => ({
 
 vi.mock("@/features/communication/hooks/useConversationParticipants", () => ({
   useConversationParticipants: useConversationParticipantsMock,
-}));
-
-vi.mock("@/features/communication/hooks/useConversationInvites", () => ({
-  useConversationInvites: useConversationInvitesMock,
 }));
 
 vi.mock("@/features/communication/hooks/useConversationJoinRequests", () => ({
@@ -105,10 +100,6 @@ vi.mock("@/features/communication/hooks/useConversationMessages", () => ({
 
 vi.mock("@/features/communication/hooks/useConversationParticipants", () => ({
   useConversationParticipants: useConversationParticipantsMock,
-}));
-
-vi.mock("@/features/communication/hooks/useConversationInvites", () => ({
-  useConversationInvites: useConversationInvitesMock,
 }));
 
 vi.mock("@/features/communication/hooks/useConversationJoinRequests", () => ({
@@ -229,12 +220,6 @@ vi.mock(
           onClick={() => onTabChange("participants")}
         >
           Participants
-        </button>
-        <button
-          data-testid="tab-invites"
-          onClick={() => onTabChange("invites")}
-        >
-          Invites
         </button>
         <button
           data-testid="tab-joinRequests"
@@ -362,13 +347,6 @@ vi.mock(
 );
 
 vi.mock(
-  "@/features/communication/conversations_redesign/components/InvitesPanel",
-  () => ({
-    default: () => <div data-testid="invites-panel">InvitesPanel</div>,
-  }),
-);
-
-vi.mock(
   "@/features/communication/conversations_redesign/components/JoinRequestsPanel",
   () => ({
     default: () => (
@@ -413,21 +391,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/features/communication/components/conversations/CreateInviteDialog",
-  () => ({
-    default: () => null,
-  }),
-);
-
-vi.mock(
   "@/features/communication/components/conversations/CreateJoinRequestDialog",
-  () => ({
-    default: () => null,
-  }),
-);
-
-vi.mock(
-  "@/features/communication/components/conversations/RejectInviteDialog",
   () => ({
     default: () => null,
   }),
@@ -508,18 +472,6 @@ function setupDefaultMocks() {
     demote: vi.fn(),
     remove: vi.fn(),
     leave: vi.fn(),
-  });
-
-  useConversationInvitesMock.mockReturnValue({
-    invites: [],
-    isLoading: false,
-    isMutating: false,
-    total: 0,
-    error: null,
-    refresh: vi.fn(),
-    create: vi.fn(),
-    accept: vi.fn(),
-    reject: vi.fn(),
   });
 
   useConversationJoinRequestsMock.mockReturnValue({
@@ -1054,33 +1006,6 @@ describe("ConversationDetail", () => {
 
       // All subsequent calls should have enabled: true (data stays loaded, no re-fetch trigger)
       for (const call of callsAfterReturn) {
-        const options = call[1];
-        expect(options?.enabled).toBe(true);
-      }
-    });
-
-    it("does not re-call useConversationInvites with enabled:true toggling when switching back to invites", () => {
-      renderConversationDetail();
-
-      // Switch to invites tab (first load)
-      fireEvent.click(screen.getByTestId("tab-invites"));
-
-      // Switch to messages tab
-      fireEvent.click(screen.getByTestId("tab-messages"));
-
-      // Switch back to invites tab
-      fireEvent.click(screen.getByTestId("tab-invites"));
-
-      // After first load, enabled should stay true (loadedTabs.invites remains true)
-      const allCalls = useConversationInvitesMock.mock.calls;
-      // Find the first call where enabled is true
-      const firstEnabledIndex = allCalls.findIndex(
-        (call: unknown[]) =>
-          (call[1] as { enabled?: boolean })?.enabled === true,
-      );
-      // All calls after that should also have enabled: true (no toggling back to false)
-      const callsAfterEnabled = allCalls.slice(firstEnabledIndex);
-      for (const call of callsAfterEnabled) {
         const options = call[1];
         expect(options?.enabled).toBe(true);
       }
