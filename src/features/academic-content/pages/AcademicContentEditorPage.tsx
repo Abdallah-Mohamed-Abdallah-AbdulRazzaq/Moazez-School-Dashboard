@@ -12,6 +12,7 @@ import BasicInformationSection from "../components/editor/BasicInformationSectio
 import AcademicTargetsSection from "../components/editor/AcademicTargetsSection";
 import LinksSection from "../components/editor/LinksSection";
 import TagsSection from "../components/editor/TagsSection";
+import FilesSection from "../components/editor/FilesSection";
 import EditorSectionNav, {
   EDITOR_SECTIONS,
   type AcademicContentEditorPanel,
@@ -161,6 +162,18 @@ export function AcademicContentEditorView({
               sectionState={editor.sections.tags}
               onDirty={() => editor.markSectionDirty("tags", true)}
               onSave={editor.saveTags}
+            />
+          ) : activeSection === "files" ? (
+            <FilesSection
+              contentId={content.id}
+              assets={content.assets}
+              disabled={editingDisabled}
+              onFilesChanged={async () => {
+                await Promise.all([
+                  editor.refreshAggregate(),
+                  editor.refreshReadiness(),
+                ]);
+              }}
             />
           ) : (
             <section
