@@ -4,11 +4,10 @@ import type { DetailTab } from "@/features/communication/conversations_redesign/
 
 const tabs: Array<{
   value: DetailTab;
-  labelKey: "messages" | "participants" | "invites" | "joinRequests";
+  labelKey: "messages" | "participants" | "joinRequests";
 }> = [
   { value: "messages", labelKey: "messages" },
   { value: "participants", labelKey: "participants" },
-  { value: "invites", labelKey: "invites" },
   { value: "joinRequests", labelKey: "joinRequests" },
 ];
 

@@ -13,7 +13,6 @@ import CommunicationStatusChip from "@/features/communication/components/layout/
 import { useAuth } from "@/hooks/use-auth";
 import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
 import { useConversation } from "@/features/communication/hooks/useConversation";
-import { useConversationInvites } from "@/features/communication/hooks/useConversationInvites";
 import { useConversationJoinRequests } from "@/features/communication/hooks/useConversationJoinRequests";
 import { useConversationMessages } from "@/features/communication/hooks/useConversationMessages";
 import { useConversationParticipants } from "@/features/communication/hooks/useConversationParticipants";
@@ -24,7 +23,6 @@ import { usePresence } from "@/features/communication/hooks/usePresence";
 import { useTypingIndicator } from "@/features/communication/hooks/useTypingIndicator";
 import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
 import { getConversationPermissionFlags } from "@/features/communication/utils/conversation-permissions";
-import ConversationInvitesPanel from "./ConversationInvitesPanel";
 import JoinRequestsPanel from "./JoinRequestsPanel";
 import MessageBubble from "./MessageBubble";
 import MessageComposer from "./MessageComposer";
@@ -45,34 +43,25 @@ const labels = {
     untitled: "Untitled conversation",
     messages: "Messages",
     participants: "Participants",
-    invites: "Invites",
     joinRequests: "Join Requests",
     participantsCount: "{count} participants",
-    invitesCount: "{count} invites",
     joinRequestsCount: "{count} join requests",
     addParticipant: "Add Participant",
-    createInvite: "Create invite",
     createJoinRequest: "Create join request",
     userId: "User",
-    inviteId: "Invite ID",
     requestId: "Request ID",
-    invitedUserId: "Invited user",
     requesterUserId: "Requester user ID",
     role: "Role",
     status: "Status",
     note: "Note",
     joinedAt: "Joined",
     mutedUntil: "Muted until",
-    expiresAt: "Expires at",
     createdAt: "Created at",
     noParticipants: "No participants loaded.",
-    noInvites: "No invites yet.",
     noJoinRequests: "No join requests yet.",
     participantsLoading: "Loading participants...",
-    invitesLoading: "Loading invites...",
     joinRequestsLoading: "Loading join requests...",
     participantsErrorTitle: "Unable to load participants",
-    invitesErrorTitle: "Unable to load invites",
     joinRequestsErrorTitle: "Unable to load join requests",
     editParticipant: "Edit",
     promoteParticipant: "Promote",
@@ -89,16 +78,11 @@ const labels = {
     leaveConversationTitle: "Leave conversation",
     leaveConversationDescription:
       "You will leave this conversation and may need to be added again to rejoin.",
-    createInviteTitle: "Create invite",
-    rejectInviteTitle: "Reject invite",
-    rejectInviteDescription: "This invite will be rejected.",
     createJoinRequestTitle: "Create join request",
     approveJoinRequestTitle: "Approve join request",
     rejectJoinRequestTitle: "Reject join request",
     approveJoinRequestDescription: "This join request will be approved.",
     rejectJoinRequestDescription: "This join request will be rejected.",
-    acceptInvite: "Accept",
-    rejectInvite: "Reject",
     approveJoinRequest: "Approve",
     rejectJoinRequest: "Reject",
     create: "Create",
@@ -153,17 +137,12 @@ const labels = {
     participantUpdated: "Participant updated.",
     participantRemoved: "Participant removed.",
     conversationLeft: "Conversation left.",
-    inviteCreated: "Invite created.",
-    inviteAccepted: "Invite accepted.",
-    inviteRejected: "Invite rejected.",
     joinRequestCreated: "Join request created.",
     joinRequestApproved: "Join request approved.",
     joinRequestRejected: "Join request rejected.",
     online: "Online",
     offline: "Offline",
-    accepted: "Accepted",
     rejected: "Rejected",
-    expired: "Expired",
     approved: "Approved",
   },
   ar: {
@@ -174,34 +153,25 @@ const labels = {
     untitled: "محادثة بدون عنوان",
     messages: "الرسائل",
     participants: "المشاركون",
-    invites: "الدعوات",
     joinRequests: "طلبات الانضمام",
     participantsCount: "{count} مشارك",
-    invitesCount: "{count} دعوة",
     joinRequestsCount: "{count} طلب انضمام",
     addParticipant: "إضافة مشارك",
-    createInvite: "إنشاء دعوة",
     createJoinRequest: "إنشاء طلب انضمام",
     userId: "المستخدم",
-    inviteId: "معرف الدعوة",
     requestId: "معرف الطلب",
-    invitedUserId: "المستخدم المدعو",
     requesterUserId: "معرف المستخدم مقدم الطلب",
     role: "الدور",
     status: "الحالة",
     note: "ملاحظة",
     joinedAt: "انضم في",
     mutedUntil: "مكتوم حتى",
-    expiresAt: "تنتهي في",
     createdAt: "تم الإنشاء في",
     noParticipants: "لم يتم تحميل مشاركين.",
-    noInvites: "لا توجد دعوات بعد.",
     noJoinRequests: "لا توجد طلبات انضمام بعد.",
     participantsLoading: "جار تحميل المشاركين...",
-    invitesLoading: "جار تحميل الدعوات...",
     joinRequestsLoading: "جار تحميل طلبات الانضمام...",
     participantsErrorTitle: "تعذر تحميل المشاركين",
-    invitesErrorTitle: "تعذر تحميل الدعوات",
     joinRequestsErrorTitle: "تعذر تحميل طلبات الانضمام",
     editParticipant: "تعديل",
     promoteParticipant: "ترقية",
@@ -217,16 +187,11 @@ const labels = {
     leaveConversationTitle: "مغادرة المحادثة",
     leaveConversationDescription:
       "ستغادر هذه المحادثة وقد تحتاج إلى إضافتك مرة أخرى للانضمام.",
-    createInviteTitle: "إنشاء دعوة",
-    rejectInviteTitle: "رفض الدعوة",
-    rejectInviteDescription: "سيتم رفض هذه الدعوة.",
     createJoinRequestTitle: "إنشاء طلب انضمام",
     approveJoinRequestTitle: "قبول طلب الانضمام",
     rejectJoinRequestTitle: "رفض طلب الانضمام",
     approveJoinRequestDescription: "سيتم قبول طلب الانضمام هذا.",
     rejectJoinRequestDescription: "سيتم رفض طلب الانضمام هذا.",
-    acceptInvite: "قبول",
-    rejectInvite: "رفض",
     approveJoinRequest: "قبول",
     rejectJoinRequest: "رفض",
     create: "إنشاء",
@@ -281,17 +246,12 @@ const labels = {
     participantUpdated: "تم تحديث المشارك.",
     participantRemoved: "تم إزالة المشارك.",
     conversationLeft: "تمت مغادرة المحادثة.",
-    inviteCreated: "تم إنشاء الدعوة.",
-    inviteAccepted: "تم قبول الدعوة.",
-    inviteRejected: "تم رفض الدعوة.",
     joinRequestCreated: "تم إنشاء طلب الانضمام.",
     joinRequestApproved: "تم قبول طلب الانضمام.",
     joinRequestRejected: "تم رفض طلب الانضمام.",
     online: "متصل",
     offline: "غير متصل",
-    accepted: "مقبولة",
     rejected: "مرفوضة",
-    expired: "منتهية",
     approved: "مقبول",
   },
 };
@@ -300,7 +260,6 @@ type LocaleKey = keyof typeof labels;
 type ConversationDetailTab =
   | "messages"
   | "participants"
-  | "invites"
   | "joinRequests";
 
 function conversationTitle(
@@ -331,16 +290,12 @@ export default function ConversationThread({
   >({
     messages: true,
     participants: false,
-    invites: false,
     joinRequests: false,
   });
   const shouldLoadParticipants =
-    loadedTabs.participants || loadedTabs.invites || loadedTabs.joinRequests;
+    loadedTabs.participants || loadedTabs.joinRequests;
   const participantsState = useConversationParticipants(conversationId, {
     enabled: shouldLoadParticipants,
-  });
-  const invitesState = useConversationInvites(conversationId, {
-    enabled: loadedTabs.invites,
   });
   const joinRequestsState = useConversationJoinRequests(conversationId, {
     enabled: loadedTabs.joinRequests,
@@ -372,7 +327,6 @@ export default function ConversationThread({
   const refreshConversation = conversationState.refresh;
   const refreshMessages = messagesState.refresh;
   const refreshParticipants = participantsState.refresh;
-  const refreshInvites = invitesState.refresh;
   const refreshJoinRequests = joinRequestsState.refresh;
   const refreshReactions = reactionsState.refreshAll;
 
@@ -387,7 +341,6 @@ export default function ConversationThread({
   );
   const isPermissionDataLoading =
     (activeTab === "participants" ||
-      activeTab === "invites" ||
       activeTab === "joinRequests") &&
     participantsState.isLoading;
 
@@ -396,9 +349,7 @@ export default function ConversationThread({
     setLoadedTabs((current) => ({
       ...current,
       [tab]: true,
-      ...(tab === "invites" || tab === "joinRequests"
-        ? { participants: true }
-        : {}),
+      ...(tab === "joinRequests" ? { participants: true } : {}),
     }));
   }, []);
 
@@ -406,14 +357,11 @@ export default function ConversationThread({
     void refreshConversation();
     void refreshMessages();
     if (shouldLoadParticipants) void refreshParticipants();
-    if (loadedTabs.invites) void refreshInvites();
     if (loadedTabs.joinRequests) void refreshJoinRequests();
     void refreshReactions();
   }, [
-    loadedTabs.invites,
     loadedTabs.joinRequests,
     refreshConversation,
-    refreshInvites,
     refreshJoinRequests,
     refreshMessages,
     refreshParticipants,
@@ -480,7 +428,6 @@ export default function ConversationThread({
   const detailTabs: Array<{ value: ConversationDetailTab; label: string }> = [
     { value: "messages", label: t.messages },
     { value: "participants", label: t.participants },
-    { value: "invites", label: t.invites },
     { value: "joinRequests", label: t.joinRequests },
   ];
 
@@ -753,59 +700,6 @@ export default function ConversationThread({
               blocked: t.blocked,
               online: t.online,
               offline: t.offline,
-            }}
-          />
-        ) : null}
-
-        {activeTab === "invites" ? (
-          <ConversationInvitesPanel
-            invites={invitesState.invites}
-            total={invitesState.total}
-            isLoading={invitesState.isLoading || isPermissionDataLoading}
-            isRefreshing={invitesState.isRefreshing}
-            isMutating={invitesState.isMutating}
-            error={invitesState.error}
-            onRefresh={invitesState.refresh}
-            onCreateInvite={(values) =>
-              runMutation(() => invitesState.create(values), t.inviteCreated)
-            }
-            onAcceptInvite={(inviteId) =>
-              runMutation(() => invitesState.accept(inviteId), t.inviteAccepted)
-            }
-            onRejectInvite={(inviteId, values) =>
-              runMutation(
-                () => invitesState.reject(inviteId, values),
-                t.inviteRejected,
-              )
-            }
-            canCreateInvite={permissions.canManageInvites}
-            currentUserId={user?.id}
-            labels={{
-              title: t.invites,
-              count: t.invitesCount,
-              createInvite: t.createInvite,
-              refresh: t.refresh,
-              loading: t.invitesLoading,
-              empty: t.noInvites,
-              errorTitle: t.invitesErrorTitle,
-              inviteId: t.inviteId,
-              invitedUserId: t.invitedUserId,
-              status: t.status,
-              expiresAt: t.expiresAt,
-              createdAt: t.createdAt,
-              accept: t.acceptInvite,
-              reject: t.rejectInvite,
-              cancel: t.cancel,
-              create: t.create,
-              createTitle: t.createInviteTitle,
-              rejectTitle: t.rejectInviteTitle,
-              rejectDescription: t.rejectInviteDescription,
-              reason: t.reason,
-              userRequired: t.userRequired,
-              pending: t.pending,
-              accepted: t.accepted,
-              rejected: t.rejected,
-              expired: t.expired,
             }}
           />
         ) : null}

@@ -20,7 +20,6 @@ import { createConversation, createParticipant } from "../utils/test-data-genera
 const useConversationMock = vi.hoisted(() => vi.fn());
 const useConversationMessagesMock = vi.hoisted(() => vi.fn());
 const useConversationParticipantsMock = vi.hoisted(() => vi.fn());
-const useConversationInvitesMock = vi.hoisted(() => vi.fn());
 const useConversationJoinRequestsMock = vi.hoisted(() => vi.fn());
 const useConversationRealtimeMock = vi.hoisted(() => vi.fn());
 const usePresenceMock = vi.hoisted(() => vi.fn());
@@ -43,10 +42,6 @@ vi.mock("@/features/communication/hooks/useConversationMessages", () => ({
 
 vi.mock("@/features/communication/hooks/useConversationParticipants", () => ({
   useConversationParticipants: useConversationParticipantsMock,
-}));
-
-vi.mock("@/features/communication/hooks/useConversationInvites", () => ({
-  useConversationInvites: useConversationInvitesMock,
 }));
 
 vi.mock("@/features/communication/hooks/useConversationJoinRequests", () => ({
@@ -112,7 +107,6 @@ vi.mock("@/features/communication/conversations_redesign/components/Conversation
     <div data-testid="conversation-tabs">
       <button data-testid="tab-messages" onClick={() => onTabChange("messages")}>Messages</button>
       <button data-testid="tab-participants" onClick={() => onTabChange("participants")}>Participants</button>
-      <button data-testid="tab-invites" onClick={() => onTabChange("invites")}>Invites</button>
       <button data-testid="tab-joinRequests" onClick={() => onTabChange("joinRequests")}>Join Requests</button>
     </div>
   ),
@@ -128,10 +122,6 @@ vi.mock("@/features/communication/conversations_redesign/components/MessagesPane
 
 vi.mock("@/features/communication/conversations_redesign/components/ParticipantsPanel", () => ({
   default: () => <div data-testid="participants-panel">ParticipantsPanel</div>,
-}));
-
-vi.mock("@/features/communication/conversations_redesign/components/InvitesPanel", () => ({
-  default: () => <div data-testid="invites-panel">InvitesPanel</div>,
 }));
 
 vi.mock("@/features/communication/conversations_redesign/components/JoinRequestsPanel", () => ({
@@ -158,15 +148,7 @@ vi.mock("@/features/communication/components/conversations/LeaveConversationDial
   default: () => null,
 }));
 
-vi.mock("@/features/communication/components/conversations/CreateInviteDialog", () => ({
-  default: () => null,
-}));
-
 vi.mock("@/features/communication/components/conversations/CreateJoinRequestDialog", () => ({
-  default: () => null,
-}));
-
-vi.mock("@/features/communication/components/conversations/RejectInviteDialog", () => ({
   default: () => null,
 }));
 
@@ -185,7 +167,7 @@ const TEST_CONVERSATION_ID = "conv-prop-001";
 const TEST_USER_ID = "user-prop-001";
 const labels = conversationRedesignLabels.en;
 
-type TabName = "messages" | "participants" | "invites" | "joinRequests";
+type TabName = "messages" | "participants" | "joinRequests";
 
 function setupDefaultMocks() {
   useAuthMock.mockReturnValue({
@@ -238,18 +220,6 @@ function setupDefaultMocks() {
     demote: vi.fn(),
     remove: vi.fn(),
     leave: vi.fn(),
-  });
-
-  useConversationInvitesMock.mockReturnValue({
-    invites: [],
-    isLoading: false,
-    isMutating: false,
-    total: 0,
-    error: null,
-    refresh: vi.fn(),
-    create: vi.fn(),
-    accept: vi.fn(),
-    reject: vi.fn(),
   });
 
   useConversationJoinRequestsMock.mockReturnValue({
@@ -336,7 +306,7 @@ describe("ConversationDetail - Property 3: Tab Switch Does Not Re-Fetch Loaded D
    * previously loaded tab does not trigger a new API fetch.
    */
   test.prop(
-    [fc.array(fc.constantFrom<TabName>("messages", "participants", "invites", "joinRequests"), { minLength: 1, maxLength: 20 })],
+    [fc.array(fc.constantFrom<TabName>("messages", "participants", "joinRequests"), { minLength: 1, maxLength: 20 })],
     { numRuns: 100 },
   )(
     "Once a tab's hook is enabled, it never reverts to enabled: false on subsequent tab switches",
@@ -361,20 +331,6 @@ describe("ConversationDetail - Property 3: Tab Switch Does Not Re-Fetch Loaded D
           participantsEnabledSeen = true;
         }
         if (participantsEnabledSeen) {
-          expect(options?.enabled).toBe(true);
-        }
-      }
-
-      // Verify: once useConversationInvites was called with enabled: true,
-      // it never reverts to enabled: false in subsequent calls
-      const invitesCalls = useConversationInvitesMock.mock.calls;
-      let invitesEnabledSeen = false;
-      for (const call of invitesCalls) {
-        const options = call[1] as { enabled?: boolean } | undefined;
-        if (options?.enabled === true) {
-          invitesEnabledSeen = true;
-        }
-        if (invitesEnabledSeen) {
           expect(options?.enabled).toBe(true);
         }
       }
