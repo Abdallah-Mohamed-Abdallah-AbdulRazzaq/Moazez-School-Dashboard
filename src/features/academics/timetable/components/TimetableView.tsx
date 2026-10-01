@@ -16,6 +16,7 @@ import {
   Clock3,
   School,
   GraduationCap,
+  Trash2,
 } from "lucide-react";
 import FilterBar from "./FilterBar";
 import TimetableGrid from "./TimetableGrid";
@@ -42,7 +43,10 @@ import {
   timetableErrorMessage,
   type TimetableErrorCode,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
-import { subjectOptionsForGradeAllocations } from "@/features/academics/timetable/services/timetableSlotEditing";
+import {
+  persistedEntriesClearedForDeletion,
+  subjectOptionsForGradeAllocations,
+} from "@/features/academics/timetable/services/timetableSlotEditing";
 import { hasBlockingValidation } from "@/features/academics/timetable/services/timetableValidationSummary";
 import { createTimetablePublishFingerprint } from "@/features/academics/timetable/services/timetablePublishFingerprint";
 import { getTimetableConfigSourceName } from "@/features/academics/timetable/services/timetableConfigSource";
@@ -224,6 +228,8 @@ export default function TimetableView({
 
   // Confirm Dialog State
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [deleteAllEntriesConfirmOpen, setDeleteAllEntriesConfirmOpen] =
+    useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [publishWithErrors, setPublishWithErrors] = useState(false);
   const [publishFingerprint, setPublishFingerprint] = useState<string | null>(
@@ -637,6 +643,29 @@ export default function TimetableView({
         "error",
       );
     }
+  };
+
+  const confirmDeleteAllEntries = async () => {
+    if (!hasTimetableScope || !canEditTimetable) return;
+
+    const entriesToDelete =
+      persistedEntriesClearedForDeletion(timetableEntries);
+    if (entriesToDelete.length > 0) {
+      const saveResult = await saveTimetable(entriesToDelete);
+      if (!saveResult.ok) {
+        showToast(
+          saveResult.error ?? t("actions.deleteAllEntriesError"),
+          "error",
+        );
+        return;
+      }
+    } else {
+      setTimetableEntries([]);
+    }
+
+    onDirtyChange(false);
+    setDeleteAllEntriesConfirmOpen(false);
+    showToast(t("actions.deleteAllEntriesSuccess"), "success");
   };
 
   const handlePublish = async () => {
@@ -1667,6 +1696,18 @@ export default function TimetableView({
                     {t("actions.reset")}
                   </Button>
                   <Button
+                    onClick={() => setDeleteAllEntriesConfirmOpen(true)}
+                    disabled={
+                      !canEditTimetable ||
+                      timetableEntries.length === 0 ||
+                      isSaving
+                    }
+                    variant="danger"
+                    leftIcon={<Trash2 className="w-4 h-4" />}
+                  >
+                    {t("actions.deleteAllEntries")}
+                  </Button>
+                  <Button
                     onClick={() => setConfigDialogOpen(true)}
                     disabled={!canConfigureTimetable}
                     variant="secondary"
@@ -1804,6 +1845,19 @@ export default function TimetableView({
                     size="sm"
                   >
                     {t("config.periodsButton")}
+                  </Button>
+                  <Button
+                    onClick={() => setDeleteAllEntriesConfirmOpen(true)}
+                    disabled={
+                      !canEditTimetable ||
+                      timetableEntries.length === 0 ||
+                      isSaving
+                    }
+                    variant="danger"
+                    leftIcon={<Trash2 className="w-4 h-4" />}
+                    size="sm"
+                  >
+                    {t("actions.deleteAllEntries")}
                   </Button>
                   <Button
                     onClick={() => setGenerateDialogOpen(true)}
@@ -2192,6 +2246,20 @@ export default function TimetableView({
         confirmLabel={t("actions.reset")}
         cancelLabel={t("publish.cancel")}
         severity="warning"
+      />
+
+      <ConfirmDialog
+        isOpen={deleteAllEntriesConfirmOpen}
+        onClose={() => setDeleteAllEntriesConfirmOpen(false)}
+        onConfirm={confirmDeleteAllEntries}
+        title={t("actions.deleteAllEntriesConfirmTitle")}
+        description={t("actions.deleteAllEntriesConfirmMessage", {
+          count: timetableEntries.length,
+        })}
+        confirmLabel={t("actions.deleteAllEntries")}
+        cancelLabel={t("publish.cancel")}
+        severity="danger"
+        loading={isSaving}
       />
 
       {/* Publish Confirm Dialog */}
