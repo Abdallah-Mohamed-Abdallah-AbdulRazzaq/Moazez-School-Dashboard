@@ -8,3 +8,4 @@ export { default as WorkflowPolicyPage } from "./pages/WorkflowPolicyPage";
 export { default as AcademicContentReviewQueuePage } from "./pages/AcademicContentReviewQueuePage";
 export { default as AcademicContentReviewPage } from "./pages/AcademicContentReviewPage";
 export { default as PreparationTemplatesPage } from "./pages/PreparationTemplatesPage";
+export { default as PreparationTemplateEditorPage } from "./pages/PreparationTemplateEditorPage";

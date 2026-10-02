@@ -4,12 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "use-debounce";
 import {
+  createAcademicContentPreparationTemplate,
   deleteAcademicContentPreparationTemplate,
+  getAcademicContentPreparationTemplate,
   listAcademicContentPreparationTemplates,
+  updateAcademicContentPreparationTemplate,
 } from "../services/academicContentApi";
 import { academicContentUiError } from "../services/academicContentErrors";
 import type {
   AcademicContentPreparationTemplateListItem,
+  AcademicContentPreparationTemplateDetail,
+  CreateAcademicContentPreparationTemplateRequest,
   ListAcademicContentPreparationTemplatesQuery,
 } from "../types/contracts";
 
@@ -22,6 +27,71 @@ export interface PreparationTemplateFilters {
   stageId: string;
   subjectId: string;
   search: string;
+}
+
+export function usePreparationTemplateEditor(templateId?: string) {
+  const [template, setTemplate] =
+    useState<AcademicContentPreparationTemplateDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(templateId));
+  const [error, setError] = useState<
+    (ReturnType<typeof academicContentUiError> & { templateId: string }) | null
+  >(null);
+  const [reloadVersion, setReloadVersion] = useState(0);
+
+  useEffect(() => {
+    if (!templateId) return;
+    let isCurrent = true;
+    queueMicrotask(() => {
+      if (!isCurrent) return;
+      setIsLoading(true);
+      setError(null);
+    });
+    void getAcademicContentPreparationTemplate(templateId)
+      .then((loadedTemplate) => {
+        if (!isCurrent) return;
+        if (loadedTemplate.id !== templateId) {
+          setError({
+            code: "TEMPLATE_ID_MISMATCH",
+            message: "The template response did not match the requested template.",
+            templateId,
+          });
+          return;
+        }
+        setTemplate(loadedTemplate);
+      })
+      .catch((loadError) => {
+        if (isCurrent) {
+          setError({ ...academicContentUiError(loadError), templateId });
+        }
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoading(false);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [reloadVersion, templateId]);
+
+  const save = useCallback(
+    (request: CreateAcademicContentPreparationTemplateRequest) =>
+      templateId
+        ? updateAcademicContentPreparationTemplate(templateId, request)
+        : createAcademicContentPreparationTemplate(request),
+    [templateId],
+  );
+
+  const currentTemplate = template?.id === templateId ? template : null;
+  const currentError = error?.templateId === templateId ? error : null;
+
+  return {
+    template: currentTemplate,
+    isLoading: Boolean(templateId) && !currentTemplate && !currentError
+      ? true
+      : isLoading,
+    error: currentError,
+    save,
+    reload: () => setReloadVersion((version) => version + 1),
+  };
 }
 
 function positiveInteger(rawValue: string | null, fallback: number): number {
