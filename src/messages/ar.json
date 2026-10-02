@@ -14420,6 +14420,30 @@
       "unavailable_title": "سياسة سير العمل غير متاحة",
       "unavailable_message": "تعذر تحميل سياسة سير العمل."
     },
+    "workflow": {
+      "title": "سير عمل الاعتماد",
+      "description": "أرسل تحضير المعلم للمراجعة وتابع جميع جولات الاعتماد.",
+      "unavailable": "تعذر تحميل سير عمل الاعتماد.",
+      "current_status": "الحالة الحالية",
+      "approval_required": "اعتماد تحضير المعلم مطلوب.",
+      "approval_not_required": "الاعتماد غير مطلوب.",
+      "current_round": "الجولة الحالية: {round}",
+      "latest_decision_note": "ملاحظة القرار الأخيرة",
+      "submit": "إرسال للمراجعة",
+      "resubmit": "إعادة الإرسال للمراجعة",
+      "readiness_blocked": "عالج موانع الجاهزية قبل الإرسال.",
+      "unsaved_blocked": "احفظ جميع التغييرات قبل الإرسال.",
+      "ready_to_submit": "التحضير جاهز للإرسال.",
+      "history_title": "سجل الاعتماد",
+      "history_empty": "لا توجد جولات اعتماد بعد.",
+      "round": "الجولة {round}",
+      "submitted_at": "تم الإرسال في {date}",
+      "approval_statuses": {
+        "PENDING": "قيد الانتظار",
+        "APPROVED": "معتمد",
+        "CHANGES_REQUESTED": "مطلوب تعديلات"
+      }
+    },
     "editor": {
       "unavailable_title": "المحتوى غير متاح",
       "unavailable_message": "تعذر تحميل المحتوى.",

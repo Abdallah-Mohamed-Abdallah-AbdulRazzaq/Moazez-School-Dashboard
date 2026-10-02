@@ -158,6 +158,27 @@ describe("useAcademicContentEditor", () => {
     expect(result.current.isReadOnly).toBe(true);
   });
 
+  it("applies a workflow transition before the aggregate refresh completes", async () => {
+    const { result } = renderHook(() => useAcademicContentEditor("content-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() =>
+      result.current.applyContentTransition({
+        contentId: "content-1",
+        contentStatus: "SUBMITTED",
+        approvalId: "approval-1",
+        approvalStatus: "PENDING",
+        revisionId: "revision-1",
+        roundNumber: 1,
+        submittedAt: "2026-10-02T08:00:00.000Z",
+        decidedAt: null,
+      }),
+    );
+
+    expect(result.current.content?.status).toBe("SUBMITTED");
+    expect(result.current.isReadOnly).toBe(true);
+  });
+
   it("narrows metadata payload and refreshes aggregate and readiness after saving", async () => {
     const updated = { ...detail("content-1"), title: "Updated" };
     api.getAcademicContent

@@ -14429,6 +14429,30 @@
       "unavailable_title": "Workflow policy unavailable",
       "unavailable_message": "The workflow policy could not be loaded."
     },
+    "workflow": {
+      "title": "Approval workflow",
+      "description": "Submit teacher preparation for review and follow every approval round.",
+      "unavailable": "The approval workflow could not be loaded.",
+      "current_status": "Current status",
+      "approval_required": "Approval is required for teacher preparation.",
+      "approval_not_required": "Approval is not required.",
+      "current_round": "Current round: {round}",
+      "latest_decision_note": "Latest decision note",
+      "submit": "Submit for review",
+      "resubmit": "Resubmit for review",
+      "readiness_blocked": "Resolve readiness blockers before submitting.",
+      "unsaved_blocked": "Save all changes before submitting.",
+      "ready_to_submit": "This preparation is ready to submit.",
+      "history_title": "Approval history",
+      "history_empty": "No approval rounds yet.",
+      "round": "Round {round}",
+      "submitted_at": "Submitted {date}",
+      "approval_statuses": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "CHANGES_REQUESTED": "Changes requested"
+      }
+    },
     "editor": {
       "unavailable_title": "Content unavailable",
       "unavailable_message": "The content could not be loaded.",

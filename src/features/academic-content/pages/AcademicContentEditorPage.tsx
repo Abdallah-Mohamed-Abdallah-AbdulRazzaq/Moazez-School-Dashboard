@@ -18,6 +18,7 @@ import FilesSection from "../components/editor/FilesSection";
 import LifecycleActions from "../components/editor/LifecycleActions";
 import ReadinessPanel from "../components/editor/ReadinessPanel";
 import RevisionHistoryPanel from "../components/editor/RevisionHistoryPanel";
+import AcademicContentWorkflowPanel from "../components/workflow/AcademicContentWorkflowPanel";
 import EditorSectionNav, {
   type AcademicContentEditorPanel,
 } from "../components/editor/EditorSectionNav";
@@ -117,6 +118,22 @@ export function AcademicContentEditorView({
         </dl>
       </section>
 
+      {content.type === "TEACHER_PREPARATION" && (
+        <AcademicContentWorkflowPanel
+          content={content}
+          readiness={editor.readiness}
+          canManage={canManage}
+          hasUnsavedChanges={editor.hasUnsavedChanges}
+          onSubmitted={(transition) => {
+            editor.applyContentTransition(transition);
+            void Promise.all([
+              editor.refreshAggregate(),
+              editor.refreshReadiness(),
+            ]);
+          }}
+        />
+      )}
+
       <EditorSectionNav
         variant="mobile"
         activeSection={activeSection}
@@ -198,7 +215,10 @@ export function AcademicContentEditorView({
               onRefresh={editor.refreshReadiness}
             />
           ) : (
-            <RevisionHistoryPanel key={content.id} contentId={content.id} />
+            <RevisionHistoryPanel
+              key={`${content.id}:${content.updatedAt}`}
+              contentId={content.id}
+            />
           )}
         </div>
       </div>

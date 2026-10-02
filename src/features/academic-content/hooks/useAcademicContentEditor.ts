@@ -26,6 +26,7 @@ import type {
   AcademicContentReadinessResponse,
   AcademicContentTagInput,
   AcademicContentTargetDraft,
+  AcademicContentTransitionResponse,
   ReplaceAcademicContentGuardianNoteDetailRequest,
   ReplaceAcademicContentOnlineSessionDetailRequest,
   ReplaceAcademicContentPreparationDetailRequest,
@@ -171,6 +172,17 @@ export function useAcademicContentEditor(contentId: string) {
       };
     });
   }, []);
+
+  const applyContentTransition = useCallback(
+    (transition: AcademicContentTransitionResponse) => {
+      setContent((currentContent) =>
+        currentContent?.id === transition.contentId
+          ? { ...currentContent, status: transition.contentStatus }
+          : currentContent,
+      );
+    },
+    [],
+  );
 
   const saveMetadata = useCallback(
     async (request: UpdateAcademicContentRequest): Promise<boolean> => {
@@ -346,6 +358,7 @@ export function useAcademicContentEditor(contentId: string) {
     error,
     markSectionDirty,
     applyContentBase,
+    applyContentTransition,
     refreshAggregate,
     refreshReadiness,
     saveMetadata,
