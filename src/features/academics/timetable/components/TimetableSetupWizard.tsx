@@ -38,6 +38,7 @@ export default function TimetableSetupWizard({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const config = savedConfig ?? setupConfig(status);
   const periods = setupPeriods(status);
+  const readOnly = status.kind === "ready" && status.readOnly;
   const hasInstructionalPeriod = periods.some(
     (period) => period.isInstructional,
   );
@@ -92,7 +93,7 @@ export default function TimetableSetupWizard({
               scopeIds={{}}
               allowScopeSelection={false}
               fixedName={t("setup.defaultConfigName", { term: termName })}
-              readOnly={false}
+              readOnly={readOnly}
               locale={locale}
               submitLabel={t("setup.saveAndContinue")}
               onSaved={saveConfig}
@@ -110,7 +111,7 @@ export default function TimetableSetupWizard({
               config={config}
               periods={periods}
               entries={[]}
-              readOnly={false}
+              readOnly={readOnly}
               onSaved={onReload}
             />
             <WizardActions
