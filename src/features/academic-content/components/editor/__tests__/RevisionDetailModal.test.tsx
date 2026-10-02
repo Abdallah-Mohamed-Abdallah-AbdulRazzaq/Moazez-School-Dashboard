@@ -83,4 +83,23 @@ describe("RevisionDetailModal", () => {
     expect(await screen.findByText(/Snapshot contract v2/)).toBeInTheDocument();
     expect(screen.getByText(/Historical guardian note/)).toBeInTheDocument();
   });
+
+  it("rejects a revision payload that does not match the requested id", async () => {
+    api.getAcademicContentRevision.mockResolvedValue(
+      revision({ id: "different-revision" }),
+    );
+    render(
+      <RevisionDetailModal
+        contentId="content-1"
+        revisionId="revision-1"
+        isOpen
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The revision response did not match the requested snapshot.",
+    );
+    expect(screen.queryByText("Historical title")).not.toBeInTheDocument();
+  });
 });

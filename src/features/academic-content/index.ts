@@ -6,3 +6,4 @@ export { default as AcademicContentEditorPage } from "./pages/AcademicContentEdi
 export { default as AcademicContentFilePolicyPage } from "./pages/AcademicContentFilePolicyPage";
 export { default as WorkflowPolicyPage } from "./pages/WorkflowPolicyPage";
 export { default as AcademicContentReviewQueuePage } from "./pages/AcademicContentReviewQueuePage";
+export { default as AcademicContentReviewPage } from "./pages/AcademicContentReviewPage";
