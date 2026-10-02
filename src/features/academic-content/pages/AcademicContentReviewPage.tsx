@@ -4,11 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AccessDenied } from "@/components/ui/access-denied/AccessDenied";
 import { Button } from "@/components/ui/button/Button";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
-import { usePermissions } from "@/hooks/usePermissions";
+import AcademicContentAccessGuard from "../components/AcademicContentAccessGuard";
 import RevisionSnapshotView from "../components/editor/RevisionSnapshotView";
 import ReviewDecisionActions from "../components/review/ReviewDecisionActions";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
@@ -22,15 +21,10 @@ import type {
 const APPROVE_PERMISSION = "academics.academic_content.approve" as const;
 
 function ReviewPageAccess({ children }: { children: React.ReactNode }) {
-  const { hasPermission, isPermissionsReady } = usePermissions();
-
-  if (!isPermissionsReady) return null;
-  if (hasPermission(APPROVE_PERMISSION)) return <>{children}</>;
-
   return (
-    <main className="flex min-h-80 items-center justify-center p-4 sm:p-6">
-      <AccessDenied requiredPermissions={[APPROVE_PERMISSION]} />
-    </main>
+    <AcademicContentAccessGuard requiredPermission={APPROVE_PERMISSION}>
+      {children}
+    </AcademicContentAccessGuard>
   );
 }
 

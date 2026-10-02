@@ -3,10 +3,9 @@
 import { ClipboardCheck, RefreshCw } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AccessDenied } from "@/components/ui/access-denied/AccessDenied";
 import { Button } from "@/components/ui/button/Button";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
-import { usePermissions } from "@/hooks/usePermissions";
+import AcademicContentAccessGuard from "../components/AcademicContentAccessGuard";
 import ReviewQueueFilters from "../components/review/ReviewQueueFilters";
 import ReviewQueueTable from "../components/review/ReviewQueueTable";
 import { useAcademicContentReviewQueue } from "../hooks/useAcademicContentReviewQueue";
@@ -20,15 +19,10 @@ export function AcademicContentReviewQueueAccess({
 }: {
   children: React.ReactNode;
 }) {
-  const { hasPermission, isPermissionsReady } = usePermissions();
-
-  if (!isPermissionsReady) return null;
-  if (hasPermission(APPROVE_PERMISSION)) return <>{children}</>;
-
   return (
-    <main className="flex min-h-80 items-center justify-center p-4 sm:p-6">
-      <AccessDenied requiredPermissions={[APPROVE_PERMISSION]} />
-    </main>
+    <AcademicContentAccessGuard requiredPermission={APPROVE_PERMISSION}>
+      {children}
+    </AcademicContentAccessGuard>
   );
 }
 

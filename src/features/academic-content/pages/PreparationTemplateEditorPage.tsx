@@ -3,11 +3,10 @@
 import { RefreshCw } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AccessDenied } from "@/components/ui/access-denied/AccessDenied";
 import { Button } from "@/components/ui/button/Button";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
-import { usePermissions } from "@/hooks/usePermissions";
+import AcademicContentAccessGuard from "../components/AcademicContentAccessGuard";
 import PreparationTemplateForm from "../components/templates/PreparationTemplateForm";
 import { usePreparationTemplateEditor } from "../hooks/usePreparationTemplates";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
@@ -16,15 +15,10 @@ import type { CreateAcademicContentPreparationTemplateRequest } from "../types/c
 const MANAGE_PERMISSION = "academics.academic_content.settings.manage" as const;
 
 function TemplateEditorAccess({ children }: { children: React.ReactNode }) {
-  const { hasPermission, isPermissionsReady } = usePermissions();
-
-  if (!isPermissionsReady) return null;
-  if (hasPermission(MANAGE_PERMISSION)) return <>{children}</>;
-
   return (
-    <main className="flex min-h-80 items-center justify-center p-4 sm:p-6">
-      <AccessDenied requiredPermissions={[MANAGE_PERMISSION]} />
-    </main>
+    <AcademicContentAccessGuard requiredPermission={MANAGE_PERMISSION}>
+      {children}
+    </AcademicContentAccessGuard>
   );
 }
 
