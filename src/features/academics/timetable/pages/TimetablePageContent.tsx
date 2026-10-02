@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, Tab } from "@mui/material";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
 import TimetableView from "../components/TimetableView";
+import TimetableSetupGate from "../components/TimetableSetupGate";
 import RoomsView from "../../rooms/components/RoomsView";
 import { TimetablePageLoadingSkeleton } from "../components/TimetableLoadingSkeletons";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
@@ -299,29 +300,36 @@ export default function TimetablePageContent() {
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {queryState.activeTab === "timetable" && (
-          <TimetableView
-            schoolId={schoolId}
+          <TimetableSetupGate
             academicYearId={academicYearId}
-            academicYearName={localizedContextName(
-              selectedAcademicYear,
-              locale,
-            )}
             termId={termId}
-            termName={localizedContextName(selectedTerm, locale)}
             termStatus={termStatus}
-            isReadOnly={isReadOnly}
-            isDirty={isDirty}
-            onDirtyChange={handleDirtyChange}
-            selectedStageId={queryState.stageId}
-            selectedGradeId={queryState.gradeId}
-            selectedSectionId={queryState.sectionId}
-            selectedClassroomId={queryState.classroomId}
-            onStageChange={handleStageChange}
-            onGradeChange={handleGradeChange}
-            onSectionChange={handleSectionChange}
-            onClassroomChange={handleClassroomChange}
-            onNormalizeSelection={handleNormalizeSelection}
-          />
+            canManage={canManageStructure}
+          >
+            <TimetableView
+              schoolId={schoolId}
+              academicYearId={academicYearId}
+              academicYearName={localizedContextName(
+                selectedAcademicYear,
+                locale,
+              )}
+              termId={termId}
+              termName={localizedContextName(selectedTerm, locale)}
+              termStatus={termStatus}
+              isReadOnly={isReadOnly}
+              isDirty={isDirty}
+              onDirtyChange={handleDirtyChange}
+              selectedStageId={queryState.stageId}
+              selectedGradeId={queryState.gradeId}
+              selectedSectionId={queryState.sectionId}
+              selectedClassroomId={queryState.classroomId}
+              onStageChange={handleStageChange}
+              onGradeChange={handleGradeChange}
+              onSectionChange={handleSectionChange}
+              onClassroomChange={handleClassroomChange}
+              onNormalizeSelection={handleNormalizeSelection}
+            />
+          </TimetableSetupGate>
         )}
         {queryState.activeTab === "rooms" && (
           <RoomsView

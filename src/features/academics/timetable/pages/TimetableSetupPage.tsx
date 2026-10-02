@@ -2,13 +2,14 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
-import { AccessDenied, Button } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import {
+  TimetableSetupBlocker,
+  TimetableSetupLoadError,
+} from "@/features/academics/timetable/components/TimetableSetupFeedback";
 import TimetableSetupWizard from "@/features/academics/timetable/components/TimetableSetupWizard";
 import { useTimetableSetupStatus } from "@/features/academics/timetable/hooks/useTimetableSetupStatus";
-import type { TimetableSetupStatus } from "@/features/academics/timetable/services/timetableSetupStatus";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export default function TimetableSetupPage() {
@@ -53,11 +54,15 @@ export default function TimetableSetupPage() {
   if (!setup.status) return null;
 
   if (setup.status.kind === "error") {
-    return <SetupLoadError onRetry={setup.reload} />;
+    return <TimetableSetupLoadError onRetry={setup.reload} />;
   }
 
   if (setup.status.kind === "read_only") {
-    return <ReadOnlySetup status={setup.status} />;
+    return (
+      <main className="min-h-0 flex-1 bg-gray-50 p-4 sm:p-6">
+        <TimetableSetupBlocker status={setup.status} />
+      </main>
+    );
   }
 
   return (
@@ -72,57 +77,6 @@ export default function TimetableSetupPage() {
         onReload={setup.reload}
         onComplete={() => router.replace("/academics/timetable")}
       />
-    </main>
-  );
-}
-
-function SetupLoadError({ onRetry }: { onRetry: () => Promise<void> }) {
-  const t = useTranslations("academics.timetable");
-  return (
-    <main className="flex min-h-[24rem] flex-1 items-center justify-center bg-gray-50 p-6">
-      <div role="alert" className="max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
-        <AlertTriangle className="mx-auto h-8 w-8 text-red-600" aria-hidden="true" />
-        <p className="mt-3 text-sm text-gray-700">{t("setup.loadError")}</p>
-        <Button className="mt-5" onClick={() => void onRetry()}>
-          {t("setup.retry")}
-        </Button>
-      </div>
-    </main>
-  );
-}
-
-function ReadOnlySetup({
-  status,
-}: {
-  status: Extract<TimetableSetupStatus, { kind: "read_only" }>;
-}) {
-  const t = useTranslations("academics.timetable");
-  const description = t(
-    status.reason === "closed_term"
-      ? "setup.readOnly.closedTerm"
-      : "setup.readOnly.missingPermission",
-  );
-
-  if (status.reason === "missing_permission") {
-    return (
-      <main className="min-h-0 flex-1 bg-gray-50 p-4 sm:p-6">
-        <AccessDenied
-          className="max-w-xl"
-          title={t("setup.title")}
-          description={description}
-          requiredPermissions={["academics.structure.manage"]}
-        />
-      </main>
-    );
-  }
-
-  return (
-    <main className="flex min-h-[24rem] flex-1 items-center justify-center bg-gray-50 p-6">
-      <div role="alert" className="max-w-lg rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-950">
-        <AlertTriangle className="mx-auto h-8 w-8" aria-hidden="true" />
-        <h1 className="mt-3 text-lg font-semibold">{t("setup.title")}</h1>
-        <p className="mt-2 text-sm">{description}</p>
-      </div>
     </main>
   );
 }
