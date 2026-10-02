@@ -15,6 +15,7 @@ import * as academicContentApi from "../academicContentApi";
 const CONTENT_ID = "content/id";
 const ENCODED_CONTENT_ID = "content%2Fid";
 const REVISION_ID = "revision/id";
+const TEMPLATE_ID = "template/id";
 const UPLOAD_ID = "upload/id";
 const ASSET_ID = "asset/id";
 
@@ -262,7 +263,6 @@ describe("academic content endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(2, `${contentPath}/restore`);
     expect(apiMocks.apiDelete).toHaveBeenCalledWith(contentPath);
     expect("publishAcademicContent" in academicContentApi).toBe(false);
-    expect("approveAcademicContent" in academicContentApi).toBe(false);
   });
 
   it("gets and updates the file policy through the settings endpoint", async () => {
@@ -278,5 +278,140 @@ describe("academic content endpoint contracts", () => {
       maximumFileSizeBytes: "536870912",
       archivesEnabled: true,
     });
+  });
+
+  it("gets and updates the preparation approval policy", async () => {
+    await academicContentApi.getAcademicContentWorkflowPolicy();
+    await academicContentApi.updateAcademicContentWorkflowPolicy({
+      preparationApprovalRequired: true,
+    });
+
+    const policyPath = "/academics/academic-content/settings/workflow-policy";
+    expect(apiMocks.apiGet).toHaveBeenCalledWith(policyPath);
+    expect(apiMocks.apiPatch).toHaveBeenCalledWith(policyPath, {
+      preparationApprovalRequired: true,
+    });
+  });
+
+  it.each([
+    {
+      action: "submits",
+      suffix: "submit",
+      invoke: () => academicContentApi.submitAcademicContent(CONTENT_ID),
+    },
+    {
+      action: "approves",
+      suffix: "approve",
+      invoke: () => academicContentApi.approveAcademicContent(CONTENT_ID),
+    },
+  ])("$action the current preparation round with an empty body", async ({
+    suffix,
+    invoke,
+  }) => {
+    await invoke();
+
+    const contentPath = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(`${contentPath}/${suffix}`, {});
+  });
+
+  it("trims the request-changes decision note", async () => {
+    await academicContentApi.requestAcademicContentChanges(
+      CONTENT_ID,
+      "  Clarify assessment criteria  ",
+    );
+
+    const contentPath = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(
+      `${contentPath}/request-changes`,
+      { note: "Clarify assessment criteria" },
+    );
+  });
+
+  it("lists the review queue and approval history with non-empty filters", async () => {
+    await academicContentApi.listAcademicContentReviewQueue({
+      academicYearId: "year-1",
+      termId: "term-1",
+      stageId: "stage-1",
+      gradeId: "grade-1",
+      sectionId: "section-1",
+      classroomId: "classroom-1",
+      subjectId: "subject-1",
+      teacherUserId: "teacher-1",
+      search: "fractions",
+      page: 2,
+      limit: 25,
+    });
+    await academicContentApi.listAcademicContentApprovalHistory(CONTENT_ID, {
+      page: 2,
+      limit: 10,
+    });
+
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
+      1,
+      "/academics/academic-content/review-queue",
+      {
+        params: {
+          academicYearId: "year-1",
+          termId: "term-1",
+          stageId: "stage-1",
+          gradeId: "grade-1",
+          sectionId: "section-1",
+          classroomId: "classroom-1",
+          subjectId: "subject-1",
+          teacherUserId: "teacher-1",
+          search: "fractions",
+          page: 2,
+          limit: 25,
+        },
+      },
+    );
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
+      2,
+      `/academics/academic-content/${ENCODED_CONTENT_ID}/approvals`,
+      { params: { page: 2, limit: 10 } },
+    );
+  });
+
+  it("uses the preparation template CRUD endpoints", async () => {
+    const templateRequest = {
+      name: "Daily preparation",
+      description: null,
+      stageId: "stage-1",
+      subjectId: "subject-1",
+      topic: "Fractions",
+      objectives: ["Compare fractions"],
+      learningOutcomes: [],
+      teachingStrategies: [],
+      activities: [],
+      resourceNotes: null,
+      assessmentNotes: null,
+      teacherNotes: null,
+    };
+
+    await academicContentApi.listAcademicContentPreparationTemplates({
+      stageId: "stage-1",
+      subjectId: "",
+      search: "daily",
+      page: 1,
+      limit: 50,
+    });
+    await academicContentApi.getAcademicContentPreparationTemplate(TEMPLATE_ID);
+    await academicContentApi.createAcademicContentPreparationTemplate(templateRequest);
+    await academicContentApi.updateAcademicContentPreparationTemplate(TEMPLATE_ID, {
+      name: "Updated preparation",
+    });
+    await academicContentApi.deleteAcademicContentPreparationTemplate(TEMPLATE_ID);
+
+    const templatesPath = "/academics/academic-content/templates/preparation";
+    const templatePath = `${templatesPath}/${encodeURIComponent(TEMPLATE_ID)}`;
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(1, templatesPath, {
+      params: { stageId: "stage-1", search: "daily", page: 1, limit: 50 },
+    });
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(2, templatePath);
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(templatesPath, templateRequest);
+    expect(apiMocks.apiPatch).toHaveBeenCalledWith(templatePath, {
+      name: "Updated preparation",
+    });
+    expect(apiMocks.apiDelete).toHaveBeenCalledWith(templatePath);
   });
 });

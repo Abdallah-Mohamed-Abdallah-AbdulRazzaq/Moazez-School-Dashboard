@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import type {
+  AcademicContentApprovalHistoryResponse,
   AcademicContentAssetUnlinkResponse,
   AcademicContentBase,
   AcademicContentDeleteResponse,
@@ -12,7 +13,12 @@ import type {
   AcademicContentOnlineSessionDetail,
   AcademicContentPaginationQuery,
   AcademicContentPreparationDetail,
+  AcademicContentPreparationTemplateDeleteResponse,
+  AcademicContentPreparationTemplateDetail,
+  AcademicContentPreparationTemplateListResponse,
   AcademicContentReadinessResponse,
+  AcademicContentReviewQueueQuery,
+  AcademicContentReviewQueueResponse,
   AcademicContentRevisionDetail,
   AcademicContentRevisionListResponse,
   AcademicContentSubjectResourceDetail,
@@ -20,27 +26,40 @@ import type {
   AcademicContentTagsResponse,
   AcademicContentTargetDraft,
   AcademicContentTargetsResponse,
+  AcademicContentTransitionResponse,
   AcademicContentUploadCancelResponse,
   AcademicContentUploadCompleteResponse,
   AcademicContentUploadIntentResponse,
   AcademicContentWeeklyPlanDetail,
+  AcademicContentWorkflowPolicy,
   CreateAcademicContentRequest,
+  CreateAcademicContentPreparationTemplateRequest,
   CreateAcademicContentUploadRequest,
   ListAcademicContentQuery,
+  ListAcademicContentPreparationTemplatesQuery,
   ReplaceAcademicContentGuardianNoteDetailRequest,
   ReplaceAcademicContentOnlineSessionDetailRequest,
   ReplaceAcademicContentPreparationDetailRequest,
   ReplaceAcademicContentSubjectResourceDetailRequest,
   ReplaceAcademicContentWeeklyPlanDetailRequest,
   UpdateAcademicContentFilePolicyRequest,
+  UpdateAcademicContentPreparationTemplateRequest,
   UpdateAcademicContentRequest,
+  UpdateAcademicContentWorkflowPolicyRequest,
 } from "../types/contracts";
 
 const BASE_PATH = "/academics/academic-content";
 const FILE_POLICY_PATH = `${BASE_PATH}/settings/file-policy`;
+const WORKFLOW_POLICY_PATH = `${BASE_PATH}/settings/workflow-policy`;
+const REVIEW_QUEUE_PATH = `${BASE_PATH}/review-queue`;
+const PREPARATION_TEMPLATES_PATH = `${BASE_PATH}/templates/preparation`;
 
 function contentPath(contentId: string): string {
   return `${BASE_PATH}/${encodeURIComponent(contentId)}`;
+}
+
+function preparationTemplatePath(templateId: string): string {
+  return `${PREPARATION_TEMPLATES_PATH}/${encodeURIComponent(templateId)}`;
 }
 
 function nonEmptyQuery<TQuery extends object>(query: TQuery): Partial<TQuery> {
@@ -241,4 +260,104 @@ export function updateAcademicContentFilePolicy(
   request: UpdateAcademicContentFilePolicyRequest,
 ): Promise<AcademicContentFilePolicy> {
   return apiPatch<AcademicContentFilePolicy>(FILE_POLICY_PATH, request);
+}
+
+export function getAcademicContentWorkflowPolicy(): Promise<AcademicContentWorkflowPolicy> {
+  return apiGet<AcademicContentWorkflowPolicy>(WORKFLOW_POLICY_PATH);
+}
+
+export function updateAcademicContentWorkflowPolicy(
+  request: UpdateAcademicContentWorkflowPolicyRequest,
+): Promise<AcademicContentWorkflowPolicy> {
+  return apiPatch<AcademicContentWorkflowPolicy>(WORKFLOW_POLICY_PATH, request);
+}
+
+export function submitAcademicContent(
+  contentId: string,
+): Promise<AcademicContentTransitionResponse> {
+  return apiPost<AcademicContentTransitionResponse>(
+    `${contentPath(contentId)}/submit`,
+    {},
+  );
+}
+
+export function approveAcademicContent(
+  contentId: string,
+): Promise<AcademicContentTransitionResponse> {
+  return apiPost<AcademicContentTransitionResponse>(
+    `${contentPath(contentId)}/approve`,
+    {},
+  );
+}
+
+export function requestAcademicContentChanges(
+  contentId: string,
+  note: string,
+): Promise<AcademicContentTransitionResponse> {
+  return apiPost<AcademicContentTransitionResponse>(
+    `${contentPath(contentId)}/request-changes`,
+    { note: note.trim() },
+  );
+}
+
+export function listAcademicContentReviewQueue(
+  query: AcademicContentReviewQueueQuery,
+): Promise<AcademicContentReviewQueueResponse> {
+  return apiGet<AcademicContentReviewQueueResponse>(REVIEW_QUEUE_PATH, {
+    params: nonEmptyQuery(query),
+  });
+}
+
+export function listAcademicContentApprovalHistory(
+  contentId: string,
+  query: AcademicContentPaginationQuery,
+): Promise<AcademicContentApprovalHistoryResponse> {
+  return apiGet<AcademicContentApprovalHistoryResponse>(
+    `${contentPath(contentId)}/approvals`,
+    { params: nonEmptyQuery(query) },
+  );
+}
+
+export function listAcademicContentPreparationTemplates(
+  query: ListAcademicContentPreparationTemplatesQuery,
+): Promise<AcademicContentPreparationTemplateListResponse> {
+  return apiGet<AcademicContentPreparationTemplateListResponse>(
+    PREPARATION_TEMPLATES_PATH,
+    { params: nonEmptyQuery(query) },
+  );
+}
+
+export function getAcademicContentPreparationTemplate(
+  templateId: string,
+): Promise<AcademicContentPreparationTemplateDetail> {
+  return apiGet<AcademicContentPreparationTemplateDetail>(
+    preparationTemplatePath(templateId),
+  );
+}
+
+export function createAcademicContentPreparationTemplate(
+  request: CreateAcademicContentPreparationTemplateRequest,
+): Promise<AcademicContentPreparationTemplateDetail> {
+  return apiPost<AcademicContentPreparationTemplateDetail>(
+    PREPARATION_TEMPLATES_PATH,
+    request,
+  );
+}
+
+export function updateAcademicContentPreparationTemplate(
+  templateId: string,
+  request: UpdateAcademicContentPreparationTemplateRequest,
+): Promise<AcademicContentPreparationTemplateDetail> {
+  return apiPatch<AcademicContentPreparationTemplateDetail>(
+    preparationTemplatePath(templateId),
+    request,
+  );
+}
+
+export function deleteAcademicContentPreparationTemplate(
+  templateId: string,
+): Promise<AcademicContentPreparationTemplateDeleteResponse> {
+  return apiDelete<AcademicContentPreparationTemplateDeleteResponse>(
+    preparationTemplatePath(templateId),
+  );
 }

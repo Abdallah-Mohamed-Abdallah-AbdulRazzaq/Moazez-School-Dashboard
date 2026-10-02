@@ -11,6 +11,14 @@ export const ACADEMIC_CONTENT_STATUSES = [
 ] as const;
 export type AcademicContentStatus = (typeof ACADEMIC_CONTENT_STATUSES)[number];
 
+export const ACADEMIC_CONTENT_APPROVAL_STATUSES = [
+  "PENDING",
+  "APPROVED",
+  "CHANGES_REQUESTED",
+] as const;
+export type AcademicContentApprovalStatus =
+  (typeof ACADEMIC_CONTENT_APPROVAL_STATUSES)[number];
+
 export const ACADEMIC_CONTENT_TYPES = [
   "TEACHER_PREPARATION",
   "WEEKLY_PLAN",
@@ -513,4 +521,145 @@ export interface AcademicContentRevisionDetail extends AcademicContentRevisionSu
   links: AcademicContentLink[];
   tags: AcademicContentTag[];
   details: Exclude<AcademicContentDetailsByType[AcademicContentType], null> | null;
+}
+
+export interface AcademicContentWorkflowPolicy {
+  preparationApprovalRequired: boolean;
+}
+
+export type UpdateAcademicContentWorkflowPolicyRequest =
+  Partial<AcademicContentWorkflowPolicy>;
+
+export interface AcademicContentTransitionResponse {
+  contentId: string;
+  contentStatus: AcademicContentStatus;
+  approvalId: string;
+  approvalStatus: AcademicContentApprovalStatus;
+  revisionId: string;
+  roundNumber: number;
+  submittedAt: string;
+  decidedAt: string | null;
+}
+
+export interface AcademicContentReviewQueueQuery
+  extends AcademicContentPaginationQuery {
+  academicYearId?: string;
+  termId?: string;
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+  subjectId?: string;
+  teacherUserId?: string;
+  search?: string;
+}
+
+export type AcademicContentReviewQueueTarget = Omit<AcademicContentTarget, "id">;
+
+export interface AcademicContentReviewQueueItem {
+  contentId: string;
+  title: string;
+  academicYearId: string;
+  termId: string;
+  approvalId: string;
+  submittedRevisionId: string;
+  roundNumber: number;
+  submittedAt: string;
+  submittedByUserId: string;
+  targets: AcademicContentReviewQueueTarget[];
+}
+
+export interface AcademicContentReviewQueueResponse {
+  items: AcademicContentReviewQueueItem[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface AcademicContentApprovalHistoryItem {
+  approvalId: string;
+  revisionId: string;
+  roundNumber: number;
+  status: AcademicContentApprovalStatus;
+  submittedByUserId: string;
+  submittedAt: string;
+  decidedByUserId: string | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+}
+
+export interface AcademicContentApprovalHistoryResponse {
+  items: AcademicContentApprovalHistoryItem[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface ListAcademicContentPreparationTemplatesQuery
+  extends AcademicContentPaginationQuery {
+  stageId?: string;
+  subjectId?: string;
+  search?: string;
+}
+
+export interface CreateAcademicContentPreparationTemplateRequest {
+  name: string;
+  description?: string | null;
+  stageId?: string | null;
+  subjectId?: string | null;
+  topic?: string | null;
+  objectives?: string[];
+  learningOutcomes?: string[];
+  teachingStrategies?: string[];
+  activities?: string[];
+  resourceNotes?: string | null;
+  assessmentNotes?: string | null;
+  teacherNotes?: string | null;
+}
+
+export type UpdateAcademicContentPreparationTemplateRequest =
+  Partial<CreateAcademicContentPreparationTemplateRequest>;
+
+export interface AcademicContentPreparationTemplateListItem {
+  id: string;
+  name: string;
+  description: string | null;
+  stageId: string | null;
+  subjectId: string | null;
+  objectivesCount: number;
+  learningOutcomesCount: number;
+  teachingStrategiesCount: number;
+  activitiesCount: number;
+  updatedAt: string;
+}
+
+export interface AcademicContentPreparationTemplateListResponse {
+  items: AcademicContentPreparationTemplateListItem[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface AcademicContentPreparationTemplateDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  stageId: string | null;
+  subjectId: string | null;
+  topic: string | null;
+  objectives: string[];
+  learningOutcomes: string[];
+  teachingStrategies: string[];
+  activities: string[];
+  resourceNotes: string | null;
+  assessmentNotes: string | null;
+  teacherNotes: string | null;
+  createdByUserId: string;
+  updatedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcademicContentPreparationTemplateDeleteResponse {
+  ok: boolean;
 }
