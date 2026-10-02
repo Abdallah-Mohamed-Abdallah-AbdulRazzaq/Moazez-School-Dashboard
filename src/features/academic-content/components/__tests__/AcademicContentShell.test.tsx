@@ -4,6 +4,7 @@ import AcademicContentShell from "../AcademicContentShell";
 
 const navigationState = vi.hoisted(() => ({
   canManage: false,
+  canApprove: false,
   push: vi.fn(),
 }));
 
@@ -16,14 +17,17 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
     hasPermission: (permission: string) =>
-      permission === "academics.academic_content.manage" &&
-      navigationState.canManage,
+      (permission === "academics.academic_content.manage" &&
+        navigationState.canManage) ||
+      (permission === "academics.academic_content.approve" &&
+        navigationState.canApprove),
   }),
 }));
 
 describe("AcademicContentShell", () => {
   beforeEach(() => {
     navigationState.canManage = false;
+    navigationState.canApprove = false;
     navigationState.push.mockReset();
   });
 
@@ -46,6 +50,21 @@ describe("AcademicContentShell", () => {
     expect(screen.getByRole("link", { name: "Workflow policy" })).toHaveAttribute(
       "href",
       "/en/academic-content-hub/settings/workflow?year=year-1&term=term-1",
+    );
+    expect(screen.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument();
+  });
+
+  it("shows the review queue only with approve permission", () => {
+    navigationState.canApprove = true;
+    render(
+      <AcademicContentShell>
+        <div>workspace content</div>
+      </AcademicContentShell>,
+    );
+
+    expect(screen.getByRole("link", { name: "Review queue" })).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/review?year=year-1&term=term-1",
     );
   });
 

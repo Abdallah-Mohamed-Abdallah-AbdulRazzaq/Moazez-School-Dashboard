@@ -122,6 +122,7 @@ export type PermissionKey =
   | "academics.lesson_plans.manage"
   | "academics.academic_content.view"
   | "academics.academic_content.manage"
+  | "academics.academic_content.approve"
   | "academics.academic_content.settings.manage"
   | "files.uploads.manage"
   | "files.downloads.view"

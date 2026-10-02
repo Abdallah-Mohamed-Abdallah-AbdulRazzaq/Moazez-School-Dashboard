@@ -2,6 +2,7 @@
 
 import {
   Archive,
+  ClipboardCheck,
   FilePlus2,
   Files,
   LibraryBig,
@@ -43,6 +44,8 @@ export default function AcademicContentShell({
   const rootPath = `/${locale}/academic-content-hub`;
   const selectedStatus = searchParams.get("contentStatus");
   const canManage = hasPermission("academics.academic_content.manage");
+  const canApprove = hasPermission("academics.academic_content.approve");
+  const reviewQueuePath = `${rootPath}/review`;
   const filePolicyPath = `${rootPath}/settings/file-policy`;
   const workflowPolicyPath = `${rootPath}/settings/workflow`;
   const libraryTabs = [
@@ -97,6 +100,20 @@ export default function AcademicContentShell({
               </Link>
             );
           })}
+          {canApprove && (
+            <Link
+              href={`${reviewQueuePath}${contextQuery(searchParams)}`}
+              aria-current={pathname.startsWith(reviewQueuePath) ? "page" : undefined}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                pathname.startsWith(reviewQueuePath)
+                  ? "bg-primary/10 text-primary"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+            >
+              <ClipboardCheck aria-hidden="true" className="size-4" />
+              {t("review_queue")}
+            </Link>
+          )}
           <Link
             href={`${filePolicyPath}${contextQuery(searchParams)}`}
             aria-current={pathname.startsWith(filePolicyPath) ? "page" : undefined}

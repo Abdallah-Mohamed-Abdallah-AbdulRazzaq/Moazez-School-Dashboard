@@ -14306,6 +14306,7 @@
       "archived": "Archived",
       "settings": "Settings",
       "workflow_policy": "Workflow policy",
+      "review_queue": "Review queue",
       "create": "Create content",
       "nav_label": "Academic Content Hub"
     },
@@ -14451,6 +14452,43 @@
         "PENDING": "Pending",
         "APPROVED": "Approved",
         "CHANGES_REQUESTED": "Changes requested"
+      }
+    },
+    "review": {
+      "title": "Review queue",
+      "subtitle": "Review the oldest pending teacher preparations first.",
+      "search": "Search submissions",
+      "show_filters": "Show review filters",
+      "hide_filters": "Hide review filters",
+      "clear_filters": "Clear filters",
+      "all_stages": "All stages",
+      "all_grades": "All grades",
+      "all_sections": "All sections",
+      "all_classrooms": "All classrooms",
+      "all_subjects": "All subjects",
+      "all_teachers": "All teachers",
+      "options_load_error": "Academic filters could not be loaded",
+      "teachers_load_error": "Teachers could not be loaded",
+      "unavailable_title": "Review queue unavailable",
+      "empty_title": "No submissions awaiting review",
+      "empty_description": "New submissions will appear here in oldest-first order.",
+      "retry": "Retry",
+      "round": "Round {round}",
+      "target_count": "{count, plural, =0 {No targets} one {# target} other {# targets}}",
+      "filters": {
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "subject": "Subject",
+        "teacher": "Teacher"
+      },
+      "columns": {
+        "title": "Title",
+        "round": "Approval round",
+        "submitted": "Submitted",
+        "submitted_by": "Submitted by",
+        "targets": "Targets"
       }
     },
     "editor": {
