@@ -73,7 +73,7 @@ export function useTimetableSetupStatus({
   }, [academicYearId, canManage, enabled, termId, termStatus]);
 
   useEffect(() => {
-    void reload();
+    void Promise.resolve().then(reload);
     return () => {
       requestIdRef.current += 1;
     };
