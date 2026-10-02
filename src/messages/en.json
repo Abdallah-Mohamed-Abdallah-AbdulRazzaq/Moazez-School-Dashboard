@@ -6802,6 +6802,52 @@
         "label": "Unsaved changes",
         "message": "You have unsaved changes. Are you sure you want to leave?"
       },
+      "setup": {
+        "title": "Set up the term timetable",
+        "description": "Choose the school week and lesson periods once. These settings become the default for every stage, grade, section, and classroom in this term.",
+        "academicYear": "Academic year",
+        "term": "Term",
+        "navigationLabel": "Timetable setup progress",
+        "defaultConfigName": "{term} timetable",
+        "saveAndContinue": "Save and continue",
+        "continue": "Continue",
+        "back": "Back",
+        "retry": "Try again",
+        "startBuilding": "Start building the timetable",
+        "stepStatus": {
+          "current": "Current step",
+          "completed": "Completed"
+        },
+        "steps": {
+          "days": {
+            "title": "School week",
+            "subtitle": "Active days",
+            "description": "Select the teaching days and the first day shown in the timetable."
+          },
+          "periods": {
+            "title": "Lesson periods",
+            "subtitle": "Times and breaks",
+            "description": "Add class periods, breaks, assemblies, and activities in their daily order. At least one instructional period is required."
+          },
+          "review": {
+            "title": "Review setup",
+            "subtitle": "Confirm defaults",
+            "description": "Check the term defaults before opening the timetable workspace."
+          }
+        },
+        "review": {
+          "activeDays": "Active days",
+          "periods": "Periods",
+          "firstTime": "Day starts",
+          "lastTime": "Day ends",
+          "defaultScope": "These term settings apply by default to every stage, grade, section, and classroom. Academic selectors in the timetable filter what you see; they do not create another setup."
+        },
+        "readOnly": {
+          "closedTerm": "This term is closed, so its timetable setup cannot be changed.",
+          "missingPermission": "You can view timetables, but you do not have permission to complete this setup."
+        },
+        "loadError": "We could not load the timetable setup. Try again."
+      },
       "config": {
         "title": "Timetable Configuration",
         "subtitle": "Configure days, periods, and scope for your timetable",

@@ -11,18 +11,28 @@ interface WizardStepperProps {
   steps: Step[];
   activeStep: number;
   locale: string;
+  navigationLabel?: string;
+  currentStepLabel?: string;
+  completedStepLabel?: string;
 }
 
 export default function WizardStepper({
   steps,
   activeStep,
   locale,
+  navigationLabel,
+  currentStepLabel,
+  completedStepLabel,
 }: WizardStepperProps) {
   const isRTL = locale === "ar";
 
   return (
-    <div className="w-full py-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="relative flex items-start justify-between">
+    <nav
+      className="w-full py-6"
+      dir={isRTL ? "rtl" : "ltr"}
+      aria-label={navigationLabel}
+    >
+      <ol className="relative flex items-start justify-between">
         <div
           className="absolute bg-gray-200"
           style={{
@@ -49,9 +59,10 @@ export default function WizardStepper({
           const isCompleted = displayIndex < activeStep;
 
           return (
-            <div
+            <li
               key={step.title}
               className="relative flex flex-1 flex-col items-center"
+              aria-current={isActive ? "step" : undefined}
             >
               <div
                 className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
@@ -63,9 +74,15 @@ export default function WizardStepper({
                 }`}
               >
                 {isCompleted ? (
-                  <Check className="h-5 w-5" />
+                  <Check className="h-5 w-5" aria-hidden="true" />
                 ) : (
                   <span>{displayIndex + 1}</span>
+                )}
+                {isActive && currentStepLabel && (
+                  <span className="sr-only">{currentStepLabel}</span>
+                )}
+                {isCompleted && completedStepLabel && (
+                  <span className="sr-only">{completedStepLabel}</span>
                 )}
               </div>
 
@@ -81,10 +98,10 @@ export default function WizardStepper({
                   {step.subtitle}
                 </div>
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ol>
+    </nav>
   );
 }
