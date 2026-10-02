@@ -17,6 +17,7 @@ import { upsertBackendTimetableConfig } from "@/features/academics/timetable/ser
 import {
   resolveTimetableScopeSelection,
   type TimetableScopeIds,
+  type TimetableScopeSelection,
 } from "@/features/academics/timetable/services/timetableScope";
 import {
   timetableFormErrors,
@@ -32,6 +33,7 @@ interface TimetableConfigEditorProps {
   entries: TimetableEntry[];
   scopeIds: TimetableScopeIds;
   allowScopeSelection: boolean;
+  fixedScope?: TimetableScopeSelection;
   fixedName?: string;
   readOnly: boolean;
   locale: string;
@@ -56,6 +58,7 @@ export default function TimetableConfigEditor({
   entries,
   scopeIds,
   allowScopeSelection,
+  fixedScope,
   fixedName,
   readOnly,
   locale,
@@ -70,7 +73,8 @@ export default function TimetableConfigEditor({
   const [errors, setErrors] = useState<TimetableFormErrorState>(emptyErrors);
   const [isSaving, setIsSaving] = useState(false);
   const defaultName = t("config.defaultName");
-  const defaultScope = resolveTimetableScopeSelection(scopeIds).scopeType;
+  const defaultScope =
+    fixedScope?.scopeType ?? resolveTimetableScopeSelection(scopeIds).scopeType;
 
   useEffect(() => {
     setName(fixedName ?? config?.name ?? defaultName);
@@ -104,7 +108,7 @@ export default function TimetableConfigEditor({
         termId,
         ...(allowScopeSelection
           ? scopeSelectionForType(scopeType, scopeIds)
-          : { scopeType: "TERM" as const }),
+          : (fixedScope ?? { scopeType: "TERM" as const })),
         name: (fixedName ?? name).trim(),
         weekStartDay,
         activeDays,

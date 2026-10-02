@@ -10,6 +10,7 @@ import type {
   BackendTimetablePeriodDto,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
+import type { TimetableScopeSelection } from "@/features/academics/timetable/services/timetableScope";
 
 interface TimetableConfigDialogProps {
   mode: "config" | "periods";
@@ -28,6 +29,7 @@ interface TimetableConfigDialogProps {
   readOnly: boolean;
   locale: string;
   allowScopeSelection?: boolean;
+  fixedScope?: TimetableScopeSelection;
   fixedName?: string;
 }
 
@@ -48,6 +50,7 @@ export default function TimetableConfigDialog({
   readOnly,
   locale,
   allowScopeSelection = true,
+  fixedScope,
   fixedName,
 }: TimetableConfigDialogProps) {
   const t = useTranslations("academics.timetable");
@@ -83,6 +86,7 @@ export default function TimetableConfigDialog({
             classroomId: selectedClassroomId,
           }}
           allowScopeSelection={allowScopeSelection}
+          fixedScope={fixedScope}
           fixedName={fixedName}
           readOnly={readOnly}
           locale={locale}

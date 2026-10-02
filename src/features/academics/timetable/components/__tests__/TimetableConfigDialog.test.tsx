@@ -10,6 +10,7 @@ import {
   createTimetablePeriodDto,
 } from "@/features/academics/timetable/services/timetablePeriodsService";
 import { upsertBackendTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
+import type { TimetableScopeSelection } from "@/features/academics/timetable/services/timetableScope";
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
@@ -65,6 +66,7 @@ const renderDialog = ({
   selectedStageId = "",
   allowScopeSelection = true,
   fixedName,
+  fixedScope,
 }: {
   periods?: BackendTimetablePeriodDto[];
   readOnly?: boolean;
@@ -73,6 +75,7 @@ const renderDialog = ({
   selectedStageId?: string;
   allowScopeSelection?: boolean;
   fixedName?: string;
+  fixedScope?: TimetableScopeSelection;
 } = {}) => {
   const onSaved = vi.fn().mockResolvedValue(undefined);
 
@@ -95,6 +98,7 @@ const renderDialog = ({
       locale="en"
       allowScopeSelection={allowScopeSelection}
       fixedName={fixedName}
+      fixedScope={fixedScope}
     />,
   );
 
@@ -238,6 +242,31 @@ describe("TimetableConfigDialog", () => {
           scopeType: "TERM",
           name: "First term timetable",
         }),
+      );
+    });
+  });
+
+  it("locks an explicit override editor to its selected scope", async () => {
+    const user = userEvent.setup();
+    vi.mocked(upsertBackendTimetableConfig).mockResolvedValue({
+      ...timetableConfig,
+      scopeType: "stage",
+      scopeKey: "stage-1",
+      stageId: "stage-1",
+    });
+    renderDialog({
+      mode: "config",
+      config: null,
+      periods: [],
+      allowScopeSelection: false,
+      fixedScope: { scopeType: "STAGE", stageId: "stage-1" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "config.saveConfig" }));
+
+    await waitFor(() => {
+      expect(upsertBackendTimetableConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ scopeType: "STAGE", stageId: "stage-1" }),
       );
     });
   });

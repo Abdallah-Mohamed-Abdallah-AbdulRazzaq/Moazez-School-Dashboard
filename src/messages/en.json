@@ -6568,6 +6568,7 @@
         "reset": "Reset",
         "resetSuccess": "Timetable reset successfully",
         "resetError": "Failed to reset timetable",
+        "settings": "Timetable settings",
         "resetConfirmTitle": "Reset Timetable",
         "resetConfirmMessage": "Are you sure you want to reset the timetable? All unsaved changes will be lost.",
         "export": "Export",
@@ -6994,12 +6995,17 @@
       "source": {
         "exactTitle": "Scope timetable",
         "exactDescription": "This scope uses its own timetable configuration.",
+        "termDefaultTitle": "Term default timetable",
+        "termDefaultDescription": "This timetable setup is the default for every stage, grade, section, and classroom in the term.",
         "inheritedTitle": "Inherited published timetable",
         "inheritedDescription": "This published timetable is inherited and read-only.",
         "sourceLabel": "Source",
         "lockedLabel": "Inherited timetable is locked",
         "createOverride": "Create custom timetable",
-        "overrideUnavailable": "You cannot create an override for this scope while the term is closed or without manage permission."
+        "customizeScope": "Customize a specific scope",
+        "returnToTermDefault": "Return to term default",
+        "overrideUnavailable": "Select a stage, grade, section, or classroom and make sure you have manage permission before customizing.",
+        "publishedOverridesNote": "Published overrides take precedence only inside their specific scopes."
       },
       "export": {
         "status": "Status",

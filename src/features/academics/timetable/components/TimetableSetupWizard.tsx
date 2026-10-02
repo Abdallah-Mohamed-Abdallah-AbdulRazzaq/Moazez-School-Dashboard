@@ -92,6 +92,7 @@ export default function TimetableSetupWizard({
               entries={[]}
               scopeIds={{}}
               allowScopeSelection={false}
+              fixedScope={{ scopeType: "TERM" }}
               fixedName={t("setup.defaultConfigName", { term: termName })}
               readOnly={readOnly}
               locale={locale}

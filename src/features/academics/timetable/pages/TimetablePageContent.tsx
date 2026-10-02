@@ -307,6 +307,7 @@ export default function TimetablePageContent() {
             canManage={canManageStructure}
           >
             <TimetableView
+              key={`${academicYearId}:${termId}`}
               schoolId={schoolId}
               academicYearId={academicYearId}
               academicYearName={localizedContextName(
