@@ -43,6 +43,10 @@ describe("AcademicContentShell", () => {
       "href",
       "/en/academic-content-hub/settings/file-policy?year=year-1&term=term-1",
     );
+    expect(screen.getByRole("link", { name: "Workflow policy" })).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/settings/workflow?year=year-1&term=term-1",
+    );
   });
 
   it("opens creation with the selected academic context for managers", () => {

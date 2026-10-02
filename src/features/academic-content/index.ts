@@ -4,3 +4,4 @@ export { default as AcademicContentLibraryPage } from "./pages/AcademicContentLi
 export { default as CreateAcademicContentPage } from "./pages/CreateAcademicContentPage";
 export { default as AcademicContentEditorPage } from "./pages/AcademicContentEditorPage";
 export { default as AcademicContentFilePolicyPage } from "./pages/AcademicContentFilePolicyPage";
+export { default as WorkflowPolicyPage } from "./pages/WorkflowPolicyPage";

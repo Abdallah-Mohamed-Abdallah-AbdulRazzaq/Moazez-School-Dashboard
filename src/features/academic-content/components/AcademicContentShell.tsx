@@ -1,6 +1,13 @@
 "use client";
 
-import { Archive, FilePlus2, Files, LibraryBig, Settings2 } from "lucide-react";
+import {
+  Archive,
+  FilePlus2,
+  Files,
+  LibraryBig,
+  Settings2,
+  ShieldCheck,
+} from "lucide-react";
 import { useLocale } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -36,6 +43,8 @@ export default function AcademicContentShell({
   const rootPath = `/${locale}/academic-content-hub`;
   const selectedStatus = searchParams.get("contentStatus");
   const canManage = hasPermission("academics.academic_content.manage");
+  const filePolicyPath = `${rootPath}/settings/file-policy`;
+  const workflowPolicyPath = `${rootPath}/settings/workflow`;
   const libraryTabs = [
     { icon: LibraryBig, label: t("library"), status: null },
     { icon: FilePlus2, label: t("drafts"), status: "DRAFT" },
@@ -89,16 +98,28 @@ export default function AcademicContentShell({
             );
           })}
           <Link
-            href={`${rootPath}/settings/file-policy${contextQuery(searchParams)}`}
-            aria-current={pathname.startsWith(`${rootPath}/settings`) ? "page" : undefined}
+            href={`${filePolicyPath}${contextQuery(searchParams)}`}
+            aria-current={pathname.startsWith(filePolicyPath) ? "page" : undefined}
             className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              pathname.startsWith(`${rootPath}/settings`)
+              pathname.startsWith(filePolicyPath)
                 ? "bg-primary/10 text-primary"
                 : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             }`}
           >
             <Settings2 aria-hidden="true" className="size-4" />
             {t("settings")}
+          </Link>
+          <Link
+            href={`${workflowPolicyPath}${contextQuery(searchParams)}`}
+            aria-current={pathname.startsWith(workflowPolicyPath) ? "page" : undefined}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname.startsWith(workflowPolicyPath)
+                ? "bg-primary/10 text-primary"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            }`}
+          >
+            <ShieldCheck aria-hidden="true" className="size-4" />
+            {t("workflow_policy")}
           </Link>
         </nav>
       </header>

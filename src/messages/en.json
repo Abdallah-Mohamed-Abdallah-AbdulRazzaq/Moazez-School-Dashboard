@@ -14305,6 +14305,7 @@
       "drafts": "Drafts",
       "archived": "Archived",
       "settings": "Settings",
+      "workflow_policy": "Workflow policy",
       "create": "Create content",
       "nav_label": "Academic Content Hub"
     },
@@ -14416,6 +14417,17 @@
       "closed_term": "You cannot create content in a closed term.",
       "action": "Create draft",
       "title_required": "Title is required"
+    },
+    "workflow_policy": {
+      "title": "Approval workflow",
+      "description": "Choose whether teacher preparations require review before approval.",
+      "preparation_approval": "Require approval for teacher preparation",
+      "preparation_approval_help": "When enabled, ready teacher preparations must be submitted and approved.",
+      "read_only": "You can view this policy, but only workflow-policy managers can change it.",
+      "save": "Save workflow policy",
+      "saved": "Workflow policy saved.",
+      "unavailable_title": "Workflow policy unavailable",
+      "unavailable_message": "The workflow policy could not be loaded."
     },
     "editor": {
       "unavailable_title": "Content unavailable",
