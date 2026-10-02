@@ -51,6 +51,10 @@ describe("AcademicContentShell", () => {
       "href",
       "/en/academic-content-hub/settings/workflow?year=year-1&term=term-1",
     );
+    expect(screen.getByRole("link", { name: "Preparation templates" })).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/templates?year=year-1&term=term-1",
+    );
     expect(screen.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument();
   });
 

@@ -14307,6 +14307,7 @@
       "settings": "Settings",
       "workflow_policy": "Workflow policy",
       "review_queue": "Review queue",
+      "preparation_templates": "Preparation templates",
       "create": "Create content",
       "nav_label": "Academic Content Hub"
     },
@@ -14502,6 +14503,41 @@
         "submitted": "Submitted",
         "submitted_by": "Submitted by",
         "targets": "Targets"
+      }
+    },
+    "templates": {
+      "title": "Preparation templates",
+      "subtitle": "Reuse structured preparation content without linking it to live content.",
+      "search": "Search templates",
+      "show_filters": "Show template filters",
+      "hide_filters": "Hide template filters",
+      "clear_filters": "Clear filters",
+      "stage": "Stage",
+      "subject": "Subject",
+      "all_stages": "All stages",
+      "all_subjects": "All subjects",
+      "options_load_error": "Template filters could not be loaded",
+      "new": "New template",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "retry": "Retry",
+      "unavailable_title": "Preparation templates unavailable",
+      "empty_title": "No preparation templates yet",
+      "empty_description": "Create a reusable template or change the current filters.",
+      "no_description": "No description",
+      "scope_summary": "{stage} · {subject}",
+      "content_summary": "{objectives} objectives · {outcomes} outcomes",
+      "delete_title": "Delete {name}?",
+      "delete_description": "This template will be removed from future searches and cannot be applied again.",
+      "delete_confirm": "Delete template",
+      "columns": {
+        "name": "Name",
+        "description": "Description",
+        "scope": "Scope",
+        "contents": "Contents",
+        "updated": "Updated",
+        "actions": "Actions"
       }
     },
     "editor": {

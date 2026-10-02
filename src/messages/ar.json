@@ -14298,6 +14298,7 @@
       "settings": "الإعدادات",
       "workflow_policy": "سياسة سير العمل",
       "review_queue": "قائمة المراجعة",
+      "preparation_templates": "قوالب التحضير",
       "create": "إنشاء محتوى",
       "nav_label": "مركز المحتوى الأكاديمي"
     },
@@ -14493,6 +14494,41 @@
         "submitted": "تاريخ الإرسال",
         "submitted_by": "أرسله",
         "targets": "الأهداف"
+      }
+    },
+    "templates": {
+      "title": "قوالب التحضير",
+      "subtitle": "أعد استخدام محتوى التحضير المنظم دون ربطه بالمحتوى المباشر.",
+      "search": "البحث في القوالب",
+      "show_filters": "إظهار عوامل تصفية القوالب",
+      "hide_filters": "إخفاء عوامل تصفية القوالب",
+      "clear_filters": "مسح عوامل التصفية",
+      "stage": "المرحلة",
+      "subject": "المادة",
+      "all_stages": "كل المراحل",
+      "all_subjects": "كل المواد",
+      "options_load_error": "تعذر تحميل عوامل تصفية القوالب",
+      "new": "قالب جديد",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "cancel": "إلغاء",
+      "retry": "إعادة المحاولة",
+      "unavailable_title": "قوالب التحضير غير متاحة",
+      "empty_title": "لا توجد قوالب تحضير بعد",
+      "empty_description": "أنشئ قالبًا قابلًا لإعادة الاستخدام أو غيّر عوامل التصفية.",
+      "no_description": "لا يوجد وصف",
+      "scope_summary": "{stage} · {subject}",
+      "content_summary": "{objectives} أهداف · {outcomes} نواتج",
+      "delete_title": "حذف {name}؟",
+      "delete_description": "سيُزال هذا القالب من عمليات البحث المستقبلية ولن يمكن تطبيقه مرة أخرى.",
+      "delete_confirm": "حذف القالب",
+      "columns": {
+        "name": "الاسم",
+        "description": "الوصف",
+        "scope": "النطاق",
+        "contents": "المحتويات",
+        "updated": "آخر تحديث",
+        "actions": "الإجراءات"
       }
     },
     "editor": {

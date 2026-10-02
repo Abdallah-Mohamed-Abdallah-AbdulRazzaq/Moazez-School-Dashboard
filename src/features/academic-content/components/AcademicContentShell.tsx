@@ -6,6 +6,7 @@ import {
   FilePlus2,
   Files,
   LibraryBig,
+  LayoutTemplate,
   Settings2,
   ShieldCheck,
 } from "lucide-react";
@@ -46,6 +47,7 @@ export default function AcademicContentShell({
   const canManage = hasPermission("academics.academic_content.manage");
   const canApprove = hasPermission("academics.academic_content.approve");
   const reviewQueuePath = `${rootPath}/review`;
+  const templatesPath = `${rootPath}/templates`;
   const filePolicyPath = `${rootPath}/settings/file-policy`;
   const workflowPolicyPath = `${rootPath}/settings/workflow`;
   const libraryTabs = [
@@ -114,6 +116,18 @@ export default function AcademicContentShell({
               {t("review_queue")}
             </Link>
           )}
+          <Link
+            href={`${templatesPath}${contextQuery(searchParams)}`}
+            aria-current={pathname.startsWith(templatesPath) ? "page" : undefined}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname.startsWith(templatesPath)
+                ? "bg-primary/10 text-primary"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            }`}
+          >
+            <LayoutTemplate aria-hidden="true" className="size-4" />
+            {t("preparation_templates")}
+          </Link>
           <Link
             href={`${filePolicyPath}${contextQuery(searchParams)}`}
             aria-current={pathname.startsWith(filePolicyPath) ? "page" : undefined}
