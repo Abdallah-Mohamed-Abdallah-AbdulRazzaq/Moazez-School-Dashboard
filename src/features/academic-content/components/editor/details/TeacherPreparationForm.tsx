@@ -16,6 +16,8 @@ import { OptionalReferenceSelect } from "./AcademicReferenceFields";
 import DetailFormShell, { normalizeOrderedText } from "./DetailFormShell";
 import OrderedTextList from "./OrderedTextList";
 import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
+import { applyPreparationTemplate } from "../../../model/preparationTemplatePolicy";
+import PreparationTemplatePicker from "../../templates/PreparationTemplatePicker";
 
 interface TeacherPreparationFormProps {
   initial: AcademicContentPreparationDetail;
@@ -98,6 +100,14 @@ export default function TeacherPreparationForm({
       validationError={validationError}
       onSave={() => void save()}
     >
+      <PreparationTemplatePicker
+        disabled={disabled}
+        onApply={(template) => {
+          setForm((current) => applyPreparationTemplate(current, template));
+          setValidationError(null);
+          onDirty();
+        }}
+      />
       <Input
         label={t("fields.topic")}
         aria-label={t("fields.topic")}
