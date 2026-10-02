@@ -1,1 +1,5 @@
-export { default } from "@/features/academic-content/pages/PreparationTemplateEditorPage";
+import PreparationTemplateEditorPage from "@/features/academic-content/pages/PreparationTemplateEditorPage";
+
+export default function Page() {
+  return <PreparationTemplateEditorPage />;
+}
