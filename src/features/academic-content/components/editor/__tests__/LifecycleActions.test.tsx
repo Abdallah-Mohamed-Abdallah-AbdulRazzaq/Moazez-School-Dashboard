@@ -84,6 +84,37 @@ describe("LifecycleActions", () => {
     );
   });
 
+  it("archives changes-requested content without offering deletion", () => {
+    render(
+      <LifecycleActions
+        content={content("CHANGES_REQUESTED")}
+        canManage
+        onChanged={vi.fn()}
+        onDeleted={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete draft" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Restore" })).not.toBeInTheDocument();
+  });
+
+  it.each(["SUBMITTED", "APPROVED", "SCHEDULED", "PUBLISHED", "EXPIRED", "CANCELLED"] as const)(
+    "hides lifecycle actions for %s content",
+    (status) => {
+      const { container } = render(
+        <LifecycleActions
+          content={content(status)}
+          canManage
+          onChanged={vi.fn()}
+          onDeleted={vi.fn()}
+        />,
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    },
+  );
+
   it("deletes a draft only after confirmation", async () => {
     const onDeleted = vi.fn();
     render(

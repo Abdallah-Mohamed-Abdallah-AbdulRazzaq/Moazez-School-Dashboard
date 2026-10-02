@@ -10,6 +10,7 @@ import {
   restoreAcademicContent,
 } from "../../services/academicContentApi";
 import { academicContentUiError } from "../../services/academicContentErrors";
+import { isAcademicContentMutableStatus } from "../../model/academicContentPolicy";
 import type {
   AcademicContentBase,
   AcademicContentDetail,
@@ -60,8 +61,11 @@ export default function LifecycleActions({
   const [error, setError] = useState<string | null>(null);
   const t = useAcademicContentTranslations("lifecycle");
   const commonT = useAcademicContentTranslations("common");
+  const canArchive = isAcademicContentMutableStatus(content.status);
+  const canDelete = content.status === "DRAFT";
+  const canRestore = content.status === "ARCHIVED";
 
-  if (!canManage || (content.status !== "DRAFT" && content.status !== "ARCHIVED")) {
+  if (!canManage || (!canArchive && !canRestore)) {
     return null;
   }
 
@@ -100,28 +104,29 @@ export default function LifecycleActions({
         </div>
       )}
       <div className="flex flex-wrap gap-2">
-        {content.status === "DRAFT" ? (
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              leftIcon={<Archive aria-hidden="true" className="size-4" />}
-              onClick={() => setPendingAction("archive")}
-            >
-              {t("archive")}
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              leftIcon={<Trash2 aria-hidden="true" className="size-4" />}
-              onClick={() => setPendingAction("delete")}
-            >
-              {t("delete")}
-            </Button>
-          </>
-        ) : (
+        {canArchive && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            leftIcon={<Archive aria-hidden="true" className="size-4" />}
+            onClick={() => setPendingAction("archive")}
+          >
+            {t("archive")}
+          </Button>
+        )}
+        {canDelete && (
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            leftIcon={<Trash2 aria-hidden="true" className="size-4" />}
+            onClick={() => setPendingAction("delete")}
+          >
+            {t("delete")}
+          </Button>
+        )}
+        {canRestore && (
           <Button
             type="button"
             variant="secondary"

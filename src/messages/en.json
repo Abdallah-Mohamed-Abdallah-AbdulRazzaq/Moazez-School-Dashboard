@@ -14420,7 +14420,7 @@
     "editor": {
       "unavailable_title": "Content unavailable",
       "unavailable_message": "The content could not be loaded.",
-      "archived_read_only": "Archived content is read-only",
+      "read_only": "This content is read-only in its current status.",
       "content_type": "Content type",
       "academic_year": "Academic year",
       "term": "Term",

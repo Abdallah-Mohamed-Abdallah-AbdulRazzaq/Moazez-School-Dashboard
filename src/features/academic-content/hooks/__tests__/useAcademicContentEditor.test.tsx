@@ -118,13 +118,34 @@ describe("useAcademicContentEditor", () => {
     );
   });
 
-  it("makes archived content read-only", async () => {
-    api.getAcademicContent.mockResolvedValue(detail("content-1", "ARCHIVED"));
+  it.each([
+    ["DRAFT", false],
+    ["CHANGES_REQUESTED", false],
+    ["SUBMITTED", true],
+    ["APPROVED", true],
+    ["SCHEDULED", true],
+    ["PUBLISHED", true],
+    ["EXPIRED", true],
+    ["ARCHIVED", true],
+    ["CANCELLED", true],
+  ] as const)("marks %s content read-only=%s", async (status, expectedReadOnly) => {
+    api.getAcademicContent.mockResolvedValue(detail("content-1", status));
 
     const { result } = renderHook(() => useAcademicContentEditor("content-1"));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.isReadOnly).toBe(true);
+    expect(result.current.isReadOnly).toBe(expectedReadOnly);
+  });
+
+  it("does not save submitted content through the hook", async () => {
+    api.getAcademicContent.mockResolvedValue(detail("content-1", "SUBMITTED"));
+    const { result } = renderHook(() => useAcademicContentEditor("content-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const saved = await result.current.saveMetadata({ title: "Blocked update" });
+
+    expect(saved).toBe(false);
+    expect(api.updateAcademicContent).not.toHaveBeenCalled();
   });
 
   it("applies a lifecycle response before the aggregate refresh completes", async () => {

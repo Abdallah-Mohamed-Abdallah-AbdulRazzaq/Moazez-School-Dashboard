@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Archive, RefreshCw } from "lucide-react";
+import { LockKeyhole, RefreshCw } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button/Button";
@@ -89,8 +89,8 @@ export function AcademicContentEditorView({
                 role="status"
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700"
               >
-                <Archive aria-hidden="true" className="size-4" />
-                {t("editor.archived_read_only")}
+                <LockKeyhole aria-hidden="true" className="size-4" />
+                {t("editor.read_only")}
               </div>
             )}
             <LifecycleActions

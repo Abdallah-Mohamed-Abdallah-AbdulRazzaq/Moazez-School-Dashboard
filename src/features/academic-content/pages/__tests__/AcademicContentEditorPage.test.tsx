@@ -32,7 +32,7 @@ function editorState(
     content: detail(status),
     readiness: { canAdvance: true, blockingReasons: [] },
     isLoading: false,
-    isReadOnly: status === "ARCHIVED",
+    isReadOnly: status !== "DRAFT" && status !== "CHANGES_REQUESTED",
     error: null,
     sections: {
       metadata: { dirty: metadataDirty, saving: false, error: null },
@@ -79,13 +79,20 @@ describe("AcademicContentEditorPage", () => {
     });
   });
 
-  it("renders archived content as read-only", () => {
-    render(<AcademicContentEditorView editor={editorState("ARCHIVED")} canManage />);
+  it.each(["SUBMITTED", "APPROVED", "ARCHIVED"] as const)(
+    "renders %s content as read-only",
+    (status) => {
+      render(<AcademicContentEditorView editor={editorState(status)} canManage />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Archived content is read-only");
-    expect(screen.getByLabelText("Title")).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Save basic information" })).not.toBeInTheDocument();
-  });
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "This content is read-only in its current status.",
+      );
+      expect(screen.getByLabelText("Title")).toBeDisabled();
+      expect(
+        screen.queryByRole("button", { name: "Save basic information" }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it("uses text and aria-current to identify the active responsive section", () => {
     render(<AcademicContentEditorView editor={editorState()} canManage />);

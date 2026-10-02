@@ -14411,7 +14411,7 @@
     "editor": {
       "unavailable_title": "المحتوى غير متاح",
       "unavailable_message": "تعذر تحميل المحتوى.",
-      "archived_read_only": "المحتوى المؤرشف للقراءة فقط",
+      "read_only": "هذا المحتوى للقراءة فقط في حالته الحالية.",
       "content_type": "نوع المحتوى",
       "academic_year": "العام الدراسي",
       "term": "الفصل الدراسي",

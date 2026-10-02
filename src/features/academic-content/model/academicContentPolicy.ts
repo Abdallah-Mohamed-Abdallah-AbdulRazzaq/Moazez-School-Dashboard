@@ -1,9 +1,15 @@
 import type {
   AcademicContentAudience,
+  AcademicContentStatus,
   AcademicContentTargetDraft,
   AcademicContentTargetScope,
   AcademicContentType,
 } from "../types/contracts";
+
+const MUTABLE_STATUSES: ReadonlySet<AcademicContentStatus> = new Set([
+  "DRAFT",
+  "CHANGES_REQUESTED",
+]);
 
 const AUDIENCES_BY_TYPE: Readonly<
   Record<AcademicContentType, readonly AcademicContentAudience[]>
@@ -47,6 +53,12 @@ export function allowedAudiences(
   type: AcademicContentType,
 ): readonly AcademicContentAudience[] {
   return AUDIENCES_BY_TYPE[type];
+}
+
+export function isAcademicContentMutableStatus(
+  status: AcademicContentStatus,
+): status is "DRAFT" | "CHANGES_REQUESTED" {
+  return MUTABLE_STATUSES.has(status);
 }
 
 export function requiresSubject(type: AcademicContentType): boolean {

@@ -18,6 +18,7 @@ import {
   academicContentUiError,
   type AcademicContentUiError,
 } from "../services/academicContentErrors";
+import { isAcademicContentMutableStatus } from "../model/academicContentPolicy";
 import type {
   AcademicContentBase,
   AcademicContentDetail,
@@ -81,6 +82,7 @@ export function useAcademicContentEditor(contentId: string) {
     useState<AcademicContentEditorSections>(initialSections);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<AcademicContentUiError | null>(null);
+  const canEdit = content ? isAcademicContentMutableStatus(content.status) : false;
 
   const refreshAggregate = useCallback(async () => {
     const loadedContent = await getAcademicContent(contentId);
@@ -172,7 +174,7 @@ export function useAcademicContentEditor(contentId: string) {
 
   const saveMetadata = useCallback(
     async (request: UpdateAcademicContentRequest): Promise<boolean> => {
-      if (content?.status === "ARCHIVED") return false;
+      if (!canEdit) return false;
 
       setSectionState("metadata", { saving: true, error: null });
       const metadataRequest: UpdateAcademicContentRequest = {
@@ -196,12 +198,12 @@ export function useAcademicContentEditor(contentId: string) {
         return false;
       }
     },
-    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+    [canEdit, contentId, refreshAggregate, refreshReadiness, setSectionState],
   );
 
   const saveTargets = useCallback(
     async (targets: AcademicContentTargetDraft[]): Promise<boolean> => {
-      if (content?.status === "ARCHIVED") return false;
+      if (!canEdit) return false;
 
       setSectionState("targets", { saving: true, error: null });
       try {
@@ -223,12 +225,12 @@ export function useAcademicContentEditor(contentId: string) {
         return false;
       }
     },
-    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+    [canEdit, contentId, refreshAggregate, refreshReadiness, setSectionState],
   );
 
   const saveLinks = useCallback(
     async (links: AcademicContentLinkInput[]): Promise<boolean> => {
-      if (content?.status === "ARCHIVED") return false;
+      if (!canEdit) return false;
 
       setSectionState("links", { saving: true, error: null });
       try {
@@ -250,12 +252,12 @@ export function useAcademicContentEditor(contentId: string) {
         return false;
       }
     },
-    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+    [canEdit, contentId, refreshAggregate, refreshReadiness, setSectionState],
   );
 
   const saveTags = useCallback(
     async (tags: AcademicContentTagInput[]): Promise<boolean> => {
-      if (content?.status === "ARCHIVED") return false;
+      if (!canEdit) return false;
 
       setSectionState("tags", { saving: true, error: null });
       try {
@@ -277,12 +279,12 @@ export function useAcademicContentEditor(contentId: string) {
         return false;
       }
     },
-    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+    [canEdit, contentId, refreshAggregate, refreshReadiness, setSectionState],
   );
 
   const saveDetailsMutation = useCallback(
     async (mutation: () => Promise<unknown>): Promise<boolean> => {
-      if (content?.status === "ARCHIVED") return false;
+      if (!canEdit) return false;
 
       setSectionState("details", { saving: true, error: null });
       try {
@@ -300,7 +302,7 @@ export function useAcademicContentEditor(contentId: string) {
         return false;
       }
     },
-    [content?.status, contentId, refreshAggregate, refreshReadiness, setSectionState],
+    [canEdit, contentId, refreshAggregate, refreshReadiness, setSectionState],
   );
 
   const savePreparationDetails = useCallback(
@@ -339,7 +341,7 @@ export function useAcademicContentEditor(contentId: string) {
     readiness,
     sections,
     isLoading,
-    isReadOnly: content?.status === "ARCHIVED",
+    isReadOnly: content ? !canEdit : false,
     hasUnsavedChanges,
     error,
     markSectionDirty,
