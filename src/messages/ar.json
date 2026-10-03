@@ -6192,9 +6192,6 @@
       "creationProgress": {
         "navigationLabel": "تقدم إنشاء الجدول الدراسي",
         "checking": "جارٍ التحقق من التقدم",
-        "overviewLabel": "الخطوة التالية",
-        "progressLabel": "التقدم",
-        "showDetails": "عرض كل الخطوات",
         "steps": {
           "scope": "اختيار النطاق",
           "configuration": "إعداد الجدول",

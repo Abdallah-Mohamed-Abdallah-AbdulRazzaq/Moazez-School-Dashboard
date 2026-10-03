@@ -1128,9 +1128,6 @@ export default function TimetableView({
   const creationProgressCopy = {
     navigationLabel: t("creationProgress.navigationLabel"),
     checking: t("creationProgress.checking"),
-    overviewLabel: t("creationProgress.overviewLabel"),
-    progressLabel: t("creationProgress.progressLabel"),
-    showDetails: t("creationProgress.showDetails"),
     steps: {
       scope: t("creationProgress.steps.scope"),
       configuration: t("creationProgress.steps.configuration"),

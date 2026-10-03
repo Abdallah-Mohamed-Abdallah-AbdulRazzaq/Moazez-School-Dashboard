@@ -10,9 +10,6 @@ import type {
 const copy = {
   navigationLabel: "Timetable creation progress",
   checking: "Checking progress",
-  overviewLabel: "Next step",
-  progressLabel: "Progress",
-  showDetails: "Show all steps",
   steps: {
     scope: "Select scope",
     configuration: "Configure timetable",
