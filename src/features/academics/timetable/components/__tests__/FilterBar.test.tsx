@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import FilterBar from "@/features/academics/timetable/components/FilterBar";
 
@@ -9,22 +8,17 @@ vi.mock("next-intl", () => ({
 }));
 
 describe("FilterBar", () => {
-  it("shows Term as a visible scope option and selects it", async () => {
-    const user = userEvent.setup();
-    const onScopeChange = vi.fn();
-
+  it("renders academic filters without a configuration scope selector", () => {
     render(
       <FilterBar
         stages={[]}
         grades={[]}
         sections={[]}
         classrooms={[]}
-        selectedStageId="stage-1"
+        selectedStageId=""
         selectedGradeId=""
         selectedSectionId=""
         selectedClassroomId=""
-        selectedScopeType="STAGE"
-        onScopeChange={onScopeChange}
         onStageChange={vi.fn()}
         onGradeChange={vi.fn()}
         onSectionChange={vi.fn()}
@@ -33,9 +27,10 @@ describe("FilterBar", () => {
       />,
     );
 
-    await user.click(screen.getByLabelText("selectScope"));
-    await user.click(screen.getByRole("button", { name: "scopeTerm" }));
-
-    expect(onScopeChange).toHaveBeenCalledWith("TERM");
+    expect(screen.queryByLabelText("selectScope")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("selectStage")).toBeInTheDocument();
+    expect(screen.getByLabelText("selectGrade")).toBeInTheDocument();
+    expect(screen.getByLabelText("selectSection")).toBeInTheDocument();
+    expect(screen.getByLabelText("selectClassroom")).toBeInTheDocument();
   });
 });

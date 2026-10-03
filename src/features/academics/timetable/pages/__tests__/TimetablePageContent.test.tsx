@@ -70,6 +70,10 @@ vi.mock("../../components/TimetableView", () => ({
   ),
 }));
 
+vi.mock("../../components/TimetableSetupGate", () => ({
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 vi.mock("../../../rooms/components/RoomsView", () => ({
   default: () => <div>Rooms</div>,
 }));

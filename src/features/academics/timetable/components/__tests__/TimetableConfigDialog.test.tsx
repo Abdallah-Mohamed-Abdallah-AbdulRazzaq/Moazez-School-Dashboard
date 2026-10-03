@@ -10,6 +10,7 @@ import {
   createTimetablePeriodDto,
 } from "@/features/academics/timetable/services/timetablePeriodsService";
 import { upsertBackendTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
+import type { TimetableScopeSelection } from "@/features/academics/timetable/services/timetableScope";
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
@@ -63,12 +64,18 @@ const renderDialog = ({
   mode = "periods",
   config = timetableConfig,
   selectedStageId = "",
+  allowScopeSelection = true,
+  fixedName,
+  fixedScope,
 }: {
   periods?: BackendTimetablePeriodDto[];
   readOnly?: boolean;
   mode?: "config" | "periods";
   config?: BackendTimetableConfigDto | null;
   selectedStageId?: string;
+  allowScopeSelection?: boolean;
+  fixedName?: string;
+  fixedScope?: TimetableScopeSelection;
 } = {}) => {
   const onSaved = vi.fn().mockResolvedValue(undefined);
 
@@ -89,6 +96,9 @@ const renderDialog = ({
       selectedClassroomId=""
       readOnly={readOnly}
       locale="en"
+      allowScopeSelection={allowScopeSelection}
+      fixedName={fixedName}
+      fixedScope={fixedScope}
     />,
   );
 
@@ -207,5 +217,57 @@ describe("TimetableConfigDialog", () => {
     const payload = vi.mocked(upsertBackendTimetableConfig).mock.calls[0][0];
     expect(payload).toMatchObject({ scopeType: "TERM" });
     expect(payload).not.toHaveProperty("stageId");
+  });
+
+  it("locks first-run setup to a generated term config", async () => {
+    const user = userEvent.setup();
+    vi.mocked(upsertBackendTimetableConfig).mockResolvedValue(timetableConfig);
+    renderDialog({
+      mode: "config",
+      config: null,
+      periods: [],
+      selectedStageId: "stage-1",
+      allowScopeSelection: false,
+      fixedName: "First term timetable",
+    });
+
+    expect(screen.queryByLabelText("config.name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("config.scopeLabel")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "config.saveConfig" }));
+
+    await waitFor(() => {
+      expect(upsertBackendTimetableConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scopeType: "TERM",
+          name: "First term timetable",
+        }),
+      );
+    });
+  });
+
+  it("locks an explicit override editor to its selected scope", async () => {
+    const user = userEvent.setup();
+    vi.mocked(upsertBackendTimetableConfig).mockResolvedValue({
+      ...timetableConfig,
+      scopeType: "stage",
+      scopeKey: "stage-1",
+      stageId: "stage-1",
+    });
+    renderDialog({
+      mode: "config",
+      config: null,
+      periods: [],
+      allowScopeSelection: false,
+      fixedScope: { scopeType: "STAGE", stageId: "stage-1" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "config.saveConfig" }));
+
+    await waitFor(() => {
+      expect(upsertBackendTimetableConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ scopeType: "STAGE", stageId: "stage-1" }),
+      );
+    });
   });
 });

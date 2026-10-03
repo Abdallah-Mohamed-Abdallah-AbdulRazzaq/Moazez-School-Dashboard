@@ -49,8 +49,9 @@ import { getTimetableConfigSourceName } from "@/features/academics/timetable/ser
 import {
   isTimetableUnpublishScopeSupported,
   resolveTimetableScopeSelection,
+  timetableConfigScopeId,
+  type TimetableScopeSelection,
 } from "@/features/academics/timetable/services/timetableScope";
-import type { TimetableScopeType } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
   resolveTimetableCreationProgress,
   type TimetableCreationAction,
@@ -142,19 +143,12 @@ export default function TimetableView({
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
   const { profile: brandingProfile } = useBrandingProfile();
-  const selectedScopeType = resolveTimetableScopeSelection({
+  const filteredScope = resolveTimetableScopeSelection({
     stageId: selectedStageId,
     gradeId: selectedGradeId,
     sectionId: selectedSectionId,
     classroomId: selectedClassroomId,
-  }).scopeType;
-
-  const changeScope = (scopeType: TimetableScopeType) => {
-    if (scopeType === "TERM") return onStageChange("");
-    if (scopeType === "STAGE") return onGradeChange("");
-    if (scopeType === "GRADE") return onSectionChange("");
-    if (scopeType === "SECTION") return onClassroomChange("");
-  };
+  });
   const canViewTimetable = hasPermission("academics.structure.view");
   const translateTimetableError = useCallback(
     (code: TimetableErrorCode) =>
@@ -194,6 +188,8 @@ export default function TimetableView({
   const [showExportModal, setShowExportModal] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [periodsDialogOpen, setPeriodsDialogOpen] = useState(false);
+  const [configurationScope, setConfigurationScope] =
+    useState<TimetableScopeSelection>({ scopeType: "TERM" });
   const [selectedSectionTabId, setSelectedSectionTabId] = useState<
     string | null
   >(null);
@@ -338,6 +334,7 @@ export default function TimetableView({
     selectedGradeId,
     selectedSectionId,
     selectedClassroomId,
+    configurationScope,
     isScopeSelectionNormalized,
     showToast,
     translateErrorCode: translateTimetableError,
@@ -416,6 +413,7 @@ export default function TimetableView({
     canViewTimetable && hasPermission("academics.structure.manage");
   const canWriteTimetable =
     canManageTimetable && termStatus !== "closed" && !isReadOnly;
+  const isTermDefaultConfiguration = configurationScope.scopeType === "TERM";
   const hasExactConfig = workspaceState.mode === "exact";
   const canCreateConfig = canWriteTimetable && !hasExactConfig;
   const canEditTimetable =
@@ -423,6 +421,37 @@ export default function TimetableView({
   const canConfigureTimetable = hasExactConfig
     ? canEditTimetable
     : canCreateConfig;
+  const sourceActionEnabled = isTermDefaultConfiguration
+    ? filteredScope.scopeType !== "TERM"
+    : canCreateConfig;
+
+  const openTimetableSettings = () => {
+    router.push("/academics/timetable/setup");
+  };
+
+  const openConfigurationEditor = () => {
+    if (isTermDefaultConfiguration) {
+      openTimetableSettings();
+      return;
+    }
+    setConfigDialogOpen(true);
+  };
+
+  const customizeFilteredScope = () => {
+    if (isTermDefaultConfiguration) {
+      if (filteredScope.scopeType !== "TERM") {
+        setConfigurationScope(filteredScope);
+      }
+      return;
+    }
+    setConfigDialogOpen(true);
+  };
+
+  const returnToTermDefault = () => {
+    setConfigDialogOpen(false);
+    setPeriodsDialogOpen(false);
+    setConfigurationScope({ scopeType: "TERM" });
+  };
   const isUnpublishScopeSupported = Boolean(
     config && isTimetableUnpublishScopeSupported(config.scopeType),
   );
@@ -1007,18 +1036,20 @@ export default function TimetableView({
     [getDisplayName, grades, sections, stages],
   );
 
-  const configSourceLabel = resolvedConfig
-    ? [
-        t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`),
-        getTimetableConfigSourceName(
-          resolvedConfig.source,
-          { stages, grades, sections, classrooms },
-          locale,
-        ),
-      ]
-        .filter((label): label is string => Boolean(label))
-        .join(": ")
-    : "";
+  const configurationSource = resolvedConfig?.source ?? {
+    scope: configurationScope.scopeType,
+    id: timetableConfigScopeId(configurationScope),
+  };
+  const configSourceLabel = [
+    t(`config.scope.${configurationSource.scope.toLowerCase()}`),
+    getTimetableConfigSourceName(
+      configurationSource,
+      { stages, grades, sections, classrooms },
+      locale,
+    ),
+  ]
+    .filter((label): label is string => Boolean(label))
+    .join(": ");
   const generationResult = useMemo(
     () =>
       generationResponse
@@ -1142,8 +1173,11 @@ export default function TimetableView({
 
   const openCreationStep = (action: TimetableCreationAction) => {
     if (action === "scope") return focusDestination(scopeRef.current);
-    if (action === "configuration") return setConfigDialogOpen(true);
-    if (action === "periods") return setPeriodsDialogOpen(true);
+    if (action === "configuration") return openConfigurationEditor();
+    if (action === "periods") {
+      if (isTermDefaultConfiguration) return openTimetableSettings();
+      return setPeriodsDialogOpen(true);
+    }
     if (action === "schedule") return focusDestination(gridRef.current);
     if (action === "validation") return void handleValidationOpen();
     void handlePublish();
@@ -1548,8 +1582,6 @@ export default function TimetableView({
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
-          selectedScopeType={selectedScopeType}
-          onScopeChange={changeScope}
           onStageChange={onStageChange}
           onGradeChange={onGradeChange}
           onSectionChange={onSectionChange}
@@ -1596,21 +1628,34 @@ export default function TimetableView({
         </div>
       )}
 
-      {hasTimetableScope && !timetableLoading && resolvedConfig && (
+      {hasTimetableScope && !timetableLoading && (
         <TimetableSourceBanner
           workspaceState={workspaceState}
           sourceName={configSourceLabel}
-          canCreateOverride={canCreateConfig}
-          onCreateOverride={() => setConfigDialogOpen(true)}
+          configurationScope={configurationScope}
+          primaryActionEnabled={sourceActionEnabled}
+          onCreateOverride={customizeFilteredScope}
+          onReturnToTermDefault={returnToTermDefault}
           copy={{
             exactTitle: t("source.exactTitle"),
             exactDescription: t("source.exactDescription"),
+            termDefaultTitle: t("source.termDefaultTitle"),
+            termDefaultDescription: t("source.termDefaultDescription"),
             inheritedTitle: t("source.inheritedTitle"),
             inheritedDescription: t("source.inheritedDescription"),
+            unconfiguredTitle: t("source.unconfiguredTitle"),
+            unconfiguredDescription: t("source.unconfiguredDescription"),
+            unconfiguredScopeDescription: t(
+              "source.unconfiguredScopeDescription",
+            ),
             sourceLabel: t("source.sourceLabel"),
             lockedLabel: t("source.lockedLabel"),
             createOverride: t("source.createOverride"),
+            customizeScope: t("source.customizeScope"),
+            openSelectedScope: t("source.openSelectedScope"),
+            returnToTermDefault: t("source.returnToTermDefault"),
             overrideUnavailable: t("source.overrideUnavailable"),
+            publishedOverridesNote: t("source.publishedOverridesNote"),
           }}
         />
       )}
@@ -1667,21 +1712,32 @@ export default function TimetableView({
                     {t("actions.reset")}
                   </Button>
                   <Button
-                    onClick={() => setConfigDialogOpen(true)}
-                    disabled={!canConfigureTimetable}
+                    onClick={openTimetableSettings}
                     variant="secondary"
                     leftIcon={<Settings className="w-4 h-4" />}
                   >
-                    {t("config.button")}
+                    {t("actions.settings")}
                   </Button>
-                  <Button
-                    onClick={() => setPeriodsDialogOpen(true)}
-                    disabled={!canEditTimetable || !config}
-                    variant="secondary"
-                    leftIcon={<Clock3 className="w-4 h-4" />}
-                  >
-                    {t("config.periodsButton")}
-                  </Button>
+                  {!isTermDefaultConfiguration && (
+                    <>
+                      <Button
+                        onClick={openConfigurationEditor}
+                        disabled={!canConfigureTimetable}
+                        variant="secondary"
+                        leftIcon={<Settings className="w-4 h-4" />}
+                      >
+                        {t("config.button")}
+                      </Button>
+                      <Button
+                        onClick={() => setPeriodsDialogOpen(true)}
+                        disabled={!canEditTimetable || !config}
+                        variant="secondary"
+                        leftIcon={<Clock3 className="w-4 h-4" />}
+                      >
+                        {t("config.periodsButton")}
+                      </Button>
+                    </>
+                  )}
                   <Button
                     onClick={() => setGenerateDialogOpen(true)}
                     disabled={!canEditTimetable || !resolvedConfig}
@@ -1703,9 +1759,7 @@ export default function TimetableView({
                   ) : (
                     <Button
                       onClick={handleUnpublish}
-                      disabled={
-                        !canUnpublishTimetable
-                      }
+                      disabled={!canUnpublishTimetable}
                       title={
                         config && !isUnpublishScopeSupported
                           ? t("errors.unpublishUnsupportedScope")
@@ -1788,23 +1842,35 @@ export default function TimetableView({
               {canManageTimetable && (
                 <>
                   <Button
-                    onClick={() => setConfigDialogOpen(true)}
-                    disabled={!canConfigureTimetable}
+                    onClick={openTimetableSettings}
                     variant="secondary"
                     leftIcon={<Settings className="w-4 h-4" />}
                     size="sm"
                   >
-                    {t("config.button")}
+                    {t("actions.settings")}
                   </Button>
-                  <Button
-                    onClick={() => setPeriodsDialogOpen(true)}
-                    disabled={!canEditTimetable || !config}
-                    variant="secondary"
-                    leftIcon={<Clock3 className="w-4 h-4" />}
-                    size="sm"
-                  >
-                    {t("config.periodsButton")}
-                  </Button>
+                  {!isTermDefaultConfiguration && (
+                    <>
+                      <Button
+                        onClick={openConfigurationEditor}
+                        disabled={!canConfigureTimetable}
+                        variant="secondary"
+                        leftIcon={<Settings className="w-4 h-4" />}
+                        size="sm"
+                      >
+                        {t("config.button")}
+                      </Button>
+                      <Button
+                        onClick={() => setPeriodsDialogOpen(true)}
+                        disabled={!canEditTimetable || !config}
+                        variant="secondary"
+                        leftIcon={<Clock3 className="w-4 h-4" />}
+                        size="sm"
+                      >
+                        {t("config.periodsButton")}
+                      </Button>
+                    </>
+                  )}
                   <Button
                     onClick={() => setGenerateDialogOpen(true)}
                     disabled={!canEditTimetable || !resolvedConfig}
@@ -1828,9 +1894,7 @@ export default function TimetableView({
                   ) : (
                     <Button
                       onClick={handleUnpublish}
-                      disabled={
-                        !canUnpublishTimetable
-                      }
+                      disabled={!canUnpublishTimetable}
                       title={
                         config && !isUnpublishScopeSupported
                           ? t("errors.unpublishUnsupportedScope")
@@ -1903,7 +1967,7 @@ export default function TimetableView({
             description={tEmpty("no_timetable_config.description")}
             ctaLabel={tEmpty("no_timetable_config.cta")}
             ctaDisabled={!canCreateConfig}
-            onCtaClick={() => setConfigDialogOpen(true)}
+            onCtaClick={openConfigurationEditor}
             className="h-full"
           />
         ) : periods.length === 0 ? (
@@ -1918,7 +1982,11 @@ export default function TimetableView({
             }
             ctaDisabled={!canEditTimetable}
             onCtaClick={
-              canManageTimetable ? () => setPeriodsDialogOpen(true) : undefined
+              canManageTimetable
+                ? isTermDefaultConfiguration
+                  ? openTimetableSettings
+                  : () => setPeriodsDialogOpen(true)
+                : undefined
             }
             className="h-full"
           />
@@ -2138,7 +2206,7 @@ export default function TimetableView({
       )}
 
       {/* Config Dialog */}
-      {configDialogOpen && (
+      {configDialogOpen && !isTermDefaultConfiguration && (
         <TimetableConfigDialog
           mode="config"
           open={configDialogOpen}
@@ -2157,10 +2225,12 @@ export default function TimetableView({
           selectedClassroomId={selectedClassroomId}
           readOnly={!canConfigureTimetable}
           locale={locale}
+          allowScopeSelection={false}
+          fixedScope={configurationScope}
         />
       )}
 
-      {periodsDialogOpen && (
+      {periodsDialogOpen && !isTermDefaultConfiguration && (
         <TimetableConfigDialog
           mode="periods"
           open={periodsDialogOpen}

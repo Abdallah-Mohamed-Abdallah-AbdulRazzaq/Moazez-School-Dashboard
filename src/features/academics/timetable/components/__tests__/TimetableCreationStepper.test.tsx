@@ -121,14 +121,13 @@ describe("TimetableCreationStepper", () => {
 
     expect(
       screen.getByRole("status", { name: "Checking progress" }),
-    ).toHaveAttribute(
-      "aria-busy",
-      "true",
-    );
+    ).toHaveAttribute("aria-busy", "true");
   });
 });
 
-function progressWith(replacement: TimetableCreationStep): TimetableCreationProgress {
+function progressWith(
+  replacement: TimetableCreationStep,
+): TimetableCreationProgress {
   return {
     state: "ready",
     steps: [

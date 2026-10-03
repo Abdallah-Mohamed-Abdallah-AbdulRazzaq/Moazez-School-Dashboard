@@ -275,15 +275,16 @@ export default function TimetableGrid({
     return (
       <div className="py-8 px-3 min-h-[80px] flex items-center justify-center">
         {!isReadOnly && (
-          <>
-            <div className="hidden lg:flex opacity-0 group-hover:opacity-100 transition-opacity duration-200 items-center gap-1.5 text-gray-400 group-hover:text-primary text-sm font-medium">
-              <Plus className="w-4 h-4" />
-              <span>{t("add")}</span>
-            </div>
-            <div className="lg:hidden opacity-30 flex items-center justify-center">
-              <Plus className="w-5 h-5 text-gray-400" />
-            </div>
-          </>
+          <button
+            type="button"
+            className=" flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary"
+            onClick={(event) => {
+              event.stopPropagation();
+              onSlotClick(day.key, period.index);
+            }}
+          >
+            <Plus className="w-5 h-5" /> {t("add")}
+          </button>
         )}
       </div>
     );
@@ -580,9 +581,17 @@ export default function TimetableGrid({
                             )}
                           </div>
                         ) : (
-                          <div className="text-center py-4 text-gray-400 flex items-center justify-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            <span className="text-sm">{t("add")}</span>
+                          <div className="flex justify-center py-4">
+                            <button
+                              type="button"
+                              className=" flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onSlotClick(day.key, period.index);
+                              }}
+                            >
+                              <Plus className="w-5 h-5" /> {t("add")}
+                            </button>
                           </div>
                         )}
                       </div>
