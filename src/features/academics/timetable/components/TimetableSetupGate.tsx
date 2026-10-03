@@ -1,13 +1,8 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
-import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { TimetableContentLoadingSkeleton } from "@/features/academics/timetable/components/TimetableLoadingSkeletons";
-import {
-  TimetableSetupBlocker,
-  TimetableSetupLoadError,
-} from "@/features/academics/timetable/components/TimetableSetupFeedback";
+import { TimetableSetupNotice } from "@/features/academics/timetable/components/TimetableSetupFeedback";
 import { useTimetableSetupStatus } from "@/features/academics/timetable/hooks/useTimetableSetupStatus";
 
 interface TimetableSetupGateProps {
@@ -25,7 +20,6 @@ export default function TimetableSetupGate({
   canManage,
   children,
 }: TimetableSetupGateProps) {
-  const t = useTranslations("academics.timetable");
   const router = useRouter();
   const setup = useTimetableSetupStatus({
     academicYearId,
@@ -33,25 +27,17 @@ export default function TimetableSetupGate({
     termStatus,
     canManage,
   });
-  const mustRedirect =
-    setup.status?.kind === "missing_config" ||
-    setup.status?.kind === "missing_periods";
 
-  useEffect(() => {
-    if (mustRedirect) router.replace("/academics/timetable/setup");
-  }, [mustRedirect, router]);
-
-  if (setup.isLoading || !setup.status || mustRedirect) {
-    return <TimetableContentLoadingSkeleton label={t("loadingLabel")} />;
-  }
-
-  if (setup.status.kind === "error") {
-    return <TimetableSetupLoadError onRetry={setup.reload} />;
-  }
-
-  if (setup.status.kind === "read_only") {
-    return <TimetableSetupBlocker status={setup.status} />;
-  }
-
-  return <>{children}</>;
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      {!setup.isLoading && setup.status?.kind !== "ready" && setup.status && (
+        <TimetableSetupNotice
+          status={setup.status}
+          onOpenSetup={() => router.push("/academics/timetable/setup")}
+          onRetry={setup.reload}
+        />
+      )}
+      <div className="min-h-0 flex-1">{children}</div>
+    </div>
+  );
 }

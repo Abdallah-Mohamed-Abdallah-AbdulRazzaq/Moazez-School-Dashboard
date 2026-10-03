@@ -421,10 +421,8 @@ export default function TimetableView({
   const canConfigureTimetable = hasExactConfig
     ? canEditTimetable
     : canCreateConfig;
-  const canCustomizeFilteredScope =
-    canWriteTimetable && filteredScope.scopeType !== "TERM";
-  const canCreateOverride = isTermDefaultConfiguration
-    ? canCustomizeFilteredScope
+  const sourceActionEnabled = isTermDefaultConfiguration
+    ? filteredScope.scopeType !== "TERM"
     : canCreateConfig;
 
   const openTimetableSettings = () => {
@@ -1130,6 +1128,9 @@ export default function TimetableView({
   const creationProgressCopy = {
     navigationLabel: t("creationProgress.navigationLabel"),
     checking: t("creationProgress.checking"),
+    overviewLabel: t("creationProgress.overviewLabel"),
+    progressLabel: t("creationProgress.progressLabel"),
+    showDetails: t("creationProgress.showDetails"),
     steps: {
       scope: t("creationProgress.steps.scope"),
       configuration: t("creationProgress.steps.configuration"),
@@ -1630,14 +1631,12 @@ export default function TimetableView({
         </div>
       )}
 
-      {hasTimetableScope &&
-        !timetableLoading &&
-        (resolvedConfig || !isTermDefaultConfiguration) && (
+      {hasTimetableScope && !timetableLoading && (
         <TimetableSourceBanner
           workspaceState={workspaceState}
           sourceName={configSourceLabel}
           configurationScope={configurationScope}
-          canCreateOverride={canCreateOverride}
+          primaryActionEnabled={sourceActionEnabled}
           onCreateOverride={customizeFilteredScope}
           onReturnToTermDefault={returnToTermDefault}
           copy={{
@@ -1647,16 +1646,22 @@ export default function TimetableView({
             termDefaultDescription: t("source.termDefaultDescription"),
             inheritedTitle: t("source.inheritedTitle"),
             inheritedDescription: t("source.inheritedDescription"),
+            unconfiguredTitle: t("source.unconfiguredTitle"),
+            unconfiguredDescription: t("source.unconfiguredDescription"),
+            unconfiguredScopeDescription: t(
+              "source.unconfiguredScopeDescription",
+            ),
             sourceLabel: t("source.sourceLabel"),
             lockedLabel: t("source.lockedLabel"),
             createOverride: t("source.createOverride"),
             customizeScope: t("source.customizeScope"),
+            openSelectedScope: t("source.openSelectedScope"),
             returnToTermDefault: t("source.returnToTermDefault"),
             overrideUnavailable: t("source.overrideUnavailable"),
             publishedOverridesNote: t("source.publishedOverridesNote"),
           }}
         />
-        )}
+      )}
 
       {hasTimetableScope && !timetableLoading && readOnlyBanner && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 lg:px-6">
@@ -1757,9 +1762,7 @@ export default function TimetableView({
                   ) : (
                     <Button
                       onClick={handleUnpublish}
-                      disabled={
-                        !canUnpublishTimetable
-                      }
+                      disabled={!canUnpublishTimetable}
                       title={
                         config && !isUnpublishScopeSupported
                           ? t("errors.unpublishUnsupportedScope")
@@ -1894,9 +1897,7 @@ export default function TimetableView({
                   ) : (
                     <Button
                       onClick={handleUnpublish}
-                      disabled={
-                        !canUnpublishTimetable
-                      }
+                      disabled={!canUnpublishTimetable}
                       title={
                         config && !isUnpublishScopeSupported
                           ? t("errors.unpublishUnsupportedScope")

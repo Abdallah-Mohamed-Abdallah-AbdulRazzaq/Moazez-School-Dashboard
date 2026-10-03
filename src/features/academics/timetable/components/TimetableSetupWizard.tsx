@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui";
 import TimetableConfigEditor from "@/features/academics/timetable/components/TimetableConfigEditor";
 import TimetablePeriodsEditor from "@/features/academics/timetable/components/TimetablePeriodsEditor";
@@ -59,15 +59,33 @@ export default function TimetableSetupWizard({
   }));
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6" dir={isRtl ? "rtl" : "ltr"}>
+    <div
+      className="mx-auto w-full max-w-5xl space-y-6"
+      dir={isRtl ? "rtl" : "ltr"}
+    >
       <header className="space-y-2">
         <h1 className="text-2xl font-bold text-gray-900">{t("setup.title")}</h1>
         <p className="text-sm text-gray-600">{t("setup.description")}</p>
         <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <ContextDetail label={t("setup.academicYear")} value={academicYearName} />
+          <ContextDetail
+            label={t("setup.academicYear")}
+            value={academicYearName}
+          />
           <ContextDetail label={t("setup.term")} value={termName} />
         </dl>
       </header>
+
+      <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <div>
+          <p className="text-sm font-semibold">
+            {t("setup.existingScopes.title")}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-emerald-900">
+            {t("setup.existingScopes.description")}
+          </p>
+        </div>
+      </div>
 
       <WizardStepper
         steps={steps}
@@ -135,7 +153,13 @@ export default function TimetableSetupWizard({
               <Button
                 variant="secondary"
                 onClick={() => setActiveStep(1)}
-                leftIcon={isRtl ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+                leftIcon={
+                  isRtl ? (
+                    <ArrowRight className="h-4 w-4" />
+                  ) : (
+                    <ArrowLeft className="h-4 w-4" />
+                  )
+                }
               >
                 {t("setup.back")}
               </Button>
@@ -202,14 +226,26 @@ function WizardActions({
       <Button
         variant="secondary"
         onClick={onBack}
-        leftIcon={isRtl ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+        leftIcon={
+          isRtl ? (
+            <ArrowRight className="h-4 w-4" />
+          ) : (
+            <ArrowLeft className="h-4 w-4" />
+          )
+        }
       >
         {t("setup.back")}
       </Button>
       <Button
         onClick={onContinue}
         disabled={continueDisabled}
-        rightIcon={isRtl ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+        rightIcon={
+          isRtl ? (
+            <ArrowLeft className="h-4 w-4" />
+          ) : (
+            <ArrowRight className="h-4 w-4" />
+          )
+        }
       >
         {t("setup.continue")}
       </Button>
@@ -244,7 +280,10 @@ function SetupReview({
         {details.map(([label, value]) => (
           <div key={label} className="rounded-xl bg-gray-50 p-4">
             <dt className="text-xs font-medium text-gray-500">{label}</dt>
-            <dd className="mt-1 text-base font-semibold text-gray-900" dir="auto">
+            <dd
+              className="mt-1 text-base font-semibold text-gray-900"
+              dir="auto"
+            >
               {value}
             </dd>
           </div>

@@ -14,7 +14,6 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { Button } from "@/components/ui";
 import { TimetableEntry } from "@/features/academics/timetable/types/timetable";
 import {
   resolveTimetableConflictTargetEntry,

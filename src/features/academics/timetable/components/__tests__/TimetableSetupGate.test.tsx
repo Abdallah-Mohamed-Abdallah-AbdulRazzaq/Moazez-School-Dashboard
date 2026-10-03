@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TimetableSetupGate from "@/features/academics/timetable/components/TimetableSetupGate";
 import type {
@@ -7,7 +8,10 @@ import type {
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { TimetableSetupStatus } from "@/features/academics/timetable/services/timetableSetupStatus";
 
-const routerMocks = vi.hoisted(() => ({ replace: vi.fn() }));
+const routerMocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  replace: vi.fn(),
+}));
 const setupHookMock = vi.hoisted(() => ({
   result: {
     status: null as TimetableSetupStatus | null,
@@ -19,6 +23,7 @@ const setupHookMock = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({ useRouter: () => routerMocks }));
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
+  useLocale: () => "en",
 }));
 vi.mock("@/features/academics/timetable/hooks/useTimetableSetupStatus", () => ({
   useTimetableSetupStatus: () => setupHookMock.result,
@@ -99,17 +104,21 @@ describe("TimetableSetupGate", () => {
   });
 
   it.each(["missing_config", "missing_periods"] as const)(
-    "replaces the route for manageable %s setup",
+    "keeps the workspace available for manageable %s setup",
     async (kind) => {
+      const user = userEvent.setup();
       mockStatus(kind);
       renderGate();
 
-      await waitFor(() => {
-        expect(routerMocks.replace).toHaveBeenCalledWith(
-          "/academics/timetable/setup",
-        );
-      });
-      expect(screen.queryByText("workspace child")).not.toBeInTheDocument();
+      expect(screen.getByText("workspace child")).toBeInTheDocument();
+      expect(routerMocks.replace).not.toHaveBeenCalled();
+
+      await user.click(
+        screen.getByRole("button", { name: "setup.notice.openSetup" }),
+      );
+      expect(routerMocks.push).toHaveBeenCalledWith(
+        "/academics/timetable/setup",
+      );
     },
   );
 
@@ -118,9 +127,34 @@ describe("TimetableSetupGate", () => {
     renderGate();
 
     expect(routerMocks.replace).not.toHaveBeenCalled();
+    expect(screen.getByText("workspace child")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "setup.retry" }),
     ).toBeInTheDocument();
+  });
+
+  it("keeps legacy scopes viewable when the default cannot be completed", () => {
+    setupHookMock.result = {
+      status: {
+        kind: "read_only",
+        readiness: "missing_config",
+        reason: "missing_permission",
+        config: null,
+        periods: [],
+      },
+      isLoading: false,
+      reload: vi.fn().mockResolvedValue(undefined),
+    };
+
+    renderGate();
+
+    expect(screen.getByText("workspace child")).toBeInTheDocument();
+    expect(
+      screen.getByText("setup.readOnly.missingPermission"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "setup.notice.openSetup" }),
+    ).not.toBeInTheDocument();
   });
 
   it("allows a ready draft through", () => {

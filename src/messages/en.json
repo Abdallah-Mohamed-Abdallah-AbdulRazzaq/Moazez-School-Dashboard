@@ -6505,6 +6505,9 @@
       "creationProgress": {
         "navigationLabel": "Timetable creation progress",
         "checking": "Checking progress",
+        "overviewLabel": "Next step",
+        "progressLabel": "Progress",
+        "showDetails": "Show all steps",
         "steps": {
           "scope": "Select scope",
           "configuration": "Configure timetable",
@@ -6815,6 +6818,20 @@
         "back": "Back",
         "retry": "Try again",
         "startBuilding": "Start building the timetable",
+        "existingScopes": {
+          "title": "Your custom setups are preserved",
+          "description": "Creating a term default does not delete or change any existing stage, grade, section, or classroom setup. Custom setups keep priority inside their own scope."
+        },
+        "notice": {
+          "missingConfigTitle": "This term does not have a default setup yet",
+          "missingConfigDescription": "Select a stage, grade, section, or classroom, then open the selected scope to access its existing setup—or create one default for the rest of the school.",
+          "missingPeriodsTitle": "The term default still needs lesson periods",
+          "missingPeriodsDescription": "Add period times to the default setup, or select an existing custom scope to continue working there.",
+          "existingScopesSafe": "Existing custom timetables and setups will not be changed.",
+          "openSetup": "Set up term default",
+          "loadTitle": "We could not check the term setup",
+          "loadDescription": "You can keep using the timetable workspace or try the check again."
+        },
         "stepStatus": {
           "current": "Current step",
           "completed": "Completed"
@@ -6999,10 +7016,14 @@
         "termDefaultDescription": "This timetable setup is the default for every stage, grade, section, and classroom in the term.",
         "inheritedTitle": "Inherited published timetable",
         "inheritedDescription": "This published timetable is inherited and read-only.",
+        "unconfiguredTitle": "No setup is loaded for this view",
+        "unconfiguredDescription": "Choose a scope above, then open it to check for an existing custom setup or create a new one.",
+        "unconfiguredScopeDescription": "No custom setup was found for this scope. You can create one if you have manage permission.",
         "sourceLabel": "Source",
         "lockedLabel": "Inherited timetable is locked",
         "createOverride": "Create custom timetable",
         "customizeScope": "Customize a specific scope",
+        "openSelectedScope": "Open selected scope",
         "returnToTermDefault": "Return to term default",
         "overrideUnavailable": "Select a stage, grade, section, or classroom and make sure you have manage permission before customizing.",
         "publishedOverridesNote": "Published overrides take precedence only inside their specific scopes."

@@ -20,16 +20,48 @@ const copy = {
   termDefaultDescription: "This draft applies to all classrooms by default.",
   inheritedTitle: "Inherited published timetable",
   inheritedDescription: "This published timetable is inherited and read-only.",
+  unconfiguredTitle: "No setup loaded",
+  unconfiguredDescription: "Open the selected scope to check its setup.",
+  unconfiguredScopeDescription: "No custom setup exists for this scope.",
   sourceLabel: "Source",
   lockedLabel: "Inherited timetable is locked",
   createOverride: "Create custom timetable",
   customizeScope: "Customize a specific scope",
+  openSelectedScope: "Open selected scope",
   returnToTermDefault: "Return to term default",
   overrideUnavailable: "You cannot create an override for this scope.",
-  publishedOverridesNote: "Published overrides take precedence in their scopes.",
+  publishedOverridesNote:
+    "Published overrides take precedence in their scopes.",
 };
 
 describe("TimetableSourceBanner", () => {
+  it("opens a selected legacy scope when no term default exists", async () => {
+    const user = userEvent.setup();
+    const onOpenSelectedScope = vi.fn();
+    render(
+      <TimetableSourceBanner
+        workspaceState={resolveTimetableWorkspaceState({
+          exactConfig: null,
+          effectiveConfig: null,
+        })}
+        sourceName="Term timetable"
+        configurationScope={{ scopeType: "TERM" }}
+        primaryActionEnabled
+        onCreateOverride={onOpenSelectedScope}
+        onReturnToTermDefault={vi.fn()}
+        copy={copy}
+      />,
+    );
+
+    expect(screen.getByText(copy.unconfiguredTitle)).toBeInTheDocument();
+    expect(screen.getByText(copy.unconfiguredDescription)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: copy.openSelectedScope }),
+    );
+    expect(onOpenSelectedScope).toHaveBeenCalledOnce();
+  });
+
   it("identifies an inherited source and creates an override", async () => {
     const user = userEvent.setup();
     const onCreateOverride = vi.fn();
@@ -41,7 +73,7 @@ describe("TimetableSourceBanner", () => {
         })}
         sourceName="Stage: Primary"
         configurationScope={{ scopeType: "STAGE", stageId: "stage-1" }}
-        canCreateOverride
+        primaryActionEnabled
         onCreateOverride={onCreateOverride}
         onReturnToTermDefault={vi.fn()}
         copy={copy}
@@ -55,9 +87,7 @@ describe("TimetableSourceBanner", () => {
       screen.getByRole("img", { name: copy.lockedLabel }),
     ).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: copy.createOverride }),
-    );
+    await user.click(screen.getByRole("button", { name: copy.createOverride }));
     expect(onCreateOverride).toHaveBeenCalledOnce();
   });
 
@@ -70,7 +100,7 @@ describe("TimetableSourceBanner", () => {
         })}
         sourceName="Stage: Primary"
         configurationScope={{ scopeType: "STAGE", stageId: "stage-1" }}
-        canCreateOverride={false}
+        primaryActionEnabled={false}
         onCreateOverride={vi.fn()}
         onReturnToTermDefault={vi.fn()}
         copy={copy}
@@ -112,7 +142,7 @@ describe("TimetableSourceBanner", () => {
           scopeType: "CLASSROOM",
           classroomId: "classroom-1",
         }}
-        canCreateOverride
+        primaryActionEnabled
         onCreateOverride={vi.fn()}
         onReturnToTermDefault={vi.fn()}
         copy={copy}
@@ -158,7 +188,7 @@ describe("TimetableSourceBanner", () => {
         })}
         sourceName="Term timetable"
         configurationScope={{ scopeType: "TERM" }}
-        canCreateOverride
+        primaryActionEnabled
         onCreateOverride={onCreateOverride}
         onReturnToTermDefault={vi.fn()}
         copy={copy}
@@ -167,9 +197,7 @@ describe("TimetableSourceBanner", () => {
 
     expect(screen.getByText(copy.termDefaultDescription)).toBeInTheDocument();
     expect(screen.getByText(copy.publishedOverridesNote)).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: copy.customizeScope }),
-    );
+    await user.click(screen.getByRole("button", { name: copy.customizeScope }));
     expect(onCreateOverride).toHaveBeenCalledOnce();
   });
 });
