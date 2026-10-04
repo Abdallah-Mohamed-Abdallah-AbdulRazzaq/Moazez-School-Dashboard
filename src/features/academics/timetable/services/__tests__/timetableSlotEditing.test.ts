@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { Subject } from "@/features/academics/subjects/services/subjectsService";
-import type { Room } from "@/features/academics/timetable/types/timetable";
+import type {
+  Room,
+  TimetableEntry,
+} from "@/features/academics/timetable/types/timetable";
 import type {
   Teacher,
   TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import {
+  persistedEntriesClearedForDeletion,
   resolveTimetableLessonDefaults,
   subjectOptionsForGradeAllocations,
   teacherAllocationOptions,
@@ -174,6 +178,36 @@ describe("subjectOptionsForGradeAllocations", () => {
         gradeId: "grade-1",
       }).map((subject) => subject.id),
     ).toEqual(["subject-math"]);
+  });
+});
+
+describe("persistedEntriesClearedForDeletion", () => {
+  it("clears every persisted slot and discards unsaved temporary slots", () => {
+    const persistedEntry: TimetableEntry = {
+      id: "entry-1",
+      termId: "term-1",
+      sectionId: "section-1",
+      classroomId: "classroom-1",
+      dayKey: "sun",
+      periodIndex: 1,
+      subjectId: "subject-math",
+      teacherId: "teacher-1",
+      roomId: "room-1",
+    };
+
+    expect(
+      persistedEntriesClearedForDeletion([
+        persistedEntry,
+        { ...persistedEntry, id: "temp-new-slot", periodIndex: 2 },
+      ]),
+    ).toEqual([
+      {
+        ...persistedEntry,
+        subjectId: null,
+        teacherId: null,
+        roomId: null,
+      },
+    ]);
   });
 });
 

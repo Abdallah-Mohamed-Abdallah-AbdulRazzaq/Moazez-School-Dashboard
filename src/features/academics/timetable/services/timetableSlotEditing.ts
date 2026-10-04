@@ -7,7 +7,10 @@ import type {
   SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
 import type { Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
-import type { Room } from "@/features/academics/timetable/types/timetable";
+import type {
+  Room,
+  TimetableEntry,
+} from "@/features/academics/timetable/types/timetable";
 import { getDefaultRoomSuggestion } from "@/features/academics/timetable/utils/roomRecommendations";
 
 export interface TeacherAllocationOption {
@@ -67,6 +70,19 @@ export function subjectOptionsForGradeAllocations({
   );
 
   return subjects.filter((subject) => allocatedSubjectIds.has(subject.id));
+}
+
+export function persistedEntriesClearedForDeletion(
+  entries: TimetableEntry[],
+): TimetableEntry[] {
+  return entries
+    .filter((entry) => !entry.id.startsWith("temp-"))
+    .map((entry) => ({
+      ...entry,
+      subjectId: null,
+      teacherId: null,
+      roomId: null,
+    }));
 }
 
 export function teacherAllocationOptions({
