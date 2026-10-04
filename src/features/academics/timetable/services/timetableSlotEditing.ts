@@ -6,7 +6,12 @@ import type {
   Subject,
   SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
-import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
+import type { Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
+import type {
+  Room,
+  TimetableEntry,
+} from "@/features/academics/timetable/types/timetable";
+import { getDefaultRoomSuggestion } from "@/features/academics/timetable/utils/roomRecommendations";
 
 export interface TeacherAllocationOption {
   allocationId: string;
@@ -29,6 +34,21 @@ export interface SubjectOptionsForGradeAllocationsParams {
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   gradeId?: string;
+}
+
+export interface ResolveTimetableLessonDefaultsInput {
+  subjectId: string;
+  sectionId: string;
+  classroomId: string;
+  teacherAllocations: TeacherAllocation[];
+  teachers: Teacher[];
+  subjects: Subject[];
+  rooms: Room[];
+  selectedClassroom: Pick<
+    Classroom,
+    "id" | "nameAr" | "nameEn" | "capacity"
+  >;
+  locale: string;
 }
 
 export function subjectOptionsForGradeAllocations({
@@ -89,6 +109,42 @@ export function teacherAllocationOptions({
         label: allocationLabel({ teacher, subject, locale }) || allocation.id,
       };
     });
+}
+
+export function resolveTimetableLessonDefaults({
+  subjectId,
+  sectionId,
+  classroomId,
+  teacherAllocations,
+  teachers,
+  subjects,
+  rooms,
+  selectedClassroom,
+  locale,
+}: ResolveTimetableLessonDefaultsInput): {
+  teacherId: string | null;
+  roomId: string | null;
+} {
+  const [allocation] = teacherAllocationOptions({
+    teacherAllocations,
+    teachers,
+    subjects,
+    sectionId,
+    classroomId,
+    subjectId,
+    locale,
+  });
+  const roomSuggestion = getDefaultRoomSuggestion({
+    subjectId,
+    subjects,
+    rooms,
+    selectedClassroom,
+  });
+
+  return {
+    teacherId: allocation?.teacherId || null,
+    roomId: roomSuggestion.roomId,
+  };
 }
 
 function allocationLabel({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   fetchStructureTree,
   type Classroom,
@@ -52,8 +52,8 @@ import type {
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
   isTimetableUnpublishScopeSupported,
-  resolveTimetableScopeSelection,
   timetableConfigScopeId,
+  type TimetableScopeSelection,
 } from "@/features/academics/timetable/services/timetableScope";
 import {
   resolveTimetableWorkspaceState,
@@ -102,6 +102,7 @@ interface UseTimetableDataParams {
   selectedGradeId: string;
   selectedSectionId: string;
   selectedClassroomId: string;
+  configurationScope?: TimetableScopeSelection;
   isScopeSelectionNormalized: boolean;
   showToast: (
     message: string,
@@ -288,15 +289,33 @@ const selectedDashboardItem = (
   items.find((dashboardItem) => dashboardItem.classroomId === classroomId) ??
   null;
 
+function configurationScopeRequest(
+  scopeType: TimetableScopeType,
+  ids: Omit<TimetableScopeSelection, "scopeType">,
+): TimetableScopeSelection {
+  switch (scopeType) {
+    case "STAGE":
+      return { scopeType, stageId: ids.stageId };
+    case "GRADE":
+      return { scopeType, gradeId: ids.gradeId };
+    case "SECTION":
+      return { scopeType, sectionId: ids.sectionId };
+    case "CLASSROOM":
+      return { scopeType, classroomId: ids.classroomId };
+    default:
+      return { scopeType: "TERM" };
+  }
+}
+
 export function useTimetableData({
   schoolId,
   termId,
   academicYearId = "",
   enabled = true,
-  selectedStageId,
   selectedGradeId,
   selectedSectionId,
   selectedClassroomId,
+  configurationScope,
   isScopeSelectionNormalized,
   showToast,
   translateErrorCode,
@@ -366,16 +385,11 @@ export function useTimetableData({
 
   const isLoading = dependenciesLoading && stages.length === 0;
 
-  const scopeSelection = useMemo(
-    () =>
-      resolveTimetableScopeSelection({
-        stageId: selectedStageId,
-        gradeId: selectedGradeId,
-        sectionId: selectedSectionId,
-        classroomId: selectedClassroomId,
-      }),
-    [selectedClassroomId, selectedGradeId, selectedSectionId, selectedStageId],
-  );
+  const configurationScopeType = configurationScope?.scopeType ?? "TERM";
+  const configurationStageId = configurationScope?.stageId;
+  const configurationGradeId = configurationScope?.gradeId;
+  const configurationSectionId = configurationScope?.sectionId;
+  const configurationClassroomId = configurationScope?.classroomId;
 
   const clearTimetableState = useCallback(() => {
     setConfig(null);
@@ -520,7 +534,16 @@ export function useTimetableData({
       if (requestId !== timetableRequestIdRef.current) return false;
 
       const [nextConfig, dashboardResponse] = await Promise.all([
-        exactTimetableConfig({ academicYearId, termId, ...scopeSelection }),
+        exactTimetableConfig({
+          academicYearId,
+          termId,
+          ...configurationScopeRequest(configurationScopeType, {
+            stageId: configurationStageId,
+            gradeId: configurationGradeId,
+            sectionId: configurationSectionId,
+            classroomId: configurationClassroomId,
+          }),
+        }),
         selectedClassroomId
           ? getDashboardTimetable({
               termId,
@@ -636,7 +659,11 @@ export function useTimetableData({
     termId,
     academicYearId,
     isScopeSelectionNormalized,
-    scopeSelection,
+    configurationClassroomId,
+    configurationGradeId,
+    configurationScopeType,
+    configurationSectionId,
+    configurationStageId,
     selectedClassroomId,
     clearTimetableState,
     messages,
@@ -1004,10 +1031,14 @@ export function useTimetableData({
       }
 
       try {
+        const scope = configScope(config);
         await unpublish({
           termId,
-          gradeId: selectedGradeId || undefined,
-          classroomId: selectedClassroomId || undefined,
+          gradeId: scope === "GRADE" ? config.gradeId ?? undefined : undefined,
+          classroomId:
+            scope === "CLASSROOM"
+              ? config.classroomId ?? undefined
+              : undefined,
         });
         await loadTimetableForScope();
         return { ok: true };
@@ -1025,8 +1056,6 @@ export function useTimetableData({
     [
       config,
       messages,
-      selectedClassroomId,
-      selectedGradeId,
       termId,
       translateErrorCode,
       loadTimetableForScope,
