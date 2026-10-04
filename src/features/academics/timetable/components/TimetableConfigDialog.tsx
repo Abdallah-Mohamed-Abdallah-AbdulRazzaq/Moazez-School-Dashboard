@@ -55,6 +55,10 @@ export default function TimetableConfigDialog({
 }: TimetableConfigDialogProps) {
   const t = useTranslations("academics.timetable");
   const isConfigMode = mode === "config";
+  const finishConfigSave = async () => {
+    await onSaved();
+    onClose();
+  };
 
   return (
     <Modal
@@ -91,7 +95,7 @@ export default function TimetableConfigDialog({
           readOnly={readOnly}
           locale={locale}
           submitLabel={t("config.saveConfig")}
-          onSaved={onSaved}
+          onSaved={finishConfigSave}
         />
       ) : config ? (
         <TimetablePeriodsEditor

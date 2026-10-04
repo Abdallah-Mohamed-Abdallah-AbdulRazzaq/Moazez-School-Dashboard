@@ -34,6 +34,7 @@ export default function TimetableSetupPage() {
     canManage,
     enabled: !isInitializing && isPermissionsReady && hasContext,
   });
+  const openTimetable = () => router.replace("/academics/timetable");
 
   if (isInitializing || !isPermissionsReady || setup.isLoading) {
     return (
@@ -75,7 +76,8 @@ export default function TimetableSetupPage() {
         termName={localizedContextName(selectedTerm, locale)}
         status={setup.status}
         onReload={setup.reload}
-        onComplete={() => router.replace("/academics/timetable")}
+        onCancel={openTimetable}
+        onComplete={openTimetable}
       />
     </main>
   );
