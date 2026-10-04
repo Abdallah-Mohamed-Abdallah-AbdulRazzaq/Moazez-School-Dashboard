@@ -6911,6 +6911,7 @@
         "title": "Timetable Configuration",
         "subtitle": "Configure days, periods, and scope for your timetable",
         "button": "Settings",
+        "saveSuccess": "Timetable settings saved successfully",
         "steps": {
           "days": "Days",
           "periods": "Periods",

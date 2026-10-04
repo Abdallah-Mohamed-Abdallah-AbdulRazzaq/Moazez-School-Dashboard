@@ -9,6 +9,7 @@ import TimetablePeriodsEditor from "@/features/academics/timetable/components/Ti
 import WizardStepper from "@/features/academics/timetable/components/WizardStepper";
 import type { BackendTimetableConfigDto } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { TimetableSetupStatus } from "@/features/academics/timetable/services/timetableSetupStatus";
+import { formatTimetableTime } from "@/features/academics/timetable/services/timetableTimeFormat";
 
 interface TimetableSetupWizardProps {
   academicYearId: string;
@@ -17,6 +18,7 @@ interface TimetableSetupWizardProps {
   termName: string;
   status: TimetableSetupStatus;
   onReload: () => Promise<void>;
+  onCancel: () => void;
   onComplete: () => void;
 }
 
@@ -27,9 +29,11 @@ export default function TimetableSetupWizard({
   termName,
   status,
   onReload,
+  onCancel,
   onComplete,
 }: TimetableSetupWizardProps) {
   const t = useTranslations("academics.timetable");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const isRtl = locale === "ar";
   const [activeStep, setActiveStep] = useState(() => setupStep(status));
@@ -64,7 +68,14 @@ export default function TimetableSetupWizard({
       dir={isRtl ? "rtl" : "ltr"}
     >
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">{t("setup.title")}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t("setup.title")}
+          </h1>
+          <Button variant="secondary" onClick={onCancel}>
+            {tCommon("cancel")}
+          </Button>
+        </div>
         <p className="text-sm text-gray-600">{t("setup.description")}</p>
         <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <ContextDetail
@@ -270,8 +281,14 @@ function SetupReview({
   const details = [
     [t("setup.review.activeDays"), String(config.activeDays.length)],
     [t("setup.review.periods"), String(periods.length)],
-    [t("setup.review.firstTime"), firstPeriod?.startTime ?? "—"],
-    [t("setup.review.lastTime"), lastPeriod?.endTime ?? "—"],
+    [
+      t("setup.review.firstTime"),
+      firstPeriod ? formatTimetableTime(firstPeriod.startTime) : "—",
+    ],
+    [
+      t("setup.review.lastTime"),
+      lastPeriod ? formatTimetableTime(lastPeriod.endTime) : "—",
+    ],
   ];
 
   return (

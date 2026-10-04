@@ -55,7 +55,6 @@ import {
   isTimetableUnpublishScopeSupported,
   resolveTimetableScopeSelection,
   timetableConfigScopeId,
-  type TimetableScopeSelection,
 } from "@/features/academics/timetable/services/timetableScope";
 import {
   resolveTimetableCreationProgress,
@@ -69,7 +68,9 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useTimetableData } from "@/features/academics/timetable/hooks/useTimetableData";
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { useTimetableScheduling } from "@/features/academics/timetable/hooks/useTimetableScheduling";
+import { useTimetableConfigurationScope } from "@/features/academics/timetable/hooks/useTimetableConfigurationScope";
 import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
+import { classroomsForTimetableScope } from "@/features/academics/timetable/services/timetableDisplayScope";
 import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
 import {
   timetableBackendMessage,
@@ -199,8 +200,12 @@ export default function TimetableView({
   const [showExportModal, setShowExportModal] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [periodsDialogOpen, setPeriodsDialogOpen] = useState(false);
-  const [configurationScope, setConfigurationScope] =
-    useState<TimetableScopeSelection>({ scopeType: "TERM" });
+  const {
+    configurationScope,
+    isTermDefaultConfiguration,
+    customizeFilteredScope: selectCustomConfigurationScope,
+    returnToTermDefault: selectTermDefaultConfiguration,
+  } = useTimetableConfigurationScope(filteredScope);
   const [selectedSectionTabId, setSelectedSectionTabId] = useState<
     string | null
   >(null);
@@ -424,7 +429,6 @@ export default function TimetableView({
     canViewTimetable && hasPermission("academics.structure.manage");
   const canWriteTimetable =
     canManageTimetable && termStatus !== "closed" && !isReadOnly;
-  const isTermDefaultConfiguration = configurationScope.scopeType === "TERM";
   const hasExactConfig = workspaceState.mode === "exact";
   const canCreateConfig = canWriteTimetable && !hasExactConfig;
   const canEditTimetable =
@@ -448,11 +452,14 @@ export default function TimetableView({
     setConfigDialogOpen(true);
   };
 
+  const openValidationDestination = (path: string) => {
+    setValidationPanelOpen(false);
+    router.push(path);
+  };
+
   const customizeFilteredScope = () => {
     if (isTermDefaultConfiguration) {
-      if (filteredScope.scopeType !== "TERM") {
-        setConfigurationScope(filteredScope);
-      }
+      selectCustomConfigurationScope();
       return;
     }
     setConfigDialogOpen(true);
@@ -461,7 +468,7 @@ export default function TimetableView({
   const returnToTermDefault = () => {
     setConfigDialogOpen(false);
     setPeriodsDialogOpen(false);
-    setConfigurationScope({ scopeType: "TERM" });
+    selectTermDefaultConfiguration();
   };
   const isUnpublishScopeSupported = Boolean(
     config && isTimetableUnpublishScopeSupported(config.scopeType),
@@ -897,31 +904,17 @@ export default function TimetableView({
     gradeId: editingGradeId,
   });
   const displayedClassrooms = useMemo(() => {
-    if (selectedClassroom) {
-      return [selectedClassroom];
-    }
-    if (selectedSectionId) {
-      return classrooms.filter(
-        (classroom) => classroom.sectionId === selectedSectionId,
-      );
-    }
-    if (selectedGradeId) {
-      const sectionIdsForGrade = new Set(
-        sections
-          .filter((section) => section.gradeId === selectedGradeId)
-          .map((section) => section.id),
-      );
-      return classrooms.filter((classroom) =>
-        sectionIdsForGrade.has(classroom.sectionId),
-      );
-    }
-    return classrooms;
+    return classroomsForTimetableScope({
+      classrooms,
+      grades,
+      sections,
+      scope: filteredScope,
+    });
   }, [
     classrooms,
+    filteredScope,
+    grades,
     sections,
-    selectedClassroom,
-    selectedGradeId,
-    selectedSectionId,
   ]);
   const displayedSections = sections.filter((section) =>
     displayedClassrooms.some((classroom) => classroom.sectionId === section.id),
@@ -1845,13 +1838,15 @@ export default function TimetableView({
                   >
                     {t("actions.reset")}
                   </Button>
-                  <Button
-                    onClick={openTimetableSettings}
-                    variant="secondary"
-                    leftIcon={<Settings className="w-4 h-4" />}
-                  >
-                    {t("actions.settings")}
-                  </Button>
+                  {isTermDefaultConfiguration && (
+                    <Button
+                      onClick={openTimetableSettings}
+                      variant="secondary"
+                      leftIcon={<Settings className="w-4 h-4" />}
+                    >
+                      {t("actions.settings")}
+                    </Button>
+                  )}
                   {!isTermDefaultConfiguration && (
                     <>
                       <Button
@@ -1975,14 +1970,16 @@ export default function TimetableView({
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {canManageTimetable && (
                 <>
-                  <Button
-                    onClick={openTimetableSettings}
-                    variant="secondary"
-                    leftIcon={<Settings className="w-4 h-4" />}
-                    size="sm"
-                  >
-                    {t("actions.settings")}
-                  </Button>
+                  {isTermDefaultConfiguration && (
+                    <Button
+                      onClick={openTimetableSettings}
+                      variant="secondary"
+                      leftIcon={<Settings className="w-4 h-4" />}
+                      size="sm"
+                    >
+                      {t("actions.settings")}
+                    </Button>
+                  )}
                   {!isTermDefaultConfiguration && (
                     <>
                       <Button
@@ -2391,6 +2388,15 @@ export default function TimetableView({
           classrooms={classrooms}
           selectedConflict={selectedConflict}
           onConflictSelect={handleConflictSelect}
+          requirementActions={{
+            openDestination: openValidationDestination,
+            focusSchedule: () => {
+              setValidationPanelOpen(false);
+              window.requestAnimationFrame(() =>
+                focusDestination(gridRef.current),
+              );
+            },
+          }}
           onClose={() => setValidationPanelOpen(false)}
           locale={locale}
           publicationReasons={publication?.blockingReasons}
@@ -2468,6 +2474,7 @@ export default function TimetableView({
           onClose={() => setConfigDialogOpen(false)}
           onSaved={async () => {
             await reloadConfigs();
+            showToast(t("config.saveSuccess"), "success");
           }}
           academicYearId={academicYearId}
           termId={termId}

@@ -81,10 +81,12 @@ const readyStatus: TimetableSetupStatus = {
 
 function renderWizard({
   status = missingConfigStatus,
+  onCancel = vi.fn(),
   onComplete = vi.fn(),
   onReload = vi.fn().mockResolvedValue(undefined),
 }: {
   status?: TimetableSetupStatus;
+  onCancel?: () => void;
   onComplete?: () => void;
   onReload?: () => Promise<void>;
 } = {}) {
@@ -96,6 +98,7 @@ function renderWizard({
       termName="First term"
       status={status}
       onReload={onReload}
+      onCancel={onCancel}
       onComplete={onComplete}
     />,
   );
@@ -109,6 +112,15 @@ describe("TimetableSetupWizard", () => {
       screen.getByRole("heading", { name: "setup.steps.days.title" }),
     ).toHaveFocus();
     expect(screen.getByText("setup.stepStatus.current")).toBeInTheDocument();
+  });
+
+  it("returns to the timetable when setup is cancelled", async () => {
+    const onCancel = vi.fn();
+    renderWizard({ onCancel });
+
+    await userEvent.click(screen.getByRole("button", { name: "cancel" }));
+
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 
   it("resumes at periods when the config has no instructional period", () => {
@@ -145,6 +157,9 @@ describe("TimetableSetupWizard", () => {
   it("summarizes ready setup and completes through navigation", async () => {
     const onComplete = vi.fn();
     renderWizard({ status: readyStatus, onComplete });
+
+    expect(screen.getByText("8:00 AM")).toBeInTheDocument();
+    expect(screen.getByText("8:45 AM")).toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole("button", { name: "setup.startBuilding" }),

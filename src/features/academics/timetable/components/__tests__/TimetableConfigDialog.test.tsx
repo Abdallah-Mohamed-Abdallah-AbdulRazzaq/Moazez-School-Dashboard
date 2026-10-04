@@ -78,12 +78,13 @@ const renderDialog = ({
   fixedScope?: TimetableScopeSelection;
 } = {}) => {
   const onSaved = vi.fn().mockResolvedValue(undefined);
+  const onClose = vi.fn();
 
   render(
     <TimetableConfigDialog
       mode={mode}
       open
-      onClose={vi.fn()}
+      onClose={onClose}
       onSaved={onSaved}
       academicYearId="year-1"
       termId="term-1"
@@ -102,7 +103,7 @@ const renderDialog = ({
     />,
   );
 
-  return { onSaved };
+  return { onClose, onSaved };
 };
 
 describe("TimetableConfigDialog", () => {
@@ -171,7 +172,7 @@ describe("TimetableConfigDialog", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("creates a stage config when only a stage is selected", async () => {
+  it("creates a stage config and closes after saving", async () => {
     const user = userEvent.setup();
     vi.mocked(upsertBackendTimetableConfig).mockResolvedValue({
       ...timetableConfig,
@@ -179,7 +180,7 @@ describe("TimetableConfigDialog", () => {
       scopeKey: "stage-1",
       stageId: "stage-1",
     });
-    renderDialog({
+    const { onClose, onSaved } = renderDialog({
       mode: "config",
       config: null,
       periods: [],
@@ -193,6 +194,8 @@ describe("TimetableConfigDialog", () => {
         expect.objectContaining({ scopeType: "STAGE", stageId: "stage-1" }),
       );
     });
+    expect(onSaved).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("creates a term config when term scope is selected from a narrower context", async () => {
