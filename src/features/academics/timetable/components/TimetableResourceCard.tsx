@@ -170,4 +170,3 @@ function localizedEntityName(
 ): string {
   return locale === "ar" ? entity.nameAr : entity.nameEn;
 }
-

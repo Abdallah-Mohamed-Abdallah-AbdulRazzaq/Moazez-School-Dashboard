@@ -128,4 +128,3 @@ function dropToneClass(
   if (tone === "VALID") return "hover:bg-green-50/70";
   return "";
 }
-

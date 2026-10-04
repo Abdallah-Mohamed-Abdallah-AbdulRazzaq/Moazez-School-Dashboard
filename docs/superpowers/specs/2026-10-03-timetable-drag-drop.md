@@ -73,4 +73,3 @@ Let timetable editors schedule and adjust lessons directly from the timetable wo
 6. Pointer, keyboard, and touch/select-then-place workflows produce the same timetable state.
 7. Existing slot-dialog editing, dirty-state protection, saving, validation, publishing, mobile day expansion, conflict focusing, and printing continue to work.
 8. English and Arabic contain matching translation keys for all new UI and announcements.
-

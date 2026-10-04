@@ -248,4 +248,3 @@ function emptyStateKey(
   if (activeTab === "ROOMS") return "noRooms";
   return "noLessons";
 }
-
