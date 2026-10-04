@@ -506,7 +506,7 @@ Run:
 
 Expected: all three files PASS.
 
-- [ ] **Step 7: Run the mandatory guards and commit Task 4**
+- [x] **Step 7: Run the mandatory guards and commit Task 4**
 
 Run test guard on the controller and undo tests and clean-code guard on `useTimetableScheduling.ts`, `TimetableView.tsx`, and `TimetableUndoBanner.tsx`. Pay particular attention to stale closures, duplicated state mutation, unstable temporary IDs, and focus restoration. Fix findings, rerun targeted tests, then commit.
 
@@ -580,7 +580,7 @@ Run:
 
 Expected: all four files PASS.
 
-- [ ] **Step 5: Run the mandatory guards and commit Task 5**
+- [x] **Step 5: Run the mandatory guards and commit Task 5**
 
 Run test guard on the translation test and clean-code guard on any production TypeScript adjusted for final translation keys. Then commit:
 
@@ -604,7 +604,7 @@ Run test guard on the translation test and clean-code guard on any production Ty
 - Consumes the complete timetable drag/drop feature.
 - Produces a verified feature branch ready for normal push and a Draft PR only when the owner requests execution through delivery.
 
-- [ ] **Step 1: Run focused automated verification**
+- [x] **Step 1: Run focused automated verification**
 
 Run:
 
@@ -650,7 +650,7 @@ At 375px and 768px:
 - complete the same flow using only Tab, Enter/Space, and Escape;
 - confirm visible focus, 44px targets, day expansion, focus restoration, and screen-reader announcements.
 
-- [ ] **Step 4: Run final guard reviews**
+- [x] **Step 4: Run final guard reviews**
 
 Run the clean-code guard across the complete production diff and test guard across the complete test diff. Resolve every blocker/high-confidence finding and rerun the affected targeted commands.
 
