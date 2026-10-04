@@ -231,7 +231,7 @@ describe("applyTimetableDrop", () => {
     );
   });
 
-  it("moves an existing lesson and replaces the occupied target", () => {
+  it("swaps an existing lesson with the occupied target", () => {
     const source = timetableEntry({
       id: "source",
       dayKey: "sun",
@@ -254,7 +254,7 @@ describe("applyTimetableDrop", () => {
     expect(placement).toEqual(
       expect.objectContaining({
         status: "APPLIED",
-        effect: "MOVE",
+        effect: "SWAP",
         undoEntries: [source, occupiedTarget],
         entries: [
           expect.objectContaining({
@@ -262,6 +262,42 @@ describe("applyTimetableDrop", () => {
             dayKey: "tue",
             periodIndex: 2,
             subjectId: "math",
+          }),
+          expect.objectContaining({
+            id: "target",
+            dayKey: "sun",
+            periodIndex: 1,
+            subjectId: "science",
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("moves an existing lesson into an empty target", () => {
+    const source = timetableEntry({
+      id: "source",
+      dayKey: "sun",
+      periodIndex: 1,
+    });
+    const placement = applyTimetableDrop(
+      dropInput({
+        item: { kind: "ENTRY", id: "entry:source", entryId: "source" },
+        editableEntries: [source],
+        allEntries: [source],
+      }),
+    );
+
+    expect(placement).toEqual(
+      expect.objectContaining({
+        status: "APPLIED",
+        effect: "MOVE",
+        undoEntries: [source],
+        entries: [
+          expect.objectContaining({
+            id: "source",
+            dayKey: "tue",
+            periodIndex: 2,
           }),
         ],
       }),
@@ -430,7 +466,7 @@ function dropInput(
     holiday: false,
     instructional: true,
     rooms,
-    classroom,
+    classrooms: [classroom],
     createEntryId: () => "generated-entry",
     ...overrides,
   };

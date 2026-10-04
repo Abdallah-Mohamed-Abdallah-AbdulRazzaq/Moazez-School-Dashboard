@@ -6582,7 +6582,8 @@
           "create": "Lesson added to the timetable.",
           "update": "Timetable slot updated.",
           "replace": "Timetable slot replaced.",
-          "move": "Lesson moved to a new slot."
+          "move": "Lesson moved to a new slot.",
+          "swap": "Timetable lessons swapped."
         },
         "rejections": {
           "READ_ONLY": "This timetable is read-only.",

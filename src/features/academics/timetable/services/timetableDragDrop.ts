@@ -50,7 +50,12 @@ export type TimetableDropRejection =
   | "ROOM_CONFLICT"
   | "SAME_SLOT";
 
-export type TimetableDropEffect = "CREATE" | "UPDATE" | "REPLACE" | "MOVE";
+export type TimetableDropEffect =
+  | "CREATE"
+  | "UPDATE"
+  | "REPLACE"
+  | "MOVE"
+  | "SWAP";
 
 export type TimetableDropResult =
   | { status: "REJECTED"; reason: TimetableDropRejection }
@@ -84,7 +89,7 @@ export interface ApplyTimetableDropInput {
   holiday: boolean;
   instructional: boolean;
   rooms: Room[];
-  classroom: Classroom;
+  classrooms: Classroom[];
   createEntryId: () => string;
 }
 
@@ -207,18 +212,38 @@ export function applyTimetableDrop(
     return { status: "REJECTED", reason: destinationRejection };
   }
 
-  const proposedEntry = proposedTimetableEntry(input);
-  const resourceRejection = resourceRejectionReason(proposedEntry, input);
+  const proposedEntries = proposedTimetableEntries(input);
+  const resourceRejection = resourceRejectionReason(proposedEntries, input);
   if (resourceRejection) {
     return { status: "REJECTED", reason: resourceRejection };
   }
 
   return {
     status: "APPLIED",
-    entries: entriesAfterDrop(proposedEntry, input),
+    entries: entriesAfterDrop(proposedEntries, input),
     undoEntries: [...input.editableEntries],
     effect: dropEffect(input),
   };
+}
+
+function proposedTimetableEntries(
+  input: ApplyTimetableDropInput,
+): TimetableEntry[] {
+  const movedEntry = proposedTimetableEntry(input);
+  const targetEntry = entryAtTarget(input.editableEntries, input.target);
+  if (input.item.kind !== "ENTRY" || !targetEntry) return [movedEntry];
+
+  const sourceEntry = sourceEntryForDrop(
+    input.editableEntries,
+    input.item.entryId,
+  );
+  return [
+    movedEntry,
+    entryAtNewTarget(
+      targetEntry,
+      entryTarget(sourceEntry, input.target.classroomId),
+    ),
+  ];
 }
 
 function destinationRejectionReason(
@@ -320,18 +345,35 @@ function entryAtNewTarget(
   };
 }
 
+function entryTarget(
+  entry: TimetableEntry,
+  fallbackClassroomId: string,
+): TimetableDropTarget {
+  return {
+    sectionId: entry.sectionId,
+    classroomId: entry.classroomId ?? fallbackClassroomId,
+    dayKey: entry.dayKey,
+    periodIndex: entry.periodIndex,
+  };
+}
+
 function resourceRejectionReason(
-  proposedEntry: TimetableEntry,
+  proposedEntries: TimetableEntry[],
   input: ApplyTimetableDropInput,
 ): TimetableDropRejection | null {
-  if (proposedEntry.roomId && !roomIsEligible(proposedEntry.roomId, input)) {
-    return "ROOM_INELIGIBLE";
-  }
   const comparableEntries = entriesOutsideDropSlots(input);
-  if (hasTeacherCollision(proposedEntry, comparableEntries))
-    return "TEACHER_CONFLICT";
-  if (hasRoomCollision(proposedEntry, comparableEntries))
-    return "ROOM_CONFLICT";
+  for (const proposedEntry of proposedEntries) {
+    if (
+      proposedEntry.roomId &&
+      !roomIsEligible(proposedEntry.roomId, proposedEntry.classroomId, input)
+    ) {
+      return "ROOM_INELIGIBLE";
+    }
+    if (hasTeacherCollision(proposedEntry, comparableEntries))
+      return "TEACHER_CONFLICT";
+    if (hasRoomCollision(proposedEntry, comparableEntries))
+      return "ROOM_CONFLICT";
+  }
   return null;
 }
 
@@ -371,11 +413,15 @@ function samePeriod(left: TimetableEntry, right: TimetableEntry): boolean {
 
 function roomIsEligible(
   roomId: string,
+  classroomId: string | undefined,
   input: ApplyTimetableDropInput,
 ): boolean {
   const room = input.rooms.find((candidate) => candidate.id === roomId);
-  return room
-    ? evaluateRoomEligibility(room, input.classroom).eligible
+  const classroom = input.classrooms.find(
+    (candidate) => candidate.id === classroomId,
+  );
+  return room && classroom
+    ? evaluateRoomEligibility(room, classroom).eligible
     : false;
 }
 
@@ -390,7 +436,7 @@ function entriesOutsideDropSlots(
 }
 
 function entriesAfterDrop(
-  proposedEntry: TimetableEntry,
+  proposedEntries: TimetableEntry[],
   input: ApplyTimetableDropInput,
 ): TimetableEntry[] {
   const targetKey = timetableSlotKey(input.target);
@@ -399,12 +445,14 @@ function entriesAfterDrop(
     ...input.editableEntries.filter(
       (entry) => timetableSlotKey(entry) !== targetKey && entry.id !== sourceId,
     ),
-    proposedEntry,
+    ...proposedEntries,
   ];
 }
 
 function dropEffect(input: ApplyTimetableDropInput): TimetableDropEffect {
-  if (input.item.kind === "ENTRY") return "MOVE";
+  if (input.item.kind === "ENTRY") {
+    return entryAtTarget(input.editableEntries, input.target) ? "SWAP" : "MOVE";
+  }
   if (input.item.kind === "ROOM" || input.item.kind === "TEACHER") {
     return "UPDATE";
   }

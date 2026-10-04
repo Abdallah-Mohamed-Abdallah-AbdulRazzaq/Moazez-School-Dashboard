@@ -168,7 +168,7 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
           periods.find((period) => period.index === target.periodIndex)
             ?.isInstructional !== false,
         rooms,
-        classroom: targetClassroom,
+        classrooms,
         createEntryId,
       });
     },
