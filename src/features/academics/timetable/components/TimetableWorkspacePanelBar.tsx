@@ -48,12 +48,14 @@ export default function TimetableWorkspacePanelBar({
               )
             }
           >
-            <span className="font-semibold">{panel.title}</span>
-            {!panel.expanded && panel.summary && (
-              <span className="hidden max-w-56 truncate font-normal text-gray-500 sm:inline">
-                {panel.summary}
-              </span>
-            )}
+            <div className="flex min-w-0 items-center gap-1">
+              <span className="font-semibold">{panel.title}</span>
+              {!panel.expanded && panel.summary && (
+                <span className="hidden max-w-56 truncate font-normal text-gray-500 sm:inline">
+                  {panel.summary}
+                </span>
+              )}
+            </div>
           </Button>
         ))}
       </div>

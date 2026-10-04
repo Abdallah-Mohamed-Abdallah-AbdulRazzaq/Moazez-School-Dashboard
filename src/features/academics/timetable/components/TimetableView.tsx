@@ -189,11 +189,11 @@ export default function TimetableView({
   );
 
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
-  const [scopeFiltersExpanded, setScopeFiltersExpanded] = useState(true);
+  const [scopeFiltersExpanded, setScopeFiltersExpanded] = useState(false);
   const [creationProgressExpanded, setCreationProgressExpanded] =
-    useState(true);
+    useState(false);
   const [timetableContextExpanded, setTimetableContextExpanded] =
-    useState(true);
+    useState(false);
   const [selectedConflict, setSelectedConflict] =
     useState<TimetableConflictDisplay | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -2107,242 +2107,253 @@ export default function TimetableView({
             tabIndex={-1}
             className="h-full min-h-0 min-w-0 flex-1 overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0"
           >
-        {timetableLoading ? (
-          <TimetableGridLoadingSkeleton label={t("loadingLabel")} />
-        ) : !hasTimetableScope ? (
-          <AcademicModuleEmptyState
-            icon={AlertCircle}
-            title={tEmpty("no_timetable_selection.title")}
-            description={tEmpty("no_timetable_selection.description")}
-            className="h-full"
-          />
-        ) : !resolvedConfig ? (
-          <AcademicModuleEmptyState
-            icon={Settings}
-            title={tEmpty("no_timetable_config.title")}
-            description={tEmpty("no_timetable_config.description")}
-            ctaLabel={tEmpty("no_timetable_config.cta")}
-            ctaDisabled={!canCreateConfig}
-            onCtaClick={openConfigurationEditor}
-            className="h-full"
-          />
-        ) : periods.length === 0 ? (
-          <AcademicModuleEmptyState
-            icon={Settings}
-            title={tEmpty("no_timetable_periods.title")}
-            description={tEmpty("no_timetable_periods.description")}
-            ctaLabel={
-              canManageTimetable
-                ? tEmpty("no_timetable_periods.cta")
-                : undefined
-            }
-            ctaDisabled={!canEditTimetable}
-            onCtaClick={
-              canManageTimetable
-                ? isTermDefaultConfiguration
-                  ? openTimetableSettings
-                  : () => setPeriodsDialogOpen(true)
-                : undefined
-            }
-            className="h-full"
-          />
-        ) : displayedClassrooms.length === 0 ? (
-          <AcademicModuleEmptyState
-            icon={School}
-            title={tEmpty("no_classrooms.title")}
-            description={tEmpty("no_classrooms.description")}
-            className="h-full"
-          />
-        ) : (
-          <div className="space-y-3">
-            {canEditTimetable && (
-              <div className="flex flex-wrap items-center gap-2 print:hidden">
-                {selectedClassroom ? (
-                  <>
-                    {!desktopLibraryOpen && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        className="hidden lg:inline-flex"
-                        onClick={() => setDesktopLibraryOpen(true)}
-                        leftIcon={
-                          <Library className="h-4 w-4" aria-hidden="true" />
-                        }
-                      >
-                        {t("schedulingLibrary.open")}
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="lg:hidden"
-                      onClick={() => setMobileLibraryOpen(true)}
-                      leftIcon={
-                        <Library className="h-4 w-4" aria-hidden="true" />
-                      }
-                    >
-                      {t("schedulingLibrary.open")}
-                    </Button>
-                    {selectedLibraryItem && (
-                      <span className="text-sm text-primary-700">
-                        {t("schedulingLibrary.clickSlotHint")}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-600">
-                    {t("schedulingLibrary.selectClassroomHint")}
-                  </p>
-                )}
-              </div>
-            )}
-            {undoEffect && (
-              <TimetableUndoBanner
-                message={t(
-                  `schedulingLibrary.effects.${undoEffect.toLowerCase()}`,
-                )}
-                undoLabel={t("schedulingLibrary.undo")}
-                dismissLabel={t("schedulingLibrary.dismissUndo")}
-                onUndo={handleUndoAndRestoreFocus}
-                onDismiss={dismissUndo}
+            {timetableLoading ? (
+              <TimetableGridLoadingSkeleton label={t("loadingLabel")} />
+            ) : !hasTimetableScope ? (
+              <AcademicModuleEmptyState
+                icon={AlertCircle}
+                title={tEmpty("no_timetable_selection.title")}
+                description={tEmpty("no_timetable_selection.description")}
+                className="h-full"
               />
-            )}
-            <div
-              ref={printMatrixRef}
-              className={`timetable-print-matrix ${
-                locale === "ar"
-                  ? "timetable-print-rtl"
-                  : "timetable-print-ltr"
-              }`}
-              dir={locale === "ar" ? "rtl" : "ltr"}
-            >
-            <div className="timetable-print-page-inner">
-              <div
-                className="hidden timetable-print-header"
-                dir={locale === "ar" ? "rtl" : "ltr"}
-              >
-                <div className="timetable-print-school">
-                  <div className="text-base font-semibold text-gray-900">
-                    {schoolName}
+            ) : !resolvedConfig ? (
+              <AcademicModuleEmptyState
+                icon={Settings}
+                title={tEmpty("no_timetable_config.title")}
+                description={tEmpty("no_timetable_config.description")}
+                ctaLabel={tEmpty("no_timetable_config.cta")}
+                ctaDisabled={!canCreateConfig}
+                onCtaClick={openConfigurationEditor}
+                className="h-full"
+              />
+            ) : periods.length === 0 ? (
+              <AcademicModuleEmptyState
+                icon={Settings}
+                title={tEmpty("no_timetable_periods.title")}
+                description={tEmpty("no_timetable_periods.description")}
+                ctaLabel={
+                  canManageTimetable
+                    ? tEmpty("no_timetable_periods.cta")
+                    : undefined
+                }
+                ctaDisabled={!canEditTimetable}
+                onCtaClick={
+                  canManageTimetable
+                    ? isTermDefaultConfiguration
+                      ? openTimetableSettings
+                      : () => setPeriodsDialogOpen(true)
+                    : undefined
+                }
+                className="h-full"
+              />
+            ) : displayedClassrooms.length === 0 ? (
+              <AcademicModuleEmptyState
+                icon={School}
+                title={tEmpty("no_classrooms.title")}
+                description={tEmpty("no_classrooms.description")}
+                className="h-full"
+              />
+            ) : (
+              <div className="space-y-3">
+                {canEditTimetable && (
+                  <div className="flex flex-wrap items-center gap-2 print:hidden">
+                    {selectedClassroom ? (
+                      <>
+                        {!desktopLibraryOpen && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="hidden lg:inline-flex"
+                            onClick={() => setDesktopLibraryOpen(true)}
+                            leftIcon={
+                              <Library className="h-4 w-4" aria-hidden="true" />
+                            }
+                          >
+                            {t("schedulingLibrary.open")}
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="lg:hidden"
+                          onClick={() => setMobileLibraryOpen(true)}
+                          leftIcon={
+                            <Library className="h-4 w-4" aria-hidden="true" />
+                          }
+                        >
+                          {t("schedulingLibrary.open")}
+                        </Button>
+                        {selectedLibraryItem && (
+                          <span className="text-sm text-primary-700">
+                            {t("schedulingLibrary.clickSlotHint")}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-600">
+                        {t("schedulingLibrary.selectClassroomHint")}
+                      </p>
+                    )}
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">{t("title")}</div>
-                </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={printLogoUrl}
-                  alt={schoolName}
-                  className="timetable-print-logo"
-                />
-              </div>
-              {selectedPrintTarget && (
+                )}
+                {undoEffect && (
+                  <TimetableUndoBanner
+                    message={t(
+                      `schedulingLibrary.effects.${undoEffect.toLowerCase()}`,
+                    )}
+                    undoLabel={t("schedulingLibrary.undo")}
+                    dismissLabel={t("schedulingLibrary.dismissUndo")}
+                    onUndo={handleUndoAndRestoreFocus}
+                    onDismiss={dismissUndo}
+                  />
+                )}
                 <div
-                  className="hidden timetable-print-target"
+                  ref={printMatrixRef}
+                  className={`timetable-print-matrix ${
+                    locale === "ar"
+                      ? "timetable-print-rtl"
+                      : "timetable-print-ltr"
+                  }`}
                   dir={locale === "ar" ? "rtl" : "ltr"}
                 >
-                  {selectedPrintTarget.label}: {selectedPrintTarget.name}
-                </div>
-              )}
-              <div
-                className="timetable-print-content space-y-6"
-                dir={locale === "ar" ? "rtl" : "ltr"}
-              >
-                <p className="sr-only" role="status" aria-live="polite">
-                  {selectedConflict?.message ?? ""}
-                </p>
-                {displayedSections.length > 1 && (
-                  <div
-                    role="group"
-                    aria-label={t("target.section")}
-                    className="flex gap-2 overflow-x-auto border-b border-gray-200 pb-3 print:hidden"
-                  >
-                    {displayedSections.map((section) => {
-                      const isActive = section.id === activeSectionTabId;
-
-                      return (
-                        <button
-                          key={section.id}
-                          type="button"
-                          aria-pressed={isActive}
-                          onClick={() => setSelectedSectionTabId(section.id)}
-                          className={`shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors focus:outline-none${
-                            isActive
-                              ? "border-primary-600 bg-primary-600 text-white"
-                              : "border-gray-200 bg-white text-gray-700 hover:border-primary-300 hover:bg-primary-50"
-                          }`}
-                        >
-                          <span className="block max-w-64 truncate">
-                            {getDisplayName(section)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                {displayedClassrooms.map((classroom) => {
-                  const classroomEntries = timetableEntries.filter(
-                    (entry) => entry.classroomId === classroom.id,
-                  );
-                  const classroomScopeChain = getClassroomScopeChain(classroom);
-                  const showClassroomHeader = displayedClassrooms.length > 1;
-                  const isActive = classroom.sectionId === activeSectionTabId;
-
-                  return (
-                    <section
-                      key={classroom.id}
-                      aria-label={getDisplayName(classroom)}
-                      className={`relative space-y-3 ${
-                        isActive ? "" : "hidden print:block"
-                      }`}
+                  <div className="timetable-print-page-inner">
+                    <div
+                      className="hidden timetable-print-header"
+                      dir={locale === "ar" ? "rtl" : "ltr"}
                     >
-                      {showClassroomHeader && (
-                        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 print:rounded-none print:border-x-0 print:px-0">
-                          {classroomScopeChain}
+                      <div className="timetable-print-school">
+                        <div className="text-base font-semibold text-gray-900">
+                          {schoolName}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {t("title")}
+                        </div>
+                      </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={printLogoUrl}
+                        alt={schoolName}
+                        className="timetable-print-logo"
+                      />
+                    </div>
+                    {selectedPrintTarget && (
+                      <div
+                        className="hidden timetable-print-target"
+                        dir={locale === "ar" ? "rtl" : "ltr"}
+                      >
+                        {selectedPrintTarget.label}: {selectedPrintTarget.name}
+                      </div>
+                    )}
+                    <div
+                      className="timetable-print-content space-y-6"
+                      dir={locale === "ar" ? "rtl" : "ltr"}
+                    >
+                      <p className="sr-only" role="status" aria-live="polite">
+                        {selectedConflict?.message ?? ""}
+                      </p>
+                      {displayedSections.length > 1 && (
+                        <div
+                          role="group"
+                          aria-label={t("target.section")}
+                          className="flex gap-2 overflow-x-auto border-b border-gray-200 pb-3 print:hidden"
+                        >
+                          {displayedSections.map((section) => {
+                            const isActive = section.id === activeSectionTabId;
+
+                            return (
+                              <button
+                                key={section.id}
+                                type="button"
+                                aria-pressed={isActive}
+                                onClick={() =>
+                                  setSelectedSectionTabId(section.id)
+                                }
+                                className={`shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors focus:outline-none${
+                                  isActive
+                                    ? "border-primary-600 bg-primary-600 text-white"
+                                    : "border-gray-200 bg-white text-gray-700 hover:border-primary-300 hover:bg-primary-50"
+                                }`}
+                              >
+                                <span className="block max-w-64 truncate">
+                                  {getDisplayName(section)}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
-                      <TimetableGrid
-                        classroomId={classroom.id}
-                        sectionId={classroom.sectionId}
-                        entries={classroomEntries}
-                        proposalEntries={timetableEntries}
-                        subjects={subjects}
-                        teachers={teachers}
-                        rooms={rooms}
-                        conflicts={backendConflicts}
-                        focusedConflict={selectedConflict}
-                        onFocusedConflictDismiss={() =>
-                          setSelectedConflict(null)
-                        }
-                        onSlotClick={(dayKey, periodIndex) =>
-                          handleSlotClick(dayKey, periodIndex, classroom.id)
-                        }
-                        isHolidayDay={isHolidayDay}
-                        locale={locale}
-                        isReadOnly={!canEditTimetable}
-                        resolvedConfig={resolvedConfig}
-                        selectedLibraryItem={selectedLibraryItem}
-                        activeDragItem={activeDragItem}
-                        canDropOnSlot={canDropOnSlot}
-                        onPlaceItem={placeTimetableItem}
-                      />
-                    </section>
-                  );
-                })}
-              </div>
-              {printTimestamp && (
-                <div
-                  className="hidden timetable-print-footer"
-                  dir={locale === "ar" ? "rtl" : "ltr"}
-                >
-                  {locale === "ar" ? "وقت الطباعة" : "Print time"}:{" "}
-                  {printTimestamp}
+                      {displayedClassrooms.map((classroom) => {
+                        const classroomEntries = timetableEntries.filter(
+                          (entry) => entry.classroomId === classroom.id,
+                        );
+                        const classroomScopeChain =
+                          getClassroomScopeChain(classroom);
+                        const showClassroomHeader =
+                          displayedClassrooms.length > 1;
+                        const isActive =
+                          classroom.sectionId === activeSectionTabId;
+
+                        return (
+                          <section
+                            key={classroom.id}
+                            aria-label={getDisplayName(classroom)}
+                            className={`relative space-y-3 ${
+                              isActive ? "" : "hidden print:block"
+                            }`}
+                          >
+                            {showClassroomHeader && (
+                              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 print:rounded-none print:border-x-0 print:px-0">
+                                {classroomScopeChain}
+                              </div>
+                            )}
+                            <TimetableGrid
+                              classroomId={classroom.id}
+                              sectionId={classroom.sectionId}
+                              entries={classroomEntries}
+                              proposalEntries={timetableEntries}
+                              subjects={subjects}
+                              teachers={teachers}
+                              rooms={rooms}
+                              conflicts={backendConflicts}
+                              focusedConflict={selectedConflict}
+                              onFocusedConflictDismiss={() =>
+                                setSelectedConflict(null)
+                              }
+                              onSlotClick={(dayKey, periodIndex) =>
+                                handleSlotClick(
+                                  dayKey,
+                                  periodIndex,
+                                  classroom.id,
+                                )
+                              }
+                              isHolidayDay={isHolidayDay}
+                              locale={locale}
+                              isReadOnly={!canEditTimetable}
+                              resolvedConfig={resolvedConfig}
+                              selectedLibraryItem={selectedLibraryItem}
+                              activeDragItem={activeDragItem}
+                              canDropOnSlot={canDropOnSlot}
+                              onPlaceItem={placeTimetableItem}
+                            />
+                          </section>
+                        );
+                      })}
+                    </div>
+                    {printTimestamp && (
+                      <div
+                        className="hidden timetable-print-footer"
+                        dir={locale === "ar" ? "rtl" : "ltr"}
+                      >
+                        {locale === "ar" ? "وقت الطباعة" : "Print time"}:{" "}
+                        {printTimestamp}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-          </div>
-        )}
+              </div>
+            )}
           </div>
         </div>
         {canEditTimetable && selectedClassroom && (
