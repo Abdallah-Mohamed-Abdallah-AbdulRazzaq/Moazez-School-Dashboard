@@ -8,6 +8,7 @@ Let timetable editors schedule and adjust lessons directly from the timetable wo
 
 - Add a collapsible scheduling library beside the timetable on large screens and a bottom drawer on smaller screens.
 - The library has three views: Lessons, Teachers, and Rooms.
+- Direct library placement is enabled after selecting one classroom; broader scope views keep their existing viewing and dialog-editing behavior.
 - Lessons are the primary draggable resource. A lesson represents a subject plus the allocated teacher and recommended room for the active classroom.
 - Dropping a lesson on an instructional slot assigns all available lesson fields in one operation.
 - Dropping a teacher or room on a filled lesson changes only that field.
@@ -31,6 +32,7 @@ Let timetable editors schedule and adjust lessons directly from the timetable wo
 
 - Read-only, published, closed-term, holiday, break, and non-instructional slots do not accept drops.
 - A teacher or room drop onto an empty slot is rejected.
+- A teacher whose allocation does not match the subject already in a slot is rejected.
 - Inactive or capacity-ineligible rooms are rejected.
 - Known teacher and room collisions at the same day and period are rejected before local state changes.
 - The backend save, validation, and conflict endpoints remain authoritative.
@@ -42,7 +44,7 @@ Let timetable editors schedule and adjust lessons directly from the timetable wo
 - Pointer users can drag library resources and existing lessons.
 - Keyboard and touch users can select a library item, then activate a destination slot.
 - Escape cancels the selected item or current drag.
-- Focus returns to a predictable control after placement, rejection, or undo.
+- Slot activation retains focus after placement or rejection; undo returns focus to the timetable workspace.
 
 ## Responsive behavior
 

@@ -4,7 +4,7 @@
 
 **Goal:** Add a scoped scheduling library that lets editors place lesson bundles and override teachers or rooms directly in timetable slots while preserving the dialog, validation, save, and publication workflows.
 
-**Architecture:** Keep server loading and persistence in `useTimetableData` and orchestration in `TimetableView`. Put resource derivation and drop mutations in pure service functions, while focused components own the scheduling library, draggable cards, droppable slot presentation, and undo banner. One `DndContext` in `TimetableView` spans the library and the currently visible classroom grid; touch and keyboard use the same typed placement handler as pointer drops.
+**Architecture:** Keep server loading and persistence in `useTimetableData`, scheduling interaction state in `useTimetableScheduling`, and workspace composition in `TimetableView`. Put resource derivation and drop mutations in pure service functions, while focused components own the scheduling library, draggable cards, droppable slot presentation, and undo banner. One `DndContext` spans the library and visible grids; touch and keyboard use the same typed placement handler as pointer drops.
 
 **Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, `next-intl`, `@dnd-kit/core` 6.3.1, Vitest, Testing Library.
 
@@ -30,8 +30,13 @@
 - `src/features/academics/timetable/services/__tests__/timetableDragDrop.test.ts` — pure service behavior and edge cases.
 - `src/features/academics/timetable/components/TimetableResourceLibrary.tsx` — responsive Lessons/Teachers/Rooms library, search, unscheduled filtering, and selection state.
 - `src/features/academics/timetable/components/TimetableDraggableCard.tsx` — shared pointer/keyboard/touch resource card using `@dnd-kit/core`.
+- `src/features/academics/timetable/components/TimetableResourceCard.tsx` — localized lesson, teacher, and room card content.
+- `src/features/academics/timetable/components/TimetableSlotControl.tsx` — shared desktop/mobile slot placement and drag behavior.
 - `src/features/academics/timetable/components/TimetableUndoBanner.tsx` — single-level accessible undo action using the shared `Button`.
 - `src/features/academics/timetable/components/__tests__/TimetableResourceLibrary.test.tsx` — library rendering, filtering, selection, and accessibility tests.
+- `src/features/academics/timetable/components/__tests__/TimetableUndoBanner.test.tsx` — undo announcement and action tests.
+- `src/features/academics/timetable/hooks/useTimetableScheduling.ts` — scoped selection, DnD sensors, placement, rejection messaging, and undo orchestration.
+- `src/features/academics/timetable/hooks/__tests__/useTimetableScheduling.test.tsx` — controller-level placement, Escape cancellation, dirty state, and undo integration.
 
 **Modify**
 
@@ -39,8 +44,7 @@
 - `src/features/academics/timetable/services/__tests__/timetableSlotEditing.test.ts` — cover deterministic teacher and room resolution inputs.
 - `src/features/academics/timetable/components/TimetableGrid.tsx` — make instructional slots typed drop targets and existing lessons draggable; preserve click-to-dialog behavior.
 - `src/features/academics/timetable/components/__tests__/TimetableGrid.test.tsx` — cover slot accessibility, selected-item placement, disabled destinations, and move payloads.
-- `src/features/academics/timetable/components/TimetableView.tsx` — own DnD sensors, selected resource, active drag, placement, undo history, and responsive workspace composition.
-- `src/features/academics/timetable/components/__tests__/TimetableView.test.tsx` — add an integration-level component test with mocked data hooks for drop, dirty state, undo, and dialog fallback. Create this file if it does not exist at execution time.
+- `src/features/academics/timetable/components/TimetableView.tsx` — compose the DnD workspace, resource panels, grids, and undo focus restoration.
 - `src/messages/en.json` — add `academics.timetable.schedulingLibrary` copy.
 - `src/messages/ar.json` — add the matching Arabic copy.
 - `src/messages/__tests__/timetableTranslations.test.ts` — assert new key parity and required interpolation variables.
@@ -89,6 +93,7 @@ export type TimetableDropRejection =
   | "HOLIDAY"
   | "NON_INSTRUCTIONAL"
   | "SUBJECT_REQUIRED"
+  | "TEACHER_SUBJECT_MISMATCH"
   | "ROOM_INELIGIBLE"
   | "TEACHER_CONFLICT"
   | "ROOM_CONFLICT"
@@ -120,7 +125,7 @@ export function mergeTimetableEntriesForValidation(
 - `ApplyTimetableDropInput` must receive `createEntryId: () => string`; tests pass a deterministic function and `TimetableView` supplies the temporary-ID factory.
 - `allEntries` is used for teacher/room collision checks, while `editableEntries` is the array returned after mutation. Exclude the target entry and the source entry from collision checks.
 
-- [ ] **Step 1: Write failing service tests for library derivation**
+- [x] **Step 1: Write failing service tests for library derivation**
 
 Add table-driven tests proving that:
 
@@ -140,7 +145,7 @@ expect(buildTimetableLibraryItems(input)).toEqual([
 
 Also cover grade filtering, classroom-specific teacher allocation, a missing teacher, a missing recommended room, and clamping `remainingPeriods` to zero.
 
-- [ ] **Step 2: Run the new service test and verify it fails**
+- [x] **Step 2: Run the new service test and verify it fails**
 
 Run:
 
@@ -150,7 +155,7 @@ Run:
 
 Expected: FAIL because `timetableDragDrop.ts` and its exports do not exist.
 
-- [ ] **Step 3: Implement library derivation and shared lesson resolution**
+- [x] **Step 3: Implement library derivation and shared lesson resolution**
 
 Add a reusable helper to `timetableSlotEditing.ts` rather than duplicating dialog rules:
 
@@ -193,7 +198,7 @@ export function resolveTimetableLessonDefaults({
 
 Use this helper inside `buildTimetableLibraryItems`. Count scheduled periods only for the target classroom and only entries with the matching subject.
 
-- [ ] **Step 4: Write failing placement tests**
+- [x] **Step 4: Write failing placement tests**
 
 Cover these exact outcomes:
 
@@ -208,7 +213,7 @@ Cover these exact outcomes:
 - Holiday, non-instructional, or read-only → corresponding rejection.
 - Ineligible room, teacher collision, or room collision → corresponding rejection.
 
-- [ ] **Step 5: Implement `applyTimetableDrop` and pass targeted service tests**
+- [x] **Step 5: Implement `applyTimetableDrop` and pass targeted service tests**
 
 Keep the function immutable and side-effect free. Copy the pre-mutation `editableEntries` into `undoEntries`; never call React state setters or translation functions from the service.
 
@@ -223,7 +228,7 @@ Run:
 
 Expected: both files PASS.
 
-- [ ] **Step 6: Run the mandatory guards and commit Task 1**
+- [x] **Step 6: Run the mandatory guards and commit Task 1**
 
 Run the test guard on both changed test files and the clean-code guard on both production service files. Address all must-fix findings, rerun the two targeted tests, then commit:
 
@@ -266,7 +271,7 @@ export interface TimetableResourceLibraryProps {
 }
 ```
 
-- [ ] **Step 1: Write failing library component tests**
+- [x] **Step 1: Write failing library component tests**
 
 Test that the component:
 
@@ -279,7 +284,7 @@ Test that the component:
 - exposes a minimum 44px activation target and a visible keyboard focus class;
 - disables resources when the timetable is not editable.
 
-- [ ] **Step 2: Run the component test and verify it fails**
+- [x] **Step 2: Run the component test and verify it fails**
 
 Run:
 
@@ -289,7 +294,7 @@ Run:
 
 Expected: FAIL because the library components do not exist.
 
-- [ ] **Step 3: Implement `TimetableDraggableCard`**
+- [x] **Step 3: Implement `TimetableDraggableCard`**
 
 Use `useDraggable({ id: item.id, data: { item } })`. Render a real button for selection, apply drag listeners/attributes only when enabled, and keep the card usable without dragging:
 
@@ -310,11 +315,11 @@ Use `useDraggable({ id: item.id, data: { item } })`. Render a real button for se
 
 Use Lucide icons already present in the project; do not use emoji icons.
 
-- [ ] **Step 4: Implement `TimetableResourceLibrary`**
+- [x] **Step 4: Implement `TimetableResourceLibrary`**
 
 Use `Input` for search and `Button` for tabs, Unscheduled only, collapse, and close actions. Desktop uses `w-80 shrink-0`; mobile uses a fixed bottom drawer with a backdrop, safe-area padding, `role="dialog"`, `aria-modal="true"`, and a translated accessible name. Use logical utilities (`border-e`, `text-start`) so Arabic and English share one layout.
 
-- [ ] **Step 5: Pass the targeted library tests**
+- [x] **Step 5: Pass the targeted library tests**
 
 Run:
 
@@ -324,7 +329,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Run the mandatory guards and commit Task 2**
+- [x] **Step 6: Run the mandatory guards and commit Task 2**
 
 Run the test guard on the new test and clean-code guard on both production components. Fix findings, rerun the targeted test, then commit:
 
@@ -365,7 +370,7 @@ onPlaceItem: (
 onEntryDragStart: (entry: TimetableEntry) => void;
 ```
 
-- [ ] **Step 1: Expand grid tests before implementation**
+- [x] **Step 1: Expand grid tests before implementation**
 
 Add tests proving that:
 
@@ -377,7 +382,7 @@ Add tests proving that:
 - a filled lesson exposes an `ENTRY` drag payload;
 - read-only mode exposes neither placement nor dragging.
 
-- [ ] **Step 2: Run the grid test and verify the new assertions fail**
+- [x] **Step 2: Run the grid test and verify the new assertions fail**
 
 Run:
 
@@ -387,11 +392,11 @@ Run:
 
 Expected: existing conflict tests PASS and new placement tests FAIL.
 
-- [ ] **Step 3: Extract one reusable slot renderer inside `TimetableGrid.tsx`**
+- [x] **Step 3: Extract one reusable slot renderer inside `TimetableGrid.tsx`**
 
 Introduce a focused internal `TimetableSlotControl` component so desktop and mobile use identical activation rules. Use `useDroppable` with an ID containing classroom, day, and period and data shaped as `{ target }`. Use a real full-size button inside the table cell/mobile period container; remove the nested Add button to avoid nested interactive elements.
 
-- [ ] **Step 4: Add entry dragging and visual feedback**
+- [x] **Step 4: Add entry dragging and visual feedback**
 
 Filled editable lesson buttons use `useDraggable` with:
 
@@ -410,7 +415,7 @@ Apply stable color/border changes without scaling layout:
 
 Preserve focused-conflict scrolling, mobile day expansion, print styles, and existing lesson content.
 
-- [ ] **Step 5: Pass the targeted grid tests**
+- [x] **Step 5: Pass the targeted grid tests**
 
 Run:
 
@@ -420,7 +425,7 @@ Run:
 
 Expected: PASS, including all pre-existing conflict-focus tests.
 
-- [ ] **Step 6: Run the mandatory guards and commit Task 3**
+- [x] **Step 6: Run the mandatory guards and commit Task 3**
 
 Run test guard on `TimetableGrid.test.tsx` and clean-code guard on `TimetableGrid.tsx`. Fix findings, rerun the targeted test, then commit:
 
@@ -438,72 +443,18 @@ Run test guard on `TimetableGrid.test.tsx` and clean-code guard on `TimetableGri
 **Files:**
 
 - Create: `src/features/academics/timetable/components/TimetableUndoBanner.tsx`
+- Create: `src/features/academics/timetable/hooks/useTimetableScheduling.ts`
+- Create: `src/features/academics/timetable/hooks/__tests__/useTimetableScheduling.test.tsx`
 - Modify: `src/features/academics/timetable/components/TimetableView.tsx`
-- Create or modify: `src/features/academics/timetable/components/__tests__/TimetableView.test.tsx`
 
 **Interfaces:**
 
 - Consumes: all Task 1–3 exports, current `timetableEntries`, `allTermEntries`, `resolvedConfig`, classroom scope, dirty callback, and toast announcements.
-- Produces one placement path:
+- Produces one typed placement path from `useTimetableScheduling`. Preview checks use a stable, side-effect-free ID, successful creates receive a generated temporary ID, and rejection/effect union values map directly to matching translation keys.
 
-```ts
-const placeTimetableItem = useCallback(
-  (item: TimetableLibraryItem, target: TimetableDropTarget) => {
-    const result = applyTimetableDrop({
-      item,
-      target,
-      editableEntries: timetableEntries,
-      allEntries: mergeTimetableEntriesForValidation(
-        allTermEntries,
-        timetableEntries,
-      ),
-      readOnly: !canEditTimetable,
-      holiday: isHolidayDay(target.dayKey),
-      instructional: resolvedConfig.periods.find(
-        (period) => period.index === target.periodIndex,
-      )?.isInstructional !== false,
-      rooms,
-      classroom: classrooms.find(
-        (item) => item.id === target.classroomId,
-      ),
-      createEntryId: () => `temp-${crypto.randomUUID()}`,
-    });
+- [x] **Step 1: Write focused controller integration tests**
 
-    if (result.status === "REJECTED") {
-      showToast(
-        t(`schedulingLibrary.dropReasons.${dropReasonMessageKey[result.reason]}`),
-        "error",
-      );
-      return;
-    }
-
-    setTimetableEntries(result.entries);
-    setUndoEntries(result.undoEntries);
-    setSelectedLibraryItem(null);
-    onDirtyChange(true);
-    showToast(t(`schedulingLibrary.${dropEffectMessageKey[result.effect]}`), "success");
-  },
-  [
-    allTermEntries,
-    canEditTimetable,
-    classrooms,
-    isHolidayDay,
-    onDirtyChange,
-    resolvedConfig.periods,
-    rooms,
-    setTimetableEntries,
-    showToast,
-    t,
-    timetableEntries,
-  ],
-);
-```
-
-Define `dropReasonMessageKey` and `dropEffectMessageKey` as exhaustive `Record` maps beside the component so TypeScript rejects missing translation mappings when a union member is added.
-
-- [ ] **Step 1: Write failing integration tests**
-
-Mock `useTimetableData` with one classroom, one allocated lesson, one empty slot, and deterministic entries. Assert:
+Exercise `useTimetableScheduling` with one classroom, one allocated lesson, one empty slot, and deterministic entries. Combine this with the real grid, resource-library, undo-banner, and pure-service tests. Assert:
 
 - lesson placement updates the rendered slot and calls `onDirtyChange(true)` without opening `EditSlotDialog`;
 - activating an unselected slot still opens `EditSlotDialog`;
@@ -514,23 +465,17 @@ Mock `useTimetableData` with one classroom, one allocated lesson, one empty slot
 - closing/reopening the mobile library does not clear timetable changes;
 - read-only/published state hides the library and leaves the grid unchanged.
 
-- [ ] **Step 2: Run the integration test and verify it fails**
+- [x] **Step 2: Run the integration test and verify it fails**
 
-Run:
+The controller test initially fails because scheduling orchestration and undo state do not exist.
 
-```powershell
-& { npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableView.test.tsx }
-```
+- [x] **Step 3: Add DnD orchestration with `useTimetableScheduling`**
 
-Expected: FAIL because orchestration and the undo component do not exist.
+Create a `PointerSensor` with a 6px activation distance and a `TouchSensor` with a 200ms delay and 8px tolerance so clicks still select cards reliably. Keyboard users use the explicit select-then-place path rather than simulated dragging. Keep scoped selection, active drag, panel state, and a single undo snapshot in `useTimetableScheduling`. `onDragEnd` reads `{ item }` from the active payload and `{ target }` from the droppable payload, then calls the same placement function used by click placement.
 
-- [ ] **Step 3: Add DnD orchestration to `TimetableView`**
+Derive library lesson items only when one classroom is selected. When the user changes academic scope, clear selected and undo state to prevent applying a stale scoped item. Multi-classroom views remain available for viewing and dialog editing.
 
-Create a `PointerSensor` with a 6px activation distance and a `TouchSensor` with a 200ms delay and 8px tolerance so clicks still select cards reliably. Keyboard users use the explicit select-then-place path rather than simulated dragging. Keep `selectedLibraryItem`, `activeDragItem`, `libraryOpen`, and a single `undoEntries` snapshot in `TimetableView`. `onDragEnd` reads `{ item }` from the active payload and `{ target }` from the droppable payload, then calls `placeTimetableItem`. `onDragCancel` clears only the active drag.
-
-Derive library lesson items for the currently active classroom tab. When the user switches section/classroom scope, clear selected and undo state to prevent applying a stale scoped item.
-
-- [ ] **Step 4: Compose the responsive workspace**
+- [x] **Step 4: Compose the responsive workspace**
 
 Wrap only the editable workspace in one `DndContext`, then render:
 
@@ -543,17 +488,17 @@ Wrap only the editable workspace in one `DndContext`, then render:
 
 Use a shared `Button` to reopen the collapsed desktop panel and mobile drawer. Add `DragOverlay` for a visual card copy. Add `print:hidden` to all scheduling-only UI.
 
-- [ ] **Step 5: Implement accessible single-level undo**
+- [x] **Step 5: Implement accessible single-level undo**
 
-`TimetableUndoBanner` receives `{ message, onUndo, onDismiss }`, renders `role="status"`, and uses shared `Button` controls. A successful placement stores the pre-change snapshot; Undo calls `setTimetableEntries(undoEntries)`, keeps the page dirty, announces success, clears the snapshot, and restores focus to the initiating library card or target slot. The next successful placement replaces the previous undo snapshot.
+`TimetableUndoBanner` renders `role="status"` and shared `Button` controls. A successful placement stores the pre-change snapshot and prior dirty state; Undo restores both, announces success, clears the snapshot, and returns focus to the timetable workspace. The next successful placement replaces the previous undo snapshot.
 
-- [ ] **Step 6: Pass integration and regression tests**
+- [x] **Step 6: Pass integration and regression tests**
 
 Run:
 
 ```powershell
 & {
-  npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableView.test.tsx
+  npm run test:run -- src/features/academics/timetable/hooks/__tests__/useTimetableScheduling.test.tsx
   npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableGrid.test.tsx
   npm run test:run -- src/features/academics/timetable/components/__tests__/EditSlotDialog.test.tsx
 }
@@ -563,11 +508,11 @@ Expected: all three files PASS.
 
 - [ ] **Step 7: Run the mandatory guards and commit Task 4**
 
-Run test guard on the integration test and clean-code guard on `TimetableView.tsx` plus `TimetableUndoBanner.tsx`. Pay particular attention to stale closures, duplicated state mutation, unstable temporary IDs, and focus restoration. Fix findings, rerun targeted tests, then commit:
+Run test guard on the controller and undo tests and clean-code guard on `useTimetableScheduling.ts`, `TimetableView.tsx`, and `TimetableUndoBanner.tsx`. Pay particular attention to stale closures, duplicated state mutation, unstable temporary IDs, and focus restoration. Fix findings, rerun targeted tests, then commit.
 
 ```powershell
 & {
-  git add src/features/academics/timetable/components/TimetableView.tsx src/features/academics/timetable/components/TimetableUndoBanner.tsx src/features/academics/timetable/components/__tests__/TimetableView.test.tsx
+  git add src/features/academics/timetable/components/TimetableView.tsx src/features/academics/timetable/components/TimetableUndoBanner.tsx src/features/academics/timetable/components/__tests__/TimetableUndoBanner.test.tsx src/features/academics/timetable/hooks/useTimetableScheduling.ts src/features/academics/timetable/hooks/__tests__/useTimetableScheduling.test.tsx
   git commit -m "feat(timetable): integrate direct scheduling workflow"
 }
 ```
@@ -586,27 +531,27 @@ Run test guard on the integration test and clean-code guard on `TimetableView.ts
 
 - Produces the `academics.timetable.schedulingLibrary` subtree used by Tasks 2–4.
 
-- [ ] **Step 1: Add failing translation assertions**
+- [x] **Step 1: Add failing translation assertions**
 
 Require matching English/Arabic keys for:
 
 ```text
 title, open, close, searchLabel, searchPlaceholder,
 tabs.lessons, tabs.teachers, tabs.rooms,
-unscheduledOnly, remainingPeriods, scheduledPeriods,
+unscheduledOnly, remainingPeriods, roomCapacity,
 noLessons, noTeachers, noRooms,
-selectedAnnouncement, placedAnnouncement, movedAnnouncement,
-replacedAnnouncement, undoneAnnouncement,
-dropReasons.readOnly, dropReasons.holiday,
-dropReasons.nonInstructional, dropReasons.subjectRequired,
-dropReasons.roomIneligible, dropReasons.teacherConflict,
-dropReasons.roomConflict, dropReasons.sameSlot,
-undo, dismiss
+clickSlotHint, selectClassroomHint, dragging,
+effects.create, effects.update, effects.replace, effects.move,
+rejections.READ_ONLY, rejections.HOLIDAY,
+rejections.NON_INSTRUCTIONAL, rejections.SUBJECT_REQUIRED,
+rejections.TEACHER_SUBJECT_MISMATCH, rejections.ROOM_INELIGIBLE,
+rejections.TEACHER_CONFLICT, rejections.ROOM_CONFLICT,
+rejections.SAME_SLOT, undo, dismissUndo, undoComplete
 ```
 
-Assert that both locales contain `{remaining}` and `{target}` in `remainingPeriods`, and the same interpolation variables in every paired announcement.
+Assert that both locales contain `{remaining}` and `{target}` in `remainingPeriods` and keep matching nested key sets.
 
-- [ ] **Step 2: Run the translation test and verify it fails**
+- [x] **Step 2: Run the translation test and verify it fails**
 
 Run:
 
@@ -616,11 +561,11 @@ Run:
 
 Expected: FAIL because `schedulingLibrary` is missing.
 
-- [ ] **Step 3: Add concise English and Arabic copy**
+- [x] **Step 3: Add concise English and Arabic copy**
 
 Use terminology already established in `academics.timetable.editSlot` and `academics.timetable.grid`. Avoid encoding status only through color; rejection messages must name the reason.
 
-- [ ] **Step 4: Pass the translation and feature tests**
+- [x] **Step 4: Pass the translation and feature tests**
 
 Run:
 
@@ -628,11 +573,12 @@ Run:
 & {
   npm run test:run -- src/messages/__tests__/timetableTranslations.test.ts
   npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableResourceLibrary.test.tsx
-  npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableView.test.tsx
+  npm run test:run -- src/features/academics/timetable/hooks/__tests__/useTimetableScheduling.test.tsx
+  npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableUndoBanner.test.tsx
 }
 ```
 
-Expected: all three files PASS.
+Expected: all four files PASS.
 
 - [ ] **Step 5: Run the mandatory guards and commit Task 5**
 
@@ -668,7 +614,8 @@ Run:
   npm run test:run -- src/features/academics/timetable/services/__tests__/timetableSlotEditing.test.ts
   npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableResourceLibrary.test.tsx
   npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableGrid.test.tsx
-  npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableView.test.tsx
+  npm run test:run -- src/features/academics/timetable/hooks/__tests__/useTimetableScheduling.test.tsx
+  npm run test:run -- src/features/academics/timetable/components/__tests__/TimetableUndoBanner.test.tsx
   npm run test:run -- src/features/academics/timetable/components/__tests__/EditSlotDialog.test.tsx
   npm run test:run -- src/messages/__tests__/timetableTranslations.test.ts
   npm run typecheck

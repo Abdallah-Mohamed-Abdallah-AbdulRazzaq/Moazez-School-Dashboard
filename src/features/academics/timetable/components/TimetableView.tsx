@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import {
   AlertCircle,
@@ -16,9 +17,12 @@ import {
   Clock3,
   School,
   GraduationCap,
+  Library,
 } from "lucide-react";
 import FilterBar from "./FilterBar";
 import TimetableGrid from "./TimetableGrid";
+import TimetableResourceLibrary from "./TimetableResourceLibrary";
+import TimetableUndoBanner from "./TimetableUndoBanner";
 import TimetableCreationStepper from "./TimetableCreationStepper";
 import TimetableSourceBanner from "./TimetableSourceBanner";
 import ValidationPanel from "./ValidationPanel";
@@ -63,6 +67,7 @@ import {
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTimetableData } from "@/features/academics/timetable/hooks/useTimetableData";
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
+import { useTimetableScheduling } from "@/features/academics/timetable/hooks/useTimetableScheduling";
 import { generateTimetableConfig } from "@/features/academics/timetable/services/timetableApiAdapter";
 import { presentTimetableGeneration } from "@/features/academics/timetable/services/timetableGenerationPresentation";
 import {
@@ -920,6 +925,54 @@ export default function TimetableView({
   )
     ? selectedSectionTabId
     : displayedSections[0]?.id;
+  const {
+    activeDragItem,
+    canDropOnSlot,
+    desktopLibraryOpen,
+    dismissUndo,
+    dragSensors,
+    handleDragCancel,
+    handleDragEnd,
+    handleDragStart,
+    libraryItems: schedulingLibraryItems,
+    mobileLibraryOpen,
+    placeItem: placeTimetableItem,
+    resetInteraction: resetSchedulingInteraction,
+    selectLibraryItem,
+    selectedLibraryItem,
+    setDesktopLibraryOpen,
+    setMobileLibraryOpen,
+    undo: handleUndoPlacement,
+    undoEffect,
+  } = useTimetableScheduling({
+    termId,
+    locale,
+    gradeId: selectedGradeId,
+    stageId: selectedStageId,
+    sectionId: selectedSectionId,
+    classroomId: selectedClassroomId,
+    selectedClassroom,
+    classrooms,
+    subjects,
+    subjectAllocations,
+    teachers,
+    teacherAllocations,
+    rooms,
+    timetableEntries,
+    allTermEntries,
+    periods: resolvedConfig?.periods ?? [],
+    canEdit: canEditTimetable,
+    isDirty,
+    isHolidayDay,
+    setTimetableEntries,
+    onDirtyChange,
+    showToast,
+    translate: t,
+  });
+  const handleUndoAndRestoreFocus = useCallback(() => {
+    handleUndoPlacement();
+    window.requestAnimationFrame(() => gridRef.current?.focus());
+  }, [handleUndoPlacement]);
 
   const handleConflictSelect = useCallback(
     (conflict: TimetableConflictDisplay) => {
@@ -1582,10 +1635,22 @@ export default function TimetableView({
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
-          onStageChange={onStageChange}
-          onGradeChange={onGradeChange}
-          onSectionChange={onSectionChange}
-          onClassroomChange={onClassroomChange}
+          onStageChange={(stageId) => {
+            resetSchedulingInteraction();
+            onStageChange(stageId);
+          }}
+          onGradeChange={(gradeId) => {
+            resetSchedulingInteraction();
+            onGradeChange(gradeId);
+          }}
+          onSectionChange={(sectionId) => {
+            resetSchedulingInteraction();
+            onSectionChange(sectionId);
+          }}
+          onClassroomChange={(classroomId) => {
+            resetSchedulingInteraction();
+            onClassroomChange(classroomId);
+          }}
           locale={locale}
         />
       </div>
@@ -1946,11 +2011,33 @@ export default function TimetableView({
       )}
 
       {/* Grid */}
-      <div
-        ref={gridRef}
-        tabIndex={-1}
-        className="flex-1 min-h-full overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0"
+      <DndContext
+        sensors={dragSensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
+        <div className="flex min-h-0 flex-1">
+          {canEditTimetable && selectedClassroom && (
+            <TimetableResourceLibrary
+              items={schedulingLibraryItems}
+              subjects={subjects}
+              teachers={teachers}
+              rooms={rooms}
+              locale={locale}
+              selectedItemId={selectedLibraryItem?.id ?? null}
+              isOpen={desktopLibraryOpen}
+              mobile={false}
+              disabled={!canEditTimetable}
+              onOpenChange={setDesktopLibraryOpen}
+              onItemSelect={selectLibraryItem}
+            />
+          )}
+          <div
+            ref={gridRef}
+            tabIndex={-1}
+            className="min-h-full min-w-0 flex-1 overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0"
+          >
         {timetableLoading ? (
           <TimetableGridLoadingSkeleton label={t("loadingLabel")} />
         ) : !hasTimetableScope ? (
@@ -1998,13 +2085,70 @@ export default function TimetableView({
             className="h-full"
           />
         ) : (
-          <div
-            ref={printMatrixRef}
-            className={`timetable-print-matrix ${
-              locale === "ar" ? "timetable-print-rtl" : "timetable-print-ltr"
-            }`}
-            dir={locale === "ar" ? "rtl" : "ltr"}
-          >
+          <div className="space-y-3">
+            {canEditTimetable && (
+              <div className="flex flex-wrap items-center gap-2 print:hidden">
+                {selectedClassroom ? (
+                  <>
+                    {!desktopLibraryOpen && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="hidden lg:inline-flex"
+                        onClick={() => setDesktopLibraryOpen(true)}
+                        leftIcon={
+                          <Library className="h-4 w-4" aria-hidden="true" />
+                        }
+                      >
+                        {t("schedulingLibrary.open")}
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="lg:hidden"
+                      onClick={() => setMobileLibraryOpen(true)}
+                      leftIcon={
+                        <Library className="h-4 w-4" aria-hidden="true" />
+                      }
+                    >
+                      {t("schedulingLibrary.open")}
+                    </Button>
+                    {selectedLibraryItem && (
+                      <span className="text-sm text-primary-700">
+                        {t("schedulingLibrary.clickSlotHint")}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    {t("schedulingLibrary.selectClassroomHint")}
+                  </p>
+                )}
+              </div>
+            )}
+            {undoEffect && (
+              <TimetableUndoBanner
+                message={t(
+                  `schedulingLibrary.effects.${undoEffect.toLowerCase()}`,
+                )}
+                undoLabel={t("schedulingLibrary.undo")}
+                dismissLabel={t("schedulingLibrary.dismissUndo")}
+                onUndo={handleUndoAndRestoreFocus}
+                onDismiss={dismissUndo}
+              />
+            )}
+            <div
+              ref={printMatrixRef}
+              className={`timetable-print-matrix ${
+                locale === "ar"
+                  ? "timetable-print-rtl"
+                  : "timetable-print-ltr"
+              }`}
+              dir={locale === "ar" ? "rtl" : "ltr"}
+            >
             <div className="timetable-print-page-inner">
               <div
                 className="hidden timetable-print-header"
@@ -2089,6 +2233,8 @@ export default function TimetableView({
                         </div>
                       )}
                       <TimetableGrid
+                        classroomId={classroom.id}
+                        sectionId={classroom.sectionId}
                         entries={classroomEntries}
                         proposalEntries={timetableEntries}
                         subjects={subjects}
@@ -2106,6 +2252,10 @@ export default function TimetableView({
                         locale={locale}
                         isReadOnly={!canEditTimetable}
                         resolvedConfig={resolvedConfig}
+                        selectedLibraryItem={selectedLibraryItem}
+                        activeDragItem={activeDragItem}
+                        canDropOnSlot={canDropOnSlot}
+                        onPlaceItem={placeTimetableItem}
                       />
                     </section>
                   );
@@ -2122,8 +2272,33 @@ export default function TimetableView({
               )}
             </div>
           </div>
+          </div>
         )}
-      </div>
+          </div>
+        </div>
+        {canEditTimetable && selectedClassroom && (
+          <TimetableResourceLibrary
+            items={schedulingLibraryItems}
+            subjects={subjects}
+            teachers={teachers}
+            rooms={rooms}
+            locale={locale}
+            selectedItemId={selectedLibraryItem?.id ?? null}
+            isOpen={mobileLibraryOpen}
+            mobile
+            disabled={!canEditTimetable}
+            onOpenChange={setMobileLibraryOpen}
+            onItemSelect={selectLibraryItem}
+          />
+        )}
+        <DragOverlay>
+          {activeDragItem ? (
+            <div className="max-w-64 rounded-lg border border-primary-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-xl">
+              {t("schedulingLibrary.dragging")}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Validation Drawer */}
       {hasTimetableScope && resolvedConfig && (
