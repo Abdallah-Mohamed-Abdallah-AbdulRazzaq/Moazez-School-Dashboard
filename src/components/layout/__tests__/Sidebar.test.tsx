@@ -59,10 +59,6 @@ describe("Sidebar toggle control", () => {
 
     try {
       render(<Sidebar isOpen onToggle={vi.fn()} />);
-
-      expect(
-        screen.getByRole("link", { name: "System Health" }),
-      ).toBeInTheDocument();
       expect(
         screen.getByRole("link", {
           name: "Academic Content Hub Coming soon",

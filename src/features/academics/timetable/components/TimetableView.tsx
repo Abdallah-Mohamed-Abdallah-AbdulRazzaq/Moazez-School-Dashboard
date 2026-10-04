@@ -439,6 +439,9 @@ export default function TimetableView({
   const canCreateConfig = canWriteTimetable && !hasExactConfig;
   const canEditTimetable =
     canWriteTimetable && configIsDraft && workspaceState.canEdit;
+  const filledTimetableEntryCount = timetableEntries.filter(
+    (entry) => entry.subjectId,
+  ).length;
   const canConfigureTimetable = hasExactConfig
     ? canEditTimetable
     : canCreateConfig;
@@ -692,25 +695,13 @@ export default function TimetableView({
     }
   };
 
-  const confirmDeleteAllEntries = async () => {
+  const confirmDeleteAllEntries = () => {
     if (!hasTimetableScope || !canEditTimetable) return;
 
-    const entriesToDelete =
+    const entriesPendingDeletion =
       persistedEntriesClearedForDeletion(timetableEntries);
-    if (entriesToDelete.length > 0) {
-      const saveResult = await saveTimetable(entriesToDelete);
-      if (!saveResult.ok) {
-        showToast(
-          saveResult.error ?? t("actions.deleteAllEntriesError"),
-          "error",
-        );
-        return;
-      }
-    } else {
-      setTimetableEntries([]);
-    }
-
-    onDirtyChange(false);
+    setTimetableEntries(entriesPendingDeletion);
+    onDirtyChange(entriesPendingDeletion.length > 0);
     setDeleteAllEntriesConfirmOpen(false);
     showToast(t("actions.deleteAllEntriesSuccess"), "success");
   };
@@ -1871,7 +1862,7 @@ export default function TimetableView({
                     onClick={() => setDeleteAllEntriesConfirmOpen(true)}
                     disabled={
                       !canEditTimetable ||
-                      timetableEntries.length === 0 ||
+                      filledTimetableEntryCount === 0 ||
                       isSaving
                     }
                     variant="danger"
@@ -2047,7 +2038,7 @@ export default function TimetableView({
                     onClick={() => setDeleteAllEntriesConfirmOpen(true)}
                     disabled={
                       !canEditTimetable ||
-                      timetableEntries.length === 0 ||
+                      filledTimetableEntryCount === 0 ||
                       isSaving
                     }
                     variant="danger"
@@ -2586,12 +2577,11 @@ export default function TimetableView({
         onConfirm={confirmDeleteAllEntries}
         title={t("actions.deleteAllEntriesConfirmTitle")}
         description={t("actions.deleteAllEntriesConfirmMessage", {
-          count: timetableEntries.length,
+          count: filledTimetableEntryCount,
         })}
         confirmLabel={t("actions.deleteAllEntries")}
         cancelLabel={t("publish.cancel")}
         severity="danger"
-        loading={isSaving}
       />
 
       {/* Publish Confirm Dialog */}
