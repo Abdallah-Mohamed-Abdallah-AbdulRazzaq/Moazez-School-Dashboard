@@ -23,6 +23,7 @@ import FilterBar from "./FilterBar";
 import TimetableGrid from "./TimetableGrid";
 import TimetableResourceLibrary from "./TimetableResourceLibrary";
 import TimetableUndoBanner from "./TimetableUndoBanner";
+import TimetableCollapsibleSection from "./TimetableCollapsibleSection";
 import TimetableCreationStepper from "./TimetableCreationStepper";
 import TimetableSourceBanner from "./TimetableSourceBanner";
 import ValidationPanel from "./ValidationPanel";
@@ -188,6 +189,11 @@ export default function TimetableView({
   );
 
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
+  const [scopeFiltersExpanded, setScopeFiltersExpanded] = useState(true);
+  const [creationProgressExpanded, setCreationProgressExpanded] =
+    useState(true);
+  const [timetableContextExpanded, setTimetableContextExpanded] =
+    useState(true);
   const [selectedConflict, setSelectedConflict] =
     useState<TimetableConflictDisplay | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -1211,6 +1217,15 @@ export default function TimetableView({
       ),
     },
   };
+  const highlightedCreationStep = creationProgress.steps.find(
+    (step) => step.status === "current" || step.status === "blocked",
+  );
+  const creationProgressSummary =
+    creationProgress.state === "checking"
+      ? creationProgressCopy.checking
+      : highlightedCreationStep
+        ? creationProgressCopy.steps[highlightedCreationStep.id]
+        : creationProgressCopy.steps.publish;
 
   const focusDestination = (destination: HTMLDivElement | null) => {
     if (!destination) return;
@@ -1225,7 +1240,11 @@ export default function TimetableView({
   };
 
   const openCreationStep = (action: TimetableCreationAction) => {
-    if (action === "scope") return focusDestination(scopeRef.current);
+    if (action === "scope") {
+      setScopeFiltersExpanded(true);
+      window.requestAnimationFrame(() => focusDestination(scopeRef.current));
+      return;
+    }
     if (action === "configuration") return openConfigurationEditor();
     if (action === "periods") {
       if (isTermDefaultConfiguration) return openTimetableSettings();
@@ -1624,105 +1643,136 @@ export default function TimetableView({
           }
         }
       `}</style>
-      {/* Filter Bar */}
       <div ref={scopeRef} tabIndex={-1} className="print:hidden">
-        <FilterBar
-          stages={stages}
-          grades={grades}
-          sections={sections}
-          classrooms={classrooms}
-          selectedStageId={selectedStageId}
-          selectedGradeId={selectedGradeId}
-          selectedSectionId={selectedSectionId}
-          selectedClassroomId={selectedClassroomId}
-          onStageChange={(stageId) => {
-            resetSchedulingInteraction();
-            onStageChange(stageId);
-          }}
-          onGradeChange={(gradeId) => {
-            resetSchedulingInteraction();
-            onGradeChange(gradeId);
-          }}
-          onSectionChange={(sectionId) => {
-            resetSchedulingInteraction();
-            onSectionChange(sectionId);
-          }}
-          onClassroomChange={(classroomId) => {
-            resetSchedulingInteraction();
-            onClassroomChange(classroomId);
-          }}
-          locale={locale}
-        />
+        <TimetableCollapsibleSection
+          id="timetable-scope-filters"
+          title={t("filters.selectScope")}
+          summary={
+            scopeChain.map((segment) => segment.name).join(" · ") ||
+            t("config.scopeOptions.term")
+          }
+          expanded={scopeFiltersExpanded}
+          expandLabel={tRoot("expand")}
+          collapseLabel={tRoot("collapse")}
+          onExpandedChange={setScopeFiltersExpanded}
+        >
+          <FilterBar
+            stages={stages}
+            grades={grades}
+            sections={sections}
+            classrooms={classrooms}
+            selectedStageId={selectedStageId}
+            selectedGradeId={selectedGradeId}
+            selectedSectionId={selectedSectionId}
+            selectedClassroomId={selectedClassroomId}
+            onStageChange={(stageId) => {
+              resetSchedulingInteraction();
+              onStageChange(stageId);
+            }}
+            onGradeChange={(gradeId) => {
+              resetSchedulingInteraction();
+              onGradeChange(gradeId);
+            }}
+            onSectionChange={(sectionId) => {
+              resetSchedulingInteraction();
+              onSectionChange(sectionId);
+            }}
+            onClassroomChange={(classroomId) => {
+              resetSchedulingInteraction();
+              onClassroomChange(classroomId);
+            }}
+            locale={locale}
+          />
+        </TimetableCollapsibleSection>
       </div>
 
-      <TimetableCreationStepper
-        progress={creationProgress}
-        copy={creationProgressCopy}
-        onAction={openCreationStep}
-      />
+      <TimetableCollapsibleSection
+        id="timetable-creation-progress"
+        title={creationProgressCopy.navigationLabel}
+        summary={creationProgressSummary}
+        expanded={creationProgressExpanded}
+        expandLabel={tRoot("expand")}
+        collapseLabel={tRoot("collapse")}
+        onExpandedChange={setCreationProgressExpanded}
+      >
+        <TimetableCreationStepper
+          progress={creationProgress}
+          copy={creationProgressCopy}
+          onAction={openCreationStep}
+        />
+      </TimetableCollapsibleSection>
 
       {hasTimetableScope && (
-        <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">
-                {t("target.label")}
-              </span>
-              <span
-                className="inline-flex flex-wrap items-center gap-x-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
-                aria-label={scopeChain
-                  .map((segment) => `${segment.label}: ${segment.name}`)
-                  .join(" > ")}
-              >
-                {scopeChain.length === 0
-                  ? t("config.scopeOptions.term")
-                  : scopeChain.map((segment, index) => (
-                      <span
-                        key={segment.label}
-                        className="inline-flex items-center gap-x-1"
-                      >
-                        {index > 0 && <span aria-hidden="true">›</span>}
-                        <span>
-                          {segment.label}: {segment.name}
+        <TimetableCollapsibleSection
+          id="timetable-context"
+          title={t("target.label")}
+          summary={configSourceLabel}
+          expanded={timetableContextExpanded}
+          expandLabel={tRoot("expand")}
+          collapseLabel={tRoot("collapse")}
+          onExpandedChange={setTimetableContextExpanded}
+        >
+          <div className="bg-white px-4 py-3 lg:px-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-gray-600">
+                  {t("target.label")}
+                </span>
+                <span
+                  className="inline-flex flex-wrap items-center gap-x-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
+                  aria-label={scopeChain
+                    .map((segment) => `${segment.label}: ${segment.name}`)
+                    .join(" > ")}
+                >
+                  {scopeChain.length === 0
+                    ? t("config.scopeOptions.term")
+                    : scopeChain.map((segment, index) => (
+                        <span
+                          key={segment.label}
+                          className="inline-flex items-center gap-x-1"
+                        >
+                          {index > 0 && <span aria-hidden="true">›</span>}
+                          <span>
+                            {segment.label}: {segment.name}
+                          </span>
                         </span>
-                      </span>
-                    ))}
-              </span>
+                      ))}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {hasTimetableScope && !timetableLoading && (
-        <TimetableSourceBanner
-          workspaceState={workspaceState}
-          sourceName={configSourceLabel}
-          configurationScope={configurationScope}
-          primaryActionEnabled={sourceActionEnabled}
-          onCreateOverride={customizeFilteredScope}
-          onReturnToTermDefault={returnToTermDefault}
-          copy={{
-            exactTitle: t("source.exactTitle"),
-            exactDescription: t("source.exactDescription"),
-            termDefaultTitle: t("source.termDefaultTitle"),
-            termDefaultDescription: t("source.termDefaultDescription"),
-            inheritedTitle: t("source.inheritedTitle"),
-            inheritedDescription: t("source.inheritedDescription"),
-            unconfiguredTitle: t("source.unconfiguredTitle"),
-            unconfiguredDescription: t("source.unconfiguredDescription"),
-            unconfiguredScopeDescription: t(
-              "source.unconfiguredScopeDescription",
-            ),
-            sourceLabel: t("source.sourceLabel"),
-            lockedLabel: t("source.lockedLabel"),
-            createOverride: t("source.createOverride"),
-            customizeScope: t("source.customizeScope"),
-            openSelectedScope: t("source.openSelectedScope"),
-            returnToTermDefault: t("source.returnToTermDefault"),
-            overrideUnavailable: t("source.overrideUnavailable"),
-            publishedOverridesNote: t("source.publishedOverridesNote"),
-          }}
-        />
+          {!timetableLoading && (
+            <TimetableSourceBanner
+              workspaceState={workspaceState}
+              sourceName={configSourceLabel}
+              configurationScope={configurationScope}
+              primaryActionEnabled={sourceActionEnabled}
+              onCreateOverride={customizeFilteredScope}
+              onReturnToTermDefault={returnToTermDefault}
+              copy={{
+                exactTitle: t("source.exactTitle"),
+                exactDescription: t("source.exactDescription"),
+                termDefaultTitle: t("source.termDefaultTitle"),
+                termDefaultDescription: t("source.termDefaultDescription"),
+                inheritedTitle: t("source.inheritedTitle"),
+                inheritedDescription: t("source.inheritedDescription"),
+                unconfiguredTitle: t("source.unconfiguredTitle"),
+                unconfiguredDescription: t("source.unconfiguredDescription"),
+                unconfiguredScopeDescription: t(
+                  "source.unconfiguredScopeDescription",
+                ),
+                sourceLabel: t("source.sourceLabel"),
+                lockedLabel: t("source.lockedLabel"),
+                createOverride: t("source.createOverride"),
+                customizeScope: t("source.customizeScope"),
+                openSelectedScope: t("source.openSelectedScope"),
+                returnToTermDefault: t("source.returnToTermDefault"),
+                overrideUnavailable: t("source.overrideUnavailable"),
+                publishedOverridesNote: t("source.publishedOverridesNote"),
+              }}
+            />
+          )}
+        </TimetableCollapsibleSection>
       )}
 
       {hasTimetableScope && !timetableLoading && readOnlyBanner && (
@@ -2017,7 +2067,7 @@ export default function TimetableView({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           {canEditTimetable && selectedClassroom && (
             <TimetableResourceLibrary
               items={schedulingLibraryItems}
@@ -2036,7 +2086,7 @@ export default function TimetableView({
           <div
             ref={gridRef}
             tabIndex={-1}
-            className="min-h-full min-w-0 flex-1 overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0"
+            className="h-full min-h-0 min-w-0 flex-1 overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0"
           >
         {timetableLoading ? (
           <TimetableGridLoadingSkeleton label={t("loadingLabel")} />

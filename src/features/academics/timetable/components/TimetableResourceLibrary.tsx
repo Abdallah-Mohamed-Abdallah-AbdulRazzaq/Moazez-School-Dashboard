@@ -47,7 +47,7 @@ export default function TimetableResourceLibrary(
   if (!props.isOpen) return null;
 
   const panel = (
-    <section className="flex h-full min-h-0 flex-col bg-white">
+    <section className="flex h-full max-h-full min-h-0 flex-col overflow-hidden bg-white">
       <LibraryHeader mobile={props.mobile} onClose={() => props.onOpenChange(false)} />
       <div className="space-y-3 border-b border-gray-200 p-3">
         <Input
@@ -73,7 +73,7 @@ export default function TimetableResourceLibrary(
           </Button>
         )}
       </div>
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3">
         {visibleItems.length > 0 ? (
           visibleItems.map((libraryItem) => (
             <TimetableResourceCard
@@ -99,7 +99,7 @@ export default function TimetableResourceLibrary(
 
   if (!props.mobile) {
     return (
-      <aside className="hidden h-full w-80 shrink-0 border-e border-gray-200 lg:block print:hidden">
+      <aside className="hidden h-full min-h-0 w-80 shrink-0 overflow-hidden border-e border-gray-200 lg:block print:hidden">
         {panel}
       </aside>
     );
