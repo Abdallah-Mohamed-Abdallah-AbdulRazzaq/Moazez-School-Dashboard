@@ -2,6 +2,7 @@ import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import type {
   AcademicContentApprovalHistoryResponse,
   AcademicContentAssetUnlinkResponse,
+  AcademicContentAudiencePreviewResponse,
   AcademicContentBase,
   AcademicContentDeleteResponse,
   AcademicContentDetail,
@@ -16,6 +17,9 @@ import type {
   AcademicContentPreparationTemplateDeleteResponse,
   AcademicContentPreparationTemplateDetail,
   AcademicContentPreparationTemplateListResponse,
+  AcademicContentPublication,
+  AcademicContentPublicationHistoryResponse,
+  AcademicContentPublicationReadinessResponse,
   AcademicContentReadinessResponse,
   AcademicContentReviewQueueQuery,
   AcademicContentReviewQueueResponse,
@@ -34,6 +38,7 @@ import type {
   AcademicContentWorkflowPolicy,
   CreateAcademicContentRequest,
   CreateAcademicContentPreparationTemplateRequest,
+  CreateAcademicContentPublicationRequest,
   CreateAcademicContentUploadRequest,
   ListAcademicContentQuery,
   ListAcademicContentPreparationTemplatesQuery,
@@ -62,6 +67,10 @@ function preparationTemplatePath(templateId: string): string {
   return `${PREPARATION_TEMPLATES_PATH}/${encodeURIComponent(templateId)}`;
 }
 
+function publicationPath(contentId: string, publicationId: string): string {
+  return `${contentPath(contentId)}/publications/${encodeURIComponent(publicationId)}`;
+}
+
 function nonEmptyQuery<TQuery extends object>(query: TQuery): Partial<TQuery> {
   return Object.fromEntries(
     Object.entries(query).filter(
@@ -86,6 +95,71 @@ export function getAcademicContentReadiness(
   contentId: string,
 ): Promise<AcademicContentReadinessResponse> {
   return apiGet<AcademicContentReadinessResponse>(`${contentPath(contentId)}/readiness`);
+}
+
+export function getAcademicContentPublicationReadiness(
+  contentId: string,
+): Promise<AcademicContentPublicationReadinessResponse> {
+  return apiGet<AcademicContentPublicationReadinessResponse>(
+    `${contentPath(contentId)}/publication-readiness`,
+  );
+}
+
+export function getAcademicContentAudiencePreview(
+  contentId: string,
+): Promise<AcademicContentAudiencePreviewResponse> {
+  return apiGet<AcademicContentAudiencePreviewResponse>(
+    `${contentPath(contentId)}/audience-preview`,
+  );
+}
+
+export function createAcademicContentPublication(
+  contentId: string,
+  request: CreateAcademicContentPublicationRequest,
+): Promise<AcademicContentPublication> {
+  return apiPost<AcademicContentPublication>(
+    `${contentPath(contentId)}/publications`,
+    request,
+  );
+}
+
+export function listAcademicContentPublications(
+  contentId: string,
+  query: AcademicContentPaginationQuery,
+): Promise<AcademicContentPublicationHistoryResponse> {
+  return apiGet<AcademicContentPublicationHistoryResponse>(
+    `${contentPath(contentId)}/publications`,
+    { params: nonEmptyQuery(query) },
+  );
+}
+
+export function getAcademicContentPublication(
+  contentId: string,
+  publicationId: string,
+): Promise<AcademicContentPublication> {
+  return apiGet<AcademicContentPublication>(
+    publicationPath(contentId, publicationId),
+  );
+}
+
+export function unscheduleAcademicContentPublication(
+  contentId: string,
+  publicationId: string,
+): Promise<AcademicContentPublication> {
+  return apiPost<AcademicContentPublication>(
+    `${publicationPath(contentId, publicationId)}/unschedule`,
+    {},
+  );
+}
+
+export function cancelAcademicContentPublication(
+  contentId: string,
+  publicationId: string,
+): Promise<AcademicContentPublication> {
+  return apiPost<AcademicContentPublication>(
+    `${publicationPath(contentId, publicationId)}/cancel`,
+    {},
+  );
 }
 
 export function createAcademicContent(

@@ -16,6 +16,7 @@ const CONTENT_ID = "content/id";
 const ENCODED_CONTENT_ID = "content%2Fid";
 const REVISION_ID = "revision/id";
 const TEMPLATE_ID = "template/id";
+const PUBLICATION_ID = "publication/id";
 const UPLOAD_ID = "upload/id";
 const ASSET_ID = "asset/id";
 
@@ -262,7 +263,62 @@ describe("academic content endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(1, `${contentPath}/archive`);
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(2, `${contentPath}/restore`);
     expect(apiMocks.apiDelete).toHaveBeenCalledWith(contentPath);
-    expect("publishAcademicContent" in academicContentApi).toBe(false);
+  });
+
+  it("uses the exact publication management endpoints", async () => {
+    const request = {
+      clientRequestId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      publishAt: "2026-10-06T08:00:00.000Z",
+      visibleFrom: "2026-10-06T09:00:00.000Z",
+      visibleUntil: "2026-10-07T09:00:00.000Z",
+    };
+
+    await academicContentApi.getAcademicContentPublicationReadiness(CONTENT_ID);
+    await academicContentApi.getAcademicContentAudiencePreview(CONTENT_ID);
+    await academicContentApi.createAcademicContentPublication(CONTENT_ID, request);
+    await academicContentApi.listAcademicContentPublications(CONTENT_ID, {
+      page: 2,
+      limit: 20,
+    });
+    await academicContentApi.getAcademicContentPublication(
+      CONTENT_ID,
+      PUBLICATION_ID,
+    );
+    await academicContentApi.unscheduleAcademicContentPublication(
+      CONTENT_ID,
+      PUBLICATION_ID,
+    );
+    await academicContentApi.cancelAcademicContentPublication(
+      CONTENT_ID,
+      PUBLICATION_ID,
+    );
+
+    const base = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
+    const publicationPath = `${base}/publications/${encodeURIComponent(PUBLICATION_ID)}`;
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
+      1,
+      `${base}/publication-readiness`,
+    );
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(2, `${base}/audience-preview`);
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      1,
+      `${base}/publications`,
+      request,
+    );
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(3, `${base}/publications`, {
+      params: { page: 2, limit: 20 },
+    });
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(4, publicationPath);
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      2,
+      `${publicationPath}/unschedule`,
+      {},
+    );
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      3,
+      `${publicationPath}/cancel`,
+      {},
+    );
   });
 
   it("gets and updates the file policy through the settings endpoint", async () => {

@@ -421,6 +421,60 @@ export interface AcademicContentReadinessResponse {
   blockingReasons: AcademicContentReadinessReason[];
 }
 
+export const ACADEMIC_CONTENT_PUBLICATION_STATUSES = [
+  "SCHEDULED",
+  "PUBLISHED",
+  "EXPIRED",
+  "CANCELLED",
+] as const;
+export type AcademicContentPublicationStatus =
+  (typeof ACADEMIC_CONTENT_PUBLICATION_STATUSES)[number];
+
+export interface AcademicContentPublicationReadinessResponse {
+  canPublish: boolean;
+  canSchedule: boolean;
+  blockingReasons: string[];
+}
+
+export interface AcademicContentAudiencePreviewResponse {
+  asOf: string;
+  students: number;
+  guardianContexts: number;
+  guardianUsersWithAccounts: number;
+  guardianNotificationOptOutContexts: number;
+}
+
+export interface CreateAcademicContentPublicationRequest {
+  clientRequestId: string;
+  publishAt?: string;
+  visibleFrom?: string;
+  visibleUntil?: string | null;
+}
+
+export interface AcademicContentPublication {
+  publicationId: string;
+  revisionId: string;
+  status: AcademicContentPublicationStatus;
+  sourceContentStatus: AcademicContentStatus;
+  publishAt: string;
+  visibleFrom: string;
+  visibleUntil: string | null;
+  publishedAt: string | null;
+  expiredAt: string | null;
+  cancelledAt: string | null;
+  studentRecipientCount: number;
+  guardianRecipientContextCount: number;
+  createdByUserId: string;
+  createdAt: string;
+}
+
+export interface AcademicContentPublicationHistoryResponse {
+  items: AcademicContentPublication[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
 export interface AcademicContentDeleteResponse {
   ok: boolean;
 }
