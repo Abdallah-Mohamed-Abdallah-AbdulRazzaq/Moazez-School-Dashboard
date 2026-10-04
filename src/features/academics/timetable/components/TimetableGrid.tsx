@@ -24,6 +24,13 @@ import { Teacher } from "@/features/academics/teacher-allocation/services/teache
 import { Room } from "@/features/academics/timetable/types/timetable";
 import { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import { formatTimetableTimeRange } from "@/features/academics/timetable/services/timetableTimeFormat";
+import TimetableSlotControl, {
+  type TimetableDropDecision,
+} from "@/features/academics/timetable/components/TimetableSlotControl";
+import type {
+  TimetableDropTarget,
+  TimetableLibraryItem,
+} from "@/features/academics/timetable/services/timetableDragDrop";
 
 interface TimetableGridProps {
   entries: TimetableEntry[];
@@ -39,6 +46,18 @@ interface TimetableGridProps {
   locale: string;
   isReadOnly: boolean;
   resolvedConfig: ResolvedTimetableConfig;
+  classroomId?: string;
+  sectionId?: string;
+  selectedLibraryItem?: TimetableLibraryItem | null;
+  activeDragItem?: TimetableLibraryItem | null;
+  canDropOnSlot?: (
+    item: TimetableLibraryItem,
+    target: TimetableDropTarget,
+  ) => TimetableDropDecision;
+  onPlaceItem?: (
+    item: TimetableLibraryItem,
+    target: TimetableDropTarget,
+  ) => void;
 }
 
 export default function TimetableGrid({
@@ -55,6 +74,12 @@ export default function TimetableGrid({
   locale,
   isReadOnly,
   resolvedConfig,
+  classroomId = "",
+  sectionId = "",
+  selectedLibraryItem = null,
+  activeDragItem = null,
+  canDropOnSlot = () => ({ allowed: true, tone: "VALID" }),
+  onPlaceItem = () => undefined,
 }: TimetableGridProps) {
   const t = useTranslations("academics.timetable.grid");
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
@@ -275,19 +300,35 @@ export default function TimetableGrid({
     return (
       <div className="py-8 px-3 min-h-[80px] flex items-center justify-center">
         {!isReadOnly && (
-          <button
-            type="button"
-            className=" flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary"
-            onClick={(event) => {
-              event.stopPropagation();
-              onSlotClick(day.key, period.index);
-            }}
-          >
+          <span className="flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary">
             <Plus className="w-5 h-5" /> {t("add")}
-          </button>
+          </span>
         )}
       </div>
     );
+  };
+
+  const slotTarget = (
+    dayKey: string,
+    periodIndex: number,
+  ): TimetableDropTarget => ({
+    dayKey,
+    periodIndex,
+    sectionId,
+    classroomId,
+  });
+
+  const slotAccessibleName = (
+    day: (typeof activeDays)[0],
+    period: (typeof periods)[0],
+    entry: TimetableEntry | undefined,
+  ): string => {
+    const labels = [
+      locale === "ar" ? day.nameAr : day.nameEn,
+      locale === "ar" ? period.nameAr : period.nameEn,
+      entry?.subjectId ? getSubjectName(entry.subjectId) : t("add"),
+    ];
+    return labels.filter(Boolean).join(", ");
   };
 
   return (
@@ -382,14 +423,22 @@ export default function TimetableGrid({
                               ? "outline-2 outline-offset-[-2px] outline-primary-600"
                               : ""
                           }`}
-                          onClick={() =>
-                            !isReadOnly &&
-                            !isHoliday &&
-                            isInstructionalPeriod &&
-                            onSlotClick(day.key, period.index)
-                          }
                         >
-                          {renderSlotContent(day, period)}
+                          <TimetableSlotControl
+                            presentation="desktop"
+                            target={slotTarget(day.key, period.index)}
+                            entry={entry}
+                            selectedLibraryItem={selectedLibraryItem}
+                            activeDragItem={activeDragItem}
+                            isReadOnly={isReadOnly}
+                            isBlocked={isHoliday || !isInstructionalPeriod}
+                            accessibleName={slotAccessibleName(day, period, entry)}
+                            canDropOnSlot={canDropOnSlot}
+                            onPlaceItem={onPlaceItem}
+                            onSlotClick={onSlotClick}
+                          >
+                            {renderSlotContent(day, period)}
+                          </TimetableSlotControl>
                         </td>
                       );
                     })}
@@ -471,13 +520,7 @@ export default function TimetableGrid({
                         aria-current={isFocused ? "true" : undefined}
                         data-focused-conflict={isFocused ? "true" : undefined}
                         tabIndex={isFocused ? -1 : undefined}
-                        onClick={() =>
-                          !isReadOnly &&
-                          !isHoliday &&
-                          isInstructionalPeriod &&
-                          onSlotClick(day.key, period.index)
-                        }
-                        className={`p-4 ${
+                        className={`${
                           !isReadOnly && !isHoliday && isInstructionalPeriod
                             ? "active:bg-blue-50 cursor-pointer"
                             : ""
@@ -487,6 +530,20 @@ export default function TimetableGrid({
                             : ""
                         } ${isFocused ? "outline-2 outline-offset-[-2px] outline-primary-600" : ""}`}
                       >
+                        <TimetableSlotControl
+                          presentation="mobile"
+                          target={slotTarget(day.key, period.index)}
+                          entry={entry}
+                          selectedLibraryItem={selectedLibraryItem}
+                          activeDragItem={activeDragItem}
+                          isReadOnly={isReadOnly}
+                          isBlocked={isHoliday || !isInstructionalPeriod}
+                          accessibleName={slotAccessibleName(day, period, entry)}
+                          className="p-4"
+                          canDropOnSlot={canDropOnSlot}
+                          onPlaceItem={onPlaceItem}
+                          onSlotClick={onSlotClick}
+                        >
                         {/* Period Header */}
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
@@ -582,18 +639,12 @@ export default function TimetableGrid({
                           </div>
                         ) : (
                           <div className="flex justify-center py-4">
-                            <button
-                              type="button"
-                              className=" flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                onSlotClick(day.key, period.index);
-                              }}
-                            >
+                            <span className="flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary">
                               <Plus className="w-5 h-5" /> {t("add")}
-                            </button>
+                            </span>
                           </div>
                         )}
+                        </TimetableSlotControl>
                       </div>
                     );
                   })}

@@ -6553,6 +6553,50 @@
           "activity": "Activity"
         }
       },
+      "schedulingLibrary": {
+        "title": "Scheduling library",
+        "hint": "Drag an item to a slot, or select it and then choose a slot.",
+        "open": "Open scheduling library",
+        "close": "Close",
+        "searchLabel": "Search scheduling resources",
+        "searchPlaceholder": "Search subjects, teachers, or rooms",
+        "unscheduledOnly": "Show remaining lessons only",
+        "remainingPeriods": "{remaining} of {target} remaining",
+        "roomCapacity": "Capacity {capacity}",
+        "noLessons": "No lesson bundles match this classroom.",
+        "noTeachers": "No teacher allocations match this classroom.",
+        "noRooms": "No rooms match your search.",
+        "clickSlotHint": "Choose a timetable slot to place the selected item.",
+        "selectClassroomHint": "Select one classroom to use direct scheduling.",
+        "dragging": "Move to a highlighted timetable slot",
+        "undo": "Undo",
+        "dismissUndo": "Dismiss undo message",
+        "undoComplete": "The last timetable change was undone.",
+        "tabs": {
+          "label": "Scheduling resource type",
+          "lessons": "Lessons",
+          "teachers": "Teachers",
+          "rooms": "Rooms"
+        },
+        "effects": {
+          "create": "Lesson added to the timetable.",
+          "update": "Timetable slot updated.",
+          "replace": "Timetable slot replaced.",
+          "move": "Lesson moved to a new slot.",
+          "swap": "Timetable lessons swapped."
+        },
+        "rejections": {
+          "READ_ONLY": "This timetable is read-only.",
+          "HOLIDAY": "Items cannot be placed on a holiday.",
+          "NON_INSTRUCTIONAL": "Items cannot be placed in a non-instructional period.",
+          "SUBJECT_REQUIRED": "Add a subject before assigning a teacher or room.",
+          "TEACHER_SUBJECT_MISMATCH": "This teacher is not allocated to the subject in that slot.",
+          "ROOM_INELIGIBLE": "This room is not eligible for the selected classroom.",
+          "TEACHER_CONFLICT": "This teacher is already scheduled at that time.",
+          "ROOM_CONFLICT": "This room is already scheduled at that time.",
+          "SAME_SLOT": "This lesson is already in that slot."
+        }
+      },
       "actions": {
         "editSlot": "Edit Slot",
         "save": "Save Changes",

@@ -47,7 +47,7 @@ export default function TimetableCreationStepper({
   return (
     <nav
       aria-label={copy.navigationLabel}
-      className="border-b border-gray-200 bg-white px-4 py-3 lg:px-6"
+      className="bg-white px-4 py-3 lg:px-6"
     >
       <div className="overflow-x-auto pb-1">
         <ol className="flex min-w-max items-center justify-center gap-2">

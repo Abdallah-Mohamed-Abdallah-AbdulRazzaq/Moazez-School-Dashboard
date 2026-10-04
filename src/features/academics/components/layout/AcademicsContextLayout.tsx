@@ -126,7 +126,7 @@ function AcademicsContextLayoutContent({
   );
 
   return (
-    <div className="flex min-h-screen min-w-0 flex-col bg-gray-50">
+    <div className="flex min-h-[calc(100dvh-89px)] min-w-0 flex-col bg-gray-50">
       <ContextBar
         academicYearId={academicYearId}
         termId={termId}
