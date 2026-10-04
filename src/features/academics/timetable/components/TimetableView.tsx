@@ -1409,7 +1409,13 @@ export default function TimetableView({
   }
 
   return (
-    <div className="flex h-[calc(100dvh-89px)] max-h-[calc(100dvh-89px)] min-h-0 flex-col overflow-hidden">
+    <div
+      className={`relative flex h-[calc(100dvh-89px)] max-h-[calc(100dvh-89px)] min-h-0 flex-col overflow-hidden print:pe-0 ${
+        canEditTimetable && selectedClassroom && desktopLibraryOpen
+          ? "lg:pe-80"
+          : ""
+      }`}
+    >
       <style>{`
         @media print {
           @page {
@@ -2080,7 +2086,7 @@ export default function TimetableView({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1">
           {canEditTimetable && selectedClassroom && (
             <TimetableResourceLibrary
               items={schedulingLibraryItems}

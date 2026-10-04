@@ -99,7 +99,7 @@ export default function TimetableResourceLibrary(
 
   if (!props.mobile) {
     return (
-      <aside className="order-last hidden h-full min-h-0 w-80 shrink-0 overflow-hidden border-s border-gray-200 lg:block print:hidden">
+      <aside className="absolute inset-y-0 end-0 z-10 hidden w-80 overflow-hidden border-s border-gray-200 lg:block print:hidden">
         {panel}
       </aside>
     );
