@@ -23,7 +23,7 @@ import FilterBar from "./FilterBar";
 import TimetableGrid from "./TimetableGrid";
 import TimetableResourceLibrary from "./TimetableResourceLibrary";
 import TimetableUndoBanner from "./TimetableUndoBanner";
-import TimetableCollapsibleSection from "./TimetableCollapsibleSection";
+import TimetableWorkspacePanelBar from "./TimetableWorkspacePanelBar";
 import TimetableCreationStepper from "./TimetableCreationStepper";
 import TimetableSourceBanner from "./TimetableSourceBanner";
 import ValidationPanel from "./ValidationPanel";
@@ -1409,7 +1409,7 @@ export default function TimetableView({
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-[calc(100dvh-89px)] max-h-[calc(100dvh-89px)] min-h-0 flex-col overflow-hidden">
       <style>{`
         @media print {
           @page {
@@ -1643,18 +1643,45 @@ export default function TimetableView({
           }
         }
       `}</style>
-      <div ref={scopeRef} tabIndex={-1} className="print:hidden">
-        <TimetableCollapsibleSection
+      <TimetableWorkspacePanelBar
+        label={t("title")}
+        panels={[
+          {
+            id: "timetable-scope-filters",
+            title: t("filters.selectScope"),
+            summary:
+              scopeChain.map((segment) => segment.name).join(" · ") ||
+              t("config.scopeOptions.term"),
+            expanded: scopeFiltersExpanded,
+            onExpandedChange: setScopeFiltersExpanded,
+          },
+          {
+            id: "timetable-creation-progress",
+            title: creationProgressCopy.navigationLabel,
+            summary: creationProgressSummary,
+            expanded: creationProgressExpanded,
+            onExpandedChange: setCreationProgressExpanded,
+          },
+          ...(hasTimetableScope
+            ? [
+                {
+                  id: "timetable-context",
+                  title: t("target.label"),
+                  summary: configSourceLabel,
+                  expanded: timetableContextExpanded,
+                  onExpandedChange: setTimetableContextExpanded,
+                },
+              ]
+            : []),
+        ]}
+      />
+
+      {scopeFiltersExpanded && (
+        <div
           id="timetable-scope-filters"
-          title={t("filters.selectScope")}
-          summary={
-            scopeChain.map((segment) => segment.name).join(" · ") ||
-            t("config.scopeOptions.term")
-          }
-          expanded={scopeFiltersExpanded}
-          expandLabel={tRoot("expand")}
-          collapseLabel={tRoot("collapse")}
-          onExpandedChange={setScopeFiltersExpanded}
+          ref={scopeRef}
+          tabIndex={-1}
+          className="shrink-0 print:hidden"
         >
           <FilterBar
             stages={stages}
@@ -1683,35 +1710,21 @@ export default function TimetableView({
             }}
             locale={locale}
           />
-        </TimetableCollapsibleSection>
-      </div>
+        </div>
+      )}
 
-      <TimetableCollapsibleSection
-        id="timetable-creation-progress"
-        title={creationProgressCopy.navigationLabel}
-        summary={creationProgressSummary}
-        expanded={creationProgressExpanded}
-        expandLabel={tRoot("expand")}
-        collapseLabel={tRoot("collapse")}
-        onExpandedChange={setCreationProgressExpanded}
-      >
-        <TimetableCreationStepper
-          progress={creationProgress}
-          copy={creationProgressCopy}
-          onAction={openCreationStep}
-        />
-      </TimetableCollapsibleSection>
+      {creationProgressExpanded && (
+        <div id="timetable-creation-progress" className="shrink-0">
+          <TimetableCreationStepper
+            progress={creationProgress}
+            copy={creationProgressCopy}
+            onAction={openCreationStep}
+          />
+        </div>
+      )}
 
-      {hasTimetableScope && (
-        <TimetableCollapsibleSection
-          id="timetable-context"
-          title={t("target.label")}
-          summary={configSourceLabel}
-          expanded={timetableContextExpanded}
-          expandLabel={tRoot("expand")}
-          collapseLabel={tRoot("collapse")}
-          onExpandedChange={setTimetableContextExpanded}
-        >
+      {hasTimetableScope && timetableContextExpanded && (
+        <div id="timetable-context" className="shrink-0 print:hidden">
           <div className="bg-white px-4 py-3 lg:px-6">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-2">
@@ -1772,7 +1785,7 @@ export default function TimetableView({
               }}
             />
           )}
-        </TimetableCollapsibleSection>
+        </div>
       )}
 
       {hasTimetableScope && !timetableLoading && readOnlyBanner && (
