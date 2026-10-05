@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { normalizeTeacherPreparationDetail } from "../model/teacherPreparationDetail";
 import type {
   AcademicContentPreparationDetail,
@@ -59,12 +59,11 @@ export function useTeacherPreparationDetailDraft({
   const [syncedVersion, setSyncedVersion] = useState(contentVersion);
   const [validationError, setValidationError] = useState<"empty_items" | null>(null);
 
-  useEffect(() => {
-    if (sectionState.dirty || syncedVersion === contentVersion) return;
+  if (!sectionState.dirty && syncedVersion !== contentVersion) {
     setDraft(initial);
     setSyncedVersion(contentVersion);
     setValidationError(null);
-  }, [contentVersion, initial, sectionState.dirty, syncedVersion]);
+  }
 
   const update = useCallback(
     <Field extends keyof AcademicContentPreparationDetail>(
