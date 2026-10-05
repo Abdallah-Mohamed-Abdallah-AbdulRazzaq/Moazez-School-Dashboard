@@ -41,7 +41,9 @@ export async function loadWeeklyPlanDetailOptions(
 
   return {
     homeworkAssignments:
-      homeworkResponse.status === "fulfilled" ? homeworkResponse.value.items : [],
+      homeworkResponse.status === "fulfilled"
+        ? homeworkResponse.value.items
+        : [],
     assessments:
       assessmentResponse.status === "fulfilled" ? assessmentResponse.value : [],
     errors: {

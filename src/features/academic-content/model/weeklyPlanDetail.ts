@@ -19,10 +19,7 @@ export const WEEKLY_PLAN_PANELS = [
 
 export type WeeklyPlanPanel = (typeof WEEKLY_PLAN_PANELS)[number];
 export type WeeklyPlanValidationError =
-  | "dates_required"
-  | "date_order"
-  | "term_bounds"
-  | "empty_items";
+  "dates_required" | "date_order" | "term_bounds" | "empty_items";
 
 export interface WeeklyPlanTermBounds {
   startDate: string;
@@ -72,20 +69,27 @@ export function normalizeWeeklyPlanDetail(
 function isValidDateOnly(date: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
   const parsedDate = new Date(`${date}T00:00:00.000Z`);
-  return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === date;
+  return (
+    !Number.isNaN(parsedDate.getTime()) &&
+    parsedDate.toISOString().slice(0, 10) === date
+  );
 }
 
 export function validateWeeklyPlanDetail(
   detail: AcademicContentWeeklyPlanDetail,
   termBounds?: WeeklyPlanTermBounds,
 ): WeeklyPlanValidationError | null {
-  if (!isValidDateOnly(detail.weekStartDate) || !isValidDateOnly(detail.weekEndDate)) {
+  if (
+    !isValidDateOnly(detail.weekStartDate) ||
+    !isValidDateOnly(detail.weekEndDate)
+  ) {
     return "dates_required";
   }
   if (detail.weekStartDate > detail.weekEndDate) return "date_order";
   if (
     termBounds &&
-    (detail.weekStartDate < termBounds.startDate || detail.weekEndDate > termBounds.endDate)
+    (detail.weekStartDate < termBounds.startDate ||
+      detail.weekEndDate > termBounds.endDate)
   ) {
     return "term_bounds";
   }
