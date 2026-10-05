@@ -94,13 +94,13 @@ Sticky elements must respect the dashboard header offset. Directional icons, bre
 
 ### Sections
 
-1. **Overview** — title, description, topic, audience, academic context, and tags.
+1. **Overview** — title, description, topic, audience, academic context, tags presented as Key Concepts, and an attachments block directly below the tags to match the reference hierarchy.
 2. **Targets** — existing multi-target editor.
 3. **Objectives** — ordered `objectives`.
 4. **Learning outcomes** — ordered `learningOutcomes`.
 5. **Teaching strategies** — ordered `teachingStrategies`.
 6. **Activities** — ordered `activities`.
-7. **Resources** — `resourceNotes`, assets, and links.
+7. **Resources** — a dedicated resource-management section containing `resourceNotes`, the full attachments manager, and links.
 8. **Assessment** — `assessmentNotes`.
 9. **Teacher notes** — `teacherNotes`.
 10. **Academic references** — curriculum, unit, lesson, lesson plan, lesson-plan item, and timetable entry.
@@ -108,7 +108,7 @@ Sticky elements must respect the dashboard header offset. Directional icons, bre
 12. **Publication** — only when allowed by the existing type/audience policy.
 13. **Revision history** — existing immutable revisions.
 
-Tags visually replace the reference image’s unsupported “Key Concepts” concept. No field is relabelled in a way that changes its meaning.
+Tags visually replace the reference image’s unsupported “Key Concepts” concept. The Overview attachments block and the dedicated Resources section use the same backend asset collection, upload flow, file policy, refresh behavior, and action component; they must not keep independent attachment state. No field is relabelled in a way that changes its meaning.
 
 ## Editing and Saving
 
@@ -152,8 +152,9 @@ Use real rounds, statuses, submitters, decision makers, timestamps, and decision
 - `TeacherPreparationEditorView`: preparation page composition.
 - `TeacherPreparationHeader`: breadcrumbs, content summary, status, and permitted actions.
 - `TeacherPreparationSectionNav`: preparation-specific section selection and save-state indicators.
-- `TeacherPreparationOverview`: metadata and topic presentation/editing.
+- `TeacherPreparationOverview`: metadata and topic presentation/editing, Key Concepts tags, and the reference-matching attachments block.
 - Focused ordered-list and note panels: presentation-specific editors backed by the shared detail draft controller.
+- `TeacherPreparationResources`: dedicated resource notes, attachment management, and links composition.
 - `TeacherPreparationContextRail`: readiness, reference, and approval-card layout.
 - Small pure resolution and formatting helpers for target and reference summaries.
 
@@ -200,6 +201,7 @@ Before handoff, run focused tests, scoped lint, type-check, and a production bui
 
 - The teacher-preparation detail screen reflects Screen 3’s hierarchy without displaying unsupported data.
 - All displayed values are sourced from the academic-content contract or existing resolvers.
+- Attachments appear below Key Concepts in Overview and remain available from the dedicated Resources section through one shared backend-backed implementation.
 - All mutations use existing frontend services and backend endpoints.
 - Other content-type editors remain behaviorally unchanged.
 - Unsaved changes cannot be silently discarded through section or context navigation.
