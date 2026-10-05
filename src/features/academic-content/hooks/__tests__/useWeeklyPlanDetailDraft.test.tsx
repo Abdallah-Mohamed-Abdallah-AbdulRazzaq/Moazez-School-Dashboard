@@ -63,4 +63,32 @@ describe("useWeeklyPlanDetailDraft", () => {
     expect(result.current.validationError).toBe("dates_required");
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  it("resynchronizes a clean draft when the saved content version changes", () => {
+    const first = {
+      ...emptyWeeklyPlanDetail("2026-09-01"),
+      topics: ["First topic"],
+    };
+    const second = {
+      ...emptyWeeklyPlanDetail("2026-09-08"),
+      topics: ["Updated topic"],
+    };
+    const { result, rerender } = renderHook(
+      ({ initial, contentVersion }) =>
+        useWeeklyPlanDetailDraft({
+          initial,
+          contentVersion,
+          sectionState: cleanSection,
+          onDirty: vi.fn(),
+          onSave: vi.fn(),
+        }),
+      {
+        initialProps: { initial: first, contentVersion: "content-1:v1" },
+      },
+    );
+
+    rerender({ initial: second, contentVersion: "content-1:v2" });
+
+    expect(result.current.draft).toEqual(second);
+  });
 });

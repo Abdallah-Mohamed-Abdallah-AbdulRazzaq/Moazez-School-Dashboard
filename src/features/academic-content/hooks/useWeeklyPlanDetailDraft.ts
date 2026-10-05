@@ -19,7 +19,9 @@ interface UseWeeklyPlanDetailDraftInput {
   sectionState: AcademicContentEditorSectionState;
   termBounds?: WeeklyPlanTermBounds;
   onDirty: () => void;
-  onSave: (request: ReplaceAcademicContentWeeklyPlanDetailRequest) => Promise<boolean>;
+  onSave: (
+    request: ReplaceAcademicContentWeeklyPlanDetailRequest,
+  ) => Promise<boolean>;
 }
 
 export interface WeeklyPlanDetailDraftController {
@@ -46,6 +48,7 @@ export function useWeeklyPlanDetailDraft({
   const [validationError, setValidationError] =
     useState<WeeklyPlanValidationError | null>(null);
 
+  // Keep local edits, but adopt a newly saved aggregate before this render commits.
   if (!sectionState.dirty && syncedVersion !== contentVersion) {
     setDraft(initial);
     setSyncedVersion(contentVersion);
