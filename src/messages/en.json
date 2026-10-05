@@ -14471,6 +14471,22 @@
         "attachments": "Attachments",
         "attachments_description": "Upload and manage the files used by this preparation."
       },
+      "references": {
+        "title": "Academic references",
+        "description": "Connect this preparation to existing curriculum, lesson-plan, and timetable records.",
+        "loading": "Loading academic references…",
+        "unavailable": "Academic references are currently unavailable.",
+        "retry": "Retry references",
+        "unavailable_selection": "A saved reference is no longer available. Its identifier is preserved until you choose a replacement or clear its parent reference.",
+        "curriculum": "Curriculum",
+        "curriculum_unit": "Curriculum unit",
+        "curriculum_lesson": "Curriculum lesson",
+        "lesson_plan": "Lesson plan",
+        "lesson_plan_item": "Lesson plan item",
+        "timetable_entry": "Timetable entry",
+        "unassigned": "Unassigned",
+        "save": "Save academic references"
+      },
       "sections": {
         "overview": "Overview",
         "targets": "Targets",
