@@ -160,10 +160,10 @@ Temporal states are derived from the current time and the contract's `startAt` a
 
 - Upcoming.
 - Starting Soon.
-- Live.
-- Ended.
 
 The exact Starting Soon threshold must be defined as a pure frontend policy and covered by tests during implementation.
+
+Because the request uses `sessionStartAtFrom` set to the current instant, this overview panel does not show Live or Ended sessions. Those states belong to the later dedicated Online Sessions experience, which can load a broader date range.
 
 The panel does not display a teacher, subject, grade, classroom, or join URL because the list contract does not return them.
 
