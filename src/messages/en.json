@@ -14311,6 +14311,80 @@
       "create": "Create content",
       "nav_label": "Academic Content Hub"
     },
+    "overview": {
+      "title": "Academic Content Center",
+      "description": "Manage academic materials, plans, guardian communication, and online learning for the selected term.",
+      "create": "Create content",
+      "loading": "Loading academic content overview",
+      "unavailable": "Unavailable",
+      "view_all": "View all",
+      "retry": "Retry",
+      "items": "{count} items",
+      "types": {
+        "TEACHER_PREPARATION": {
+          "description": "Lesson preparation, objectives, activities, and teaching notes."
+        },
+        "WEEKLY_PLAN": {
+          "description": "Weekly topics, objectives, homework, and assessments."
+        },
+        "GUARDIAN_WEEKLY_NOTE": {
+          "description": "Messages and weekly notes prepared for guardians."
+        },
+        "SUBJECT_RESOURCE": {
+          "description": "Worksheets, presentations, references, and learning material."
+        },
+        "ONLINE_SESSION": {
+          "description": "Scheduled online classes and meeting instructions."
+        },
+        "GENERAL_RESOURCE": {
+          "description": "Additional academic material for the selected audience."
+        }
+      },
+      "work_in_progress": {
+        "title": "Work in progress",
+        "description": "Drafts and content returned for changes.",
+        "partial_warning": "Some work in progress could not be loaded.",
+        "empty_title": "No work in progress",
+        "empty_description": "Drafts and requested changes will appear here.",
+        "unavailable_title": "Work in progress unavailable"
+      },
+      "upcoming_sessions": {
+        "title": "Upcoming online sessions",
+        "description": "The next scheduled online classes in this term.",
+        "empty_title": "No upcoming sessions",
+        "empty_description": "Future online sessions will appear here.",
+        "unavailable_title": "Upcoming sessions unavailable"
+      },
+      "recently_updated": {
+        "title": "Recently updated",
+        "description": "The latest academic content changes.",
+        "empty_title": "No recent updates",
+        "empty_description": "Updated academic content will appear here.",
+        "unavailable_title": "Recent updates unavailable",
+        "columns": {
+          "title": "Title",
+          "type": "Content type",
+          "updated": "Updated",
+          "status": "Status",
+          "actions": "Actions"
+        }
+      },
+      "quick_links": {
+        "title": "Quick links",
+        "review_queue": "Review queue",
+        "review_queue_description": "Review teacher preparations awaiting a decision.",
+        "preparation_templates": "Preparation templates",
+        "preparation_templates_description": "Browse reusable preparation templates.",
+        "settings": "Content settings",
+        "settings_description": "Review file and academic content preferences."
+      },
+      "session_states": {
+        "STARTING_SOON": "Starting soon",
+        "UPCOMING": "Upcoming"
+      },
+      "open": "Open",
+      "updated_at": "Updated {value}"
+    },
     "types": {
       "TEACHER_PREPARATION": "Teacher preparation",
       "WEEKLY_PLAN": "Weekly plan",

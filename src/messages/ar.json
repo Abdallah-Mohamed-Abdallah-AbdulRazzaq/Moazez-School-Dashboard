@@ -14302,6 +14302,80 @@
       "create": "إنشاء محتوى",
       "nav_label": "مركز المحتوى الأكاديمي"
     },
+    "overview": {
+      "title": "مركز المحتوى الأكاديمي",
+      "description": "إدارة المواد الأكاديمية والخطط والتواصل مع أولياء الأمور والتعلّم عبر الإنترنت للفصل المحدد.",
+      "create": "إنشاء محتوى",
+      "loading": "جارٍ تحميل نظرة عامة على المحتوى الأكاديمي",
+      "unavailable": "غير متاح",
+      "view_all": "عرض الكل",
+      "retry": "إعادة المحاولة",
+      "items": "{count} عنصر",
+      "types": {
+        "TEACHER_PREPARATION": {
+          "description": "تحضير الدروس والأهداف والأنشطة وملاحظات التدريس."
+        },
+        "WEEKLY_PLAN": {
+          "description": "موضوعات الأسبوع وأهدافه وواجباته وتقييماته."
+        },
+        "GUARDIAN_WEEKLY_NOTE": {
+          "description": "رسائل وملاحظات أسبوعية معدّة لأولياء الأمور."
+        },
+        "SUBJECT_RESOURCE": {
+          "description": "أوراق عمل وعروض تقديمية ومراجع ومواد تعليمية."
+        },
+        "ONLINE_SESSION": {
+          "description": "حصص مجدولة عبر الإنترنت وتعليمات الانضمام إليها."
+        },
+        "GENERAL_RESOURCE": {
+          "description": "مواد أكاديمية إضافية للفئة المستهدفة المحددة."
+        }
+      },
+      "work_in_progress": {
+        "title": "قيد الإعداد",
+        "description": "المسودات والمحتوى المُعاد للتعديل.",
+        "partial_warning": "تعذر تحميل بعض المحتوى قيد الإعداد.",
+        "empty_title": "لا يوجد محتوى قيد الإعداد",
+        "empty_description": "ستظهر المسودات وطلبات التعديل هنا.",
+        "unavailable_title": "المحتوى قيد الإعداد غير متاح"
+      },
+      "upcoming_sessions": {
+        "title": "الجلسات القادمة عبر الإنترنت",
+        "description": "أقرب الحصص المجدولة عبر الإنترنت في هذا الفصل.",
+        "empty_title": "لا توجد جلسات قادمة",
+        "empty_description": "ستظهر الجلسات المستقبلية عبر الإنترنت هنا.",
+        "unavailable_title": "الجلسات القادمة غير متاحة"
+      },
+      "recently_updated": {
+        "title": "آخر التحديثات",
+        "description": "أحدث التغييرات على المحتوى الأكاديمي.",
+        "empty_title": "لا توجد تحديثات حديثة",
+        "empty_description": "سيظهر المحتوى الأكاديمي المحدّث هنا.",
+        "unavailable_title": "آخر التحديثات غير متاحة",
+        "columns": {
+          "title": "العنوان",
+          "type": "نوع المحتوى",
+          "updated": "آخر تحديث",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        }
+      },
+      "quick_links": {
+        "title": "روابط سريعة",
+        "review_queue": "قائمة المراجعة",
+        "review_queue_description": "مراجعة تحضيرات المعلمين التي تنتظر قرارًا.",
+        "preparation_templates": "قوالب التحضير",
+        "preparation_templates_description": "استعراض قوالب التحضير القابلة لإعادة الاستخدام.",
+        "settings": "إعدادات المحتوى",
+        "settings_description": "مراجعة الملفات وتفضيلات المحتوى الأكاديمي."
+      },
+      "session_states": {
+        "STARTING_SOON": "ستبدأ قريبًا",
+        "UPCOMING": "قادمة"
+      },
+      "open": "فتح",
+      "updated_at": "تم التحديث {value}"
+    },
     "types": {
       "TEACHER_PREPARATION": "تحضير المعلم",
       "WEEKLY_PLAN": "الخطة الأسبوعية",
