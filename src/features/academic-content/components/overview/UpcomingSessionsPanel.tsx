@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button/Button";
 import type { OverviewResource } from "../../hooks/useAcademicContentOverview";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import type { UpcomingAcademicContentSession } from "../../model/academicContentOverview";
+import MeetingPlatformIcon from "./MeetingPlatformIcon";
 import { OverviewPanelFrame, OverviewPanelState } from "./OverviewPanelFrame";
 import { formatAcademicContentDateTime } from "./overviewFormatting";
 
@@ -48,7 +49,10 @@ export default function UpcomingSessionsPanel({
                   {formatAcademicContentDateTime(summary.startAt, locale)}
                 </time>
               </div>
-              <span className="text-xs font-medium text-gray-600">{platformLabel(summary.platform)}</span>
+              <span className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <MeetingPlatformIcon platform={summary.platform} />
+                {platformLabel(summary.platform)}
+              </span>
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${state === "STARTING_SOON" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"}`}>
                 {t(`session_states.${state}`)}
               </span>

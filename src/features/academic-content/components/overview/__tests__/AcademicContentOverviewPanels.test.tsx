@@ -74,7 +74,7 @@ describe("academic content overview panels", () => {
     expect(defaultActions.onOpen).toHaveBeenCalledWith(draft.id);
   });
 
-  it("shows only supported upcoming-session details and states", () => {
+  it("shows provider branding with only supported upcoming-session details", () => {
     const sessionSummary: AcademicContentOnlineSessionSummary = {
       type: "ONLINE_SESSION",
       platform: "GOOGLE_MEET",
@@ -99,7 +99,7 @@ describe("academic content overview panels", () => {
       summary: { ...sessionSummary, startAt: "2026-10-05T12:00:00.000Z" },
       state: "UPCOMING",
     };
-    render(
+    const { container } = render(
       <UpcomingSessionsPanel
         {...defaultActions}
         resource={resource([session, laterSession])}
@@ -117,6 +117,14 @@ describe("academic content overview panels", () => {
     expect(screen.queryByText(/Omar Hassan/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Grade 5A/)).not.toBeInTheDocument();
     expect(screen.queryByText(/secret join URL/)).not.toBeInTheDocument();
+    const googleMeetIconPath = encodeURIComponent(
+      "/assets/academic-content/meeting-platforms/google-meet.png",
+    );
+    expect(
+      Array.from(container.querySelectorAll("img")).filter((image) =>
+        image.getAttribute("src")?.includes(googleMeetIconPath),
+      ),
+    ).toHaveLength(2);
   });
 
   it("renders recent updates without an Updated By column", () => {
