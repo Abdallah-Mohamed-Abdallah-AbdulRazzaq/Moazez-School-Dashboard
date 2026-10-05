@@ -14478,6 +14478,24 @@
         "unassigned": "غير مسند",
         "save": "حفظ المراجع الأكاديمية"
       },
+      "context": {
+        "rail_label": "سياق التحضير",
+        "unavailable": "غير متاح",
+        "curriculum_reference": "مرجع المنهج",
+        "timetable_reference": "مرجع الجدول",
+        "curriculum": "المنهج",
+        "unit": "الوحدة",
+        "lesson": "الدرس",
+        "lesson_plan": "خطة الدرس",
+        "classroom": "الفصل",
+        "subject": "المادة",
+        "teacher": "المعلم",
+        "period": "الحصة",
+        "name_unavailable": "الاسم غير متاح",
+        "submitted_by": "قدمه {name}",
+        "decided_by": "اتخذ القرار {name}",
+        "retry_history": "إعادة محاولة سجل الاعتماد"
+      },
       "sections": {
         "overview": "نظرة عامة",
         "targets": "الفئات المستهدفة",

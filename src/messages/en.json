@@ -14487,6 +14487,24 @@
         "unassigned": "Unassigned",
         "save": "Save academic references"
       },
+      "context": {
+        "rail_label": "Preparation context",
+        "unavailable": "Unavailable",
+        "curriculum_reference": "Curriculum reference",
+        "timetable_reference": "Timetable reference",
+        "curriculum": "Curriculum",
+        "unit": "Unit",
+        "lesson": "Lesson",
+        "lesson_plan": "Lesson plan",
+        "classroom": "Classroom",
+        "subject": "Subject",
+        "teacher": "Teacher",
+        "period": "Period",
+        "name_unavailable": "Name unavailable",
+        "submitted_by": "Submitted by {name}",
+        "decided_by": "Decided by {name}",
+        "retry_history": "Retry approval history"
+      },
       "sections": {
         "overview": "Overview",
         "targets": "Targets",
