@@ -14505,6 +14505,18 @@
         "decided_by": "Decided by {name}",
         "retry_history": "Retry approval history"
       },
+      "panels": {
+        "objectives_description": "Define the lesson goals in their teaching order.",
+        "learning_outcomes_description": "Describe the observable outcomes students should achieve.",
+        "teaching_strategies_description": "Plan the instructional approaches used during the lesson.",
+        "activities_description": "Organize the learning activities in their intended sequence.",
+        "assessment_description": "Record how learning will be checked during or after the lesson.",
+        "teacher_notes_description": "Keep preparation notes that support lesson delivery.",
+        "save_assessment": "Save assessment notes",
+        "save_teacher_notes": "Save teacher notes",
+        "save_section": "Save {section}",
+        "empty_item": "Ordered entries cannot be empty."
+      },
       "sections": {
         "overview": "Overview",
         "targets": "Targets",

@@ -18,7 +18,7 @@ import FilesSection from "../components/editor/FilesSection";
 import LifecycleActions from "../components/editor/LifecycleActions";
 import ReadinessPanel from "../components/editor/ReadinessPanel";
 import RevisionHistoryPanel from "../components/editor/RevisionHistoryPanel";
-import AcademicContentWorkflowPanel from "../components/workflow/AcademicContentWorkflowPanel";
+import TeacherPreparationEditorView from "../components/preparation-detail/TeacherPreparationEditorView";
 import EditorSectionNav, {
   type AcademicContentEditorPanel,
 } from "../components/editor/EditorSectionNav";
@@ -72,6 +72,18 @@ export function AcademicContentEditorView({
   }
 
   const content = editor.content;
+
+  if (content.type === "TEACHER_PREPARATION") {
+    return (
+      <TeacherPreparationEditorView
+        editor={{ ...editor, content }}
+        canManage={canManage}
+        onLifecycleChanged={onLifecycleChanged}
+        onDeleted={onDeleted}
+      />
+    );
+  }
+
   const editingDisabled = editor.isReadOnly || !canManage;
 
   return (
@@ -118,21 +130,6 @@ export function AcademicContentEditorView({
         </dl>
       </section>
 
-      {content.type === "TEACHER_PREPARATION" && (
-        <AcademicContentWorkflowPanel
-          content={content}
-          readiness={editor.readiness}
-          canManage={canManage}
-          hasUnsavedChanges={editor.hasUnsavedChanges}
-          onSubmitted={(transition) => {
-            editor.applyContentTransition(transition);
-            void Promise.all([
-              editor.refreshAggregate(),
-              editor.refreshReadiness(),
-            ]);
-          }}
-        />
-      )}
 
       <EditorSectionNav
         variant="mobile"

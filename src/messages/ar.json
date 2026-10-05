@@ -14496,6 +14496,18 @@
         "decided_by": "اتخذ القرار {name}",
         "retry_history": "إعادة محاولة سجل الاعتماد"
       },
+      "panels": {
+        "objectives_description": "حدّد أهداف الدرس بترتيب تدريسها.",
+        "learning_outcomes_description": "صِف نواتج التعلم القابلة للملاحظة التي ينبغي للطلاب تحقيقها.",
+        "teaching_strategies_description": "خطط لأساليب التدريس المستخدمة أثناء الدرس.",
+        "activities_description": "نظّم أنشطة التعلم حسب تسلسلها المقصود.",
+        "assessment_description": "سجّل كيفية التحقق من التعلم أثناء الدرس أو بعده.",
+        "teacher_notes_description": "احتفظ بملاحظات التحضير التي تدعم تقديم الدرس.",
+        "save_assessment": "حفظ ملاحظات التقييم",
+        "save_teacher_notes": "حفظ ملاحظات المعلم",
+        "save_section": "حفظ {section}",
+        "empty_item": "لا يمكن أن تكون العناصر المرتبة فارغة."
+      },
       "sections": {
         "overview": "نظرة عامة",
         "targets": "الفئات المستهدفة",

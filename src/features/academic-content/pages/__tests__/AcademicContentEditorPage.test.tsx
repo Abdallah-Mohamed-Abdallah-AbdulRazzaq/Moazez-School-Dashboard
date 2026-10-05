@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { AcademicContentDetail } from "../../types/contracts";
 import { AcademicContentEditorView } from "../AcademicContentEditorPage";
 
+vi.mock("../../components/preparation-detail/TeacherPreparationEditorView", () => ({
+  default: () => <section aria-label="Teacher preparation workspace" />,
+}));
 function detail(status: AcademicContentDetail["status"] = "DRAFT"): AcademicContentDetail {
   return {
     id: "content-1",
