@@ -14452,6 +14452,25 @@
       "assigned_teacher": "Assigned teacher: {name}",
       "assigned_teachers_count": "{count} assigned teachers",
       "assigned_teacher_unavailable": "Assigned teacher unavailable",
+      "overview": {
+        "topic": "Lesson topic",
+        "save_topic": "Save topic",
+        "key_concepts": "Key concepts",
+        "key_concepts_description": "Important concepts represented by the preparation tags.",
+        "edit_key_concepts": "Edit key concepts",
+        "close_key_concepts": "Close key concepts editor",
+        "no_key_concepts": "No key concepts have been added.",
+        "attachments": "Attachments",
+        "attachments_description": "Lesson materials and supporting files attached to this preparation."
+      },
+      "resources": {
+        "notes": "Resource notes",
+        "notes_description": "Record how lesson resources should be prepared or used.",
+        "notes_field": "Resource notes",
+        "save_notes": "Save resource notes",
+        "attachments": "Attachments",
+        "attachments_description": "Upload and manage the files used by this preparation."
+      },
       "sections": {
         "overview": "Overview",
         "targets": "Targets",

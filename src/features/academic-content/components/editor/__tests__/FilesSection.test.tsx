@@ -165,4 +165,20 @@ describe("FilesSection", () => {
     );
     expect(onFilesChanged).toHaveBeenCalledOnce();
   });
+
+  it("supports an embedded presentation without duplicating file behavior", async () => {
+    const { container } = render(
+      <FilesSection
+        contentId="content-1"
+        assets={[]}
+        disabled
+        variant="embedded"
+        onFilesChanged={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Files", level: 2 })).toBeVisible();
+    expect(container.querySelector("section")).toHaveClass("pt-5");
+    expect(screen.queryByRole("button", { name: "Select files" })).not.toBeInTheDocument();
+  });
 });

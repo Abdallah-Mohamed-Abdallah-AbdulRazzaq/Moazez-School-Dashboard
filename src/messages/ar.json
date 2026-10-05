@@ -14443,6 +14443,25 @@
       "assigned_teacher": "المعلم المسند: {name}",
       "assigned_teachers_count": "{count} معلمين مسندين",
       "assigned_teacher_unavailable": "المعلم المسند غير متاح",
+      "overview": {
+        "topic": "موضوع الدرس",
+        "save_topic": "حفظ الموضوع",
+        "key_concepts": "المفاهيم الأساسية",
+        "key_concepts_description": "المفاهيم المهمة التي تمثلها وسوم التحضير.",
+        "edit_key_concepts": "تعديل المفاهيم الأساسية",
+        "close_key_concepts": "إغلاق محرر المفاهيم الأساسية",
+        "no_key_concepts": "لم تتم إضافة مفاهيم أساسية.",
+        "attachments": "المرفقات",
+        "attachments_description": "مواد الدرس والملفات الداعمة المرفقة بهذا التحضير."
+      },
+      "resources": {
+        "notes": "ملاحظات الموارد",
+        "notes_description": "سجّل كيفية تجهيز موارد الدرس أو استخدامها.",
+        "notes_field": "ملاحظات الموارد",
+        "save_notes": "حفظ ملاحظات الموارد",
+        "attachments": "المرفقات",
+        "attachments_description": "ارفع ملفات هذا التحضير وأدرها."
+      },
       "sections": {
         "overview": "نظرة عامة",
         "targets": "الفئات المستهدفة",

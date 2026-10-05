@@ -43,6 +43,9 @@ interface FilesSectionProps {
   assets: AcademicContentAsset[];
   disabled: boolean;
   onFilesChanged: () => Promise<unknown>;
+  variant?: "full" | "embedded";
+  title?: string;
+  description?: string;
 }
 
 let queueKeySequence = 0;
@@ -57,6 +60,9 @@ export default function FilesSection({
   assets,
   disabled,
   onFilesChanged,
+  variant = "full",
+  title,
+  description,
 }: FilesSectionProps) {
   const [policy, setPolicy] = useState<AcademicContentFilePolicy | null>(null);
   const [isPolicyLoading, setIsPolicyLoading] = useState(true);
@@ -186,14 +192,25 @@ export default function FilesSection({
     <section
       id="files"
       aria-labelledby="files-heading"
-      className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
+      className={
+        variant === "embedded"
+          ? "pt-5"
+          : "rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
+      }
     >
       <div>
-        <h2 id="files-heading" className="text-lg font-semibold text-gray-900">
-          {t("title")}
+        <h2
+          id="files-heading"
+          className={
+            variant === "embedded"
+              ? "text-base font-semibold text-gray-900"
+              : "text-lg font-semibold text-gray-900"
+          }
+        >
+          {title ?? t("title")}
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          {t("description")}
+          {description ?? t("description")}
         </p>
       </div>
 
