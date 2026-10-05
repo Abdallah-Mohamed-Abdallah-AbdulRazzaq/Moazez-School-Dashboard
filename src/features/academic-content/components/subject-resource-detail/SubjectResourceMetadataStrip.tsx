@@ -51,13 +51,18 @@ export default function SubjectResourceMetadataStrip({
       .filter(Boolean)
       .join(", ") || t("context.no_targets");
   return (
-    <section className="grid overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4">
+    <section className="grid overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-5">
       <MetadataCell
         icon={<FolderOpen aria-hidden="true" className="size-5" />}
         label={t("metadata.category")}
         value={commonT(
           `resource_categories.${content.details?.resourceCategory ?? "OTHER"}`,
         )}
+      />
+      <MetadataCell
+        icon={<UsersRound aria-hidden="true" className="size-5" />}
+        label={t("metadata.audience")}
+        value={commonT(`audiences.${content.audience}`)}
       />
       <MetadataCell
         icon={<UsersRound aria-hidden="true" className="size-5" />}

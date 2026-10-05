@@ -4,6 +4,7 @@ import type { AcademicContentDetail } from "../../../types/contracts";
 import type { AcademicContentDetailOptions } from "../../../services/academicContentDetailOptions";
 import SubjectResourceContextRail from "../SubjectResourceContextRail";
 import SubjectResourceHeader from "../SubjectResourceHeader";
+import SubjectResourceMetadataStrip from "../SubjectResourceMetadataStrip";
 
 const content = {
   id: "resource-1",
@@ -118,5 +119,25 @@ describe("subject resource detail panels", () => {
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
     expect(onEdit).toHaveBeenCalledOnce();
     expect(onShare).toHaveBeenCalledOnce();
+  });
+
+  it("shows the saved audience and resolved academic target", () => {
+    render(
+      <SubjectResourceMetadataStrip
+        content={content}
+        selectedAsset={null}
+        targets={[
+          {
+            targetId: "target-1",
+            subject: "Mathematics",
+            scope: "Primary · Grade 4",
+            assignedTeacher: null,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Students")).toBeVisible();
+    expect(screen.getByText("Mathematics · Primary · Grade 4")).toBeVisible();
   });
 });
