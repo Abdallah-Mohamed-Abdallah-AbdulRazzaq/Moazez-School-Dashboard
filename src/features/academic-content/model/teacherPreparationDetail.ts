@@ -25,23 +25,22 @@ export type TeacherPreparationPanel =
 export interface TeacherPreparationPanelDefinition {
   id: TeacherPreparationPanel;
   labelKey: string;
-  iconKey: string;
 }
 
 export const TEACHER_PREPARATION_PANELS: readonly TeacherPreparationPanelDefinition[] = [
-  { id: "overview", labelKey: "overview", iconKey: "overview" },
-  { id: "targets", labelKey: "targets", iconKey: "targets" },
-  { id: "objectives", labelKey: "objectives", iconKey: "objectives" },
-  { id: "learningOutcomes", labelKey: "learning_outcomes", iconKey: "learningOutcomes" },
-  { id: "teachingStrategies", labelKey: "teaching_strategies", iconKey: "teachingStrategies" },
-  { id: "activities", labelKey: "activities", iconKey: "activities" },
-  { id: "resources", labelKey: "resources", iconKey: "resources" },
-  { id: "assessment", labelKey: "assessment", iconKey: "assessment" },
-  { id: "teacherNotes", labelKey: "teacher_notes", iconKey: "teacherNotes" },
-  { id: "references", labelKey: "references", iconKey: "references" },
-  { id: "readiness", labelKey: "readiness", iconKey: "readiness" },
-  { id: "publication", labelKey: "publication", iconKey: "publication" },
-  { id: "revisions", labelKey: "revisions", iconKey: "revisions" },
+  { id: "overview", labelKey: "overview" },
+  { id: "targets", labelKey: "targets" },
+  { id: "objectives", labelKey: "objectives" },
+  { id: "learningOutcomes", labelKey: "learning_outcomes" },
+  { id: "teachingStrategies", labelKey: "teaching_strategies" },
+  { id: "activities", labelKey: "activities" },
+  { id: "resources", labelKey: "resources" },
+  { id: "assessment", labelKey: "assessment" },
+  { id: "teacherNotes", labelKey: "teacher_notes" },
+  { id: "references", labelKey: "references" },
+  { id: "readiness", labelKey: "readiness" },
+  { id: "publication", labelKey: "publication" },
+  { id: "revisions", labelKey: "revisions" },
 ] as const;
 
 export interface TeacherPreparationTargetDisplay {

@@ -14435,6 +14435,30 @@
       "filtered_empty_title": "لا توجد تحضيرات مطابقة",
       "filtered_empty_description": "غيّر عوامل التصفية الحالية أو امسحها لعرض نتائج أكثر."
     },
+    "teacher_preparation_detail": {
+      "back_to_preparations": "العودة إلى التحضيرات",
+      "sections_label": "أقسام تحضير المعلم",
+      "subjects_count": "{count} مواد",
+      "targets_count": "{count} فئات مستهدفة",
+      "assigned_teacher": "المعلم المسند: {name}",
+      "assigned_teachers_count": "{count} معلمين مسندين",
+      "assigned_teacher_unavailable": "المعلم المسند غير متاح",
+      "sections": {
+        "overview": "نظرة عامة",
+        "targets": "الفئات المستهدفة",
+        "objectives": "الأهداف",
+        "learning_outcomes": "نواتج التعلم",
+        "teaching_strategies": "استراتيجيات التدريس",
+        "activities": "الأنشطة",
+        "resources": "الموارد",
+        "assessment": "التقييم",
+        "teacher_notes": "ملاحظات المعلم",
+        "references": "المراجع الأكاديمية",
+        "readiness": "الجاهزية",
+        "publication": "النشر",
+        "revisions": "سجل المراجعات"
+      }
+    },
     "types": {
       "TEACHER_PREPARATION": "تحضير المعلم",
       "WEEKLY_PLAN": "الخطة الأسبوعية",

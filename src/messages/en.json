@@ -14444,6 +14444,30 @@
       "filtered_empty_title": "No matching preparations",
       "filtered_empty_description": "Change or clear the current filters to see more results."
     },
+    "teacher_preparation_detail": {
+      "back_to_preparations": "Back to preparations",
+      "sections_label": "Teacher preparation sections",
+      "subjects_count": "{count} subjects",
+      "targets_count": "{count} targets",
+      "assigned_teacher": "Assigned teacher: {name}",
+      "assigned_teachers_count": "{count} assigned teachers",
+      "assigned_teacher_unavailable": "Assigned teacher unavailable",
+      "sections": {
+        "overview": "Overview",
+        "targets": "Targets",
+        "objectives": "Objectives",
+        "learning_outcomes": "Learning outcomes",
+        "teaching_strategies": "Teaching strategies",
+        "activities": "Activities",
+        "resources": "Resources",
+        "assessment": "Assessment",
+        "teacher_notes": "Teacher notes",
+        "references": "Academic references",
+        "readiness": "Readiness",
+        "publication": "Publication",
+        "revisions": "Revision history"
+      }
+    },
     "types": {
       "TEACHER_PREPARATION": "Teacher preparation",
       "WEEKLY_PLAN": "Weekly plan",
