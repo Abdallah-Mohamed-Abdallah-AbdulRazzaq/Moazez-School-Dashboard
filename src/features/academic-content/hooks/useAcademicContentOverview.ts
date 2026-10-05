@@ -31,6 +31,17 @@ type ContentTypeResources = Record<
   OverviewResource<number | null>
 >;
 
+export interface AcademicContentOverviewState {
+  totals: ContentTypeResources;
+  workInProgress: OverviewResource<AcademicContentLibraryItem[]>;
+  upcomingSessions: OverviewResource<UpcomingAcademicContentSession[]>;
+  recentlyUpdated: OverviewResource<AcademicContentLibraryItem[]>;
+  retryType: (contentType: AcademicContentType) => void;
+  retryWorkInProgress: () => void;
+  retryUpcomingSessions: () => void;
+  retryRecentlyUpdated: () => void;
+}
+
 function resource<TData>(data: TData): OverviewResource<TData> {
   return { data, isLoading: false, error: null, partial: false };
 }
@@ -53,7 +64,7 @@ export function useAcademicContentOverview({
   academicYearId,
   termId,
   nowFactory = systemNow,
-}: UseAcademicContentOverviewInput) {
+}: UseAcademicContentOverviewInput): AcademicContentOverviewState {
   const [totals, setTotals] = useState<ContentTypeResources>(initialTotals);
   const [workInProgress, setWorkInProgress] = useState(
     resource<AcademicContentLibraryItem[]>([]),

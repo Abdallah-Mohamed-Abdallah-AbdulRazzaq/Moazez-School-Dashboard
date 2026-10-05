@@ -1,1 +1,1 @@
-export { default } from "@/features/academic-content/pages/AcademicContentLibraryPage";
+export { default } from "@/features/academic-content/pages/AcademicContentOverviewPage";
