@@ -19,6 +19,7 @@ function publishNowDraft(): PublicationDraft {
     publishAt: null,
     visibleFrom: null,
     visibleUntil: null,
+    notifyMinorUpdate: false,
   };
 }
 
@@ -41,6 +42,7 @@ describe("academic content publication policy", () => {
   it("omits publish-now and unset visibility instants", () => {
     expect(publicationRequestFromDraft(publishNowDraft(), REQUEST_ID)).toEqual({
       clientRequestId: REQUEST_ID,
+      notifyMinorUpdate: false,
     });
   });
 
@@ -52,14 +54,28 @@ describe("academic content publication policy", () => {
           publishAt: new Date("2026-10-06T08:00:00.000Z"),
           visibleFrom: new Date("2026-10-06T09:00:00.000Z"),
           visibleUntil: new Date("2026-10-07T09:00:00.000Z"),
+          notifyMinorUpdate: false,
         },
         REQUEST_ID,
       ),
     ).toEqual({
       clientRequestId: REQUEST_ID,
+      notifyMinorUpdate: false,
       publishAt: "2026-10-06T08:00:00.000Z",
       visibleFrom: "2026-10-06T09:00:00.000Z",
       visibleUntil: "2026-10-07T09:00:00.000Z",
+    });
+  });
+
+  it("preserves the minor-update notification choice", () => {
+    const draft = { ...publishNowDraft(), notifyMinorUpdate: true };
+
+    expect(publicationDraftFingerprint(draft)).toContain(
+      '"notifyMinorUpdate":true',
+    );
+    expect(publicationRequestFromDraft(draft, REQUEST_ID)).toEqual({
+      clientRequestId: REQUEST_ID,
+      notifyMinorUpdate: true,
     });
   });
 

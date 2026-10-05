@@ -340,6 +340,11 @@ type AcademicContentDetailVariant<TType extends AcademicContentType> = Omit<
   "type"
 > & {
   type: TType;
+  latestPublicationId: string | null;
+  publicationStatus: AcademicContentPublicationStatus | null;
+  publishAt: string | null;
+  visibleFrom: string | null;
+  visibleUntil: string | null;
   targets: AcademicContentTarget[];
   assets: AcademicContentAsset[];
   links: AcademicContentLink[];
@@ -430,6 +435,13 @@ export const ACADEMIC_CONTENT_PUBLICATION_STATUSES = [
 export type AcademicContentPublicationStatus =
   (typeof ACADEMIC_CONTENT_PUBLICATION_STATUSES)[number];
 
+export type AcademicContentPublicationCancellationReason =
+  | "UNSCHEDULED"
+  | "WITHDRAWN"
+  | "REVISION_STARTED";
+
+export type AcademicContentChangeSignificance = "MINOR" | "SIGNIFICANT";
+
 export interface AcademicContentPublicationReadinessResponse {
   canPublish: boolean;
   canSchedule: boolean;
@@ -449,6 +461,7 @@ export interface CreateAcademicContentPublicationRequest {
   publishAt?: string;
   visibleFrom?: string;
   visibleUntil?: string | null;
+  notifyMinorUpdate?: boolean;
 }
 
 export interface AcademicContentPublication {
@@ -462,10 +475,23 @@ export interface AcademicContentPublication {
   publishedAt: string | null;
   expiredAt: string | null;
   cancelledAt: string | null;
+  cancellationReason: AcademicContentPublicationCancellationReason | null;
+  supersedesPublicationId: string | null;
+  changeSignificance: AcademicContentChangeSignificance | null;
+  notifyMinorUpdate: boolean;
   studentRecipientCount: number;
   guardianRecipientContextCount: number;
   createdByUserId: string;
   createdAt: string;
+}
+
+export interface AcademicContentPublicationRevisionStartResponse {
+  contentId: string;
+  oldPublicationId: string;
+  oldRevisionId: string;
+  cancellationReason: AcademicContentPublicationCancellationReason;
+  restoredContentStatus: AcademicContentStatus;
+  cancelledAt: string;
 }
 
 export interface AcademicContentPublicationHistoryResponse {

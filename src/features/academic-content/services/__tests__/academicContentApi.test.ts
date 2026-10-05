@@ -292,6 +292,10 @@ describe("academic content endpoint contracts", () => {
       CONTENT_ID,
       PUBLICATION_ID,
     );
+    await academicContentApi.startAcademicContentPublicationRevision(
+      CONTENT_ID,
+      PUBLICATION_ID,
+    );
 
     const base = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
     const publicationPath = `${base}/publications/${encodeURIComponent(PUBLICATION_ID)}`;
@@ -317,6 +321,11 @@ describe("academic content endpoint contracts", () => {
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       3,
       `${publicationPath}/cancel`,
+      {},
+    );
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      4,
+      `${publicationPath}/revise`,
       {},
     );
   });

@@ -28,6 +28,7 @@ function emptyDraft(mode: PublicationDraft["mode"]): PublicationDraft {
     publishAt: null,
     visibleFrom: null,
     visibleUntil: null,
+    notifyMinorUpdate: false,
   };
 }
 

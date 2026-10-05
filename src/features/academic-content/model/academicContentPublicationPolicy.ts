@@ -18,6 +18,7 @@ export interface PublicationDraft {
   publishAt: Date | null;
   visibleFrom: Date | null;
   visibleUntil: Date | null;
+  notifyMinorUpdate: boolean;
 }
 
 export type PublicationDraftError =
@@ -60,6 +61,7 @@ export function publicationDraftFingerprint(draft: PublicationDraft): string {
     publishAt: draft.publishAt?.toISOString() ?? null,
     visibleFrom: draft.visibleFrom?.toISOString() ?? null,
     visibleUntil: draft.visibleUntil?.toISOString() ?? null,
+    notifyMinorUpdate: draft.notifyMinorUpdate,
   });
 }
 
@@ -69,6 +71,7 @@ export function publicationRequestFromDraft(
 ): CreateAcademicContentPublicationRequest {
   return {
     clientRequestId,
+    notifyMinorUpdate: draft.notifyMinorUpdate,
     ...(draft.mode === "schedule" && draft.publishAt
       ? { publishAt: draft.publishAt.toISOString() }
       : {}),

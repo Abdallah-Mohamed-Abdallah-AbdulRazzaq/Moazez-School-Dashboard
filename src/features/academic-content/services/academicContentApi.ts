@@ -20,6 +20,7 @@ import type {
   AcademicContentPublication,
   AcademicContentPublicationHistoryResponse,
   AcademicContentPublicationReadinessResponse,
+  AcademicContentPublicationRevisionStartResponse,
   AcademicContentReadinessResponse,
   AcademicContentReviewQueueQuery,
   AcademicContentReviewQueueResponse,
@@ -158,6 +159,16 @@ export function cancelAcademicContentPublication(
 ): Promise<AcademicContentPublication> {
   return apiPost<AcademicContentPublication>(
     `${publicationPath(contentId, publicationId)}/cancel`,
+    {},
+  );
+}
+
+export function startAcademicContentPublicationRevision(
+  contentId: string,
+  publicationId: string,
+): Promise<AcademicContentPublicationRevisionStartResponse> {
+  return apiPost<AcademicContentPublicationRevisionStartResponse>(
+    `${publicationPath(contentId, publicationId)}/revise`,
     {},
   );
 }
