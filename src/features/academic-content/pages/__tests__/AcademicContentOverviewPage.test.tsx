@@ -1,7 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AcademicContentOverviewState } from "../../hooks/useAcademicContentOverview";
-import type { AcademicContentLibraryItem } from "../../types/contracts";
+import type {
+  AcademicContentLibraryItem,
+  AcademicContentListResponse,
+  ListAcademicContentQuery,
+} from "../../types/contracts";
 import AcademicContentOverviewPage from "../AcademicContentOverviewPage";
 
 const testState = vi.hoisted(() => ({
@@ -10,7 +13,7 @@ const testState = vi.hoisted(() => ({
   canApprove: false,
   push: vi.fn(),
 }));
-const useAcademicContentOverview = vi.hoisted(() => vi.fn());
+const listAcademicContent = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
   useAcademicYearTermLayoutContext: () => ({
@@ -27,9 +30,7 @@ vi.mock("@/hooks/usePermissions", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: testState.push }),
 }));
-vi.mock("../../hooks/useAcademicContentOverview", () => ({
-  useAcademicContentOverview,
-}));
+vi.mock("../../services/academicContentApi", () => ({ listAcademicContent }));
 
 function content(): AcademicContentLibraryItem {
   return {
@@ -48,25 +49,11 @@ function content(): AcademicContentLibraryItem {
   };
 }
 
-function overviewState(): AcademicContentOverviewState {
-  const emptyResource = { data: [], error: null, isLoading: false, partial: false };
-  return {
-    totals: {
-      TEACHER_PREPARATION: { data: 1, error: null, isLoading: false, partial: false },
-      WEEKLY_PLAN: { data: 0, error: null, isLoading: false, partial: false },
-      GUARDIAN_WEEKLY_NOTE: { data: 0, error: null, isLoading: false, partial: false },
-      SUBJECT_RESOURCE: { data: 0, error: null, isLoading: false, partial: false },
-      ONLINE_SESSION: { data: 0, error: null, isLoading: false, partial: false },
-      GENERAL_RESOURCE: { data: 0, error: null, isLoading: false, partial: false },
-    },
-    workInProgress: { ...emptyResource, data: [content()] },
-    upcomingSessions: emptyResource,
-    recentlyUpdated: emptyResource,
-    retryType: vi.fn(),
-    retryWorkInProgress: vi.fn(),
-    retryUpcomingSessions: vi.fn(),
-    retryRecentlyUpdated: vi.fn(),
-  };
+function response(
+  contentItems: AcademicContentLibraryItem[],
+  total = contentItems.length,
+): AcademicContentListResponse {
+  return { items: contentItems, page: 1, limit: 100, total };
 }
 
 describe("AcademicContentOverviewPage", () => {
@@ -75,36 +62,40 @@ describe("AcademicContentOverviewPage", () => {
     testState.termId = "term-1";
     testState.canApprove = false;
     testState.push.mockReset();
-    useAcademicContentOverview.mockReset().mockReturnValue(overviewState());
+    listAcademicContent.mockReset().mockImplementation(
+      (query: ListAcademicContentQuery) => {
+        if (query.status === "DRAFT") return Promise.resolve(response([content()]));
+        if (query.type && query.limit === 1) return Promise.resolve(response([], 1));
+        return Promise.resolve(response([]));
+      },
+    );
   });
 
-  it("composes contract-backed overview resources and context-aware open actions", () => {
+  it("composes contract-backed overview resources and context-aware open actions", async () => {
     render(<AcademicContentOverviewPage />);
 
     expect(screen.getAllByRole("article")).toHaveLength(6);
-    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open" }));
     expect(testState.push).toHaveBeenCalledWith(
       "/en/academic-content-hub/content-1?year=year-1&term=term-1",
     );
     expect(screen.queryByRole("link", { name: /Review queue/ })).not.toBeInTheDocument();
   });
 
-  it("passes approval permission to quick links", () => {
+  it("passes approval permission to quick links", async () => {
     testState.canApprove = true;
     render(<AcademicContentOverviewPage />);
 
-    expect(screen.getByRole("link", { name: /Review queue/ })).toBeVisible();
+    expect(await screen.findByRole("link", { name: /Review queue/ })).toBeVisible();
   });
 
-  it("renders no overview surface while academic context is incomplete", () => {
+  it("renders no overview surface while academic context is incomplete", async () => {
     testState.academicYearId = "";
     testState.termId = "";
     const { container } = render(<AcademicContentOverviewPage />);
+    await act(async () => Promise.resolve());
 
-    expect(useAcademicContentOverview).toHaveBeenCalledWith({
-      academicYearId: "",
-      termId: "",
-    });
+    expect(listAcademicContent).not.toHaveBeenCalled();
     expect(container).toBeEmptyDOMElement();
   });
 });

@@ -11,9 +11,8 @@ export function formatAcademicContentDateTime(
 export function formatAcademicContentRelativeTime(
   value: string,
   locale: string,
-  now = new Date(),
 ): string {
-  const elapsedMilliseconds = new Date(value).getTime() - now.getTime();
+  const elapsedMilliseconds = new Date(value).getTime() - Date.now();
   const absoluteMilliseconds = Math.abs(elapsedMilliseconds);
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 

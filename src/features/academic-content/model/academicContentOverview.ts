@@ -14,7 +14,6 @@ export interface UpcomingAcademicContentSession {
 export function mergeWorkInProgress(
   drafts: readonly AcademicContentLibraryItem[],
   changesRequested: readonly AcademicContentLibraryItem[],
-  maximumItems = 4,
 ): AcademicContentLibraryItem[] {
   const uniqueContent = new Map(
     [...drafts, ...changesRequested].map((content) => [content.id, content]),
@@ -23,16 +22,15 @@ export function mergeWorkInProgress(
     .sort((leftContent, rightContent) =>
       rightContent.updatedAt.localeCompare(leftContent.updatedAt),
     )
-    .slice(0, maximumItems);
+    .slice(0, 4);
 }
 
 export function sessionState(
   startAt: string,
   now: Date,
-  startingSoonMinutes = 30,
 ): AcademicContentSessionState {
   const millisecondsUntilStart = new Date(startAt).getTime() - now.getTime();
-  return millisecondsUntilStart <= startingSoonMinutes * 60_000
+  return millisecondsUntilStart <= 30 * 60_000
     ? "STARTING_SOON"
     : "UPCOMING";
 }
@@ -40,7 +38,6 @@ export function sessionState(
 export function selectUpcomingSessions(
   contentItems: readonly AcademicContentLibraryItem[],
   now: Date,
-  maximumItems = 4,
 ): UpcomingAcademicContentSession[] {
   return contentItems
     .flatMap((content) => {
@@ -54,5 +51,5 @@ export function selectUpcomingSessions(
     .sort((leftSession, rightSession) =>
       leftSession.summary.startAt.localeCompare(rightSession.summary.startAt),
     )
-    .slice(0, maximumItems);
+    .slice(0, 4);
 }
