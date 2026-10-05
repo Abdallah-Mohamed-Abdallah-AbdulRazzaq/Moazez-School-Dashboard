@@ -51,4 +51,12 @@ describe("academic content overview translations", () => {
     expect(String(valueAt(english, path)).trim()).not.toBe("");
     expect(String(valueAt(arabic, path)).trim()).not.toBe("");
   });
+
+  it.each(["overview", "all_content"] as const)(
+    "defines bilingual shell navigation copy for %s",
+    (key) => {
+      expect(enMessages.academic_content.shell[key]).toEqual(expect.any(String));
+      expect(arMessages.academic_content.shell[key]).toEqual(expect.any(String));
+    },
+  );
 });

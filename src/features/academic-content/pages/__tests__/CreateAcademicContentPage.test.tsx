@@ -6,10 +6,12 @@ const state = vi.hoisted(() => ({
   push: vi.fn(),
   create: vi.fn(),
   termStatus: "open" as "open" | "closed",
+  query: "",
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: state.push }),
+  useSearchParams: () => new URLSearchParams(state.query),
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
@@ -46,6 +48,7 @@ describe("CreateAcademicContentPage", () => {
     state.push.mockReset();
     state.create.mockReset().mockResolvedValue({ id: "content-1" });
     state.termStatus = "open";
+    state.query = "";
   });
 
   it("requires a title and enforces backend field limits", async () => {
@@ -73,6 +76,35 @@ describe("CreateAcademicContentPage", () => {
 
     expect(screen.getByRole("button", { name: "Audience" })).toHaveTextContent(
       "Students",
+    );
+  });
+
+  it("initializes a supported type and its audience from the query", () => {
+    state.query = "type=ONLINE_SESSION";
+    render(<CreateAcademicContentPage />);
+
+    expect(screen.getByRole("button", { name: "Content type" })).toHaveTextContent(
+      "Online session",
+    );
+    expect(screen.getByRole("button", { name: "Audience" })).toHaveTextContent(
+      "Students",
+    );
+
+    choose("Content type", "General resource");
+    expect(screen.getByRole("button", { name: "Audience" })).toHaveTextContent(
+      "Students",
+    );
+  });
+
+  it("falls back safely when the requested type is unknown", () => {
+    state.query = "type=NOT_A_CONTENT_TYPE";
+    render(<CreateAcademicContentPage />);
+
+    expect(screen.getByRole("button", { name: "Content type" })).toHaveTextContent(
+      "Teacher preparation",
+    );
+    expect(screen.getByRole("button", { name: "Audience" })).toHaveTextContent(
+      "Internal staff",
     );
   });
 

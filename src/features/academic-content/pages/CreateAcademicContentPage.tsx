@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { FilePlus2 } from "lucide-react";
 import { useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AccessDenied } from "@/components/ui/access-denied/AccessDenied";
 import { Button } from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -24,12 +24,18 @@ import {
 export default function CreateAcademicContentPage() {
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { hasPermission, isPermissionsReady } = usePermissions();
   const { academicYearId, termId, termStatus, isInitializing } =
     useAcademicYearTermLayoutContext();
-  const [type, setType] = useState<AcademicContentType>("TEACHER_PREPARATION");
+  const requestedType = searchParams.get("type");
+  const initialType =
+    ACADEMIC_CONTENT_TYPES.find(
+      (contentType) => contentType === requestedType,
+    ) ?? "TEACHER_PREPARATION";
+  const [type, setType] = useState<AcademicContentType>(initialType);
   const [audience, setAudience] =
-    useState<AcademicContentAudience>("INTERNAL_STAFF");
+    useState<AcademicContentAudience>(allowedAudiences(initialType)[0]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
