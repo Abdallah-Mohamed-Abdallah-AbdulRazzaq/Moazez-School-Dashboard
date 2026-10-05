@@ -17,6 +17,7 @@ import {
   getAcademicContentPublication,
   getAcademicContentPublicationReadiness,
   listAcademicContentPublications,
+  startAcademicContentPublicationRevision,
   unscheduleAcademicContentPublication,
 } from "../services/academicContentApi";
 import {
@@ -28,6 +29,7 @@ import type {
   AcademicContentPublication,
   AcademicContentPublicationHistoryResponse,
   AcademicContentPublicationReadinessResponse,
+  AcademicContentPublicationRevisionStartResponse,
 } from "../types/contracts";
 
 const HISTORY_LIMIT = 20;
@@ -75,6 +77,9 @@ export interface AcademicContentPublicationState {
   cancel: (
     publicationId: string,
   ) => Promise<AcademicContentPublication | null>;
+  startRevision: (
+    publicationId: string,
+  ) => Promise<AcademicContentPublicationRevisionStartResponse | null>;
 }
 
 function emptyErrors(): PublicationErrors {
@@ -336,6 +341,32 @@ export function useAcademicContentPublication(
     [mutatePublication],
   );
 
+  const startRevision = useCallback(
+    async (publicationId: string) => {
+      setIsMutating(true);
+      updateError("mutation", null);
+      try {
+        const response = await startAcademicContentPublicationRevision(
+          contentId,
+          publicationId,
+        );
+        if (activeContentIdRef.current !== contentId) return null;
+        setTrackedPublication(null);
+        setDetail(null);
+        await refreshAfterMutation();
+        return response;
+      } catch (error) {
+        if (activeContentIdRef.current === contentId) {
+          updateError("mutation", academicContentUiError(error));
+        }
+        return null;
+      } finally {
+        if (activeContentIdRef.current === contentId) setIsMutating(false);
+      }
+    },
+    [contentId, refreshAfterMutation, updateError],
+  );
+
   const trackedPublicationId = trackedPublication?.publicationId;
   const trackedPublicationStatus = trackedPublication?.status;
   const trackedPublishAt = trackedPublication?.publishAt;
@@ -437,6 +468,7 @@ export function useAcademicContentPublication(
       clearDetail,
       unschedule,
       cancel,
+      startRevision,
     }),
     [
       audiencePreview,
@@ -457,6 +489,7 @@ export function useAcademicContentPublication(
       readiness,
       reload,
       setHistoryPage,
+      startRevision,
       trackedPublication,
       unschedule,
     ],

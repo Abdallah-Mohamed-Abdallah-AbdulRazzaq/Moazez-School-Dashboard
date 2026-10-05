@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({
   getAcademicContentPublication: vi.fn(),
   getAcademicContentPublicationReadiness: vi.fn(),
   listAcademicContentPublications: vi.fn(),
+  startAcademicContentPublicationRevision: vi.fn(),
   unscheduleAcademicContentPublication: vi.fn(),
 }));
 
@@ -43,6 +44,10 @@ function publication(
     publishedAt: status === "PUBLISHED" ? NOW : null,
     expiredAt: status === "EXPIRED" ? NOW : null,
     cancelledAt: status === "CANCELLED" ? NOW : null,
+    cancellationReason: null,
+    supersedesPublicationId: null,
+    changeSignificance: null,
+    notifyMinorUpdate: false,
     studentRecipientCount: status === "PUBLISHED" ? 12 : 0,
     guardianRecipientContextCount: status === "PUBLISHED" ? 8 : 0,
     createdByUserId: "user-1",
@@ -75,6 +80,7 @@ describe("useAcademicContentPublication", () => {
     api.listAcademicContentPublications
       .mockReset()
       .mockResolvedValue(EMPTY_HISTORY);
+    api.startAcademicContentPublicationRevision.mockReset();
     api.createAcademicContentPublication.mockReset();
     api.getAcademicContentPublication.mockReset();
     api.unscheduleAcademicContentPublication.mockReset();
@@ -121,6 +127,7 @@ describe("useAcademicContentPublication", () => {
       publishAt: null,
       visibleFrom: null,
       visibleUntil: null,
+      notifyMinorUpdate: false,
     };
     await act(async () => {
       await result.current.create(draft);
@@ -164,6 +171,7 @@ describe("useAcademicContentPublication", () => {
         publishAt: null,
         visibleFrom: null,
         visibleUntil: null,
+        notifyMinorUpdate: false,
       });
     });
     expect(result.current.trackedPublication?.status).toBe("SCHEDULED");
@@ -201,6 +209,7 @@ describe("useAcademicContentPublication", () => {
         publishAt: new Date(publishAt),
         visibleFrom: null,
         visibleUntil: null,
+        notifyMinorUpdate: false,
       });
     });
 
@@ -230,6 +239,7 @@ describe("useAcademicContentPublication", () => {
         publishAt: null,
         visibleFrom: null,
         visibleUntil: null,
+        notifyMinorUpdate: false,
       });
     });
     await act(async () => {
@@ -257,6 +267,7 @@ describe("useAcademicContentPublication", () => {
         publishAt: null,
         visibleFrom: null,
         visibleUntil: null,
+        notifyMinorUpdate: false,
       });
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -267,5 +278,34 @@ describe("useAcademicContentPublication", () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
     expect(api.getAcademicContentPublication).toHaveBeenCalledOnce();
+  });
+
+  it("starts a revision and refreshes content and publication state", async () => {
+    const revisionResponse = {
+      contentId: CONTENT_ID,
+      oldPublicationId: "publication-1",
+      oldRevisionId: "revision-1",
+      cancellationReason: "REVISION_STARTED" as const,
+      restoredContentStatus: "DRAFT" as const,
+      cancelledAt: NOW,
+    };
+    api.startAcademicContentPublicationRevision.mockResolvedValue(
+      revisionResponse,
+    );
+    const onContentChanged = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useAcademicContentPublication(CONTENT_ID, onContentChanged),
+    );
+    await finishInitialReads();
+    api.listAcademicContentPublications.mockClear();
+
+    await act(async () => {
+      await expect(result.current.startRevision("publication-1")).resolves.toEqual(
+        revisionResponse,
+      );
+    });
+
+    expect(onContentChanged).toHaveBeenCalledOnce();
+    expect(api.listAcademicContentPublications).toHaveBeenCalledOnce();
   });
 });

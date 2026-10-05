@@ -23,6 +23,10 @@ function publication(
     publishedAt: status === "PUBLISHED" ? NOW : null,
     expiredAt: status === "EXPIRED" ? NOW : null,
     cancelledAt: status === "CANCELLED" ? NOW : null,
+    cancellationReason: null,
+    supersedesPublicationId: null,
+    changeSignificance: null,
+    notifyMinorUpdate: false,
     studentRecipientCount: 0,
     guardianRecipientContextCount: 0,
     createdByUserId: "user-1",
@@ -47,6 +51,7 @@ function renderHistory(
     onViewDetail: vi.fn(),
     onUnschedule: vi.fn().mockResolvedValue(undefined),
     onCancel: vi.fn().mockResolvedValue(undefined),
+    onStartRevision: vi.fn().mockResolvedValue(undefined),
   };
   render(
     <PublicationHistoryPanel
@@ -132,5 +137,16 @@ describe("PublicationHistoryPanel", () => {
     expect(
       screen.getByRole("button", { name: "View publication details" }),
     ).toBeInTheDocument();
+  });
+
+  it("confirms starting a revision from published content", async () => {
+    const callbacks = renderHistory(history([publication("target", "PUBLISHED")]));
+
+    fireEvent.click(screen.getByRole("button", { name: "Start revision" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm start revision" }));
+
+    await waitFor(() => {
+      expect(callbacks.onStartRevision).toHaveBeenCalledWith("target");
+    });
   });
 });

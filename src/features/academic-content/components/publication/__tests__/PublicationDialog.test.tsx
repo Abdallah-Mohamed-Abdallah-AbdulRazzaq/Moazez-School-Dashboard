@@ -45,6 +45,7 @@ describe("PublicationDialog", () => {
         isOpen
         mode="now"
         contentType="GENERAL_RESOURCE"
+        showMinorUpdateOption={false}
         isMutating={false}
         onClose={vi.fn()}
         onSubmit={onSubmit}
@@ -58,6 +59,7 @@ describe("PublicationDialog", () => {
       publishAt: null,
       visibleFrom: null,
       visibleUntil: null,
+      notifyMinorUpdate: false,
     });
   });
 
@@ -67,6 +69,7 @@ describe("PublicationDialog", () => {
         isOpen
         mode="schedule"
         contentType="GENERAL_RESOURCE"
+        showMinorUpdateOption={false}
         isMutating={false}
         onClose={vi.fn()}
         onSubmit={vi.fn()}
@@ -85,6 +88,7 @@ describe("PublicationDialog", () => {
         isOpen
         mode="schedule"
         contentType="GENERAL_RESOURCE"
+        showMinorUpdateOption={false}
         isMutating={false}
         onClose={vi.fn()}
         onSubmit={onSubmit}
@@ -101,6 +105,7 @@ describe("PublicationDialog", () => {
       publishAt: new Date("2100-10-06T10:00:00.000Z"),
       visibleFrom: null,
       visibleUntil: null,
+      notifyMinorUpdate: false,
     });
   });
 
@@ -111,6 +116,7 @@ describe("PublicationDialog", () => {
         isOpen
         mode="schedule"
         contentType="GENERAL_RESOURCE"
+        showMinorUpdateOption={false}
         isMutating={false}
         onClose={vi.fn()}
         onSubmit={onSubmit}
@@ -136,6 +142,7 @@ describe("PublicationDialog", () => {
         isOpen
         mode="now"
         contentType="ONLINE_SESSION"
+        showMinorUpdateOption={false}
         isMutating
         onClose={onClose}
         onSubmit={vi.fn()}
@@ -145,5 +152,29 @@ describe("PublicationDialog", () => {
     expect(screen.getByText(/use the online session end time/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start publishing" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Close modal" })).toBeNull();
+  });
+
+  it("offers notification only when publishing a revision", () => {
+    const onSubmit = vi.fn();
+    render(
+      <PublicationDialog
+        isOpen
+        mode="now"
+        contentType="WEEKLY_PLAN"
+        showMinorUpdateOption
+        isMutating={false}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Notify the audience about this minor update" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start publishing" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ notifyMinorUpdate: true }),
+    );
   });
 });

@@ -159,12 +159,16 @@ export default function AcademicContentPublicationPanel({
         onViewDetail={setSelectedPublicationId}
         onUnschedule={publication.unschedule}
         onCancel={publication.cancel}
+        onStartRevision={publication.startRevision}
       />
 
       <PublicationDialog
         isOpen={dialogMode !== null}
         mode={dialogMode ?? "now"}
         contentType={content.type}
+        showMinorUpdateOption={
+          content.latestPublicationId !== null && content.status === "DRAFT"
+        }
         isMutating={publication.isMutating}
         onClose={() => setDialogMode(null)}
         onSubmit={(draft) => void submitPublication(draft)}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CalendarClock, Send } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
+import Checkbox from "@/components/ui/checkbox/Checkbox";
 import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import Modal from "@/components/ui/modal/Modal";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
@@ -17,6 +18,7 @@ interface PublicationDialogProps {
   isOpen: boolean;
   mode: PublicationDraft["mode"];
   contentType: AcademicContentType;
+  showMinorUpdateOption: boolean;
   isMutating: boolean;
   onClose: () => void;
   onSubmit: (draft: PublicationDraft) => void;
@@ -35,6 +37,7 @@ function emptyDraft(mode: PublicationDraft["mode"]): PublicationDraft {
 function OpenPublicationDialog({
   mode,
   contentType,
+  showMinorUpdateOption,
   isMutating,
   onClose,
   onSubmit,
@@ -139,6 +142,18 @@ function OpenPublicationDialog({
           }
           onChange={(visibleUntil) => updateDraft({ visibleUntil })}
         />
+
+        {showMinorUpdateOption ? (
+          <Checkbox
+            checked={draft.notifyMinorUpdate}
+            disabled={isMutating}
+            label={t("notify_minor_update")}
+            description={t("notify_minor_update_description")}
+            onChange={(event) =>
+              updateDraft({ notifyMinorUpdate: event.target.checked })
+            }
+          />
+        ) : null}
       </div>
     </Modal>
   );

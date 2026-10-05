@@ -18,6 +18,10 @@ const publication: AcademicContentPublication = {
   publishedAt: null,
   expiredAt: null,
   cancelledAt: null,
+  cancellationReason: null,
+  supersedesPublicationId: null,
+  changeSignificance: null,
+  notifyMinorUpdate: false,
   studentRecipientCount: 0,
   guardianRecipientContextCount: 0,
   createdByUserId: "user-1",
@@ -36,6 +40,11 @@ const content: AcademicContentDetail = {
   archivedAt: null,
   createdAt: NOW,
   updatedAt: NOW,
+  latestPublicationId: null,
+  publicationStatus: null,
+  publishAt: null,
+  visibleFrom: null,
+  visibleUntil: null,
   targets: [],
   assets: [],
   links: [],
@@ -84,6 +93,7 @@ function publicationState(overrides: Record<string, unknown> = {}) {
     clearDetail: vi.fn(),
     unschedule: vi.fn().mockResolvedValue(publication),
     cancel: vi.fn().mockResolvedValue(publication),
+    startRevision: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
 }
@@ -111,6 +121,7 @@ describe("AcademicContentPublicationPanel", () => {
         publishAt: null,
         visibleFrom: null,
         visibleUntil: null,
+        notifyMinorUpdate: false,
       }),
     );
 

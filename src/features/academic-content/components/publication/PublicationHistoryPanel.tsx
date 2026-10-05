@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, History, RotateCcw, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, History, Pencil, RotateCcw, X } from "lucide-react";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
@@ -29,10 +29,11 @@ interface PublicationHistoryPanelProps {
   onViewDetail: (publicationId: string) => void;
   onUnschedule: (publicationId: string) => Promise<unknown> | unknown;
   onCancel: (publicationId: string) => Promise<unknown> | unknown;
+  onStartRevision: (publicationId: string) => Promise<unknown> | unknown;
 }
 
 interface PendingLifecycleAction {
-  kind: "unschedule" | "cancel";
+  kind: "unschedule" | "cancel" | "revise";
   publicationId: string;
 }
 
@@ -57,6 +58,7 @@ function PublicationHistoryItem({
   const showUnschedule =
     canMutate && canUnschedulePublication(publication.status);
   const showCancel = canMutate && canCancelPublication(publication.status);
+  const showRevision = canMutate && publication.status === "PUBLISHED";
 
   return (
     <article className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-gray-300">
@@ -114,6 +116,23 @@ function PublicationHistoryItem({
               {t("cancel_publication")}
             </Button>
           ) : null}
+          {showRevision ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isMutating}
+              leftIcon={<Pencil aria-hidden="true" className="size-4" />}
+              onClick={() =>
+                onLifecycleAction({
+                  kind: "revise",
+                  publicationId: publication.publicationId,
+                })
+              }
+            >
+              {t("start_revision")}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -165,6 +184,7 @@ export default function PublicationHistoryPanel({
   onViewDetail,
   onUnschedule,
   onCancel,
+  onStartRevision,
 }: PublicationHistoryPanelProps) {
   const locale = useLocale();
   const t = useAcademicContentTranslations("publication");
@@ -191,8 +211,10 @@ export default function PublicationHistoryPanel({
     try {
       if (pendingAction.kind === "unschedule") {
         await onUnschedule(pendingAction.publicationId);
-      } else {
+      } else if (pendingAction.kind === "cancel") {
         await onCancel(pendingAction.publicationId);
+      } else {
+        await onStartRevision(pendingAction.publicationId);
       }
       setPendingAction(null);
     } finally {
@@ -307,6 +329,17 @@ export default function PublicationHistoryPanel({
         cancelLabel={commonT("cancel")}
         loading={confirmationLocked}
         severity="danger"
+      />
+      <ConfirmDialog
+        isOpen={pendingAction?.kind === "revise"}
+        onClose={closeConfirmation}
+        onConfirm={() => void confirmLifecycleAction()}
+        title={t("start_revision_title")}
+        description={t("start_revision_description")}
+        confirmLabel={t("confirm_start_revision")}
+        cancelLabel={commonT("cancel")}
+        loading={confirmationLocked}
+        severity="warning"
       />
     </section>
   );
