@@ -19,7 +19,7 @@ import {
   ACADEMIC_CONTENT_TYPES,
   type AcademicContentType,
 } from "../../types/contracts";
-import { academicContentOverviewHref } from "./overviewRoutes";
+import { academicContentTypeHref } from "./overviewRoutes";
 
 interface TypeCardStyle {
   icon: LucideIcon;
@@ -57,12 +57,11 @@ export default function ContentTypeGrid({
       {ACADEMIC_CONTENT_TYPES.map((contentType) => {
         const total = totals[contentType];
         const { icon: Icon, iconClassName } = TYPE_CARD_STYLES[contentType];
-        const href = academicContentOverviewHref({
+        const href = academicContentTypeHref({
           locale,
-          routeSuffix: "/library",
+          contentType,
           yearId,
           termId,
-          extraQuery: { type: contentType },
         });
 
         return (

@@ -94,7 +94,7 @@ describe("academic content overview navigation", () => {
     expect(screen.getAllByRole("link", { name: /View all/ })).toHaveLength(6);
     expect(screen.getByRole("link", { name: /Teacher preparation.*View all/i })).toHaveAttribute(
       "href",
-      "/en/academic-content-hub/library?year=year-1&term=term-1&type=TEACHER_PREPARATION",
+      "/en/academic-content-hub/preparations?year=year-1&term=term-1",
     );
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetryType).toHaveBeenCalledWith("WEEKLY_PLAN");

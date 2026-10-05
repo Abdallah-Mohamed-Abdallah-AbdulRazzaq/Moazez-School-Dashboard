@@ -14378,6 +14378,63 @@
       "open": "فتح",
       "updated_at": "تم التحديث {value}"
     },
+    "teacher_preparations": {
+      "title": "تحضيرات المعلمين",
+      "description": "إنشاء وإدارة تحضيرات الدروس للعام الدراسي والفصل المحددين.",
+      "new_preparation": "تحضير جديد",
+      "retry": "إعادة المحاولة",
+      "open": "فتح",
+      "loading": "جارٍ تحميل تحضيرات المعلمين…",
+      "previous_page": "صفحة التحضيرات السابقة",
+      "next_page": "صفحة التحضيرات التالية",
+      "page_size": "عدد التحضيرات في الصفحة",
+      "breadcrumb": {
+        "overview": "مركز المحتوى الأكاديمي"
+      },
+      "stats": {
+        "total": "إجمالي التحضيرات",
+        "draft": "مسودة",
+        "pending_approval": "بانتظار الموافقة",
+        "approved": "معتمد",
+        "unavailable": "غير متاح"
+      },
+      "search": "البحث في التحضيرات",
+      "show_filters": "إظهار عوامل التصفية",
+      "hide_filters": "إخفاء عوامل التصفية",
+      "clear_filters": "مسح الكل",
+      "remove_filter": "إزالة {label}",
+      "results": "تم العثور على {count} تحضير",
+      "all_teachers": "كل المعلمين",
+      "all_stages": "كل المراحل",
+      "all_grades": "كل الصفوف",
+      "all_classrooms": "كل الفصول",
+      "all_subjects": "كل المواد",
+      "all_statuses": "كل الحالات",
+      "pending_approval": "بانتظار الموافقة",
+      "unavailable_name": "الاسم غير متاح",
+      "filters": {
+        "teacher": "المعلم",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "classroom": "الفصل",
+        "subject": "المادة",
+        "status": "الحالة"
+      },
+      "columns": {
+        "preparation": "التحضير / الموضوع",
+        "description": "الوصف",
+        "status": "الحالة",
+        "updated": "آخر تحديث",
+        "actions": "الإجراءات"
+      },
+      "topic_unavailable": "لا يوجد موضوع بعد",
+      "description_unavailable": "لا يوجد وصف",
+      "unavailable_title": "تحضيرات المعلمين غير متاحة",
+      "empty_title": "لا توجد تحضيرات للمعلمين بعد",
+      "empty_description": "أنشئ تحضيرًا للسياق الأكاديمي المحدد.",
+      "filtered_empty_title": "لا توجد تحضيرات مطابقة",
+      "filtered_empty_description": "غيّر عوامل التصفية الحالية أو امسحها لعرض نتائج أكثر."
+    },
     "types": {
       "TEACHER_PREPARATION": "تحضير المعلم",
       "WEEKLY_PLAN": "الخطة الأسبوعية",

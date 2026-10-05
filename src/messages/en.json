@@ -14387,6 +14387,63 @@
       "open": "Open",
       "updated_at": "Updated {value}"
     },
+    "teacher_preparations": {
+      "title": "Teacher Preparations",
+      "description": "Create and manage lesson preparations for the selected academic year and term.",
+      "new_preparation": "New preparation",
+      "retry": "Retry",
+      "open": "Open",
+      "loading": "Loading teacher preparations…",
+      "previous_page": "Previous preparations page",
+      "next_page": "Next preparations page",
+      "page_size": "Preparations per page",
+      "breadcrumb": {
+        "overview": "Academic Content Center"
+      },
+      "stats": {
+        "total": "Total preparations",
+        "draft": "Draft",
+        "pending_approval": "Pending approval",
+        "approved": "Approved",
+        "unavailable": "Unavailable"
+      },
+      "search": "Search preparations",
+      "show_filters": "Show filters",
+      "hide_filters": "Hide filters",
+      "clear_filters": "Clear all",
+      "remove_filter": "Remove {label}",
+      "results": "{count} preparations found",
+      "all_teachers": "All teachers",
+      "all_stages": "All stages",
+      "all_grades": "All grades",
+      "all_classrooms": "All classrooms",
+      "all_subjects": "All subjects",
+      "all_statuses": "All statuses",
+      "pending_approval": "Pending approval",
+      "unavailable_name": "Name unavailable",
+      "filters": {
+        "teacher": "Teacher",
+        "stage": "Stage",
+        "grade": "Grade",
+        "classroom": "Classroom",
+        "subject": "Subject",
+        "status": "Status"
+      },
+      "columns": {
+        "preparation": "Preparation / Topic",
+        "description": "Description",
+        "status": "Status",
+        "updated": "Last updated",
+        "actions": "Actions"
+      },
+      "topic_unavailable": "No topic yet",
+      "description_unavailable": "No description",
+      "unavailable_title": "Teacher preparations unavailable",
+      "empty_title": "No teacher preparations yet",
+      "empty_description": "Create a preparation for the selected academic context.",
+      "filtered_empty_title": "No matching preparations",
+      "filtered_empty_description": "Change or clear the current filters to see more results."
+    },
     "types": {
       "TEACHER_PREPARATION": "Teacher preparation",
       "WEEKLY_PLAN": "Weekly plan",
