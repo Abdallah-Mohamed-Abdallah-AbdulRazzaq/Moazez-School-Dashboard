@@ -29,7 +29,7 @@ The page consumes the existing `AcademicContentDetail` aggregate for `ONLINE_SES
 - `timezone`
 - `timetableEntryId`
 
-The aggregate also supplies the existing base metadata, academic targets, assets, links, tags, publication values, timestamps, and status. The UI derives temporal state, duration, countdown text, and readiness locally without additional requests.
+The aggregate also supplies the existing base metadata, academic targets, assets, links, tags, publication values, timestamps, and status. The UI derives only temporal state, duration, and countdown text locally. Academic-content readiness and publication readiness remain authoritative backend responses loaded through the existing editor and publication hooks.
 
 ## Information architecture
 
@@ -79,9 +79,21 @@ On desktop, a compact right rail contains:
 - Publication status.
 - `publishAt`, `visibleFrom`, and `visibleUntil` when present.
 - Created and last-updated timestamps.
-- A meeting-readiness summary derived from required saved fields only.
+- The authoritative academic-content readiness result and its blocking reasons.
 
 On smaller screens, the rail moves below the meeting hero and before supplementary cards.
+
+### Management and history
+
+A secondary **Management and history** area appears below the meeting information. It is visually subordinate to the lobby but keeps the complete existing workflow accessible:
+
+- Authoritative academic-content readiness and blocking reasons.
+- Publication readiness, including whether the content can be published or scheduled and the backend blocking reasons.
+- The full publication workflow for users with `academics.academic_content.publish`.
+- Publication history, publication detail, recipient counts, and supported unschedule, cancel, or revision actions.
+- Academic-content revision history and revision details.
+
+This area may use compact tabs or disclosure panels to prevent administrative history from dominating the meeting experience. It reuses the established publication and revision components and their existing requests; it does not derive publication eligibility locally.
 
 ## Temporal behavior
 
@@ -118,8 +130,9 @@ The following are proposed components, not existing symbols:
 - `OnlineSessionScheduleCard` presents schedule and timetable context.
 - `OnlineSessionMaterials` presents assets and related links.
 - `OnlineSessionContextRail` presents publication and audit metadata.
+- `OnlineSessionManagementHistory` arranges the existing readiness, publication, and revision surfaces without reimplementing their API behavior.
 
-A focused model module owns pure derivations for temporal state, duration, countdown text, URL readiness, and the meeting-readiness summary. Components consume those functions rather than duplicating date or validation logic.
+A focused model module owns pure derivations for temporal state, duration, countdown text, and URL validity. Components consume those functions rather than duplicating date or validation logic. Readiness and publication eligibility come from their existing backend responses.
 
 Existing shared UI components remain the default for buttons, badges, cards, empty states, rich-text rendering, dropdowns, and dialogs. The existing `MeetingPlatformIcon` supplies platform imagery.
 
@@ -127,6 +140,7 @@ Existing shared UI components remain the default for buttons, badges, cards, emp
 
 - Initial loading uses the existing partial loader behavior.
 - Aggregate-load failure uses the existing academic-content error mapping and retry action.
+- Readiness, publication, and revision failures remain independent and retain their existing retry behavior, so one unavailable secondary surface does not hide the meeting lobby.
 - Missing session-specific details produce an incomplete-setup state rather than fabricated defaults.
 - Authorized users see an Edit session recovery action in the incomplete state.
 - Missing optional fields do not block the page.
@@ -151,7 +165,7 @@ Pure model tests cover:
 - Upcoming, exact-start, live, exact-end, and ended temporal boundaries.
 - Duration derivation.
 - Valid, missing, and invalid HTTPS meeting URLs.
-- Readiness derivation from required fields.
+- URL validity used by Join-session availability.
 
 Component tests cover:
 
@@ -163,6 +177,9 @@ Component tests cover:
 - Incomplete session details.
 - Permission-based visibility of Edit session.
 - Rendering of targets, assets, links, tags, publication data, and audit metadata from the aggregate.
+- Rendering of backend academic-content readiness and blocking reasons.
+- Publication readiness, publication history/detail, recipient counts, and supported publication actions through the existing publication components.
+- Revision history and revision detail through the existing revision components.
 - No presentation of unsupported attendance, participant, recording, chat, or analytics data.
 
 Translation parity tests cover the added English and Arabic strings. Focused component and model tests run during implementation; the full test suite requires explicit owner approval under the repository working agreement.
@@ -174,6 +191,7 @@ Translation parity tests cover the added English and Arabic strings. Focused com
 - A valid saved HTTPS meeting URL always produces an enabled Join session action.
 - Start/end time, duration, timezone, temporal state, and access code are accurate.
 - All useful fields from the existing detail aggregate have an intentional presentation or remain accessible through the existing editing workflow.
+- Backend academic-content readiness, publication readiness/history, and revision history remain accessible from the meeting detail page.
 - The page does not issue additional requests to fabricate unsupported meeting data.
 - Read-only and management experiences respect existing permissions.
 - English and Arabic layouts remain usable on desktop and mobile.
