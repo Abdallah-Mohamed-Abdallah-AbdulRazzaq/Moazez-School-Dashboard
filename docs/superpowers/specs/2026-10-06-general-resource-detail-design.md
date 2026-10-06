@@ -30,6 +30,11 @@ The redesign applies only to `GENERAL_RESOURCE`. Existing specialized views for 
 
 ## Backend Contract Constraints
 
+This design was audited against backend `origin/main` at
+`d84945e09c90de8723f4859b7eb69285ffd0468d`. The local backend checkout was
+behind that revision, so the remote default branch is the contract authority
+for this audit.
+
 The General Resource aggregate provides the shared academic-content fields:
 
 - identifier, academic year identifier, term identifier, type, audience, title, rich-text description, and content status;
@@ -43,7 +48,104 @@ The General Resource aggregate provides the shared academic-content fields:
 
 Existing focused endpoints and services provide metadata updates, target replacement, tag replacement, link replacement, file upload and unlink operations, readiness, publication workflows, revision history, and lifecycle actions.
 
-The design must not derive unsupported resource-specific fields from `details`, because no such payload exists. Raw backend identifiers must remain internal unless an existing resolver can provide a user-facing label.
+The design must not derive unsupported resource-specific fields from `details`, because no such payload exists. Raw backend identifiers remain internal unless an existing resolver can provide a user-facing label or a detailed audit view explicitly identifies the value as an unresolved backend identifier.
+
+### Complete contract coverage
+
+“Complete contract coverage” means that every General Resource field and every
+backend operation applicable to a General Resource is deliberately mapped to a
+display, editor, action, ordering rule, policy rule, or internal correlation
+use. It does not mean exposing internal UUIDs as ordinary user-facing content.
+
+| Backend surface | Contract consumed by this workspace |
+| --- | --- |
+| Management detail | `id` drives mutations; `academicYearId` and `termId` resolve read-only context; `type` selects this workspace; `audience`, `title`, and `description` are displayed and edited; `status` and `archivedAt` drive lifecycle/read-only UI; `createdAt` and `updatedAt` appear in audit context. |
+| Publication summary on aggregate | `latestPublicationId` correlates the active publication; `publicationStatus`, `publishAt`, `visibleFrom`, and `visibleUntil` drive badges and visibility context. |
+| Targets | `scopeType` and stage, grade, section, classroom, subject, and teacher-allocation references drive the existing target editor and resolved summaries; target IDs remain internal. |
+| Assets | `sortOrder` determines stable display order; `originalName`, `mimeType`, `sizeBytes`, and `createdAt` are displayed; `assetId` and `fileId` remain internal operation/correlation keys. |
+| Links | `sortOrder` determines display and replacement order; `label` and `url` are editable; link IDs remain internal. |
+| Tags | `sortOrder` determines display and replacement order; `value` is editable; tag IDs remain internal. |
+| General Resource details | `details` is always `null`; no type-detail form or request is created. |
+| Authoring readiness | `canAdvance` controls ready/blocked state; every blocking reason’s `code`, localized `message`, and optional safe `details` are preserved for presentation or diagnostics. |
+| Metadata mutation | `title`, nullable `description`, and `audience` are sent only through the existing metadata update request. |
+| Target, link, and tag replacement | The complete ordered arrays are submitted through their existing replacement endpoints, respecting backend limits and normalization. |
+| File policy | `attachmentsEnabled`, maximum size, document/image/video/audio/archive/other-file switches gate selection and validation. `allowStudentDownload`, `allowGuardianDownload`, and `allowInlinePreview` appear as read-only recipient-access policy context; they do not invent management download or preview operations. |
+| Upload lifecycle | `clientRequestId`, name, MIME type, and byte size create the resumable upload intent; session capability and expiry data remain internal to the uploader; complete and cancel responses drive upload state; unlink uses `assetId`. |
+| Revisions | List pagination, revision number, contract version, source status, title, and capture time drive history. Revision detail consumes academic context, type, audience, description, ordered targets/assets/links/tags, and the `null` General Resource detail snapshot. |
+| Publication readiness | `canPublish`, `canSchedule`, and all blocking reasons drive allowed actions and explanation states. |
+| Audience preview | `asOf`, student count, guardian-context count, guardian-account count, and guardian opt-out-context count are shown in the publication section. |
+| Publication request | Idempotent `clientRequestId`, optional `publishAt`, `visibleFrom`, nullable `visibleUntil`, and `notifyMinorUpdate` are sent through the existing publication dialog. |
+| Publication history/detail | Status, source status, schedule and visibility times, published/expired/cancelled times, recipient counts, creator user identifier, cancellation reason, superseded-publication link, change significance, minor-update notification choice, creation time, revision ID, and publication ID are consumed by history or detailed audit presentation. Operational identifiers are used for actions; unresolved creator identity is labelled explicitly as an identifier rather than a person name. |
+| Publication mutations | Unschedule, cancel/withdraw, and start-revision actions use the selected publication ID and refresh publication state, aggregate state, and readiness. The revision-start response updates restored content status and retains old publication/revision correlation and cancellation metadata for result handling. |
+| Lifecycle | Archive, restore, and draft deletion remain status- and permission-gated and use their existing responses to refresh or navigate. |
+
+Client validation mirrors the request contract before submission: title is at
+most 180 characters, rich-text description serialization is at most 4,000
+characters, link collections contain at most 100 entries with a 180-character
+label and 2,048-character safe HTTP/HTTPS URL, and tag collections contain at
+most 100 unique normalized values of at most 80 characters each. Upload size
+and file-family validation comes from the live file policy rather than a
+hard-coded page limit. Backend validation remains authoritative.
+
+### Intentionally non-applicable backend surfaces
+
+- General Resources have no type-detail endpoint or payload.
+- Submit, approve, request-changes, approval-history, and review-queue surfaces
+  are not shown because the current workflow policy applies approval only to
+  `TEACHER_PREPARATION`, not `GENERAL_RESOURCE`.
+- Content creation and library listing belong to the General Resources list and
+  creation flows, not this detail workspace.
+- Updating the school-wide file policy belongs to settings and requires the
+  separate settings permission; this page reads but does not mutate it.
+- Preparation templates and the other content types’ detail endpoints are not
+  applicable to General Resources.
+
+### Exact field inventory for implementation review
+
+The implementation review must account for these exact response and request
+properties from the applicable backend DTOs:
+
+- Aggregate: `id`, `academicYearId`, `termId`, `type`, `audience`, `title`,
+  `description`, `status`, `archivedAt`, `createdAt`, `updatedAt`,
+  `latestPublicationId`, `publicationStatus`, `publishAt`, `visibleFrom`,
+  `visibleUntil`, `targets`, `assets`, `links`, `tags`, `details`.
+- Target: `id`, `scopeType`, `stageId`, `gradeId`, `sectionId`, `classroomId`,
+  `subjectId`, `teacherSubjectAllocationId`.
+- Asset: `assetId`, `fileId`, `originalName`, `mimeType`, `sizeBytes`,
+  `sortOrder`, `createdAt`.
+- Link and tag: `id`, `label`, `url`, `value`, `sortOrder`.
+- Authoring readiness: `canAdvance`, `blockingReasons`, reason `code`,
+  `message`, and optional `details`.
+- File policy: `attachmentsEnabled`, `maximumFileSizeBytes`,
+  `documentsEnabled`, `imagesEnabled`, `videosEnabled`, `audioEnabled`,
+  `archivesEnabled`, `otherFilesEnabled`, `allowStudentDownload`,
+  `allowGuardianDownload`, `allowInlinePreview`.
+- Upload intent/result: `clientRequestId`, `originalName`, `expectedMimeType`,
+  `expectedSizeBytes`, `uploadId`, `status`, `sessionUrl`,
+  `capabilityExpiresAt`, `expiresAt`, `uploadMode`, completed `asset`, completed
+  `file`, `cancelledAt`, unlink `ok`, and unlink `assetId`.
+- Revision summary/detail: `id`, `revisionNumber`, `snapshotContractVersion`,
+  `sourceStatus`, `title`, `capturedAt`, `academicContentId`, `academicYearId`,
+  `termId`, `type`, `audience`, `description`, `targets`, `assets`, `links`,
+  `tags`, `details`, plus paginated `items`, `page`, `limit`, and `total`.
+- Publication readiness: `canPublish`, `canSchedule`, `blockingReasons`.
+- Audience preview: `asOf`, `students`, `guardianContexts`,
+  `guardianUsersWithAccounts`, `guardianNotificationOptOutContexts`.
+- Publication request: `clientRequestId`, `notifyMinorUpdate`, `publishAt`,
+  `visibleFrom`, `visibleUntil`.
+- Publication record: `publicationId`, `revisionId`, `status`,
+  `sourceContentStatus`, `publishAt`, `visibleFrom`, `visibleUntil`,
+  `publishedAt`, `expiredAt`, `cancelledAt`, `studentRecipientCount`,
+  `guardianRecipientContextCount`, `createdByUserId`, `createdAt`,
+  `cancellationReason`, `supersedesPublicationId`, `changeSignificance`,
+  `notifyMinorUpdate`, plus paginated `items`, `page`, `limit`, and `total`.
+- Revision-start result: `contentId`, `oldPublicationId`, `oldRevisionId`,
+  `cancellationReason`, `restoredContentStatus`, `cancelledAt`.
+- Metadata and ordered replacement requests: optional `title`, `description`,
+  and `audience`; complete `targets`, `links`, and `tags` arrays.
+
+Some property names recur across DTOs. Each occurrence is consumed according
+to its owning response rather than merged into a synthetic frontend model.
 
 ## Architecture
 
@@ -164,6 +266,11 @@ The attachments area reuses `FilesSection` and the current academic-content file
 - retry a failed upload;
 - unlink an attached asset when permitted.
 
+Attached items are ordered by backend `sortOrder` and show the returned name,
+MIME type, size, and creation time. A compact recipient-access policy summary
+shows whether student download, guardian download, and inline preview are
+enabled by the school policy.
+
 The design does not promise attachment reordering. It also does not introduce a download button unless implementation verifies and reuses an existing authenticated download action with the correct permission behavior. File and link failures remain local to their respective resource area.
 
 ### Readiness
@@ -177,6 +284,23 @@ Refreshing readiness must not reload or discard unrelated unsaved editor values.
 Publication reuses `AcademicContentPublicationPanel` and the existing publication policy. General Resources may expose publication controls when the content audience and permissions make the publication surface available. The existing policy excludes the publication surface for `INTERNAL_STAFF` content.
 
 The section keeps content lifecycle status separate from publication status and continues to support only the actions currently implemented by the shared publication workflow, such as publish, schedule, unschedule, cancel, or start revision when the backend state and permissions allow them.
+
+The publication section must consume the complete shared publication contract:
+
+- readiness capabilities and blocking reasons;
+- the complete audience preview and its `asOf` timestamp;
+- immediate or scheduled timing, visibility window, and minor-update notification choice;
+- paginated publication history and publication detail;
+- source content status, recipient counts, creation and terminal timestamps;
+- cancellation reason, superseded publication, change significance, and
+  minor-update notification result;
+- revision start, unschedule, and withdrawal/cancellation results.
+
+The existing shared publication detail presentation must be extended if needed
+so fields currently parsed but not visibly represented—particularly
+`cancellationReason`, `supersedesPublicationId`, `changeSignificance`, and
+`notifyMinorUpdate`—are available in the detailed audit view. This is a narrow
+shared-component correction, not a new backend contract.
 
 ### Revision History
 
@@ -192,8 +316,12 @@ The contextual rail summarizes current aggregate data without becoming a second 
 - publication status, schedule, and visibility window when available;
 - created and updated timestamps;
 - attachment and related-link counts.
+- recipient attachment-access policy when attachments are enabled.
 
-The rail must not show raw identifiers or infer a creator identity. Editing remains in the corresponding main section so there is one mutation path per field group.
+The rail must not show raw identifiers or infer a creator identity. Detailed
+publication audit may show an unresolved creator user ID only with an explicit
+identifier label, matching the backend’s actual value. Editing remains in the
+corresponding main section so there is one mutation path per field group.
 
 ## Editing, Permissions, and Workflow
 
@@ -251,9 +379,14 @@ Focused tests should verify:
 - overview metadata and tags save through their existing independent mutations;
 - multiple targets, resolved labels, and resolver failure states;
 - link add, remove, reorder, validation, and replacement behavior;
-- file upload, progress, cancel, retry, policy feedback, and unlink behavior;
+- asset ordering and display of name, MIME type, size, and creation time;
+- file upload, progress, cancel, retry, complete, policy feedback, and unlink behavior;
+- every file-policy flag, including recipient download and inline-preview policy context;
 - readiness, publication, revision, and lifecycle composition;
+- complete audience-preview field mapping;
+- complete publication request, history, detail, cancellation, supersession, change-significance, minor-update, and revision-start mapping;
 - `INTERNAL_STAFF` publication-surface exclusion;
+- explicit absence of approval workflow for `GENERAL_RESOURCE` under the current backend policy;
 - manage and publish permission gating, immutable states, and dirty-state preservation;
 - localized loading, empty, failure, and retry behavior;
 - English and Arabic translation parity, RTL-safe layout, accessibility, and responsive structure.
