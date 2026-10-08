@@ -1,11 +1,11 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useLocale } from "next-intl";
+import { notificationSourceTypeLabel } from "@/features/communication/utils/notificationSourceTypeLabel";
 import Button from "@/components/ui/button/Button";
 import DateTimePicker from "@/components/ui/input/DateTimePicker";
-import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
-import AnnouncementSearchSelect from "@/features/communication/components/selectors/AnnouncementSearchSelect";
 import UserSearchSelect from "@/features/communication/components/selectors/UserSearchSelect";
 import type {
   NotificationFiltersState,
@@ -38,9 +38,7 @@ export interface NotificationFiltersProps {
     type: string;
     sourceModule: string;
     sourceType: string;
-    sourceId: string;
     recipientUserId: string;
-    selectSourceTypeFirst: string;
     createdFrom: string;
     createdTo: string;
     clear: string;
@@ -74,32 +72,26 @@ const sourceModules: NotificationSourceModule[] = [
 const priorities: NotificationPriority[] = ["low", "normal", "high", "urgent"];
 const sourceTypes: Array<{
   value: string;
-  label: string;
   sourceModule: NotificationSourceModule | null;
 }> = [
   {
     value: "communication_announcement",
-    label: "announcement",
     sourceModule: "announcements",
   },
   {
     value: "communication_message",
-    label: "message",
     sourceModule: "communication",
   },
   {
     value: "school_support_message",
-    label: "school_support_message",
     sourceModule: "communication",
   },
   {
     value: "attendance_absence_submit",
-    label: "attendance_absence",
     sourceModule: "attendance",
   },
   {
     value: "dismissal_request",
-    label: "dismissal_request",
     sourceModule: null,
   },
 ];
@@ -121,21 +113,12 @@ function sourceTypeOptions(sourceModule: "" | NotificationSourceModule) {
   return sourceTypes.filter((option) => option.sourceModule === sourceModule);
 }
 
-function isAnnouncementSource(
-  sourceModule: "" | NotificationSourceModule,
-  sourceType: string,
-) {
-  return (
-    sourceModule === "announcements" ||
-    sourceType === "communication_announcement"
-  );
-}
-
 export default function NotificationFilters({
   filters,
   labels,
   onChange,
 }: NotificationFiltersProps) {
+  const locale = useLocale();
   const statusOptions: Array<{ value: NotificationStatusFilter; label: string }> = [
     { value: "all", label: labels.all },
     { value: "unread", label: labels.unread },
@@ -211,36 +194,10 @@ export default function NotificationFilters({
           { value: "", label: labels.all },
           ...sourceTypeOptions(filters.sourceModule).map((sourceType) => ({
             value: sourceType.value,
-            label: sourceType.label,
+            label: notificationSourceTypeLabel(sourceType.value, locale),
           })),
         ]}
       />
-      {isAnnouncementSource(filters.sourceModule, filters.sourceType) ? (
-        <AnnouncementSearchSelect
-          label={labels.sourceId}
-          value={filters.sourceId}
-          onChange={(sourceId) => onChange({ ...filters, sourceId })}
-        />
-      ) : (
-        <Input
-          key={`${filters.sourceModule}:${filters.sourceType}:${filters.sourceId}`}
-          label={labels.sourceId}
-          defaultValue={filters.sourceId}
-          dir="ltr"
-          disabled={!filters.sourceModule && !filters.sourceType}
-          helperText={
-            !filters.sourceModule && !filters.sourceType
-              ? labels.selectSourceTypeFirst
-              : undefined
-          }
-          onBlur={(event) => {
-            const sourceId = event.target.value.trim();
-            if (sourceId !== filters.sourceId) {
-              onChange({ ...filters, sourceId });
-            }
-          }}
-        />
-      )}
       <UserSearchSelect
         label={labels.recipientUserId}
         value={filters.recipientUserId}

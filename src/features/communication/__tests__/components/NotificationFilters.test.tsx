@@ -1,24 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import NotificationFilters from "../../components/notifications/NotificationFilters";
 import type { NotificationFiltersState } from "../../hooks/useNotifications";
 
+const localeState = vi.hoisted(() => ({ locale: "en" }));
+beforeEach(() => { localeState.locale = "en"; });
 vi.mock("next-intl", () => ({
-  useLocale: () => "en",
+  useLocale: () => localeState.locale,
   useTranslations: () => (key: string) => key,
 }));
 
-// Mock the search select components since they are not the focus of this test and might make API calls
-vi.mock("../../components/selectors/AnnouncementSearchSelect", () => ({
-  default: () => <div data-testid="announcement-select">AnnouncementSelect</div>,
-}));
-vi.mock("../../components/selectors/ConversationSearchSelect", () => ({
-  default: () => <div data-testid="conversation-select">ConversationSelect</div>,
-}));
-vi.mock("../../components/selectors/MessageSearchSelect", () => ({
-  default: () => <div data-testid="message-select">MessageSelect</div>,
-}));
 vi.mock("../../components/selectors/UserSearchSelect", () => ({
   default: () => <div data-testid="user-select">UserSelect</div>,
 }));
@@ -37,9 +29,7 @@ const mockLabels = {
   type: "Type",
   sourceModule: "Source Module",
   sourceType: "Source Type",
-  sourceId: "Source ID",
   recipientUserId: "Recipient User",
-  selectSourceTypeFirst: "Select source type first",
   createdFrom: "Created From",
   createdTo: "Created To",
   clear: "Clear",
@@ -58,7 +48,19 @@ const initialFilters: NotificationFiltersState = {
 };
 
 describe("NotificationFilters", () => {
-  it("uses the backend announcement source type for the production filter", async () => {
+  it.each([
+    ["en", "communication_announcement", "Announcement"],
+    ["ar", "communication_announcement", "إعلان"],
+    ["en", "communication_message", "Message"],
+    ["ar", "communication_message", "رسالة"],
+    ["en", "school_support_message", "School support message"],
+    ["ar", "school_support_message", "رسالة دعم المدرسة"],
+    ["en", "attendance_absence_submit", "Absence submission"],
+    ["ar", "attendance_absence_submit", "تسجيل غياب"],
+    ["en", "dismissal_request", "Dismissal request"],
+    ["ar", "dismissal_request", "طلب استئذان"],
+  ])("localizes %s source type %s without changing the API value", async (locale, sourceType, label) => {
+    localeState.locale = locale;
     const user = userEvent.setup();
     const onChange = vi.fn();
 
@@ -76,11 +78,11 @@ describe("NotificationFilters", () => {
     expect(sourceTypeButton).toBeInTheDocument();
 
     await user.click(sourceTypeButton!);
-    await user.click(screen.getByRole("button", { name: "announcement" }));
+    await user.click(screen.getByRole("button", { name: label }));
 
     expect(onChange).toHaveBeenCalledWith({
       ...initialFilters,
-      sourceType: "communication_announcement",
+      sourceType,
       sourceId: "",
     });
   });
@@ -119,30 +121,4 @@ describe("NotificationFilters", () => {
     });
   });
 
-  it("applies a message source ID after the user finishes entering it", async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-    const messageFilters: NotificationFiltersState = {
-      ...initialFilters,
-      sourceModule: "communication",
-      sourceType: "communication_message",
-    };
-
-    render(
-      <NotificationFilters
-        filters={messageFilters}
-        labels={mockLabels}
-        onChange={onChange}
-      />
-    );
-
-    const sourceId = "2f98396a-36e1-4f4a-bc85-359874fe21e8";
-    await user.type(screen.getByLabelText("Source ID"), sourceId);
-    await user.tab();
-
-    expect(onChange).toHaveBeenCalledWith({
-      ...messageFilters,
-      sourceId,
-    });
-  });
 });

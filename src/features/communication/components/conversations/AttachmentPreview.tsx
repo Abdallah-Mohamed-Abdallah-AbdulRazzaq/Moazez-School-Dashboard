@@ -71,8 +71,8 @@ export default function AttachmentPreview({
         >
           <FileText className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium">{name}</p>
-            {size ? <p className="text-[11px] text-slate-500">{size}</p> : null}
+            <p className="truncate text-xs font-medium"><bdi>{name}</bdi></p>
+            {size ? <p className="text-[11px] text-slate-500"><bdi dir="ltr">{size}</bdi></p> : null}
           </div>
         </button>
         {url ? (
