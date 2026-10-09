@@ -1,0 +1,14 @@
+export { default as AcademicContentAccessGuard } from "./components/AcademicContentAccessGuard";
+export { default as AcademicContentShell } from "./components/AcademicContentShell";
+export { default as AcademicContentLibraryPage } from "./pages/AcademicContentLibraryPage";
+export { default as AcademicContentOverviewPage } from "./pages/AcademicContentOverviewPage";
+export { default as CreateAcademicContentPage } from "./pages/CreateAcademicContentPage";
+export { default as AcademicContentEditorPage } from "./pages/AcademicContentEditorPage";
+export { default as AcademicContentFilePolicyPage } from "./pages/AcademicContentFilePolicyPage";
+export { default as AcademicContentSettingsPage } from "./pages/AcademicContentSettingsPage";
+export { default as AcademicContentNotificationPolicyPage } from "./pages/AcademicContentNotificationPolicyPage";
+export { default as WorkflowPolicyPage } from "./pages/WorkflowPolicyPage";
+export { default as AcademicContentReviewQueuePage } from "./pages/AcademicContentReviewQueuePage";
+export { default as AcademicContentReviewPage } from "./pages/AcademicContentReviewPage";
+export { default as PreparationTemplatesPage } from "./pages/PreparationTemplatesPage";
+export { default as PreparationTemplateEditorPage } from "./pages/PreparationTemplateEditorPage";

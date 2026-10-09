@@ -7,18 +7,29 @@ import GlobalMessageNotifications from "@/features/communication/components/Glob
 import { useTranslations, useLocale } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
 import { useBrandingProfile } from "@/features/settings/hooks/useBrandingProfile";
+import { usePermissions } from "@/hooks/usePermissions";
+import AcademicContentAnnouncement from "@/features/academic-content/components/AcademicContentAnnouncement";
+import { DashboardAnnouncementProvider } from "./DashboardAnnouncementPlacement";
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
 }
 
-export default function SideBarTopNav({ children }: LayoutWrapperProps) {
+function SideBarTopNavContent({ children }: LayoutWrapperProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const t = useTranslations();
   const locale = useLocale();
   const pathname = usePathname();
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const { profile: brandingProfile } = useBrandingProfile();
+  const announcement = user ? (
+    <AcademicContentAnnouncement
+      key={user.id}
+      userId={user.id}
+      canView={hasPermission("academics.academic_content.view")}
+    />
+  ) : null;
 
   // Hide sidebar/topnav on conversation pages (full-screen chat)
   const isFullScreenChat = pathname.includes("/communication/conversations");
@@ -76,7 +87,10 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
         <div
           className={`flex h-[100dvh] flex-col transition-all duration-300 ${isRTL ? (isSidebarOpen ? "lg:mr-[260px]" : "lg:mr-20") : isSidebarOpen ? "lg:ml-[260px]" : "lg:ml-20"}`}
         >
-          <div className="bg-background h-full min-h-0">{children}</div>
+          <div className="bg-background flex h-full min-h-0 flex-col">
+            {announcement}
+            <div className="min-h-0 flex-1">{children}</div>
+          </div>
         </div>
       </div>
     );
@@ -103,8 +117,19 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
         />
-        <div className="bg-background min-h-[calc(100vh-89px)]">{children}</div>
+        <div className="bg-background min-h-[calc(100vh-89px)]">
+          {announcement}
+          {children}
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function SideBarTopNav({ children }: LayoutWrapperProps) {
+  return (
+    <DashboardAnnouncementProvider>
+      <SideBarTopNavContent>{children}</SideBarTopNavContent>
+    </DashboardAnnouncementProvider>
   );
 }

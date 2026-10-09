@@ -11,6 +11,7 @@ import {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import { YearDialog, TermDialog } from "../dialogs/YearTermDialogs";
 import { usePermissions } from "@/hooks/usePermissions";
+import { DashboardAnnouncementSlot } from "@/components/layout/DashboardAnnouncementPlacement";
 
 interface ContextBarProps {
   academicYearId: string;
@@ -328,6 +329,8 @@ export default function ContextBar({
           </div>
         )}
       </div>
+
+      <DashboardAnnouncementSlot />
 
       {/* Dialogs */}
       <YearDialog

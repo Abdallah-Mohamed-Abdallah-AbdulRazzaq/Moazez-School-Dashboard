@@ -44,7 +44,7 @@ describe("next config security headers", () => {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: blob: https: https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.googleusercontent.com http://storage.moazez.sa:9000",
         "font-src 'self' data: https://fonts.gstatic.com",
-        "connect-src 'self' https: wss: data: blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com http://storage.moazez.sa:9000",
+        "connect-src 'self' https: wss: data: blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com http://storage.moazez.sa:9000 http://localhost:3001",
         "media-src 'self' blob:",
         "frame-src 'self' blob: https://*.google.com",
         "object-src 'self' blob:",
@@ -63,6 +63,14 @@ describe("next config security headers", () => {
     expect(testHeaders.has("Strict-Transport-Security")).toBe(false);
     expect(productionHeaders.get("Strict-Transport-Security")).toBe(
       "max-age=31536000; includeSubDomains; preload",
+    );
+  });
+
+  it("excludes the local API source from the production CSP", async () => {
+    const headers = await loadHeaderMap("production");
+
+    expect(headers.get("Content-Security-Policy")).not.toContain(
+      "http://localhost:3001",
     );
   });
 });

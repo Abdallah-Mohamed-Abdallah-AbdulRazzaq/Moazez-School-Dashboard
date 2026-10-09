@@ -54,17 +54,65 @@ vi.mock("next/image", () => ({
 }));
 
 describe("Sidebar toggle control", () => {
-  it("shows public navigation destinations without a membership permission", () => {
+  it("hides Academic Content without its view permission", () => {
     navigationState.grantedPermissions = new Set();
 
     try {
       render(<Sidebar isOpen onToggle={vi.fn()} />);
+
       expect(
-        screen.getByRole("link", {
-          name: "Academic Content Hub Coming soon",
-        }),
-      ).toBeInTheDocument();
-      expect(screen.getByText("Coming soon")).toBeInTheDocument();
+        screen.queryByRole("button", { name: "Academic Content Hub" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      navigationState.grantedPermissions = null;
+    }
+  });
+
+  it("shows the active Academic Content workspace with view permission", () => {
+    navigationState.grantedPermissions = new Set([
+      "academics.academic_content.view",
+    ]);
+
+    try {
+      render(<Sidebar isOpen onToggle={vi.fn()} />);
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Academic Content Hub" }),
+      );
+      expect(screen.getByText("New")).toBeInTheDocument();
+
+      expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
+        "href",
+        "/en/academic-content-hub",
+      );
+      expect(
+        screen.getByRole("link", { name: "Online Sessions" }),
+      ).toHaveAttribute("href", "/en/academic-content-hub/online-sessions");
+      expect(
+        screen.queryByRole("link", { name: "Review Queue" }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
+    } finally {
+      navigationState.grantedPermissions = null;
+    }
+  });
+
+  it("shows the Academic Content review queue with approval permission", () => {
+    navigationState.grantedPermissions = new Set([
+      "academics.academic_content.view",
+      "academics.academic_content.approve",
+    ]);
+
+    try {
+      render(<Sidebar isOpen onToggle={vi.fn()} />);
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Academic Content Hub" }),
+      );
+
+      expect(
+        screen.getByRole("link", { name: "Review Queue" }),
+      ).toHaveAttribute("href", "/en/academic-content-hub/review");
     } finally {
       navigationState.grantedPermissions = null;
     }

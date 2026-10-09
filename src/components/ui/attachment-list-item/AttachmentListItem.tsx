@@ -27,6 +27,7 @@ export interface AttachmentListItemProps {
   onClick?: () => void;
   actions?: AttachmentAction[];
   disabled?: boolean;
+  actionsLabel?: string;
 }
 
 export default function AttachmentListItem({
@@ -36,6 +37,7 @@ export default function AttachmentListItem({
   onClick,
   actions = [],
   disabled = false,
+  actionsLabel = "Attachment actions",
 }: AttachmentListItemProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -70,6 +72,7 @@ export default function AttachmentListItem({
           visibleActions.length > 0 && (
             <IconButton
               edge="end"
+              aria-label={actionsLabel}
               onClick={handleMenuOpen}
               disabled={disabled}
               sx={{ mr: 1 }}

@@ -54,6 +54,7 @@ export function mapAllocationDtoToUi(
     classroomId: dto.classroom.id,
     subjectId: dto.subject.id,
     teacherId: dto.teacher.id,
+    teacherName: dto.teacher.fullName,
   };
 }
 

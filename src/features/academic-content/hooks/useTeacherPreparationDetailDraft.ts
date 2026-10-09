@@ -1,0 +1,113 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { applyPreparationTemplate } from "../model/preparationTemplatePolicy";
+import { normalizeTeacherPreparationDetail } from "../model/teacherPreparationDetail";
+import type {
+  AcademicContentPreparationDetail,
+  AcademicContentPreparationTemplateDetail,
+  ReplaceAcademicContentPreparationDetailRequest,
+} from "../types/contracts";
+import type { AcademicContentEditorSectionState } from "./useAcademicContentEditor";
+
+type OrderedPreparationField =
+  | "objectives"
+  | "learningOutcomes"
+  | "teachingStrategies"
+  | "activities";
+
+const ORDERED_FIELDS: readonly OrderedPreparationField[] = [
+  "objectives",
+  "learningOutcomes",
+  "teachingStrategies",
+  "activities",
+];
+
+interface UseTeacherPreparationDetailDraftInput {
+  initial: AcademicContentPreparationDetail;
+  contentVersion: string;
+  sectionState: AcademicContentEditorSectionState;
+  onDirty: () => void;
+  onSave: (
+    request: ReplaceAcademicContentPreparationDetailRequest,
+  ) => Promise<boolean>;
+}
+
+export interface TeacherPreparationDetailDraftController {
+  draft: AcademicContentPreparationDetail;
+  validationError: "empty_items" | null;
+  update: <Field extends keyof AcademicContentPreparationDetail>(
+    field: Field,
+    fieldValue: AcademicContentPreparationDetail[Field],
+  ) => void;
+  applyTemplate: (template: AcademicContentPreparationTemplateDetail) => void;
+  save: () => Promise<boolean>;
+  resetValidation: () => void;
+}
+
+function hasEmptyOrderedEntry(detail: AcademicContentPreparationDetail): boolean {
+  return ORDERED_FIELDS.some((field) =>
+    detail[field].some((entry) => !entry.trim()),
+  );
+}
+
+export function useTeacherPreparationDetailDraft({
+  initial,
+  contentVersion,
+  sectionState,
+  onDirty,
+  onSave,
+}: UseTeacherPreparationDetailDraftInput): TeacherPreparationDetailDraftController {
+  const [draft, setDraft] = useState(initial);
+  const [syncedVersion, setSyncedVersion] = useState(contentVersion);
+  const [validationError, setValidationError] = useState<"empty_items" | null>(null);
+
+  if (!sectionState.dirty && syncedVersion !== contentVersion) {
+    setDraft(initial);
+    setSyncedVersion(contentVersion);
+    setValidationError(null);
+  }
+
+  const update = useCallback(
+    <Field extends keyof AcademicContentPreparationDetail>(
+      field: Field,
+      fieldValue: AcademicContentPreparationDetail[Field],
+    ) => {
+      setDraft((currentDraft) => ({ ...currentDraft, [field]: fieldValue }));
+      setValidationError(null);
+      onDirty();
+    },
+    [onDirty],
+  );
+
+  const applyTemplate = useCallback(
+    (template: AcademicContentPreparationTemplateDetail) => {
+      setDraft((currentDraft) =>
+        applyPreparationTemplate(currentDraft, template),
+      );
+      setValidationError(null);
+      onDirty();
+    },
+    [onDirty],
+  );
+
+  const save = useCallback(async () => {
+    if (hasEmptyOrderedEntry(draft)) {
+      setValidationError("empty_items");
+      return false;
+    }
+    setValidationError(null);
+    return onSave(normalizeTeacherPreparationDetail(draft));
+  }, [draft, onSave]);
+
+  const resetValidation = useCallback(() => setValidationError(null), []);
+
+  return {
+    draft,
+    validationError,
+    update,
+    applyTemplate,
+    save,
+    resetValidation,
+  };
+}

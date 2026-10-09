@@ -120,6 +120,11 @@ export type PermissionKey =
   | "academics.curriculum.manage"
   | "academics.lesson_plans.view"
   | "academics.lesson_plans.manage"
+  | "academics.academic_content.view"
+  | "academics.academic_content.manage"
+  | "academics.academic_content.approve"
+  | "academics.academic_content.publish"
+  | "academics.academic_content.settings.manage"
   | "files.uploads.manage"
   | "files.downloads.view"
   | "homework.assignments.view"
@@ -226,10 +231,7 @@ export const reinforcementNavigationPermissionByKey: Partial<
   "hero-journey-missions": "reinforcement.hero.view",
 };
 
-const navigationKeysWithoutPermission = new Set([
-  "academic-content-hub",
-  "system-health",
-]);
+const navigationKeysWithoutPermission = new Set(["system-health"]);
 
 type NavigationItem = (typeof menuItems)[number];
 
@@ -270,6 +272,20 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "academics-curriculum": "academics.curriculum.view",
     "academics-lesson-plans": "academics.lesson_plans.view",
     "academics-homework": "homework.assignments.view",
+    "academic-content-hub": "academics.academic_content.view",
+    "academic-content-overview": "academics.academic_content.view",
+    "academic-content-library": "academics.academic_content.view",
+    "academic-content-drafts": "academics.academic_content.view",
+    "academic-content-archived": "academics.academic_content.view",
+    "academic-content-preparations": "academics.academic_content.view",
+    "academic-content-weekly-plans": "academics.academic_content.view",
+    "academic-content-guardian-notes": "academics.academic_content.view",
+    "academic-content-subject-resources": "academics.academic_content.view",
+    "academic-content-online-sessions": "academics.academic_content.view",
+    "academic-content-general-resources": "academics.academic_content.view",
+    "academic-content-review": "academics.academic_content.approve",
+    "academic-content-templates": "academics.academic_content.view",
+    "academic-content-settings": "academics.academic_content.view",
     "grades-overview": "grades.analytics.view",
     "grades-assessments": "grades.assessments.view",
     "grades-gradebook": "grades.gradebook.view",

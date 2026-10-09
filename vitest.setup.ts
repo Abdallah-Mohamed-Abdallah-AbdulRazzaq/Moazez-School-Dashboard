@@ -25,10 +25,42 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-  useLocale: () => 'en',
-}));
+vi.mock('next-intl', async () => {
+  const enMessages = (await import('./src/messages/en.json')).default;
+  const translators = new Map<string, (
+    key: string,
+    values?: Record<string, string | number>,
+  ) => string>();
+
+  return {
+    useTranslations: (namespace = '') => {
+      const cachedTranslator = translators.get(namespace);
+      if (cachedTranslator) return cachedTranslator;
+
+      const translator = (
+        key: string,
+        values?: Record<string, string | number>,
+      ) => {
+        const path = namespace ? `${namespace}.${key}` : key;
+        if (!path.startsWith('academic_content.')) return key;
+
+        let message: unknown = enMessages;
+        for (const segment of path.split('.')) {
+          if (!message || typeof message !== 'object' || !(segment in message)) return key;
+          message = (message as Record<string, unknown>)[segment];
+        }
+        if (typeof message !== 'string') return key;
+        if (!values) return message;
+        return message.replace(/\{(\w+)\}/g, (placeholder, valueKey: string) =>
+          valueKey in values ? String(values[valueKey]) : placeholder,
+        );
+      };
+      translators.set(namespace, translator);
+      return translator;
+    },
+    useLocale: () => 'en',
+  };
+});
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

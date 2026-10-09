@@ -143,6 +143,7 @@ describe("teacherAllocationMappers", () => {
       classroomId: "classroom-1",
       subjectId: "subject-1",
       teacherId: "teacher-user-1",
+      teacherName: "Teacher One",
     });
   });
 
