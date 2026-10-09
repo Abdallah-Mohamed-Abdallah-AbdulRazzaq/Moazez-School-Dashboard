@@ -1,7 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import type { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
 import AcademicContentTable from "../../components/library/AcademicContentTable";
+import AcademicContentFilters from "../../components/library/AcademicContentFilters";
+import ReviewQueueTable from "../../components/review/ReviewQueueTable";
+import PreparationTemplateTable from "../../components/templates/PreparationTemplateTable";
+import ReadinessPanel from "../../components/editor/ReadinessPanel";
+import RevisionHistoryPanel from "../../components/editor/RevisionHistoryPanel";
 import RevisionSnapshotView from "../../components/editor/RevisionSnapshotView";
 import ReviewDecisionActions from "../../components/review/ReviewDecisionActions";
 import AcademicContentWorkflowPanel from "../../components/workflow/AcademicContentWorkflowPanel";
@@ -13,6 +20,13 @@ import type {
 } from "../../types/contracts";
 import { AcademicContentEditorView } from "../AcademicContentEditorPage";
 import CreateAcademicContentPage from "../CreateAcademicContentPage";
+import { academicContentBrowseOptionsFixture } from "../../__tests__/academicContentBrowseOptionsFixture";
+
+// JSDOM has no range layout, but Lexical needs the browser geometry methods.
+Object.defineProperties(Range.prototype, {
+  getBoundingClientRect: { configurable: true, value: () => new DOMRect() },
+  getClientRects: { configurable: true, value: () => [] },
+});
 
 const workflowState = vi.hoisted(() => ({
   create: vi.fn(),
@@ -21,6 +35,7 @@ const workflowState = vi.hoisted(() => ({
   submit: vi.fn(),
   requestChanges: vi.fn(),
   approve: vi.fn(),
+  listRevisions: vi.fn(),
   push: vi.fn(),
 }));
 
@@ -37,33 +52,34 @@ vi.mock("@/hooks/usePermissions", () => ({
   }),
 }));
 
-vi.mock(
-  "@/features/academics/hooks/AcademicYearTermLayoutContext",
-  () => ({
-    useAcademicYearTermLayoutContext: () => ({
-      academicYearId: "year-1",
-      termId: "term-1",
-      termStatus: "open",
-      isInitializing: false,
-      selectedTerm: null,
-    }),
+vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
+  useAcademicYearTermLayoutContext: () => ({
+    academicYearId: "year-1",
+    termId: "term-1",
+    termStatus: "open",
+    isInitializing: false,
+    selectedTerm: null,
   }),
-);
+}));
 
 vi.mock("../../services/academicContentApi", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../services/academicContentApi")>()),
+  ...(await importOriginal<
+    typeof import("../../services/academicContentApi")
+  >()),
   createAcademicContent: workflowState.create,
   getAcademicContentWorkflowPolicy: workflowState.getPolicy,
   listAcademicContentApprovalHistory: workflowState.listHistory,
   submitAcademicContent: workflowState.submit,
   requestAcademicContentChanges: workflowState.requestChanges,
   approveAcademicContent: workflowState.approve,
+  listAcademicContentRevisions: workflowState.listRevisions,
 }));
 
 vi.mock("../../services/academicContentSelectors", async (importOriginal) => {
-  const original = await importOriginal<
-    typeof import("../../services/academicContentSelectors")
-  >();
+  const original =
+    await importOriginal<
+      typeof import("../../services/academicContentSelectors")
+    >();
   return {
     ...original,
     loadAcademicTargetOptions: vi.fn(async () => ({
@@ -92,7 +108,11 @@ function workflowContent(status: AcademicContentDetail["status"] = "DRAFT") {
     assets: [],
     links: [],
     tags: [],
-    details: { body: "Initial note", priority: "NORMAL", requiresAcknowledgement: false },
+    details: {
+      body: "Initial note",
+      priority: "NORMAL",
+      requiresAcknowledgement: false,
+    },
   } satisfies AcademicContentDetail;
 }
 
@@ -196,7 +216,183 @@ describe("Academic Content authoring workflow", () => {
     workflowState.submit.mockReset();
     workflowState.requestChanges.mockReset();
     workflowState.approve.mockReset();
+    workflowState.listRevisions.mockReset();
     workflowState.push.mockReset();
+  });
+
+  it("keeps browse and editor surfaces readable without technical identifiers", async () => {
+    const onFiltersChange = vi.fn();
+    const filters = render(
+      <AcademicContentFilters
+        filters={{
+          page: 1,
+          limit: 50,
+          type: "",
+          status: "",
+          audience: "",
+          stageId: "stage-1",
+          gradeId: "",
+          sectionId: "",
+          classroomId: "",
+          subjectId: "",
+          teacherUserId: "",
+          resourceCategory: "",
+          weeklyDateFrom: "",
+          weeklyDateTo: "",
+          sessionStartAtFrom: "",
+          sessionStartAtTo: "",
+          sessionPlatform: "",
+          guardianPriority: "",
+          tag: "",
+          search: "",
+        }}
+        search=""
+        resultCount={1}
+        browseOptions={academicContentBrowseOptionsFixture}
+        onSearchChange={vi.fn()}
+        onFiltersChange={onFiltersChange}
+        onClear={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Show filters" }));
+    fireEvent.click(screen.getByLabelText("Grade"));
+    fireEvent.click(screen.getByRole("button", { name: "Grade 5" }));
+    fireEvent.click(screen.getByLabelText("Subject"));
+    fireEvent.click(screen.getByRole("button", { name: "Mathematics" }));
+    expect(onFiltersChange).toHaveBeenCalledWith({
+      gradeId: "grade-1",
+      sectionId: "",
+      classroomId: "",
+    });
+    expect(onFiltersChange).toHaveBeenCalledWith({ subjectId: "subject-1" });
+    expect(screen.queryByText("grade-1")).not.toBeInTheDocument();
+    filters.unmount();
+
+    const reviewItem = {
+      contentId: "content-1",
+      title: "Fractions submission",
+      academicYearId: "year-1",
+      termId: "term-1",
+      approvalId: "approval-1",
+      submittedRevisionId: "revision-1",
+      roundNumber: 1,
+      submittedAt: "2026-10-02T08:00:00.000Z",
+      submittedByUserId: "teacher-user-1",
+      targets: [
+        {
+          scopeType: "GRADE" as const,
+          stageId: null,
+          gradeId: "grade-1",
+          sectionId: null,
+          classroomId: null,
+          subjectId: "subject-1",
+          teacherSubjectAllocationId: null,
+        },
+      ],
+    };
+    const onOpenReview = vi.fn();
+    const review = render(
+      <ReviewQueueTable
+        items={[reviewItem]}
+        page={1}
+        limit={50}
+        total={1}
+        isLoading={false}
+        searchQuery=""
+        targetOptions={academicContentBrowseOptionsFixture.targetOptions}
+        teachers={academicContentBrowseOptionsFixture.teachers}
+        onOpen={onOpenReview}
+        onPageChange={vi.fn()}
+        onPageSizeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Mona Ali")).toBeInTheDocument();
+    expect(screen.getByText(/Grade 5.*Mathematics/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Fractions submission"));
+    expect(onOpenReview).toHaveBeenCalledWith(reviewItem);
+    review.unmount();
+
+    const templates = render(
+      <PreparationTemplateTable
+        items={[
+          {
+            id: "template-1",
+            name: "Fractions template",
+            description: "Reusable preparation",
+            stageId: "stage-1",
+            subjectId: "subject-1",
+            objectivesCount: 1,
+            learningOutcomesCount: 1,
+            teachingStrategiesCount: 1,
+            activitiesCount: 1,
+            updatedAt: "2026-10-02T08:00:00.000Z",
+          },
+        ]}
+        page={1}
+        limit={50}
+        total={1}
+        isLoading={false}
+        searchQuery=""
+        targetOptions={academicContentBrowseOptionsFixture.targetOptions}
+        canManage
+        editHref={(templateId) => `/templates/${templateId}/edit`}
+        onDelete={vi.fn()}
+        onPageChange={vi.fn()}
+        onPageSizeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Primary")).toBeInTheDocument();
+    expect(screen.getByText("Mathematics")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute(
+      "href",
+      "/templates/template-1/edit",
+    );
+    templates.unmount();
+
+    const readiness = render(
+      <ReadinessPanel
+        readiness={{
+          canAdvance: false,
+          blockingReasons: [
+            {
+              code: "future.rule",
+              message: "Complete the remaining information",
+              details: { targetId: "target-1" },
+            },
+          ],
+        }}
+        onRefresh={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText(
+        "Content readiness could not be confirmed. Refresh the data; contact support if the problem continues.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/target-1/)).not.toBeInTheDocument();
+    readiness.unmount();
+
+    workflowState.listRevisions.mockResolvedValue({
+      items: [
+        {
+          id: "revision-1",
+          revisionNumber: 1,
+          snapshotContractVersion: 2,
+          sourceStatus: "DRAFT",
+          title: "Readable revision",
+          capturedAt: "2026-09-30T00:00:00.000Z",
+        },
+      ],
+      page: 1,
+      limit: 10,
+      total: 1,
+    });
+    render(<RevisionHistoryPanel contentId="content-1" />);
+    expect(await screen.findByText("Readable revision")).toBeInTheDocument();
+    expect(
+      screen.queryByText("2026-09-30T00:00:00.000Z"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Sep 30, 2026/)).toBeInTheDocument();
   });
 
   it("loads the library, creates a draft, and completes every Wave 1+2 authoring step", async () => {
@@ -250,20 +446,25 @@ describe("Academic Content authoring workflow", () => {
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Updated guardian note" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save basic information" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save basic information" }),
+    );
 
-    openSection("Targets");
-    await screen.findByRole("button", { name: "Add target" });
-    fireEvent.click(screen.getByRole("button", { name: "Add target" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
+    openSection("Target audience");
+    await screen.findByRole("button", { name: "Add scope" });
+    fireEvent.click(screen.getByRole("button", { name: "Add scope" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save scope" }));
 
-    openSection("Type details");
-    fireEvent.change(screen.getByLabelText("Note body"), {
-      target: { value: "Please review the weekly plan." },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save type details" }));
+    openSection("Note details");
+    await userEvent.type(
+      await screen.findByRole("textbox", { name: "Message body" }, { timeout: 10000 }),
+      "Please review the weekly plan.",
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save guardian message" }),
+    );
 
-    openSection("Links");
+    openSection("Resources");
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));
     fireEvent.change(screen.getByLabelText("Link 1 label"), {
       target: { value: "School portal" },
@@ -273,9 +474,11 @@ describe("Academic Content authoring workflow", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save links" }));
 
-    openSection("Tags");
+    openSection("Note details");
     fireEvent.click(screen.getByRole("button", { name: "Add tag" }));
-    fireEvent.change(screen.getByLabelText("Tag 1"), { target: { value: "weekly" } });
+    fireEvent.change(screen.getByLabelText("Tag 1"), {
+      target: { value: "weekly" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Save tags" }));
 
     openSection("Readiness");
@@ -302,17 +505,26 @@ describe("Academic Content authoring workflow", () => {
       expect(editor.refreshReadiness).toHaveBeenCalledOnce();
     });
 
-    expect(screen.queryByText(/submit|approve|publish/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryAllByRole("button", { name: /submit|approve|publish/i }),
+    ).toHaveLength(0);
   });
 
   it("keeps archived content read-only without deferred workflow actions", () => {
-    render(<AcademicContentEditorView editor={workflowEditor("ARCHIVED")} canManage />);
-
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "This content is read-only in its current status.",
+    render(
+      <AcademicContentEditorView
+        editor={workflowEditor("ARCHIVED")}
+        canManage
+      />,
     );
+
+    expect(
+      screen.getByText("This content is read-only in its current status."),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toBeDisabled();
-    expect(screen.queryByText(/submit|approve|publish/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryAllByRole("button", { name: /submit|approve|publish/i }),
+    ).toHaveLength(0);
   });
 
   it("completes two immutable review rounds and leaves approved content read-only", async () => {
@@ -383,7 +595,7 @@ describe("Academic Content authoring workflow", () => {
         />
         <ReviewDecisionActions
           contentId="content-workflow"
-          reviewedRevisionId={firstRevisionId}
+          revisionNumber={1}
           onDecisionComplete={onChangesRequested}
         />
       </>,
@@ -462,11 +674,15 @@ describe("Academic Content authoring workflow", () => {
     const secondReview = render(
       <>
         <RevisionSnapshotView
-          revision={revision(secondRevisionId, 2, "Compare equivalent fractions")}
+          revision={revision(
+            secondRevisionId,
+            2,
+            "Compare equivalent fractions",
+          )}
         />
         <ReviewDecisionActions
           contentId="content-workflow"
-          reviewedRevisionId={secondRevisionId}
+          revisionNumber={2}
           onDecisionComplete={onApproved}
         />
       </>,
@@ -515,9 +731,9 @@ describe("Academic Content authoring workflow", () => {
     approvedEditor.isReadOnly = true;
     render(<AcademicContentEditorView editor={approvedEditor} canManage />);
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "This content is read-only in its current status.",
-    );
+    expect(
+      screen.getByText("This content is read-only in its current status."),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toBeDisabled();
     expect(await screen.findByText("Round 2")).toBeInTheDocument();
     expect(

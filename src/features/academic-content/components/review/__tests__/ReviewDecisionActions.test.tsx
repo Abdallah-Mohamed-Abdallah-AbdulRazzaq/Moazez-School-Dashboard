@@ -61,7 +61,7 @@ describe("ReviewDecisionActions", () => {
     render(
       <ReviewDecisionActions
         contentId="content-1"
-        reviewedRevisionId="revision-1"
+        revisionNumber={1}
         onDecisionComplete={onDecisionComplete}
       />,
     );
@@ -71,7 +71,9 @@ describe("ReviewDecisionActions", () => {
     expect(decisionState.approve).toHaveBeenCalledTimes(1);
 
     pending.resolve(transition());
-    await waitFor(() => expect(onDecisionComplete).toHaveBeenCalledWith(transition()));
+    await waitFor(() =>
+      expect(onDecisionComplete).toHaveBeenCalledWith(transition()),
+    );
   });
 
   it("trims the request-change note before sending it", async () => {
@@ -79,7 +81,7 @@ describe("ReviewDecisionActions", () => {
     render(
       <ReviewDecisionActions
         contentId="content-1"
-        reviewedRevisionId="revision-1"
+        revisionNumber={1}
         onDecisionComplete={onDecisionComplete}
       />,
     );
@@ -105,7 +107,7 @@ describe("ReviewDecisionActions", () => {
     render(
       <ReviewDecisionActions
         contentId="content-1"
-        reviewedRevisionId="revision-1"
+        revisionNumber={1}
         onDecisionComplete={vi.fn()}
       />,
     );
@@ -125,14 +127,16 @@ describe("ReviewDecisionActions", () => {
     render(
       <ReviewDecisionActions
         contentId="content-1"
-        reviewedRevisionId="revision-1"
+        revisionNumber={1}
         onDecisionComplete={onDecisionComplete}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Decision failed");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This action could not be completed. Try again; contact support if the problem continues.",
+    );
     expect(onDecisionComplete).not.toHaveBeenCalled();
   });
 
@@ -141,7 +145,7 @@ describe("ReviewDecisionActions", () => {
     render(
       <ReviewDecisionActions
         contentId="content-1"
-        reviewedRevisionId="revision-1"
+        revisionNumber={1}
         onDecisionComplete={vi.fn()}
       />,
     );
@@ -149,6 +153,8 @@ describe("ReviewDecisionActions", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "academics.academic_content.approve",
     );
-    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Approve" }),
+    ).not.toBeInTheDocument();
   });
 });

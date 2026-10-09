@@ -29,7 +29,14 @@ function revision(overrides: Record<string, unknown> = {}) {
         sizeBytes: "20",
       },
     ],
-    links: [{ id: "link-1", label: "Historical link", url: "https://example.com", sortOrder: 0 }],
+    links: [
+      {
+        id: "link-1",
+        label: "Historical link",
+        url: "https://example.com",
+        sortOrder: 0,
+      },
+    ],
     tags: [{ id: "tag-1", value: "historical-tag", sortOrder: 0 }],
     details: null,
     ...overrides,
@@ -40,7 +47,22 @@ describe("RevisionDetailModal", () => {
   beforeEach(() => api.getAcademicContentRevision.mockReset());
 
   it("renders an immutable V1 snapshot including historical collections", async () => {
-    api.getAcademicContentRevision.mockResolvedValue(revision());
+    api.getAcademicContentRevision.mockResolvedValue(
+      revision({
+        targets: [
+          {
+            id: "target-1",
+            scopeType: "GRADE",
+            stageId: null,
+            gradeId: "grade-1",
+            sectionId: null,
+            classroomId: null,
+            subjectId: "subject-1",
+            teacherSubjectAllocationId: null,
+          },
+        ],
+      }),
+    );
     render(
       <RevisionDetailModal
         contentId="content-1"
@@ -51,11 +73,23 @@ describe("RevisionDetailModal", () => {
     );
 
     expect(await screen.findByText("Historical title")).toBeInTheDocument();
-    expect(screen.getByText(/Snapshot contract v1/)).toBeInTheDocument();
+    expect(screen.getByText(/Save format v1/)).toBeInTheDocument();
     expect(screen.getByText("historical.pdf")).toBeInTheDocument();
     expect(screen.getByText("Historical link")).toBeInTheDocument();
     expect(screen.getByText("historical-tag")).toBeInTheDocument();
-    expect(screen.getByText("No type-specific details in this snapshot.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No additional details in this version."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Some scope names are currently unavailable. The original selections are still saved in this version.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Loading content scope names…"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("grade-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("subject-1")).not.toBeInTheDocument();
   });
 
   it("renders the V2 type detail returned by the revision endpoint", async () => {
@@ -80,7 +114,7 @@ describe("RevisionDetailModal", () => {
       />,
     );
 
-    expect(await screen.findByText(/Snapshot contract v2/)).toBeInTheDocument();
+    expect(await screen.findByText(/Save format v2/)).toBeInTheDocument();
     expect(screen.getByText(/Historical guardian note/)).toBeInTheDocument();
   });
 
@@ -98,7 +132,7 @@ describe("RevisionDetailModal", () => {
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The revision response did not match the requested snapshot.",
+      "The requested version could not be displayed. Refresh the page and try again.",
     );
     expect(screen.queryByText("Historical title")).not.toBeInTheDocument();
   });

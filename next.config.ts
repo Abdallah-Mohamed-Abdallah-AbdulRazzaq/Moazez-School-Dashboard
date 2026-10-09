@@ -3,13 +3,16 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 // TODO: Tighten CSP later by removing unsafe-inline and unsafe-eval after
 // Next/MUI/Tailwind runtime requirements are audited.
+const localDevelopmentConnectSource =
+  process.env.NODE_ENV === "production" ? "" : " http://localhost:3001";
+
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com blob:",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https: https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.googleusercontent.com http://storage.moazez.sa:9000",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https: wss: data: blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com http://storage.moazez.sa:9000",
+  `connect-src 'self' https: wss: data: blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com http://storage.moazez.sa:9000${localDevelopmentConnectSource}`,
   "media-src 'self' blob:",
   "frame-src 'self' blob: https://*.google.com",
   "object-src 'self' blob:",

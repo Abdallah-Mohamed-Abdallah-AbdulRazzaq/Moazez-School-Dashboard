@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
+import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button/Button";
 import FilterPanel from "@/components/ui/filter-panel/FilterPanel";
 import Input from "@/components/ui/input/Input";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
-import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import type { AcademicContentBrowseOptionsState } from "../../hooks/useAcademicContentBrowseOptions";
 import type { PreparationTemplateFilters } from "../../hooks/usePreparationTemplates";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
-import {
-  loadAcademicTargetOptions,
-  type AcademicTargetOptions,
-} from "../../services/academicContentSelectors";
+import { localizedAcademicName } from "../../model/academicContentDisplay";
 
 interface PreparationTemplateFiltersProps {
   filters: PreparationTemplateFilters;
   search: string;
+  browseOptions: AcademicContentBrowseOptionsState;
   onSearchChange: (search: string) => void;
   onFiltersChange: (
     filters: Partial<
@@ -26,57 +25,40 @@ interface PreparationTemplateFiltersProps {
   onClear: () => void;
 }
 
-function optionsFor(
-  items: Array<{ id: string; name: string }>,
+function withAllOption(
+  options: SelectOption[],
   allLabel: string,
 ): SelectOption[] {
-  return [
-    { value: "", label: allLabel },
-    ...items.map((item) => ({ value: item.id, label: item.name })),
-  ];
+  return [{ value: "", label: allLabel }, ...options];
 }
 
 export default function PreparationTemplateFilters({
   filters,
   search,
+  browseOptions,
   onSearchChange,
   onFiltersChange,
   onClear,
 }: PreparationTemplateFiltersProps) {
-  const { academicYearId, termId } = useAcademicYearTermLayoutContext();
   const [showFilters, setShowFilters] = useState(false);
-  const [options, setOptions] = useState<AcademicTargetOptions | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const locale = useLocale();
   const t = useAcademicContentTranslations("templates");
   const hasActiveFilters = useMemo(
     () => Boolean(search || filters.stageId || filters.subjectId),
     [filters.stageId, filters.subjectId, search],
   );
-
-  useEffect(() => {
-    if (!academicYearId || !termId) return;
-    let isCurrent = true;
-    queueMicrotask(() => {
-      if (!isCurrent) return;
-      setOptions(null);
-      setLoadFailed(false);
-    });
-    void loadAcademicTargetOptions({ academicYearId, termId })
-      .then((loadedOptions) => {
-        if (isCurrent) setOptions(loadedOptions);
-      })
-      .catch(() => {
-        if (isCurrent) setLoadFailed(true);
-      });
-    return () => {
-      isCurrent = false;
-    };
-  }, [academicYearId, termId]);
+  const toOption = (item: {
+    id: string;
+    name: string;
+    nameAr?: string;
+    nameEn?: string;
+  }): SelectOption => ({
+    value: item.id,
+    label: localizedAcademicName(item, locale) ?? t("name_unavailable"),
+  });
 
   return (
     <FilterPanel
-      title={t("title")}
-      subtitle={t("subtitle")}
       showFilters={showFilters}
       onToggleFilters={() => setShowFilters((visible) => !visible)}
       toggleAriaLabel={t(showFilters ? "hide_filters" : "show_filters")}
@@ -106,16 +88,30 @@ export default function PreparationTemplateFilters({
             label={t("stage")}
             triggerAriaLabel={t("stage")}
             value={filters.stageId}
-            options={optionsFor(options?.structure.stages ?? [], t("all_stages"))}
-            error={loadFailed ? t("options_load_error") : undefined}
+            options={withAllOption(
+              (browseOptions.targetOptions?.structure.stages ?? []).map(
+                toOption,
+              ),
+              t("all_stages"),
+            )}
+            disabled={browseOptions.isLoadingTargets}
+            searchable
+            error={
+              browseOptions.targetOptionsUnavailable
+                ? t("options_load_error")
+                : undefined
+            }
             onChange={(stageId) => onFiltersChange({ stageId })}
           />
           <Select
             label={t("subject")}
             triggerAriaLabel={t("subject")}
             value={filters.subjectId}
-            options={optionsFor(options?.subjects ?? [], t("all_subjects"))}
-            disabled={!options}
+            options={withAllOption(
+              (browseOptions.targetOptions?.subjects ?? []).map(toOption),
+              t("all_subjects"),
+            )}
+            disabled={browseOptions.isLoadingTargets}
             searchable
             onChange={(subjectId) => onFiltersChange({ subjectId })}
           />

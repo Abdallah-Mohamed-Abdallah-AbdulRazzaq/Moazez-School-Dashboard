@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button/Button";
 import { academicContentUiError } from "../../services/academicContentErrors";
 import type { AcademicContentReadinessResponse } from "../../types/contracts";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
+import ReadinessReasonDetails from "./ReadinessReasonDetails";
+import ReadinessReasonText from "./ReadinessReasonText";
 
 interface ReadinessPanelProps {
   readiness: AcademicContentReadinessResponse | null;
@@ -42,12 +44,13 @@ export default function ReadinessPanel({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="readiness-heading" className="text-lg font-semibold text-gray-900">
+          <h2
+            id="readiness-heading"
+            className="text-lg font-semibold text-gray-900"
+          >
             {t("title")}
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            {t("description")}
-          </p>
+          <p className="mt-1 text-sm text-gray-500">{t("description")}</p>
         </div>
         <Button
           type="button"
@@ -84,7 +87,11 @@ export default function ReadinessPanel({
           <XCircle aria-hidden="true" className="size-5 shrink-0" />
         )}
         <span className="font-medium">
-          {isReady ? t("ready") : readiness ? t("incomplete") : t("unavailable")}
+          {isReady
+            ? t("ready")
+            : readiness
+              ? t("incomplete")
+              : t("unavailable")}
         </span>
       </div>
 
@@ -95,15 +102,10 @@ export default function ReadinessPanel({
               key={`${reason.code}:${index}`}
               className="rounded-lg border border-gray-200 px-4 py-3"
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {reason.code}
+              <p className="text-sm text-gray-800">
+                <ReadinessReasonText reason={reason} />
               </p>
-              <p className="mt-1 text-sm text-gray-800">{reason.message}</p>
-              {reason.details !== undefined && (
-                <pre className="mt-2 overflow-x-auto rounded bg-gray-50 p-2 text-xs text-gray-600">
-                  {JSON.stringify(reason.details, null, 2)}
-                </pre>
-              )}
+              <ReadinessReasonDetails details={reason.details} />
             </li>
           ))}
         </ul>

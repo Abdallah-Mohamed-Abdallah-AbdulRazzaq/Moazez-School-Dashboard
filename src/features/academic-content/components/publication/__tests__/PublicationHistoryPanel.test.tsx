@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type {
   AcademicContentPublication,
@@ -43,7 +49,11 @@ function history(
 
 function renderHistory(
   response: AcademicContentPublicationHistoryResponse,
-  options: { canMutate?: boolean; isMutating?: boolean } = {},
+  options: {
+    canMutate?: boolean;
+    canStartRevision?: boolean;
+    isMutating?: boolean;
+  } = {},
 ) {
   const callbacks = {
     onPageChange: vi.fn(),
@@ -58,6 +68,7 @@ function renderHistory(
       history={response}
       error={null}
       canMutate={options.canMutate ?? true}
+      canStartRevision={options.canStartRevision ?? true}
       isMutating={options.isMutating ?? false}
       {...callbacks}
     />,
@@ -87,7 +98,9 @@ describe("PublicationHistoryPanel", () => {
 
   it("renders the shared empty state", () => {
     renderHistory(history([]));
-    expect(screen.getByText("No publication attempts yet.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No publication attempts yet."),
+    ).toBeInTheDocument();
   });
 
   it("routes pagination at the twenty-item boundary", () => {
@@ -95,37 +108,49 @@ describe("PublicationHistoryPanel", () => {
       history([publication("first", "PUBLISHED")], { total: 21 }),
     );
 
-    expect(screen.getByRole("button", { name: "Previous publication page" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Next publication page" }));
+    expect(
+      screen.getByRole("button", { name: "Previous publication page" }),
+    ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Next publication page" }),
+    );
     expect(callbacks.onPageChange).toHaveBeenCalledWith(2);
   });
 
   it.each([
     ["SCHEDULED", "Unschedule"],
-    ["PUBLISHED", "Withdraw publication"],
-  ] as const)("shows the permitted %s lifecycle action", async (status, action) => {
-    const callbacks = renderHistory(history([publication("target", status)]));
+    ["PUBLISHED", "Withdraw and make read-only"],
+  ] as const)(
+    "shows the permitted %s lifecycle action",
+    async (status, action) => {
+      const callbacks = renderHistory(history([publication("target", status)]));
 
-    fireEvent.click(screen.getByRole("button", { name: action }));
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: status === "SCHEDULED" ? "Confirm unschedule" : "Confirm withdrawal",
-      }),
-    );
+      fireEvent.click(screen.getByRole("button", { name: action }));
+      fireEvent.click(
+        screen.getByRole("button", {
+          name:
+            status === "SCHEDULED"
+              ? "Confirm unschedule"
+              : "Confirm withdrawal and make read-only",
+        }),
+      );
 
-    await waitFor(() => {
-      const callback =
-        status === "SCHEDULED" ? callbacks.onUnschedule : callbacks.onCancel;
-      expect(callback).toHaveBeenCalledWith("target");
-    });
-  });
+      await waitFor(() => {
+        const callback =
+          status === "SCHEDULED" ? callbacks.onUnschedule : callbacks.onCancel;
+        expect(callback).toHaveBeenCalledWith("target");
+      });
+    },
+  );
 
   it.each(["EXPIRED", "CANCELLED"] as const)(
     "does not offer lifecycle actions for %s",
     (status) => {
       renderHistory(history([publication("target", status)]));
       expect(screen.queryByRole("button", { name: "Unschedule" })).toBeNull();
-      expect(screen.queryByRole("button", { name: "Withdraw publication" })).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Withdraw and make read-only" }),
+      ).toBeNull();
     },
   );
 
@@ -140,13 +165,32 @@ describe("PublicationHistoryPanel", () => {
   });
 
   it("confirms starting a revision from published content", async () => {
-    const callbacks = renderHistory(history([publication("target", "PUBLISHED")]));
+    const callbacks = renderHistory(
+      history([publication("target", "PUBLISHED")]),
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "Start revision" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm start revision" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create editable version" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirm editable version" }),
+    );
 
     await waitFor(() => {
       expect(callbacks.onStartRevision).toHaveBeenCalledWith("target");
     });
+  });
+
+  it("hides revision when the user lacks manage permission", () => {
+    renderHistory(history([publication("target", "PUBLISHED")]), {
+      canStartRevision: false,
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Create editable version" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Withdraw and make read-only" }),
+    ).toBeInTheDocument();
   });
 });

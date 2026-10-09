@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { useLocale } from "next-intl";
 import AcademicTargetsSection from "../editor/AcademicTargetsSection";
@@ -10,17 +10,13 @@ import RevisionHistoryPanel from "../editor/RevisionHistoryPanel";
 import AcademicContentPublicationPanel from "../publication/AcademicContentPublicationPanel";
 import { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
 import { useWeeklyPlanDetailDraft } from "../../hooks/useWeeklyPlanDetailDraft";
+import { useAcademicContentTargetDisplay } from "../../hooks/useAcademicContentTargetDisplay";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
 import {
   emptyWeeklyPlanDetail,
   type WeeklyPlanPanel,
 } from "../../model/weeklyPlanDetail";
-import { resolveTeacherPreparationTargets } from "../../model/teacherPreparationDetail";
-import {
-  loadAcademicTargetOptions,
-  type AcademicTargetOptions,
-} from "../../services/academicContentSelectors";
 import {
   EMPTY_WEEKLY_PLAN_DETAIL_OPTIONS,
   loadWeeklyPlanDetailOptions,
@@ -63,9 +59,6 @@ export default function WeeklyPlanEditorView({
   const t = useAcademicContentTranslations("weekly_plan_detail");
   const editorT = useAcademicContentTranslations("editor");
   const [activePanel, setActivePanel] = useState<WeeklyPlanPanel>("details");
-  const [targetOptions, setTargetOptions] =
-    useState<AcademicTargetOptions | null>(null);
-  const [targetError, setTargetError] = useState<string | null>(null);
   const [detailOptions, setDetailOptions] = useState<WeeklyPlanDetailOptions>(
     EMPTY_WEEKLY_PLAN_DETAIL_OPTIONS,
   );
@@ -81,44 +74,22 @@ export default function WeeklyPlanEditorView({
 
   useEffect(() => {
     let active = true;
-    void Promise.allSettled([
-      loadAcademicTargetOptions({
-        academicYearId: content.academicYearId,
-        termId: content.termId,
-      }),
-      loadWeeklyPlanDetailOptions(content),
-    ]).then(([targets, details]) => {
-      if (!active) return;
-      if (targets.status === "fulfilled") setTargetOptions(targets.value);
-      else
-        setTargetError(
-          targets.reason instanceof Error
-            ? targets.reason.message
-            : t("context.unavailable"),
-        );
-      if (details.status === "fulfilled") setDetailOptions(details.value);
-    });
+    void loadWeeklyPlanDetailOptions(content)
+      .then((options) => {
+        if (active) setDetailOptions(options);
+      })
+      .catch(() => {
+        if (active) setDetailOptions(EMPTY_WEEKLY_PLAN_DETAIL_OPTIONS);
+      });
     return () => {
       active = false;
     };
-  }, [content, t]);
+  }, [content]);
 
-  const targets = useMemo(
-    () =>
-      targetOptions
-        ? resolveTeacherPreparationTargets(
-            content.targets,
-            targetOptions,
-            [],
-            locale,
-          )
-        : content.targets.map(({ id }) => ({
-            targetId: id,
-            scope: null,
-            subject: null,
-            assignedTeacher: null,
-          })),
-    [content.targets, locale, targetOptions],
+  const { targets, error: targetError } = useAcademicContentTargetDisplay(
+    content,
+    locale,
+    t("context.unavailable"),
   );
   const publicationAvailable = isPublicationSurfaceAvailable(
     content.type,
@@ -260,6 +231,7 @@ export default function WeeklyPlanEditorView({
       <AcademicContentPublicationPanel
         content={content}
         canMutate={canPublish}
+        canStartRevision={canManage && canPublish}
         onContentChanged={refreshFiles}
       />
     ),

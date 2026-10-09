@@ -144,15 +144,26 @@ function OpenPublicationDialog({
         />
 
         {showMinorUpdateOption ? (
-          <Checkbox
-            checked={draft.notifyMinorUpdate}
-            disabled={isMutating}
-            label={t("notify_minor_update")}
-            description={t("notify_minor_update_description")}
-            onChange={(event) =>
-              updateDraft({ notifyMinorUpdate: event.target.checked })
-            }
-          />
+          <div className="space-y-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+              <p className="font-semibold">{t("revision_publish_rule_title")}</p>
+              <p className="mt-1 leading-6 text-blue-800">
+                {t("revision_publish_rule_description")}
+              </p>
+              <p className="mt-1 text-xs text-blue-700">
+                {t("revision_publish_rule_save_hint")}
+              </p>
+            </div>
+            <Checkbox
+              checked={draft.notifyMinorUpdate}
+              disabled={isMutating}
+              label={t("notify_minor_update")}
+              description={t("notify_minor_update_description")}
+              onChange={(event) =>
+                updateDraft({ notifyMinorUpdate: event.target.checked })
+              }
+            />
+          </div>
         ) : null}
       </div>
     </Modal>

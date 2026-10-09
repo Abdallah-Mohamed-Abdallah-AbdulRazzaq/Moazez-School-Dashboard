@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
+import { academicContentUiError } from "../../../services/academicContentErrors";
 import type { AcademicContentEditorSectionState } from "../../../hooks/useAcademicContentEditor";
 import {
   loadAcademicContentDetailOptions,
@@ -31,12 +32,24 @@ interface TypeDetailSectionProps {
   termStartDate?: string;
   termEndDate?: string;
   onDirty: () => void;
-  onSavePreparation: (request: ReplaceAcademicContentPreparationDetailRequest) => Promise<boolean>;
-  onSaveWeeklyPlan: (request: ReplaceAcademicContentWeeklyPlanDetailRequest) => Promise<boolean>;
-  onSaveGuardianNote: (request: ReplaceAcademicContentGuardianNoteDetailRequest) => Promise<boolean>;
-  onSaveSubjectResource: (request: ReplaceAcademicContentSubjectResourceDetailRequest) => Promise<boolean>;
-  onSaveOnlineSession: (request: ReplaceAcademicContentOnlineSessionDetailRequest) => Promise<boolean>;
-  loadOptions?: (content: AcademicContentDetail) => Promise<AcademicContentDetailOptions>;
+  onSavePreparation: (
+    request: ReplaceAcademicContentPreparationDetailRequest,
+  ) => Promise<boolean>;
+  onSaveWeeklyPlan: (
+    request: ReplaceAcademicContentWeeklyPlanDetailRequest,
+  ) => Promise<boolean>;
+  onSaveGuardianNote: (
+    request: ReplaceAcademicContentGuardianNoteDetailRequest,
+  ) => Promise<boolean>;
+  onSaveSubjectResource: (
+    request: ReplaceAcademicContentSubjectResourceDetailRequest,
+  ) => Promise<boolean>;
+  onSaveOnlineSession: (
+    request: ReplaceAcademicContentOnlineSessionDetailRequest,
+  ) => Promise<boolean>;
+  loadOptions?: (
+    content: AcademicContentDetail,
+  ) => Promise<AcademicContentDetailOptions>;
 }
 
 export default function TypeDetailSection(props: TypeDetailSectionProps) {
@@ -46,11 +59,13 @@ export default function TypeDetailSection(props: TypeDetailSectionProps) {
   if (props.content.type === "GUARDIAN_WEEKLY_NOTE") {
     return (
       <GuardianWeeklyNoteForm
-        initial={props.content.details ?? {
-          body: "",
-          priority: "NORMAL",
-          requiresAcknowledgement: false,
-        }}
+        initial={
+          props.content.details ?? {
+            body: "",
+            priority: "NORMAL",
+            requiresAcknowledgement: false,
+          }
+        }
         disabled={props.disabled}
         sectionState={props.sectionState}
         onDirty={props.onDirty}
@@ -64,7 +79,9 @@ export default function TypeDetailSection(props: TypeDetailSectionProps) {
 
 function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
   const { content, disabled, sectionState, onDirty } = props;
-  const [options, setOptions] = useState<AcademicContentDetailOptions | null>(null);
+  const [options, setOptions] = useState<AcademicContentDetailOptions | null>(
+    null,
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [retryKey, setRetryKey] = useState(0);
@@ -78,9 +95,7 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
       })
       .catch((error: unknown) => {
         if (active) {
-          setLoadError(
-            error instanceof Error ? error.message : t("references_unavailable"),
-          );
+          setLoadError(academicContentUiError(error).message);
         }
       })
       .finally(() => {
@@ -104,8 +119,13 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
 
   if (loadError || !options) {
     return (
-      <section role="alert" className="rounded-xl border border-red-200 bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-700">{loadError ?? t("references_unavailable")}</p>
+      <section
+        role="alert"
+        className="rounded-xl border border-red-200 bg-white p-6 shadow-sm"
+      >
+        <p className="text-sm text-red-700">
+          {loadError ?? t("references_unavailable")}
+        </p>
         <Button
           className="mt-4"
           variant="secondary"
@@ -125,22 +145,24 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
     case "TEACHER_PREPARATION":
       return (
         <TeacherPreparationForm
-          initial={content.details ?? {
-            topic: null,
-            objectives: [],
-            learningOutcomes: [],
-            teachingStrategies: [],
-            activities: [],
-            resourceNotes: null,
-            assessmentNotes: null,
-            teacherNotes: null,
-            curriculumId: null,
-            curriculumUnitId: null,
-            curriculumLessonId: null,
-            lessonPlanId: null,
-            lessonPlanItemId: null,
-            timetableEntryId: null,
-          }}
+          initial={
+            content.details ?? {
+              topic: null,
+              objectives: [],
+              learningOutcomes: [],
+              teachingStrategies: [],
+              activities: [],
+              resourceNotes: null,
+              assessmentNotes: null,
+              teacherNotes: null,
+              curriculumId: null,
+              curriculumUnitId: null,
+              curriculumLessonId: null,
+              lessonPlanId: null,
+              lessonPlanItemId: null,
+              timetableEntryId: null,
+            }
+          }
           disabled={disabled}
           sectionState={sectionState}
           options={options}
@@ -151,17 +173,19 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
     case "WEEKLY_PLAN":
       return (
         <WeeklyPlanForm
-          initial={content.details ?? {
-            weekStartDate: props.termStartDate ?? "",
-            weekEndDate: props.termStartDate ?? "",
-            objectives: [],
-            topics: [],
-            expectedHomework: null,
-            upcomingAssessments: null,
-            notes: null,
-            homeworkAssignmentIds: [],
-            gradeAssessmentIds: [],
-          }}
+          initial={
+            content.details ?? {
+              weekStartDate: props.termStartDate ?? "",
+              weekEndDate: props.termStartDate ?? "",
+              objectives: [],
+              topics: [],
+              expectedHomework: null,
+              upcomingAssessments: null,
+              notes: null,
+              homeworkAssignmentIds: [],
+              gradeAssessmentIds: [],
+            }
+          }
           termStartDate={props.termStartDate}
           termEndDate={props.termEndDate}
           options={options}
@@ -176,12 +200,14 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
     case "SUBJECT_RESOURCE":
       return (
         <SubjectResourceForm
-          initial={content.details ?? {
-            resourceCategory: "WORKSHEET",
-            curriculumId: null,
-            curriculumUnitId: null,
-            curriculumLessonId: null,
-          }}
+          initial={
+            content.details ?? {
+              resourceCategory: "WORKSHEET",
+              curriculumId: null,
+              curriculumUnitId: null,
+              curriculumLessonId: null,
+            }
+          }
           disabled={disabled}
           sectionState={sectionState}
           options={options}
@@ -192,17 +218,19 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
     case "ONLINE_SESSION":
       return (
         <OnlineSessionForm
-          initial={content.details ?? {
-            platform: "GOOGLE_MEET",
-            providerName: null,
-            joinUrl: "",
-            accessCode: null,
-            instructions: null,
-            startAt: "",
-            endAt: "",
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            timetableEntryId: null,
-          }}
+          initial={
+            content.details ?? {
+              platform: "GOOGLE_MEET",
+              providerName: null,
+              joinUrl: "",
+              accessCode: null,
+              instructions: null,
+              startAt: "",
+              endAt: "",
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              timetableEntryId: null,
+            }
+          }
           disabled={disabled}
           sectionState={sectionState}
           options={options}

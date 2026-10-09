@@ -610,6 +610,24 @@ export interface AcademicContentWorkflowPolicy {
 export type UpdateAcademicContentWorkflowPolicyRequest =
   Partial<AcademicContentWorkflowPolicy>;
 
+export interface AcademicContentNotificationPolicy {
+  notificationsEnabled: boolean;
+  studentNotificationsEnabled: boolean;
+  guardianNotificationsEnabled: boolean;
+  weeklyPlanNotificationsEnabled: boolean;
+  guardianWeeklyNoteNotificationsEnabled: boolean;
+  subjectResourceNotificationsEnabled: boolean;
+  onlineSessionNotificationsEnabled: boolean;
+  generalResourceNotificationsEnabled: boolean;
+  significantUpdateNotificationsEnabled: boolean;
+  cancellationNotificationsEnabled: boolean;
+  onlineSessionRemindersEnabled: boolean;
+  onlineSessionReminderOffsetsMinutes: number[];
+}
+
+export type UpdateAcademicContentNotificationPolicyRequest =
+  Partial<AcademicContentNotificationPolicy>;
+
 export interface AcademicContentTransitionResponse {
   contentId: string;
   contentStatus: AcademicContentStatus;

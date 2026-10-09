@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PreparationTemplatesView } from "../PreparationTemplatesPage";
+import { academicContentBrowseOptionsFixture } from "../../__tests__/academicContentBrowseOptionsFixture";
 
 const pageState = vi.hoisted(() => ({
   canManage: false,
@@ -55,16 +56,27 @@ describe("PreparationTemplatesPage", () => {
   it("shows empty and recoverable error states", () => {
     const reload = vi.fn();
     const { rerender } = render(
-      <PreparationTemplatesView templates={templateState()} />,
+      <PreparationTemplatesView
+        templates={templateState()}
+        browseOptions={academicContentBrowseOptionsFixture}
+      />,
     );
-    expect(screen.getByText("No preparation templates yet")).toBeInTheDocument();
+    expect(
+      screen.getByText("No preparation templates yet"),
+    ).toBeInTheDocument();
 
     rerender(
       <PreparationTemplatesView
-        templates={templateState({ error: { message: "Templates unavailable" }, reload })}
+        templates={templateState({
+          error: { message: "Templates unavailable" },
+          reload,
+        })}
+        browseOptions={academicContentBrowseOptionsFixture}
       />,
     );
-    expect(screen.getByRole("alert")).toHaveTextContent("Templates unavailable");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Templates unavailable",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(reload).toHaveBeenCalledOnce();
   });
@@ -89,21 +101,29 @@ describe("PreparationTemplatesPage", () => {
             },
           ],
         })}
+        browseOptions={academicContentBrowseOptionsFixture}
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "New template" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "New template" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Delete" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps the template table visible while refreshed rows load", () => {
     render(
       <PreparationTemplatesView
         templates={templateState({ isLoading: true, total: 1 })}
+        browseOptions={academicContentBrowseOptionsFixture}
       />,
     );
 
-    expect(screen.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "Name" }),
+    ).toBeInTheDocument();
   });
 
   it("confirms soft deletion for template managers", async () => {
@@ -129,6 +149,7 @@ describe("PreparationTemplatesPage", () => {
             },
           ],
         })}
+        browseOptions={academicContentBrowseOptionsFixture}
       />,
     );
 
@@ -138,5 +159,12 @@ describe("PreparationTemplatesPage", () => {
     await waitFor(() =>
       expect(deleteTemplate).toHaveBeenCalledWith("template-1"),
     );
+    expect(
+      screen.getByRole("heading", { name: "Preparation templates" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Reusable templates: 1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "New template" }),
+    ).toBeInTheDocument();
   });
 });

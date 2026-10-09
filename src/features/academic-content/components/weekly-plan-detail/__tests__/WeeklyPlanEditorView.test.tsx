@@ -134,7 +134,7 @@ describe("WeeklyPlanEditorView", () => {
       screen.getAllByRole("button", { name: "Publication" }),
     ).not.toHaveLength(0);
     expect(
-      screen.getAllByRole("button", { name: "Revision history" }),
+      screen.getAllByRole("button", { name: "Version history" }),
     ).not.toHaveLength(0);
 
     fireEvent.click(

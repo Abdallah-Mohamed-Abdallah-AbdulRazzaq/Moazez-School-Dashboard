@@ -6,19 +6,7 @@ import { Button } from "@/components/ui/button/Button";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { academicContentUiError } from "../../services/academicContentErrors";
 import type { AcademicContentReadinessResponse } from "../../types/contracts";
-
-const REASON_KEYS: Record<string, string> = {
-  "academic_content.readiness.read_only": "read_only",
-  "academic_content.readiness.title_invalid": "title_invalid",
-  "academic_content.readiness.academic_year_missing": "academic_year_missing",
-  "academic_content.readiness.term_missing": "term_missing",
-  "academic_content.readiness.term_year_mismatch": "term_year_mismatch",
-  "academic_content.readiness.term_closed": "term_closed",
-  "academic_content.readiness.audience_invalid": "audience_invalid",
-  "academic_content.readiness.targets_missing": "targets_missing",
-  "academic_content.readiness.subject_target_missing": "subject_target_missing",
-  "academic_content.readiness.type_detail_missing": "type_detail_missing",
-};
+import ReadinessReasonText from "../editor/ReadinessReasonText";
 
 interface TeacherPreparationReadinessCardProps {
   readiness: AcademicContentReadinessResponse | null;
@@ -65,7 +53,7 @@ export default function TeacherPreparationReadinessCard({
         <ul className="mt-4 space-y-2">
           {readiness.blockingReasons.map((reason, index) => (
             <li key={`${reason.code}:${index}`} className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              {REASON_KEYS[reason.code] ? t(`reasons.${REASON_KEYS[reason.code]}`) : reason.message}
+              <ReadinessReasonText reason={reason} />
             </li>
           ))}
         </ul>

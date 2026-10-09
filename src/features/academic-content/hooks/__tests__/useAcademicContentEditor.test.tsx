@@ -100,10 +100,10 @@ describe("useAcademicContentEditor", () => {
   });
 
   it.each([
-    [404, "CONTENT_NOT_FOUND"],
-    [403, "FORBIDDEN"],
-    [409, "CONTENT_ARCHIVED"],
-  ])("preserves a %s API error for the page", async (status, code) => {
+    [404, "CONTENT_NOT_FOUND", "The requested item is unavailable. Refresh the page and check your selection."],
+    [403, "FORBIDDEN", "You do not have permission to perform this action."],
+    [409, "CONTENT_ARCHIVED", "The content status has changed. Refresh the page before trying again."],
+  ])("preserves and localizes a %s API error for the page", async (status, code, message) => {
     api.getAcademicContent.mockRejectedValue(
       new ApiError("Cannot load content", status, code, undefined, {
         contentId: "content-1",
@@ -114,7 +114,7 @@ describe("useAcademicContentEditor", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.error).toEqual(
-      expect.objectContaining({ code, message: "Cannot load content", traceId: "trace-1" }),
+      expect.objectContaining({ code, message, traceId: "trace-1" }),
     );
   });
 

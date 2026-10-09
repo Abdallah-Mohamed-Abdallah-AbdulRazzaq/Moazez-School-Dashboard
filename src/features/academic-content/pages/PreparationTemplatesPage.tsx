@@ -11,6 +11,10 @@ import { usePermissions } from "@/hooks/usePermissions";
 import PreparationTemplateFilters from "../components/templates/PreparationTemplateFilters";
 import PreparationTemplateTable from "../components/templates/PreparationTemplateTable";
 import { usePreparationTemplates } from "../hooks/usePreparationTemplates";
+import {
+  useAcademicContentBrowseOptions,
+  type AcademicContentBrowseOptionsState,
+} from "../hooks/useAcademicContentBrowseOptions";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 import type { AcademicContentPreparationTemplateListItem } from "../types/contracts";
 
@@ -18,8 +22,10 @@ const MANAGE_PERMISSION = "academics.academic_content.settings.manage" as const;
 
 export function PreparationTemplatesView({
   templates,
+  browseOptions,
 }: {
   templates: ReturnType<typeof usePreparationTemplates>;
+  browseOptions: AcademicContentBrowseOptionsState;
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -44,7 +50,10 @@ export function PreparationTemplatesView({
   };
 
   const content = templates.error ? (
-    <div role="alert" className="rounded-xl border border-red-200 bg-white shadow-sm">
+    <div
+      role="alert"
+      className="rounded-xl border border-red-200 bg-white shadow-sm"
+    >
       <EmptyState
         title={t("unavailable_title")}
         message={templates.error.message}
@@ -68,6 +77,7 @@ export function PreparationTemplatesView({
       total={templates.total}
       isLoading={templates.isLoading}
       searchQuery={templates.search}
+      targetOptions={browseOptions.targetOptions}
       canManage={canManage}
       editHref={(templateId) =>
         withQuery(`${rootPath}/${encodeURIComponent(templateId)}/edit`)
@@ -80,7 +90,18 @@ export function PreparationTemplatesView({
 
   return (
     <main className="mx-auto min-w-0 max-w-screen-2xl space-y-4 p-4 sm:p-6">
-      <div className="flex justify-end">
+      <header className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-indigo-700">
+            <LayoutTemplate aria-hidden="true" className="size-5" />
+            <p className="text-sm font-semibold">{t("eyebrow")}</p>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-950">{t("title")}</h1>
+          <p className="max-w-2xl text-sm text-gray-600">{t("subtitle")}</p>
+          <p className="text-sm font-medium text-gray-800">
+            {t("total", { count: templates.total })}
+          </p>
+        </div>
         {canManage && (
           <Button
             size="sm"
@@ -90,10 +111,11 @@ export function PreparationTemplatesView({
             {t("new")}
           </Button>
         )}
-      </div>
+      </header>
       <PreparationTemplateFilters
         filters={templates.filters}
         search={templates.search}
+        browseOptions={browseOptions}
         onSearchChange={templates.setSearch}
         onFiltersChange={templates.setFilters}
         onClear={templates.clearFilters}
@@ -117,5 +139,13 @@ export function PreparationTemplatesView({
 
 export default function PreparationTemplatesPage() {
   const templates = usePreparationTemplates();
-  return <PreparationTemplatesView templates={templates} />;
+  const browseOptions = useAcademicContentBrowseOptions({
+    includeTeachers: false,
+  });
+  return (
+    <PreparationTemplatesView
+      templates={templates}
+      browseOptions={browseOptions}
+    />
+  );
 }

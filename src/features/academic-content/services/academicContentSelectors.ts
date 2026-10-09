@@ -170,7 +170,7 @@ export function teacherAllocationsForTarget(
 }
 
 export function targetLineage(
-  options: AcademicTargetOptions,
+  options: Pick<AcademicTargetOptions, "structure">,
   target: AcademicContentTargetDraft,
 ): { stageId: string; gradeId: string; sectionId: string } {
   const { structure } = options;

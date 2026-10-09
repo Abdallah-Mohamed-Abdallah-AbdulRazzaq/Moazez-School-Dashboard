@@ -27,7 +27,9 @@ vi.mock("@/components/ui/input/DateTimePicker", () => ({
         value={value ? value.toISOString().slice(0, 16) : ""}
         onChange={(event) =>
           onChange?.(
-            event.target.value ? new Date(`${event.target.value}:00.000Z`) : null,
+            event.target.value
+              ? new Date(`${event.target.value}:00.000Z`)
+              : null,
           )
         }
       />
@@ -77,8 +79,12 @@ describe("PublicationDialog", () => {
     );
 
     expect(screen.getByLabelText("Publication time")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Schedule publication" }));
-    expect(screen.getByText("Choose a future publication time.")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Schedule publication" }),
+    );
+    expect(
+      screen.getByText("Choose a future publication time."),
+    ).toBeInTheDocument();
   });
 
   it("submits a scheduled draft while leaving optional visibility dates empty", () => {
@@ -98,7 +104,9 @@ describe("PublicationDialog", () => {
     fireEvent.change(screen.getByLabelText("Publication time"), {
       target: { value: "2100-10-06T10:00" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Schedule publication" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Schedule publication" }),
+    );
 
     expect(onSubmit).toHaveBeenCalledWith({
       mode: "schedule",
@@ -129,9 +137,13 @@ describe("PublicationDialog", () => {
     fireEvent.change(screen.getByLabelText("Visible from"), {
       target: { value: "2100-10-06T09:00" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Schedule publication" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Schedule publication" }),
+    );
 
-    expect(screen.getByText("Visibility cannot begin before publication.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Visibility cannot begin before publication."),
+    ).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -149,8 +161,12 @@ describe("PublicationDialog", () => {
       />,
     );
 
-    expect(screen.getByText(/use the online session end time/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start publishing" })).toBeDisabled();
+    expect(
+      screen.getByText(/use the online session end time/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start publishing" }),
+    ).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Close modal" })).toBeNull();
   });
 
@@ -169,12 +185,45 @@ describe("PublicationDialog", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("checkbox", { name: "Notify the audience about this minor update" }),
+      screen.getByRole("checkbox", {
+        name: "Notify the audience about this minor update",
+      }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Start publishing" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ notifyMinorUpdate: true }),
     );
+    expect(
+      screen.getByText("Save a meaningful change before publishing"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Changing publication or visibility times alone is not enough/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Save all changes at the top of the page before continuing/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show revision guidance for an initial publication", () => {
+    render(
+      <PublicationDialog
+        isOpen
+        mode="now"
+        contentType="WEEKLY_PLAN"
+        showMinorUpdateOption={false}
+        isMutating={false}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByText("Save a meaningful change before publishing"),
+    ).toBeNull();
   });
 });

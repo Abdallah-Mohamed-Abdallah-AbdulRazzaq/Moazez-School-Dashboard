@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import PreparationTemplateTable from "../PreparationTemplateTable";
 import type { AcademicContentPreparationTemplateListItem } from "../../../types/contracts";
+import { academicContentBrowseOptionsFixture } from "../../../__tests__/academicContentBrowseOptionsFixture";
 
 const item: AcademicContentPreparationTemplateListItem = {
   id: "template-1",
@@ -25,6 +26,7 @@ function renderTable(canManage: boolean, onDelete = vi.fn()) {
       total={1}
       isLoading={false}
       searchQuery=""
+      targetOptions={academicContentBrowseOptionsFixture.targetOptions}
       canManage={canManage}
       editHref={(templateId) => `/templates/${templateId}/edit`}
       onDelete={onDelete}
@@ -39,9 +41,41 @@ describe("PreparationTemplateTable", () => {
     renderTable(false);
 
     expect(screen.getByText("Fractions lesson")).toBeInTheDocument();
+    expect(screen.getByText("Primary")).toBeInTheDocument();
+    expect(screen.getByText("Mathematics")).toBeInTheDocument();
+    expect(screen.queryByText("stage-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("subject-1")).not.toBeInTheDocument();
     expect(screen.getByText("2 objectives · 3 outcomes")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Edit" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Edit" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Delete" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("labels templates without a restricted scope", () => {
+    render(
+      <PreparationTemplateTable
+        items={[
+          { ...item, id: "template-global", stageId: null, subjectId: null },
+        ]}
+        page={1}
+        limit={50}
+        total={1}
+        isLoading={false}
+        searchQuery=""
+        targetOptions={academicContentBrowseOptionsFixture.targetOptions}
+        canManage={false}
+        editHref={(templateId) => `/templates/${templateId}/edit`}
+        onDelete={vi.fn()}
+        onPageChange={vi.fn()}
+        onPageSizeChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("All stages")).toBeInTheDocument();
+    expect(screen.getByText("All subjects")).toBeInTheDocument();
   });
 
   it("provides edit and soft-delete actions to template managers", () => {

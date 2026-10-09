@@ -23,6 +23,7 @@ interface PublicationHistoryPanelProps {
   history: AcademicContentPublicationHistoryResponse | null;
   error: AcademicContentUiError | null;
   canMutate: boolean;
+  canStartRevision: boolean;
   isMutating: boolean;
   onPageChange: (page: number) => void;
   onRetry: () => void;
@@ -40,6 +41,7 @@ interface PendingLifecycleAction {
 interface PublicationHistoryItemProps {
   publication: AcademicContentPublication;
   canMutate: boolean;
+  canStartRevision: boolean;
   isMutating: boolean;
   formatDate: (value: string) => string;
   onViewDetail: (publicationId: string) => void;
@@ -49,6 +51,7 @@ interface PublicationHistoryItemProps {
 function PublicationHistoryItem({
   publication,
   canMutate,
+  canStartRevision,
   isMutating,
   formatDate,
   onViewDetail,
@@ -58,7 +61,7 @@ function PublicationHistoryItem({
   const showUnschedule =
     canMutate && canUnschedulePublication(publication.status);
   const showCancel = canMutate && canCancelPublication(publication.status);
-  const showRevision = canMutate && publication.status === "PUBLISHED";
+  const showRevision = canStartRevision && publication.status === "PUBLISHED";
 
   return (
     <article className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-gray-300">
@@ -178,6 +181,7 @@ export default function PublicationHistoryPanel({
   history,
   error,
   canMutate,
+  canStartRevision,
   isMutating,
   onPageChange,
   onRetry,
@@ -265,6 +269,7 @@ export default function PublicationHistoryPanel({
               key={publication.publicationId}
               publication={publication}
               canMutate={canMutate}
+              canStartRevision={canStartRevision}
               isMutating={isMutating}
               formatDate={(value) => formatter.format(new Date(value))}
               onViewDetail={onViewDetail}

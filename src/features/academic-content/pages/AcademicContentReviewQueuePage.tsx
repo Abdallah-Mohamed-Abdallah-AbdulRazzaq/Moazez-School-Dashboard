@@ -9,6 +9,10 @@ import AcademicContentAccessGuard from "../components/AcademicContentAccessGuard
 import ReviewQueueFilters from "../components/review/ReviewQueueFilters";
 import ReviewQueueTable from "../components/review/ReviewQueueTable";
 import { useAcademicContentReviewQueue } from "../hooks/useAcademicContentReviewQueue";
+import {
+  useAcademicContentBrowseOptions,
+  type AcademicContentBrowseOptionsState,
+} from "../hooks/useAcademicContentBrowseOptions";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 import type { AcademicContentReviewQueueItem } from "../types/contracts";
 
@@ -28,8 +32,10 @@ export function AcademicContentReviewQueueAccess({
 
 export function AcademicContentReviewQueueView({
   queue,
+  browseOptions,
 }: {
   queue: ReturnType<typeof useAcademicContentReviewQueue>;
+  browseOptions: AcademicContentBrowseOptionsState;
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -49,7 +55,10 @@ export function AcademicContentReviewQueueView({
   };
 
   const content = queue.error ? (
-    <div role="alert" className="rounded-xl border border-red-200 bg-white shadow-sm">
+    <div
+      role="alert"
+      className="rounded-xl border border-red-200 bg-white shadow-sm"
+    >
       <EmptyState
         title={t("unavailable_title")}
         message={queue.error.message}
@@ -73,6 +82,8 @@ export function AcademicContentReviewQueueView({
       total={queue.total}
       isLoading={queue.isLoading}
       searchQuery={queue.search}
+      targetOptions={browseOptions.targetOptions}
+      teachers={browseOptions.teachers}
       onOpen={openReview}
       onPageChange={queue.setPage}
       onPageSizeChange={queue.setLimit}
@@ -81,9 +92,27 @@ export function AcademicContentReviewQueueView({
 
   return (
     <main className="mx-auto min-w-0 max-w-screen-2xl space-y-4 p-4 sm:p-6">
+      <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:flex sm:items-center sm:justify-between">
+        <p className="text-lg font-semibold text-indigo-950">
+          {t("pending_total", { count: queue.total })}
+        </p>
+        <p className="mt-1 text-sm text-indigo-800 sm:mt-0">
+          {t("oldest_first_help")}
+        </p>
+      </section>
+      {browseOptions.targetOptionsUnavailable ||
+      browseOptions.teachersUnavailable ? (
+        <p
+          role="status"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          {t("options_warning")}
+        </p>
+      ) : null}
       <ReviewQueueFilters
         filters={queue.filters}
         search={queue.search}
+        browseOptions={browseOptions}
         onSearchChange={queue.setSearch}
         onFiltersChange={queue.setFilters}
         onClear={queue.clearFilters}
@@ -103,5 +132,11 @@ export default function AcademicContentReviewQueuePage() {
 
 function AuthorizedReviewQueuePage() {
   const queue = useAcademicContentReviewQueue();
-  return <AcademicContentReviewQueueView queue={queue} />;
+  const browseOptions = useAcademicContentBrowseOptions();
+  return (
+    <AcademicContentReviewQueueView
+      queue={queue}
+      browseOptions={browseOptions}
+    />
+  );
 }

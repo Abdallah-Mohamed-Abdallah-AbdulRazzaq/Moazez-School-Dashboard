@@ -68,6 +68,7 @@ export interface TeacherAllocation {
   classroomId?: string;
   subjectId: string;
   teacherId: string | null;
+  teacherName?: string;
 }
 
 export interface SaveTeacherAllocationChangesInput {

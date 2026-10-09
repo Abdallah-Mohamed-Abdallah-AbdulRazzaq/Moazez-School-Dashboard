@@ -8,12 +8,18 @@ import EmptyState from "@/components/ui/empty-state/EmptyState";
 import AcademicContentFilters from "../components/library/AcademicContentFilters";
 import AcademicContentTable from "../components/library/AcademicContentTable";
 import { useAcademicContentLibrary } from "../hooks/useAcademicContentLibrary";
+import {
+  useAcademicContentBrowseOptions,
+  type AcademicContentBrowseOptionsState,
+} from "../hooks/useAcademicContentBrowseOptions";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 
 export function AcademicContentLibraryView({
   library,
+  browseOptions,
 }: {
   library: ReturnType<typeof useAcademicContentLibrary>;
+  browseOptions: AcademicContentBrowseOptionsState;
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -31,7 +37,10 @@ export function AcademicContentLibraryView({
   };
 
   const content = library.error ? (
-    <div role="alert" className="rounded-xl border border-red-200 bg-white shadow-sm">
+    <div
+      role="alert"
+      className="rounded-xl border border-red-200 bg-white shadow-sm"
+    >
       <EmptyState
         title={t("library.unavailable_title")}
         message={library.error.message}
@@ -66,6 +75,8 @@ export function AcademicContentLibraryView({
       <AcademicContentFilters
         filters={library.filters}
         search={library.search}
+        resultCount={library.total}
+        browseOptions={browseOptions}
         onSearchChange={library.setSearch}
         onFiltersChange={library.setFilters}
         onClear={library.clearFilters}
@@ -77,5 +88,11 @@ export function AcademicContentLibraryView({
 
 export default function AcademicContentLibraryPage() {
   const library = useAcademicContentLibrary();
-  return <AcademicContentLibraryView library={library} />;
+  const browseOptions = useAcademicContentBrowseOptions();
+  return (
+    <AcademicContentLibraryView
+      library={library}
+      browseOptions={browseOptions}
+    />
+  );
 }

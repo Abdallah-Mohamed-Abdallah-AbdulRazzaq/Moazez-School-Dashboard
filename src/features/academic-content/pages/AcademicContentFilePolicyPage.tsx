@@ -18,7 +18,8 @@ import type {
 } from "../types/contracts";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 
-const HARD_MAXIMUM_BYTES = BigInt("10737418240");
+const BYTES_PER_MEGABYTE = 1024 * 1024;
+const HARD_MAXIMUM_MEGABYTES = 10 * 1024;
 
 const BOOLEAN_FIELDS: readonly {
   key: Exclude<keyof AcademicContentFilePolicy, "maximumFileSizeBytes">;
@@ -67,11 +68,29 @@ function changedPolicy(
   return changed;
 }
 
+function displayMegabytes(byteCount: string): string {
+  const megabytes = Number(byteCount) / BYTES_PER_MEGABYTE;
+  return Number.isInteger(megabytes)
+    ? String(megabytes)
+    : megabytes.toFixed(2).replace(/\.?0+$/u, "");
+}
+
+function positiveMegabytes(rawMegabytes: string): number | null {
+  if (!/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/u.test(rawMegabytes)) return null;
+  const megabytes = Number(rawMegabytes);
+  return Number.isFinite(megabytes) && megabytes > 0 ? megabytes : null;
+}
+
+function byteCountFromMegabytes(megabytes: number): string {
+  return String(Math.max(1, Math.round(megabytes * BYTES_PER_MEGABYTE)));
+}
+
 export default function AcademicContentFilePolicyPage() {
   const { hasPermission } = usePermissions();
   const canManage = hasPermission("academics.academic_content.settings.manage");
   const [policy, setPolicy] = useState<AcademicContentFilePolicy | null>(null);
   const [draft, setDraft] = useState<AcademicContentFilePolicy | null>(null);
+  const [maximumFileSizeMb, setMaximumFileSizeMb] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +108,7 @@ export default function AcademicContentFilePolicyPage() {
         if (loadRequestId.current !== requestId) return;
         setPolicy(loadedPolicy);
         setDraft(loadedPolicy);
+        setMaximumFileSizeMb(displayMegabytes(loadedPolicy.maximumFileSizeBytes));
       })
       .catch((loadError: unknown) => {
         if (loadRequestId.current === requestId) {
@@ -111,26 +131,38 @@ export default function AcademicContentFilePolicyPage() {
     () => (policy && draft ? changedPolicy(policy, draft) : {}),
     [draft, policy],
   );
-  const isDirty = Object.keys(changes).length > 0;
+  const fileSizeChanged = Boolean(
+    policy && maximumFileSizeMb !== displayMegabytes(policy.maximumFileSizeBytes),
+  );
+  const isDirty = Object.keys(changes).length > 0 || fileSizeChanged;
 
   const save = async () => {
-    if (!draft || !isDirty) return;
-    if (!/^[1-9][0-9]*$/u.test(draft.maximumFileSizeBytes)) {
+    if (!draft || !policy || !isDirty) return;
+    const parsedMegabytes = positiveMegabytes(maximumFileSizeMb);
+    if (parsedMegabytes === null) {
       setError(t("settings.positive_error"));
       return;
     }
-    if (BigInt(draft.maximumFileSizeBytes) > HARD_MAXIMUM_BYTES) {
+    if (parsedMegabytes > HARD_MAXIMUM_MEGABYTES) {
       setError(t("settings.hard_max_error"));
       return;
     }
+
+    const policyChanges = changedPolicy(policy, {
+      ...draft,
+      maximumFileSizeBytes: fileSizeChanged
+        ? byteCountFromMegabytes(parsedMegabytes)
+        : draft.maximumFileSizeBytes,
+    });
 
     setIsSaving(true);
     setError(null);
     setSaved(false);
     try {
-      const updatedPolicy = await updateAcademicContentFilePolicy(changes);
+      const updatedPolicy = await updateAcademicContentFilePolicy(policyChanges);
       setPolicy(updatedPolicy);
       setDraft(updatedPolicy);
+      setMaximumFileSizeMb(displayMegabytes(updatedPolicy.maximumFileSizeBytes));
       setSaved(true);
     } catch (saveError) {
       setError(academicContentUiError(saveError).message);
@@ -200,17 +232,13 @@ export default function AcademicContentFilePolicyPage() {
           <Input
             label={t("settings.maximum")}
             aria-label={t("settings.maximum")}
-            value={draft.maximumFileSizeBytes}
-            inputMode="numeric"
-            maxLength={11}
+            value={maximumFileSizeMb}
+            inputMode="decimal"
+            maxLength={10}
             disabled={!canManage || isSaving}
             helperText={t("settings.maximum_help")}
             onChange={(event) => {
-              setDraft((current) =>
-                current
-                  ? { ...current, maximumFileSizeBytes: event.target.value }
-                  : current,
-              );
+              setMaximumFileSizeMb(event.target.value);
               setSaved(false);
             }}
           />

@@ -103,8 +103,8 @@ export default function WeeklyPlanForm({
         <TextArea label={t("fields.notes")} aria-label={t("fields.notes")} value={form.notes ?? ""} maxLength={4000} disabled={disabled} onChange={(event) => update("notes", event.target.value)} />
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
-        <ReferenceChecklist label={t("fields.homework_assignments")} values={form.homeworkAssignmentIds} options={options.homeworkAssignments.map((homework) => ({ value: homework.id, label: homework.title }))} disabled={disabled} onChange={(value) => update("homeworkAssignmentIds", value)} />
-        <ReferenceChecklist label={t("fields.grade_assessments")} values={form.gradeAssessmentIds} options={options.assessments.map((assessment) => ({ value: assessment.id, label: assessment.title }))} disabled={disabled} onChange={(value) => update("gradeAssessmentIds", value)} />
+        <ReferenceChecklist label={t("fields.homework_assignments")} values={form.homeworkAssignmentIds} options={options.homeworkAssignments.map((homework) => ({ value: homework.id, label: homework.title }))} disabled={disabled} helperText={t("details.target_dependency_hint")} onChange={(value) => update("homeworkAssignmentIds", value)} />
+        <ReferenceChecklist label={t("fields.grade_assessments")} values={form.gradeAssessmentIds} options={options.assessments.map((assessment) => ({ value: assessment.id, label: assessment.title }))} disabled={disabled} helperText={t("details.target_dependency_hint")} onChange={(value) => update("gradeAssessmentIds", value)} />
       </div>
     </DetailFormShell>
   );

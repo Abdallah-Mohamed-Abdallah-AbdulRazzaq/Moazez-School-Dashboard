@@ -126,6 +126,22 @@ export default function PublicationDetailModal({
             <DetailItem label={t("cancelled_at")}>
               {formatInstant(detail.cancelledAt)}
             </DetailItem>
+            <DetailItem label={t("cancellation_reason")}>
+              {detail.cancellationReason
+                ? t(`cancellation_reasons.${detail.cancellationReason}`)
+                : t("not_available")}
+            </DetailItem>
+            <DetailItem label={t("supersedes_publication_id")}>
+              {detail.supersedesPublicationId ?? t("not_available")}
+            </DetailItem>
+            <DetailItem label={t("change_significance")}>
+              {detail.changeSignificance
+                ? t(`change_significance_values.${detail.changeSignificance}`)
+                : t("not_available")}
+            </DetailItem>
+            <DetailItem label={t("notify_minor_update_audit")}>
+              {t(detail.notifyMinorUpdate ? "yes" : "no")}
+            </DetailItem>
             <DetailItem label={t("created_by")}>
               {detail.createdByUserId}
             </DetailItem>

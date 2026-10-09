@@ -1,6 +1,7 @@
 "use client";
 
 import BehaviorYearTermContextBar from "@/features/behavior/shared/components/BehaviorYearTermContextBar";
+import { DashboardAnnouncementSlot } from "@/components/layout/DashboardAnnouncementPlacement";
 import {
   BehaviorYearTermProvider,
   useBehaviorYearTermContext,
@@ -34,6 +35,7 @@ function BehaviorLayoutContent({
         onAcademicYearChange={setYearId}
         onTermChange={setTermId}
       />
+      <DashboardAnnouncementSlot />
       {children}
     </div>
   );

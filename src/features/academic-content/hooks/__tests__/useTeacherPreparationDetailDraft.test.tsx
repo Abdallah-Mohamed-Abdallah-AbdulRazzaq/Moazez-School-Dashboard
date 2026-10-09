@@ -11,6 +11,50 @@ const cleanSection: AcademicContentEditorSectionState = {
 };
 
 describe("useTeacherPreparationDetailDraft", () => {
+  it("applies a template to the shared draft and marks it dirty once", () => {
+    const onDirty = vi.fn();
+    const initial = {
+      ...emptyTeacherPreparationDetail(),
+      curriculumId: "curriculum-1",
+    };
+    const { result } = renderHook(() =>
+      useTeacherPreparationDetailDraft({
+        initial,
+        contentVersion: "content-1:v1",
+        sectionState: cleanSection,
+        onDirty,
+        onSave: vi.fn().mockResolvedValue(true),
+      }),
+    );
+
+    act(() =>
+      result.current.applyTemplate({
+        id: "template-1",
+        name: "Fractions template",
+        description: null,
+        stageId: null,
+        subjectId: null,
+        topic: "Equivalent fractions",
+        objectives: ["Compare fractions"],
+        learningOutcomes: [],
+        teachingStrategies: [],
+        activities: [],
+        resourceNotes: null,
+        assessmentNotes: null,
+        teacherNotes: null,
+        createdByUserId: "user-1",
+        updatedByUserId: null,
+        createdAt: "2026-10-01T08:00:00.000Z",
+        updatedAt: "2026-10-01T08:00:00.000Z",
+      }),
+    );
+
+    expect(result.current.draft.topic).toBe("Equivalent fractions");
+    expect(result.current.draft.objectives).toEqual(["Compare fractions"]);
+    expect(result.current.draft.curriculumId).toBe("curriculum-1");
+    expect(onDirty).toHaveBeenCalledOnce();
+  });
+
   it("saves edits from separate panels as one complete payload", async () => {
     const onDirty = vi.fn();
     const onSave = vi.fn().mockResolvedValue(true);

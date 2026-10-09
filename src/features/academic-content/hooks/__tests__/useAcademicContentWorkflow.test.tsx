@@ -85,7 +85,9 @@ describe("useAcademicContentWorkflow", () => {
       expect(await result.current.submit()).toBeNull();
     });
 
-    expect(result.current.error?.message).toBe("Preparation is not ready");
+    expect(result.current.error?.message).toBe(
+      "The content status has changed. Refresh the page before trying again.",
+    );
   });
 
   it("keeps a successful transition when refreshing history fails", async () => {
@@ -101,6 +103,8 @@ describe("useAcademicContentWorkflow", () => {
     });
 
     expect(transition).toEqual(submitted);
-    expect(result.current.error?.message).toBe("History unavailable");
+    expect(result.current.error?.message).toBe(
+      "This action could not be completed. Try again; contact support if the problem continues.",
+    );
   });
 });

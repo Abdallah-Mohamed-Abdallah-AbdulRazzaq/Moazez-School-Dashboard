@@ -80,7 +80,7 @@ describe("WorkflowPolicyCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save workflow policy" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Workflow policy could not be saved",
+      "The content status has changed. Refresh the page before trying again.",
     );
     expect(approvalToggle).not.toBeChecked();
   });
@@ -91,7 +91,9 @@ describe("WorkflowPolicyCard", () => {
       .mockResolvedValueOnce({ preparationApprovalRequired: false });
     render(<WorkflowPolicyCard />);
 
-    expect(await screen.findByText("Policy unavailable")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "This action could not be completed. Try again; contact support if the problem continues.",
+    )).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     expect(

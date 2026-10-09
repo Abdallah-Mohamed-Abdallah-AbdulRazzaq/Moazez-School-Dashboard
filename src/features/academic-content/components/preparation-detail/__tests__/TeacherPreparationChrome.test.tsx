@@ -58,8 +58,12 @@ describe("teacher preparation detail chrome", () => {
         isSubmitting={false}
         submitLabel="Submit for approval"
         submissionHint="Complete readiness requirements"
+        showSaveDetails
+        canSaveDetails={false}
+        isSavingDetails={false}
         onSubmit={vi.fn()}
-        lifecycleActions={<button type="button">More actions</button>}
+        onSaveDetails={vi.fn()}
+        lifecycleActions={<button type="button">Archive</button>}
       />,
     );
 
@@ -70,6 +74,7 @@ describe("teacher preparation detail chrome", () => {
     expect(screen.getByRole("heading", { name: content.title })).toBeVisible();
     expect(screen.getByText("Assigned teacher: Mona Ali")).toBeVisible();
     expect(screen.getByText("2 targets")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save all changes" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Submit for approval" })).toBeDisabled();
     expect(screen.queryByText(/%|minutes/i)).not.toBeInTheDocument();
   });
@@ -88,12 +93,44 @@ describe("teacher preparation detail chrome", () => {
         isSubmitting={false}
         submitLabel="Submit for approval"
         submissionHint="Ready to submit"
+        showSaveDetails
+        canSaveDetails={false}
+        isSavingDetails={false}
         onSubmit={onSubmit}
+        onSaveDetails={vi.fn()}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Submit for approval" }));
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves the shared preparation draft from the header action", () => {
+    const onSaveDetails = vi.fn();
+    render(
+      <TeacherPreparationHeader
+        content={content}
+        locale="en"
+        academicYearName="2026/2027"
+        termName="Term 1"
+        targets={targets}
+        canSubmit={false}
+        showSubmit={false}
+        isSubmitting={false}
+        submitLabel="Submit for approval"
+        submissionHint=""
+        showSaveDetails
+        canSaveDetails
+        isSavingDetails={false}
+        onSubmit={vi.fn()}
+        onSaveDetails={onSaveDetails}
+        lifecycleActions={<button type="button">Archive</button>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save all changes" }));
+    expect(onSaveDetails).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeVisible();
   });
 
   it("supports accessible desktop and mobile section selection", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LayoutTemplate, Search } from "lucide-react";
+import { CheckCircle2, LayoutTemplate, Search } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { Button } from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -34,6 +34,9 @@ export default function PreparationTemplatePicker({
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [appliedTemplateName, setAppliedTemplateName] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
   const t = useAcademicContentTranslations("templates");
@@ -86,6 +89,7 @@ export default function PreparationTemplatePicker({
         return;
       }
       onApply(template);
+      setAppliedTemplateName(template.name);
       setIsOpen(false);
     } catch (applyError) {
       setError(academicContentUiError(applyError).message);
@@ -96,14 +100,33 @@ export default function PreparationTemplatePicker({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="secondary"
-        leftIcon={<LayoutTemplate aria-hidden="true" className="size-4" />}
-        onClick={() => setIsOpen(true)}
-      >
-        {t("apply")}
-      </Button>
+      <div className="space-y-3">
+        <Button
+          type="button"
+          variant="secondary"
+          leftIcon={<LayoutTemplate aria-hidden="true" className="size-4" />}
+          onClick={() => setIsOpen(true)}
+        >
+          {appliedTemplateName ? t("choose_another") : t("apply")}
+        </Button>
+        {appliedTemplateName && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800"
+          >
+            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+            <div className="min-w-0">
+              <p className="font-medium">
+                {t("applied_title", { name: appliedTemplateName })}
+              </p>
+              <p className="mt-1 text-sm text-green-700">
+                {t("applied_description")}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
       <Modal
         isOpen={isOpen}
         onClose={close}
@@ -116,6 +139,7 @@ export default function PreparationTemplatePicker({
         }
       >
         <div className="space-y-4">
+          <p className="text-sm text-gray-600">{t("picker_description")}</p>
           <Input
             label={t("search")}
             value={search}

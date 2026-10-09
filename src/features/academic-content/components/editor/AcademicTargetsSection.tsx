@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { validateTargetDraft } from "../../model/academicContentPolicy";
+import { broaderTargetIndices } from "../../model/academicContentTargetOverlap";
+import { academicContentUiError } from "../../services/academicContentErrors";
 import {
   hasDuplicateTargets,
   loadAcademicTargetOptions,
@@ -78,7 +80,8 @@ export default function AcademicTargetsSection({
   const [validationError, setValidationError] = useState<string | null>(null);
   const t = useAcademicContentTranslations("targets");
   const contentVersion = `${content.id}:${content.updatedAt}`;
-  const [syncedContentVersion, setSyncedContentVersion] = useState(contentVersion);
+  const [syncedContentVersion, setSyncedContentVersion] =
+    useState(contentVersion);
 
   if (
     options &&
@@ -113,7 +116,7 @@ export default function AcademicTargetsSection({
       })
       .catch((error: unknown) => {
         if (active) {
-          setLoadError(error instanceof Error ? error.message : t("options_unavailable"));
+          setLoadError(academicContentUiError(error).message);
         }
       })
       .finally(() => {
@@ -139,7 +142,10 @@ export default function AcademicTargetsSection({
       (target) => validateTargetDraft(target, content.type).length > 0,
     );
     if (invalidTargetIndex >= 0) {
-      const invalidFields = validateTargetDraft(targets[invalidTargetIndex], content.type);
+      const invalidFields = validateTargetDraft(
+        targets[invalidTargetIndex],
+        content.type,
+      );
       setValidationError(
         invalidFields.includes("subjectId")
           ? t("subject_required", { index: invalidTargetIndex + 1 })
@@ -193,12 +199,13 @@ export default function AcademicTargetsSection({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="targets-heading" className="text-lg font-semibold text-gray-900">
+          <h2
+            id="targets-heading"
+            className="text-lg font-semibold text-gray-900"
+          >
             {t("title")}
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            {t("description")}
-          </p>
+          <p className="mt-1 text-sm text-gray-500">{t("description")}</p>
         </div>
         {!disabled && (
           <Button
@@ -234,18 +241,32 @@ export default function AcademicTargetsSection({
               {t("empty")}
             </p>
           ) : null}
-          {rows.map((row, index) => (
-            <AcademicTargetCard
-              key={row.key}
-              row={row}
-              index={index}
-              options={options}
-              contentType={content.type}
-              disabled={disabled}
-              onUpdate={(update) => updateRow(row.key, update)}
-              onRemove={() => removeTarget(row.key)}
-            />
-          ))}
+          {rows.map((row, index) => {
+            const broaderIndices = broaderTargetIndices(row, rows, options);
+            return (
+              <AcademicTargetCard
+                key={row.key}
+                row={row}
+                index={index}
+                options={options}
+                contentType={content.type}
+                disabled={disabled}
+                overlapHint={
+                  broaderIndices.length > 0
+                    ? t("overlap_hint", {
+                        scopes: broaderIndices
+                          .map((broaderIndex) =>
+                            t("target", { index: broaderIndex + 1 }),
+                          )
+                          .join(" · "),
+                      })
+                    : undefined
+                }
+                onUpdate={(update) => updateRow(row.key, update)}
+                onRemove={() => removeTarget(row.key)}
+              />
+            );
+          })}
         </div>
       ) : null}
 

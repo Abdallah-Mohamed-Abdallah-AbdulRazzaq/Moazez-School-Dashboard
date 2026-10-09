@@ -10,7 +10,6 @@ import {
   LayoutTemplate,
   LibraryBig,
   Settings2,
-  ShieldCheck,
 } from "lucide-react";
 import { useLocale } from "next-intl";
 import Link from "next/link";
@@ -18,7 +17,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button/Button";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
+import { ACADEMIC_CONTENT_TYPES } from "../types/contracts";
 import AcademicContentOverviewHeader from "./overview/AcademicContentOverviewHeader";
+import { CONTENT_TYPE_PRESENTATION } from "./overview/contentTypePresentation";
+import { academicContentTypeHref } from "./overview/overviewRoutes";
 
 function contextQuery(
   searchParams: { get: (key: string) => string | null },
@@ -69,6 +71,7 @@ export default function AcademicContentShell({
   const searchParams = useSearchParams();
   const { hasPermission } = usePermissions();
   const t = useAcademicContentTranslations("shell");
+  const typeLabel = useAcademicContentTranslations("types");
   const rootPath = `/${locale}/academic-content-hub`;
   const libraryPath = `${rootPath}/library`;
   const selectedStatus = searchParams.get("contentStatus");
@@ -134,6 +137,28 @@ export default function AcademicContentShell({
               active={pathname === libraryPath && selectedStatus === status}
             />
           ))}
+          {ACADEMIC_CONTENT_TYPES.map((contentType) => {
+            const { icon } = CONTENT_TYPE_PRESENTATION[contentType];
+            const href = academicContentTypeHref({
+              locale,
+              contentType,
+              yearId: selectedYearId,
+              termId: selectedTermId,
+            });
+            const routePath = href.split("?")[0];
+
+            return (
+              <ShellNavLink
+                key={contentType}
+                icon={icon}
+                label={typeLabel(contentType)}
+                href={href}
+                active={
+                  pathname === routePath || pathname.startsWith(`${routePath}/`)
+                }
+              />
+            );
+          })}
           {canApprove ? (
             <ShellNavLink
               icon={ClipboardCheck}
@@ -151,14 +176,8 @@ export default function AcademicContentShell({
           <ShellNavLink
             icon={Settings2}
             label={t("settings")}
-            href={`${rootPath}/settings/file-policy${query}`}
-            active={pathname.startsWith(`${rootPath}/settings/file-policy`)}
-          />
-          <ShellNavLink
-            icon={ShieldCheck}
-            label={t("workflow_policy")}
-            href={`${rootPath}/settings/workflow${query}`}
-            active={pathname.startsWith(`${rootPath}/settings/workflow`)}
+            href={`${rootPath}/settings${query}`}
+            active={pathname.startsWith(`${rootPath}/settings`)}
           />
         </nav>
       </header>

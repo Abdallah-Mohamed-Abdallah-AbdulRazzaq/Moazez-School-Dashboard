@@ -2,12 +2,7 @@
 import React from "react";
 
 export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "outline"
-  | "ghost"
-  | "danger"
-  | "success";
+  "primary" | "secondary" | "outline" | "ghost" | "danger" | "success";
 
 export type ButtonSize = "sm" | "md" | "lg";
 
@@ -19,6 +14,40 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   children: React.ReactNode;
+}
+
+interface ButtonClassNameOptions {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  fullWidth?: boolean;
+  className?: string;
+}
+
+export function buttonClassName({
+  variant = "primary",
+  size = "md",
+  fullWidth = false,
+  className = "",
+}: ButtonClassNameOptions): string {
+  const baseStyles =
+    "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
+  const variantStyles: Record<ButtonVariant, string> = {
+    primary:
+      "bg-gradient-to-r from-primary to-hover hover:bg-hover text-white focus:ring-[var(--primary-color)]",
+    secondary:
+      "bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 focus:ring-gray-300",
+    outline:
+      "bg-transparent border-2 border-primary hover:bg-primary text-primary hover:text-white focus:ring-primary",
+    ghost: "bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-gray-300",
+    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
+    success: "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
+  };
+  const sizeStyles: Record<ButtonSize, string> = {
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-2.5 text-sm",
+    lg: "px-6 py-3 text-base",
+  };
+  return `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${fullWidth ? "w-full" : ""} ${className}`.trim();
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -37,33 +66,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const baseStyles =
-      "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
-
-    const variantStyles: Record<ButtonVariant, string> = {
-      primary:
-        "bg-gradient-to-r from-primary to-hover hover:bg-hover text-white focus:ring-[var(--primary-color)]",
-      secondary:
-        "bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 focus:ring-gray-300",
-      outline:
-        "bg-transparent border-2 border-primary hover:bg-primary text-primary hover:text-white focus:ring-primary",
-      ghost:
-        "bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-gray-300",
-      danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
-      success:
-        "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
-    };
-
-    const sizeStyles: Record<ButtonSize, string> = {
-      sm: "px-3 py-1.5 text-xs",
-      md: "px-4 py-2.5 text-sm",
-      lg: "px-6 py-3 text-base",
-    };
-
-    const widthStyle = fullWidth ? "w-full" : "";
-
-    const combinedClassName =
-      `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${widthStyle} ${className}`.trim();
+    const combinedClassName = buttonClassName({
+      variant,
+      size,
+      fullWidth,
+      className,
+    });
 
     return (
       <button

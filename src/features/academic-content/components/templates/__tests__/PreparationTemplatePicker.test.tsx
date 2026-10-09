@@ -85,6 +85,18 @@ describe("PreparationTemplatePicker", () => {
     });
     expect(api.get).toHaveBeenCalledWith("template-1");
     expect(onApply).toHaveBeenCalledWith(detail());
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Fractions preset applied",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Review the populated fields, then save type details to keep these changes.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Choose another template" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Fractions preset", { selector: "h3" }),
+    ).not.toBeInTheDocument();
   });
 
   it("closes without applying", async () => {

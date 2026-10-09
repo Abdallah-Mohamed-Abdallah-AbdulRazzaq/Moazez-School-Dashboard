@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCw, Save } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button/Button";
 import type { AcademicContentEditorSectionState } from "../../hooks/useAcademicContentEditor";
@@ -33,6 +33,7 @@ export default function TeacherPreparationReferencesPanel({
   onRetry,
 }: TeacherPreparationReferencesPanelProps) {
   const t = useAcademicContentTranslations("teacher_preparation_detail.references");
+  const detailsT = useAcademicContentTranslations("details");
   const locale = useLocale();
   const detail = controller.draft;
 
@@ -69,7 +70,7 @@ export default function TeacherPreparationReferencesPanel({
       <p className="mt-1 text-sm text-gray-500">{t("description")}</p>
       {hasUnavailableReference ? <p role="status" className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">{t("unavailable_selection")}</p> : null}
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <OptionalReferenceSelect label={t("curriculum")} value={availableValue(detail.curriculumId, options.curricula)} options={options.curricula.map((item) => ({ value: item.id, label: item.title }))} disabled={disabled} onChange={(value) => {
+        <OptionalReferenceSelect label={t("curriculum")} value={availableValue(detail.curriculumId, options.curricula)} options={options.curricula.map((item) => ({ value: item.id, label: item.title }))} disabled={disabled} helperText={detailsT("target_dependency_hint")} onChange={(value) => {
           controller.update("curriculumId", value);
           controller.update("curriculumUnitId", null);
           controller.update("curriculumLessonId", null);
@@ -81,21 +82,14 @@ export default function TeacherPreparationReferencesPanel({
           controller.update("curriculumLessonId", null);
         }} />
         <OptionalReferenceSelect label={t("curriculum_lesson")} value={availableValue(detail.curriculumLessonId, unit?.lessons ?? [])} options={(unit?.lessons ?? []).map((item) => ({ value: item.id, label: item.title }))} disabled={disabled || !detail.curriculumUnitId} onChange={(value) => controller.update("curriculumLessonId", value)} />
-        <OptionalReferenceSelect label={t("lesson_plan")} value={availableValue(detail.lessonPlanId, plans)} options={plans.map((item) => ({ value: item.id, label: item.title }))} disabled={disabled} onChange={(value) => {
+        <OptionalReferenceSelect label={t("lesson_plan")} value={availableValue(detail.lessonPlanId, plans)} options={plans.map((item) => ({ value: item.id, label: item.title }))} disabled={disabled} helperText={detailsT("target_dependency_hint")} onChange={(value) => {
           controller.update("lessonPlanId", value);
           controller.update("lessonPlanItemId", null);
         }} />
         <OptionalReferenceSelect label={t("lesson_plan_item")} value={availableValue(detail.lessonPlanItemId, plan?.items ?? [])} options={(plan?.items ?? []).map((item) => ({ value: item.id, label: item.title || item.lessonTitle }))} disabled={disabled || !detail.lessonPlanId} onChange={(value) => controller.update("lessonPlanItemId", value)} />
-        <OptionalReferenceSelect label={t("timetable_entry")} value={availableValue(detail.timetableEntryId, options.timetableEntries)} options={options.timetableEntries.map((item) => ({ value: item.id, label: `${locale === "ar" ? item.classroom.nameAr : item.classroom.nameEn} · ${item.subject ? (locale === "ar" ? item.subject.nameAr : item.subject.nameEn) : t("unassigned")} · ${item.period.label}` }))} disabled={disabled} onChange={(value) => controller.update("timetableEntryId", value)} />
+        <OptionalReferenceSelect label={t("timetable_entry")} value={availableValue(detail.timetableEntryId, options.timetableEntries)} options={options.timetableEntries.map((item) => ({ value: item.id, label: `${locale === "ar" ? item.classroom.nameAr : item.classroom.nameEn} · ${item.subject ? (locale === "ar" ? item.subject.nameAr : item.subject.nameEn) : t("unassigned")} · ${item.period.label}` }))} disabled={disabled} helperText={detailsT("target_dependency_hint")} onChange={(value) => controller.update("timetableEntryId", value)} />
       </div>
       {sectionState.error ? <p role="alert" className="mt-4 text-sm text-red-700">{sectionState.error.message}</p> : null}
-      {!disabled ? (
-        <div className="mt-5 flex justify-end">
-          <Button type="button" loading={sectionState.saving} disabled={!sectionState.dirty} leftIcon={<Save aria-hidden="true" className="size-4" />} onClick={() => void controller.save()}>
-            {t("save")}
-          </Button>
-        </div>
-      ) : null}
     </section>
   );
 }

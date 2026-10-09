@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { File as FileIcon, RefreshCw, Trash2, UploadCloud, X } from "lucide-react";
+import {
+  File as FileIcon,
+  RefreshCw,
+  Trash2,
+  UploadCloud,
+  X,
+} from "lucide-react";
+import { useLocale } from "next-intl";
 import AttachmentListItem from "@/components/ui/attachment-list-item/AttachmentListItem";
 import { Button } from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import { formatByteCount } from "../../model/academicContentPolicy";
-import {
-  getAcademicContentFilePolicy,
-  unlinkAcademicContentAsset,
-} from "../../services/academicContentApi";
+import { unlinkAcademicContentAsset } from "../../services/academicContentApi";
 import { academicContentUiError } from "../../services/academicContentErrors";
 import {
   ACADEMIC_CONTENT_FILE_ACCEPT,
@@ -17,18 +21,15 @@ import {
   uploadAcademicContentFile,
   validateAcademicContentFileAgainstPolicy,
 } from "../../services/academicContentUpload";
-import type {
-  AcademicContentAsset,
-  AcademicContentFilePolicy,
-} from "../../types/contracts";
+import type { AcademicContentAsset } from "../../types/contracts";
+import {
+  useAcademicContentFilePolicy,
+  type AcademicContentFilePolicyState,
+} from "../../hooks/useAcademicContentFilePolicy";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 type UploadState =
-  | "uploading"
-  | "completed"
-  | "cancelled"
-  | "error"
-  | "restart-required";
+  "uploading" | "completed" | "cancelled" | "error" | "restart-required";
 
 interface UploadQueueItem {
   key: string;
@@ -46,6 +47,8 @@ interface FilesSectionProps {
   variant?: "full" | "embedded";
   title?: string;
   description?: string;
+  policyState?: AcademicContentFilePolicyState;
+  showRecipientAccessPolicy?: boolean;
 }
 
 let queueKeySequence = 0;
@@ -63,31 +66,30 @@ export default function FilesSection({
   variant = "full",
   title,
   description,
+  policyState,
+  showRecipientAccessPolicy = false,
 }: FilesSectionProps) {
-  const [policy, setPolicy] = useState<AcademicContentFilePolicy | null>(null);
-  const [isPolicyLoading, setIsPolicyLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [queue, setQueue] = useState<UploadQueueItem[]>([]);
   const [unlinkingAssetId, setUnlinkingAssetId] = useState<string | null>(null);
   const controllers = useRef(new Map<string, AbortController>());
   const t = useAcademicContentTranslations("files");
+  const locale = useLocale();
+  const internalPolicyState = useAcademicContentFilePolicy(
+    policyState === undefined,
+  );
+  const effectivePolicyState = policyState ?? internalPolicyState;
+  const { policy, isLoading: isPolicyLoading } = effectivePolicyState;
+  const displayedError = error ?? effectivePolicyState.error?.message ?? null;
+  const dateFormatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 
   useEffect(() => {
-    let active = true;
     const activeControllers = controllers.current;
-    void getAcademicContentFilePolicy()
-      .then((loadedPolicy) => {
-        if (active) setPolicy(loadedPolicy);
-      })
-      .catch((loadError: unknown) => {
-        if (active) setError(academicContentUiError(loadError).message);
-      })
-      .finally(() => {
-        if (active) setIsPolicyLoading(false);
-      });
     return () => {
-      active = false;
       activeControllers.forEach((controller) => controller.abort());
       activeControllers.clear();
     };
@@ -95,7 +97,9 @@ export default function FilesSection({
 
   const updateQueueItem = (key: string, update: Partial<UploadQueueItem>) => {
     setQueue((currentQueue) =>
-      currentQueue.map((item) => (item.key === key ? { ...item, ...update } : item)),
+      currentQueue.map((item) =>
+        item.key === key ? { ...item, ...update } : item,
+      ),
     );
   };
 
@@ -130,15 +134,20 @@ export default function FilesSection({
       );
       setStatus(t("uploaded", { name: item.file.name }));
     } catch (uploadError) {
-      if (uploadError instanceof DOMException && uploadError.name === "AbortError") {
+      if (
+        uploadError instanceof DOMException &&
+        uploadError.name === "AbortError"
+      ) {
         updateQueueItem(item.key, {
           state: "cancelled",
           message: t("cancelled"),
         });
-      } else if (uploadError instanceof AcademicContentUploadRestartRequiredError) {
+      } else if (
+        uploadError instanceof AcademicContentUploadRestartRequiredError
+      ) {
         updateQueueItem(item.key, {
           state: "restart-required",
-          message: uploadError.message,
+          message: academicContentUiError(uploadError).message,
         });
       } else {
         updateQueueItem(item.key, {
@@ -214,12 +223,22 @@ export default function FilesSection({
         </p>
       </div>
 
-      {error && (
+      {displayedError && (
         <div
           role="alert"
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
-          {error}
+          <span>{displayedError}</span>
+          {!error && effectivePolicyState.error ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => void effectivePolicyState.reload()}
+            >
+              {t("retry_policy")}
+            </Button>
+          ) : null}
         </div>
       )}
       {status && (
@@ -239,11 +258,15 @@ export default function FilesSection({
             buttonLabel={t("choose")}
             helperText={
               policy
-                ? t("maximum", { size: formatByteCount(policy.maximumFileSizeBytes) })
+                ? t("maximum", {
+                    size: formatByteCount(policy.maximumFileSizeBytes),
+                  })
                 : t("loading_policy")
             }
             accept={ACADEMIC_CONTENT_FILE_ACCEPT}
-            maxSizeBytes={policy ? Number(policy.maximumFileSizeBytes) : undefined}
+            maxSizeBytes={
+              policy ? Number(policy.maximumFileSizeBytes) : undefined
+            }
             disabled={isPolicyLoading || !policy || !policy.attachmentsEnabled}
             isUploading={false}
             multiple
@@ -255,10 +278,15 @@ export default function FilesSection({
       {queue.length > 0 && (
         <div className="mt-5 space-y-3" aria-live="polite">
           {queue.map((item) => (
-            <div key={item.key} className="rounded-lg border border-gray-200 p-4">
+            <div
+              key={item.key}
+              className="rounded-lg border border-gray-200 p-4"
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-gray-900">{item.file.name}</p>
+                  <p className="truncate text-sm font-medium text-gray-900">
+                    {item.file.name}
+                  </p>
                   <p className="mt-1 text-xs text-gray-500">{item.message}</p>
                 </div>
                 {item.state === "uploading" ? (
@@ -276,7 +304,9 @@ export default function FilesSection({
                     type="button"
                     size="sm"
                     variant="secondary"
-                    leftIcon={<RefreshCw aria-hidden="true" className="size-4" />}
+                    leftIcon={
+                      <RefreshCw aria-hidden="true" className="size-4" />
+                    }
                     onClick={() => void startUpload(item)}
                   >
                     {t("retry_upload")}
@@ -312,9 +342,14 @@ export default function FilesSection({
             {assets.map((asset) => (
               <AttachmentListItem
                 key={asset.assetId}
-                icon={<FileIcon aria-hidden="true" className="size-5 text-primary" />}
+                icon={
+                  <FileIcon
+                    aria-hidden="true"
+                    className="size-5 text-primary"
+                  />
+                }
                 title={asset.originalName}
-                subtitle={`${asset.mimeType} · ${formatByteCount(asset.sizeBytes)}`}
+                subtitle={`${asset.mimeType} · ${formatByteCount(asset.sizeBytes)} · ${dateFormatter.format(new Date(asset.createdAt))}`}
                 disabled={unlinkingAssetId === asset.assetId}
                 actionsLabel={t("actions", { name: asset.originalName })}
                 actions={
@@ -323,7 +358,9 @@ export default function FilesSection({
                     : [
                         {
                           label: t("unlink"),
-                          icon: <Trash2 aria-hidden="true" className="size-4" />,
+                          icon: (
+                            <Trash2 aria-hidden="true" className="size-4" />
+                          ),
                           color: "error",
                           onClick: () => void unlink(asset),
                         },
@@ -334,6 +371,37 @@ export default function FilesSection({
           </div>
         )}
       </div>
+
+      {showRecipientAccessPolicy && policy ? (
+        <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h3 className="text-sm font-semibold text-gray-900">
+            {t("recipient_policy")}
+          </h3>
+          <ul className="mt-3 space-y-2 text-sm text-gray-700">
+            <li>
+              {t(
+                policy.allowStudentDownload
+                  ? "student_download_enabled"
+                  : "student_download_disabled",
+              )}
+            </li>
+            <li>
+              {t(
+                policy.allowGuardianDownload
+                  ? "guardian_download_enabled"
+                  : "guardian_download_disabled",
+              )}
+            </li>
+            <li>
+              {t(
+                policy.allowInlinePreview
+                  ? "inline_preview_enabled"
+                  : "inline_preview_disabled",
+              )}
+            </li>
+          </ul>
+        </div>
+      ) : null}
 
       <p className="mt-4 flex items-start gap-2 text-xs text-gray-500">
         <UploadCloud aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

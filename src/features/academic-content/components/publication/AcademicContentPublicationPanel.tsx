@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCw, Send } from "lucide-react";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button/Button";
+import { useToast } from "@/components/ui/toast/Toast";
 import { useAcademicContentPublication } from "../../hooks/useAcademicContentPublication";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
-import type { PublicationDraft } from "../../model/academicContentPublicationPolicy";
+import {
+  hasEligibleMinorUpdatePredecessor,
+  type PublicationDraft,
+} from "../../model/academicContentPublicationPolicy";
 import type { AcademicContentDetail } from "../../types/contracts";
+import { academicContentPublicationErrorTranslationKey } from "../../services/academicContentErrors";
 import AudiencePreviewCard from "./AudiencePreviewCard";
 import PublicationDetailModal from "./PublicationDetailModal";
 import PublicationDialog from "./PublicationDialog";
@@ -18,6 +23,7 @@ import PublicationStatusBadge from "./PublicationStatusBadge";
 interface AcademicContentPublicationPanelProps {
   content: AcademicContentDetail;
   canMutate: boolean;
+  canStartRevision: boolean;
   onContentChanged: () => Promise<unknown>;
 }
 
@@ -28,10 +34,12 @@ function isImmediatePublication(publishAt: string, createdAt: string): boolean {
 export default function AcademicContentPublicationPanel({
   content,
   canMutate,
+  canStartRevision,
   onContentChanged,
 }: AcademicContentPublicationPanelProps) {
   const locale = useLocale();
   const t = useAcademicContentTranslations("publication");
+  const { showError, showSuccess } = useToast();
   const publication = useAcademicContentPublication(
     content.id,
     onContentChanged,
@@ -49,7 +57,34 @@ export default function AcademicContentPublicationPanel({
 
   const submitPublication = async (draft: PublicationDraft) => {
     const createdPublication = await publication.create(draft);
-    if (createdPublication) setDialogMode(null);
+    if (!createdPublication) return;
+
+    setDialogMode(null);
+    showSuccess(
+      t(
+        draft.mode === "schedule"
+          ? "success.scheduled"
+          : "success.publish_started",
+      ),
+    );
+  };
+
+  const unschedulePublication = async (publicationId: string) => {
+    const result = await publication.unschedule(publicationId);
+    if (result) showSuccess(t("success.unscheduled"));
+    return result;
+  };
+
+  const cancelPublication = async (publicationId: string) => {
+    const result = await publication.cancel(publicationId);
+    if (result) showSuccess(t("success.withdrawn"));
+    return result;
+  };
+
+  const startPublicationRevision = async (publicationId: string) => {
+    const result = await publication.startRevision(publicationId);
+    if (result) showSuccess(t("success.revision_started"));
+    return result;
   };
 
   const closeDetail = () => {
@@ -61,6 +96,21 @@ export default function AcademicContentPublicationPanel({
   const isProcessing =
     tracked?.status === "SCHEDULED" &&
     isImmediatePublication(tracked.publishAt, tracked.createdAt);
+  const showMinorUpdateOption =
+    content.status === "DRAFT" &&
+    hasEligibleMinorUpdatePredecessor(publication.history?.items ?? []);
+  const mutationError = publication.errors.mutation;
+  const mutationErrorMessage = mutationError
+    ? t(
+        `errors.${academicContentPublicationErrorTranslationKey(
+          mutationError.code,
+        )}`,
+      )
+    : null;
+
+  useEffect(() => {
+    if (mutationErrorMessage) showError(mutationErrorMessage);
+  }, [mutationErrorMessage, showError]);
 
   return (
     <section id="publication" aria-labelledby="publication-heading" className="space-y-4">
@@ -122,12 +172,17 @@ export default function AcademicContentPublicationPanel({
           </div>
         ) : null}
 
-        {publication.errors.mutation ? (
+        {mutationErrorMessage ? (
           <div
             role="alert"
             className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           >
-            {publication.errors.mutation.message}
+            <p>{mutationErrorMessage}</p>
+            {mutationError?.traceId ? (
+              <p className="mt-1 text-xs text-red-600">
+                {t("errors.trace_id", { traceId: mutationError.traceId })}
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -153,22 +208,21 @@ export default function AcademicContentPublicationPanel({
         history={publication.history}
         error={publication.errors.history}
         canMutate={canMutate}
+        canStartRevision={canStartRevision}
         isMutating={publication.isMutating}
         onPageChange={publication.setHistoryPage}
         onRetry={() => void publication.reload()}
         onViewDetail={setSelectedPublicationId}
-        onUnschedule={publication.unschedule}
-        onCancel={publication.cancel}
-        onStartRevision={publication.startRevision}
+        onUnschedule={unschedulePublication}
+        onCancel={cancelPublication}
+        onStartRevision={startPublicationRevision}
       />
 
       <PublicationDialog
         isOpen={dialogMode !== null}
         mode={dialogMode ?? "now"}
         contentType={content.type}
-        showMinorUpdateOption={
-          content.latestPublicationId !== null && content.status === "DRAFT"
-        }
+        showMinorUpdateOption={showMinorUpdateOption}
         isMutating={publication.isMutating}
         onClose={() => setDialogMode(null)}
         onSubmit={(draft) => void submitPublication(draft)}

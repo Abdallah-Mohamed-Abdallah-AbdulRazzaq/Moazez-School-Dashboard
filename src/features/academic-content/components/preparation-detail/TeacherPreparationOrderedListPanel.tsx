@@ -1,7 +1,5 @@
 "use client";
 
-import { Save } from "lucide-react";
-import { Button } from "@/components/ui/button/Button";
 import type { AcademicContentEditorSectionState } from "../../hooks/useAcademicContentEditor";
 import type { TeacherPreparationDetailDraftController } from "../../hooks/useTeacherPreparationDetailDraft";
 import OrderedTextList from "../editor/details/OrderedTextList";
@@ -12,7 +10,6 @@ interface TeacherPreparationOrderedListPanelProps {
   title: string;
   description: string;
   itemLabel: string;
-  saveLabel: string;
   emptyItemError: string;
   field: OrderedField;
   controller: TeacherPreparationDetailDraftController;
@@ -24,7 +21,6 @@ export default function TeacherPreparationOrderedListPanel({
   title,
   description,
   itemLabel,
-  saveLabel,
   emptyItemError,
   field,
   controller,
@@ -53,19 +49,6 @@ export default function TeacherPreparationOrderedListPanel({
           onChange={updateValues}
         />
       </div>
-      {!disabled ? (
-        <div className="mt-5 flex justify-end">
-          <Button
-            type="button"
-            loading={sectionState.saving}
-            disabled={!sectionState.dirty}
-            leftIcon={<Save aria-hidden="true" className="size-4" />}
-            onClick={() => void controller.save()}
-          >
-            {saveLabel}
-          </Button>
-        </div>
-      ) : null}
     </section>
   );
 }

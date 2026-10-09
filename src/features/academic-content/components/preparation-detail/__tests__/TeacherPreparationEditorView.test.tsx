@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { AcademicContentDetail } from "../../../types/contracts";
 import TeacherPreparationEditorView from "../TeacherPreparationEditorView";
@@ -135,6 +135,9 @@ describe("TeacherPreparationEditorView", () => {
     expect(overview).toHaveTextContent("Key concepts");
     expect(overview).toHaveTextContent("Attachments");
     expect(overview).toHaveTextContent("fractions.pdf");
+    expect(
+      within(overview).getByRole("button", { name: "Apply template" }),
+    ).toBeVisible();
     expect(screen.getByRole("heading", { name: "Readiness" })).toBeVisible();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Objectives" })[0]);

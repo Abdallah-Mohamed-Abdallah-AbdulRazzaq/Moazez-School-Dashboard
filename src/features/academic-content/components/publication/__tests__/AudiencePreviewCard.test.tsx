@@ -22,6 +22,14 @@ describe("AudiencePreviewCard", () => {
     expect(values).toHaveLength(4);
     expect(screen.getByText(/current audience counts/i)).toBeInTheDocument();
     expect(screen.getByText(/Preview calculated at/i)).toBeInTheDocument();
+    expect(
+      screen.getByText("Guardian–student relationships"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /a guardian with several children may be counted more than once/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 

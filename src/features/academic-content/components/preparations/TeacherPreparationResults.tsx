@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button/Button";
 import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import Select from "@/components/ui/input/Select";
+import { RichTextContent } from "@/components/ui/rich-text-content";
 import type { academicContentUiError } from "../../services/academicContentErrors";
 import type { AcademicContentLibraryItem } from "../../types/contracts";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
@@ -82,7 +83,6 @@ export default function TeacherPreparationResults({
 
   const columns: Column<PreparationRow>[] = [
     { key: "title", label: t("columns.preparation"), searchable: true, render: (_, row) => <div className="min-w-48"><p className="font-semibold text-gray-950">{row.title}</p><p className="mt-1 text-xs text-gray-500">{topic(row)}</p></div> },
-    { key: "description", label: t("columns.description"), render: (description) => <p className="max-w-sm text-sm text-gray-600">{description ? String(description) : t("description_unavailable")}</p> },
     { key: "status", label: t("columns.status"), render: (_, row) => status(row) },
     { key: "updatedAt", label: t("columns.updated"), render: (updatedAt) => <time dateTime={String(updatedAt)}>{formatDate(String(updatedAt))}</time> },
     { key: "actions", label: t("columns.actions"), render: (_, row) => <Button data-row-action type="button" size="sm" variant="ghost" onClick={() => onOpen(row.id)}>{t("open")}</Button> },
@@ -99,7 +99,7 @@ export default function TeacherPreparationResults({
         {isLoading ? <div role="status" className="rounded-xl bg-white p-6 text-sm text-gray-500">{t("loading")}</div> : items.map((content) => (
           <article key={content.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="font-semibold text-gray-950">{content.title}</h2><p className="mt-1 text-xs text-gray-500">{topic(content)}</p></div>{status(content)}</div>
-            <p className="mt-3 text-sm text-gray-600">{content.description || t("description_unavailable")}</p>
+            {content.description ? <RichTextContent value={content.description} className="mt-3 text-sm text-gray-600" /> : <p className="mt-3 text-sm text-gray-600">{t("description_unavailable")}</p>}
             <div className="mt-4 flex items-center justify-between gap-3"><time dateTime={content.updatedAt} className="text-xs text-gray-500">{formatDate(content.updatedAt)}</time><Button size="sm" variant="ghost" onClick={() => onOpen(content.id)}>{t("open")}</Button></div>
           </article>
         ))}

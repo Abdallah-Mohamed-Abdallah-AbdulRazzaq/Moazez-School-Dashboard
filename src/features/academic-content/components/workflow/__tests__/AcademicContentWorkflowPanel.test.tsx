@@ -184,7 +184,9 @@ describe("AcademicContentWorkflowPanel", () => {
       />,
     );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Policy unavailable");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This action could not be completed. Try again; contact support if the problem continues.",
+    );
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.queryByText("Approval is not required.")).not.toBeInTheDocument();
   });

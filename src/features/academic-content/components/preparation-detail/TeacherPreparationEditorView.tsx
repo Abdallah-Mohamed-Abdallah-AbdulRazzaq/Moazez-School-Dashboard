@@ -171,15 +171,24 @@ export default function TeacherPreparationEditorView({
     if (activePanel === "resources") return <TeacherPreparationResources content={content} controller={controller} disabled={disabled} detailState={editor.sections.details} linksState={editor.sections.links} onLinksDirty={() => editor.markSectionDirty("links", true)} onSaveLinks={editor.saveLinks} onFilesChanged={refreshFiles} />;
     if (activePanel === "assessment" || activePanel === "teacherNotes") {
       const isAssessment = activePanel === "assessment";
-      return <TeacherPreparationNotesPanel title={t(`sections.${activePanel === "teacherNotes" ? "teacher_notes" : "assessment"}`)} description={t(`panels.${isAssessment ? "assessment_description" : "teacher_notes_description"}`)} fieldLabel={t(`sections.${isAssessment ? "assessment" : "teacher_notes"}`)} saveLabel={t(`panels.${isAssessment ? "save_assessment" : "save_teacher_notes"}`)} field={isAssessment ? "assessmentNotes" : "teacherNotes"} controller={controller} sectionState={editor.sections.details} disabled={disabled} />;
+      return <TeacherPreparationNotesPanel title={t(`sections.${activePanel === "teacherNotes" ? "teacher_notes" : "assessment"}`)} description={t(`panels.${isAssessment ? "assessment_description" : "teacher_notes_description"}`)} fieldLabel={t(`sections.${isAssessment ? "assessment" : "teacher_notes"}`)} field={isAssessment ? "assessmentNotes" : "teacherNotes"} controller={controller} sectionState={editor.sections.details} disabled={disabled} />;
     }
     if (activePanel === "references") return <TeacherPreparationReferencesPanel controller={controller} sectionState={editor.sections.details} options={detailOptions} disabled={disabled} isLoading={optionsLoading} loadError={optionsError} onRetry={() => setOptionsVersion((version) => version + 1)} />;
     if (activePanel === "readiness") return <ReadinessPanel readiness={editor.readiness} onRefresh={editor.refreshReadiness} />;
-    if (activePanel === "publication" && publicationAvailable) return <AcademicContentPublicationPanel content={content} canMutate={canPublish} onContentChanged={refreshFiles} />;
+    if (activePanel === "publication" && publicationAvailable) {
+      return (
+        <AcademicContentPublicationPanel
+          content={content}
+          canMutate={canPublish}
+          canStartRevision={canManage && canPublish}
+          onContentChanged={refreshFiles}
+        />
+      );
+    }
     if (activePanel === "revisions") return <RevisionHistoryPanel key={`${content.id}:${content.updatedAt}`} contentId={content.id} />;
     const orderedPanel = activePanel as "objectives" | "learningOutcomes" | "teachingStrategies" | "activities";
     const labelKey = orderedPanel === "learningOutcomes" ? "learning_outcomes" : orderedPanel === "teachingStrategies" ? "teaching_strategies" : orderedPanel;
-    return <TeacherPreparationOrderedListPanel title={t(`sections.${labelKey}`)} description={t(`panels.${labelKey}_description`)} itemLabel={t(`sections.${labelKey}`)} saveLabel={t("panels.save_section", { section: t(`sections.${labelKey}`).toLowerCase() })} emptyItemError={t("panels.empty_item")} field={orderedPanel} controller={controller} sectionState={editor.sections.details} disabled={disabled} />;
+    return <TeacherPreparationOrderedListPanel title={t(`sections.${labelKey}`)} description={t(`panels.${labelKey}_description`)} itemLabel={t(`sections.${labelKey}`)} emptyItemError={t("panels.empty_item")} field={orderedPanel} controller={controller} sectionState={editor.sections.details} disabled={disabled} />;
   })();
 
   return (
@@ -190,7 +199,7 @@ export default function TeacherPreparationEditorView({
           {editorT("read_only")}
         </div>
       ) : null}
-      <TeacherPreparationHeader content={content} locale={locale} academicYearName={academicYearName} termName={termName} targets={resolvedTargets} canSubmit={canSubmit} showSubmit={showSubmit} isSubmitting={workflow.isSubmitting} submitLabel={submitLabel} submissionHint={submissionHint} onSubmit={() => void workflow.submit().then((transition) => { if (transition) { editor.applyContentTransition(transition); void Promise.all([editor.refreshAggregate(), editor.refreshReadiness(), workflow.reload()]); } })} lifecycleActions={<LifecycleActions content={content} canManage={canManage} onChanged={onLifecycleChanged} onDeleted={onDeleted} />} />
+      <TeacherPreparationHeader content={content} locale={locale} academicYearName={academicYearName} termName={termName} targets={resolvedTargets} canSubmit={canSubmit} showSubmit={showSubmit} isSubmitting={workflow.isSubmitting} submitLabel={submitLabel} submissionHint={submissionHint} showSaveDetails={!disabled} canSaveDetails={editor.sections.details.dirty && !editor.sections.details.saving} isSavingDetails={editor.sections.details.saving} onSaveDetails={() => void controller.save()} onSubmit={() => void workflow.submit().then((transition) => { if (transition) { editor.applyContentTransition(transition); void Promise.all([editor.refreshAggregate(), editor.refreshReadiness(), workflow.reload()]); } })} lifecycleActions={<LifecycleActions content={content} canManage={canManage} onChanged={onLifecycleChanged} onDeleted={onDeleted} />} />
       <TeacherPreparationSectionNav variant="mobile" activePanel={activePanel} indicators={indicators} showPublication={publicationAvailable} onChange={setActivePanel} />
       <div className="grid min-w-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
         <div className="hidden lg:block"><TeacherPreparationSectionNav variant="desktop" activePanel={activePanel} indicators={indicators} showPublication={publicationAvailable} onChange={setActivePanel} /></div>

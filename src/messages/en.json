@@ -14288,6 +14288,13 @@
     "invalid": "Enter a valid phone number."
   },
   "academic_content": {
+    "announcement": {
+      "title": "Academic Content Hub",
+      "description": "Organize and manage your school's academic content in one place.",
+      "new": "New",
+      "explore": "Explore",
+      "dismiss": "Dismiss announcement"
+    },
     "common": {
       "retry": "Retry",
       "save": "Save",
@@ -14417,6 +14424,7 @@
       "all_teachers": "All teachers",
       "all_stages": "All stages",
       "all_grades": "All grades",
+      "all_sections": "All sections",
       "all_classrooms": "All classrooms",
       "all_subjects": "All subjects",
       "all_statuses": "All statuses",
@@ -14426,9 +14434,11 @@
         "teacher": "Teacher",
         "stage": "Stage",
         "grade": "Grade",
+        "section": "Section",
         "classroom": "Classroom",
         "subject": "Subject",
-        "status": "Status"
+        "status": "Status",
+        "tag": "Tag"
       },
       "columns": {
         "preparation": "Preparation / Topic",
@@ -14477,18 +14487,26 @@
       "last_updated": "Sorted by: Last updated",
       "all_stages": "All stages",
       "all_grades": "All grades",
+      "all_sections": "All sections",
       "all_classrooms": "All classrooms",
       "all_subjects": "All subjects",
+      "all_teachers": "All assigned teachers",
       "all_audiences": "All audiences",
       "all_statuses": "All statuses",
       "unavailable_name": "Name unavailable",
       "filters": {
         "stage": "Stage",
         "grade": "Grade",
+        "section": "Section",
         "classroom": "Classroom",
         "subject": "Subject",
+        "teacher": "Assigned teacher",
         "audience": "Audience",
-        "status": "Publication status"
+        "status": "Publication status",
+        "tag": "Tag",
+        "date_from": "Week overlaps from",
+        "date_to": "Week overlaps through",
+        "date_range": "Week range"
       },
       "audiences": {
         "INTERNAL_STAFF": "Internal staff",
@@ -14533,7 +14551,7 @@
         "resources": "Files and links",
         "readiness": "Readiness",
         "publication": "Publication",
-        "revisions": "Revision history"
+        "revisions": "Version history"
       },
       "preview": {
         "title": "Resource preview",
@@ -14568,7 +14586,7 @@
         "visible_until": "Visible until",
         "not_set": "Not set",
         "unavailable": "Unavailable",
-        "no_targets": "No academic targets",
+        "no_targets": "No content scope selected",
         "no_tags": "No tags",
         "no_links": "No links"
       }
@@ -14602,6 +14620,7 @@
       "grid_view": "Grid view",
       "all_stages": "All stages",
       "all_grades": "All grades",
+      "all_sections": "All sections",
       "all_classrooms": "All classrooms",
       "all_subjects": "All subjects",
       "all_categories": "All categories",
@@ -14613,12 +14632,14 @@
       "filters": {
         "stage": "Stage",
         "grade": "Grade",
+        "section": "Section",
         "classroom": "Classroom",
         "subject": "Subject",
         "category": "Resource category",
         "teacher": "Assigned teacher",
         "audience": "Audience",
-        "status": "Content status"
+        "status": "Content status",
+        "tag": "Tag"
       },
       "columns": {
         "resource": "Resource",
@@ -14638,6 +14659,280 @@
       "empty_description": "Create a subject resource for the selected academic context.",
       "filtered_empty_title": "No matching subject resources",
       "filtered_empty_description": "Change or clear the current filters to see more results."
+    },
+    "general_resource_detail": {
+      "workspace_label": "General resource workspace",
+      "sections_label": "General resource sections",
+      "sections": {
+        "overview": "Overview",
+        "targets": "Content scope",
+        "resources": "Resources",
+        "readiness": "Readiness",
+        "publication": "Publication",
+        "revisions": "Version history"
+      },
+      "header": {
+        "back": "Back to general resources",
+        "no_description": "No description",
+        "targets": "{count, plural, one {# scope} other {# scopes}}",
+        "attachments": "{count, plural, one {# attachment} other {# attachments}}"
+      },
+      "overview": {
+        "content_type": "Content type",
+        "academic_year": "Academic year",
+        "term": "Term"
+      },
+      "context": {
+        "rail_label": "General resource context",
+        "readiness": "Readiness",
+        "refresh": "Refresh",
+        "ready": "Ready to advance",
+        "blocked": "Needs attention",
+        "unavailable": "Unavailable",
+        "targets": "Content scope",
+        "no_targets": "No content scope selected",
+        "tags": "Tags",
+        "no_tags": "No tags",
+        "publication": "Publication",
+        "not_published": "Not published",
+        "publish_at": "Publication time",
+        "visible_from": "Visible from",
+        "visible_until": "Visible until",
+        "audit": "Audit dates",
+        "created": "Created",
+        "updated": "Last updated",
+        "resources": "Resource access",
+        "asset_count": "{count, plural, one {# attachment} other {# attachments}}",
+        "link_count": "{count, plural, one {# link} other {# links}}",
+        "policy_loading": "Loading file policy…",
+        "policy_unavailable": "File policy unavailable",
+        "retry_policy": "Retry policy",
+        "student_download_enabled": "Student downloads enabled",
+        "student_download_disabled": "Student downloads disabled",
+        "guardian_download_enabled": "Guardian downloads enabled",
+        "guardian_download_disabled": "Guardian downloads disabled",
+        "inline_preview_enabled": "Inline preview enabled",
+        "inline_preview_disabled": "Inline preview disabled"
+      }
+    },
+    "general_resources": {
+      "title": "General Resources",
+      "description": "Organize and share school-wide academic files, references, policies, and supporting material.",
+      "new_resource": "New general resource",
+      "retry": "Retry",
+      "loading": "Loading general resources…",
+      "previous_page": "Previous general resources page",
+      "next_page": "Next general resources page",
+      "page_size": "General resources per page",
+      "breadcrumb": {
+        "overview": "Academic Content Center"
+      },
+      "stats": {
+        "label": "General resource summary",
+        "total": "Total resources",
+        "pageItems": "Resources on this page",
+        "publishedOnPage": "Published on this page",
+        "audiencesOnPage": "Audiences on this page"
+      },
+      "search": "Search by title, description, or tag",
+      "show_filters": "Show filters",
+      "hide_filters": "Hide filters",
+      "clear_filters": "Clear all",
+      "remove_filter": "Remove {label}",
+      "results": "{count} general resources found",
+      "last_updated": "Sorted by: Last updated",
+      "view_options": "General resource view options",
+      "table_view": "Table view",
+      "grid_view": "Grid view",
+      "all_stages": "All stages",
+      "all_grades": "All grades",
+      "all_sections": "All sections",
+      "all_classrooms": "All classrooms",
+      "all_subjects": "All subjects",
+      "all_teachers": "All assigned teachers",
+      "all_audiences": "All audiences",
+      "all_statuses": "All statuses",
+      "unavailable_name": "Name unavailable",
+      "filters": {
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "subject": "Subject",
+        "teacher": "Assigned teacher",
+        "audience": "Audience",
+        "status": "Content status",
+        "tag": "Tag"
+      },
+      "columns": {
+        "resource": "Resource",
+        "audience": "Audience",
+        "status": "Content status",
+        "updated": "Last updated",
+        "actions": "Actions"
+      },
+      "actions": {
+        "open_menu": "Open general resource actions",
+        "open": "Open resource"
+      },
+      "description_unavailable": "No description",
+      "unavailable_title": "General resources unavailable",
+      "empty_title": "No general resources yet",
+      "empty_description": "Create a general resource for the selected academic context.",
+      "filtered_empty_title": "No matching general resources",
+      "filtered_empty_description": "Change or clear the current filters to see more results."
+    },
+    "online_sessions": {
+      "title": "Online Sessions",
+      "description": "Create, manage, and schedule online classes, meetings, and live learning sessions.",
+      "new_session": "New online session",
+      "retry": "Retry",
+      "loading": "Loading online sessions…",
+      "previous_page": "Previous online sessions page",
+      "next_page": "Next online sessions page",
+      "page_size": "Online sessions per page",
+      "breadcrumb": { "overview": "Academic Content Center" },
+      "stats": {
+        "label": "Online session summary",
+        "total": "Total sessions",
+        "upcomingOnPage": "Upcoming on this page",
+        "liveOnPage": "Live on this page",
+        "endedOnPage": "Ended on this page",
+        "draftOnPage": "Drafts on this page"
+      },
+      "search": "Search by title, description, or tag",
+      "show_filters": "Show filters",
+      "hide_filters": "Hide filters",
+      "clear_filters": "Clear all",
+      "remove_filter": "Remove {label}",
+      "results": "{count} online sessions found",
+      "last_updated": "Sorted by: Last updated",
+      "all_stages": "All stages",
+      "all_grades": "All grades",
+      "all_sections": "All sections",
+      "all_classrooms": "All classrooms",
+      "all_subjects": "All subjects",
+      "all_teachers": "All assigned teachers",
+      "all_platforms": "All platforms",
+      "all_audiences": "All audiences",
+      "all_statuses": "All statuses",
+      "unavailable_name": "Name unavailable",
+      "unavailable": "Unavailable",
+      "incomplete_setup": "Incomplete setup",
+      "duration_minutes": "{minutes} min",
+      "duration_hours": "{hours} hr {minutes} min",
+      "filters": {
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "subject": "Subject",
+        "teacher": "Assigned teacher",
+        "platform": "Platform",
+        "audience": "Audience",
+        "status": "Content status",
+        "date_from": "Starts from",
+        "date_to": "Starts through",
+        "quick_dates": "Quick date filters",
+        "tag": "Tag"
+      },
+      "date_presets": {
+        "today": "Starts today",
+        "tomorrow": "Tomorrow",
+        "next7Days": "Next 7 days",
+        "custom": "Custom dates"
+      },
+      "temporal": {
+        "incomplete": "Incomplete",
+        "live": "Live now",
+        "upcoming": "Upcoming",
+        "ended": "Ended"
+      },
+      "columns": {
+        "session": "Session",
+        "platform": "Platform",
+        "date_time": "Date, time & duration",
+        "audience": "Audience",
+        "time_state": "Timing",
+        "status": "Content status",
+        "actions": "Actions"
+      },
+      "actions": {
+        "open_menu": "Open online session actions",
+        "open": "Open session"
+      },
+      "description_unavailable": "No description",
+      "unavailable_title": "Online sessions unavailable",
+      "empty_title": "No online sessions yet",
+      "empty_description": "Create an online session for the selected academic context.",
+      "filtered_empty_title": "No matching online sessions",
+      "filtered_empty_description": "Change or clear the current filters to see more results."
+    },
+    "online_session_detail": {
+      "workspace_label": "Online session meeting lobby",
+      "breadcrumb_label": "Online session breadcrumb",
+      "content_center": "Academic Content Center",
+      "online_sessions": "Online Sessions",
+      "back": "Back to online sessions",
+      "edit": "Edit session",
+      "back_to_lobby": "Back to meeting lobby",
+      "join_session": "Join session",
+      "join_session_named": "Join {title}",
+      "meeting_link_unavailable": "Meeting link unavailable",
+      "incomplete_title": "Meeting setup is incomplete",
+      "incomplete_description": "Add the meeting platform, secure link, schedule, and timezone before using this lobby.",
+      "duration_minutes": "{minutes} min",
+      "starts_in": "Starts in {minutes} minutes",
+      "access_code": "Access code",
+      "copy_access_code": "Copy access code",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copied_announcement": "Access code copied",
+      "copy_failed": "The access code could not be copied.",
+      "about_session": "About this session",
+      "instructions": "Meeting instructions",
+      "target_audience": "Target audience",
+      "no_targets": "No content scope selected",
+      "schedule": "Meeting schedule",
+      "starts_at": "Starts",
+      "ends_at": "Ends",
+      "duration": "Duration",
+      "timezone": "Timezone",
+      "timetable_reference": "Timetable reference",
+      "reference_unavailable": "The saved timetable reference is unavailable.",
+      "resources": "Meeting resources",
+      "materials": "Meeting materials",
+      "related_links": "Related links",
+      "tags": "Tags",
+      "download": "Download",
+      "download_named": "Download {name}",
+      "context_label": "Meeting context",
+      "status": "Meeting status",
+      "readiness": "Readiness",
+      "ready": "Ready to advance",
+      "not_ready": "Content is not ready",
+      "readiness_unavailable": "Readiness is unavailable",
+      "dates": "Publication and audit dates",
+      "publish_at": "Publish at",
+      "visible_from": "Visible from",
+      "visible_until": "Visible until",
+      "created": "Created",
+      "updated": "Last updated",
+      "not_set": "Not set",
+      "options_unavailable": "Meeting references are unavailable.",
+      "retry_references": "Retry references",
+      "read_only": "This session is read-only in its current status.",
+      "states": {
+        "upcoming": "Upcoming",
+        "live": "Live now",
+        "ended": "Ended"
+      },
+      "management": {
+        "label": "Management and history",
+        "readiness": "Readiness",
+        "publication": "Publication",
+        "revisions": "Version history"
+      }
     },
     "guardian_notes": {
       "title": "Guardian Notes",
@@ -14670,8 +14965,10 @@
       "grid_view": "Grid view",
       "all_stages": "All stages",
       "all_grades": "All grades",
+      "all_sections": "All sections",
       "all_classrooms": "All classrooms",
       "all_subjects": "All subjects",
+      "all_teachers": "All assigned teachers",
       "all_priorities": "All priorities",
       "all_statuses": "All statuses",
       "unavailable_name": "Name unavailable",
@@ -14680,10 +14977,13 @@
       "filters": {
         "stage": "Stage",
         "grade": "Grade",
+        "section": "Section",
         "classroom": "Classroom",
         "subject": "Subject",
+        "teacher": "Assigned teacher",
         "priority": "Priority",
-        "status": "Content status"
+        "status": "Content status",
+        "tag": "Tag"
       },
       "priorities": {
         "NORMAL": "Normal",
@@ -14722,6 +15022,7 @@
       "assigned_teacher": "Assigned teacher: {name}",
       "assigned_teachers_count": "{count} assigned teachers",
       "assigned_teacher_unavailable": "Assigned teacher unavailable",
+      "save_all": "Save all changes",
       "overview": {
         "topic": "Lesson topic",
         "save_topic": "Save topic",
@@ -14789,7 +15090,7 @@
       },
       "sections": {
         "overview": "Overview",
-        "targets": "Targets",
+        "targets": "Content scope",
         "objectives": "Objectives",
         "learning_outcomes": "Learning outcomes",
         "teaching_strategies": "Teaching strategies",
@@ -14800,7 +15101,7 @@
         "references": "Academic references",
         "readiness": "Readiness",
         "publication": "Publication",
-        "revisions": "Revision history"
+        "revisions": "Version history"
       }
     },
     "types": {
@@ -14812,7 +15113,7 @@
       "GENERAL_RESOURCE": "General resource"
     },
     "audiences": {
-      "INTERNAL_STAFF": "Internal staff",
+      "INTERNAL_STAFF": "School staff",
       "STUDENTS": "Students",
       "GUARDIANS": "Guardians",
       "STUDENTS_AND_GUARDIANS": "Students and guardians"
@@ -14932,6 +15233,95 @@
       "unavailable_title": "Workflow policy unavailable",
       "unavailable_message": "The workflow policy could not be loaded."
     },
+    "settings_hub": {
+      "title": "Academic content settings",
+      "description": "Manage file access, approval workflow, and notification behavior.",
+      "file_policy": {
+        "title": "File policy",
+        "description": "Configure allowed file types, size limits, downloads, and previews.",
+        "open": "Open file policy"
+      },
+      "workflow": {
+        "title": "Approval workflow",
+        "description": "Control whether teacher preparations require approval.",
+        "open": "Open workflow policy"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Choose recipients, content events, and online-session reminders.",
+        "open": "Open notification policy"
+      }
+    },
+    "notification_policy": {
+      "title": "Notification policy",
+      "description": "Control academic-content notifications and online-session reminder timing.",
+      "save": "Save notification policy",
+      "saved": "Notification policy saved.",
+      "read_only": "You can view this policy, but only settings managers can change it.",
+      "retry": "Retry",
+      "unavailable_title": "Notification policy unavailable",
+      "unavailable_message": "The notification policy could not be loaded.",
+      "groups": {
+        "delivery": "Delivery and recipients",
+        "content_types": "Content types",
+        "events": "Events and reminders"
+      },
+      "fields": {
+        "notificationsEnabled": {
+          "label": "Academic-content notifications",
+          "description": "Master switch for all notifications in this feature."
+        },
+        "studentNotificationsEnabled": {
+          "label": "Student notifications",
+          "description": "Allow delivery to students."
+        },
+        "guardianNotificationsEnabled": {
+          "label": "Guardian notifications",
+          "description": "Allow delivery to guardians."
+        },
+        "weeklyPlanNotificationsEnabled": {
+          "label": "Weekly plan notifications",
+          "description": "Notify recipients about weekly plans."
+        },
+        "guardianWeeklyNoteNotificationsEnabled": {
+          "label": "Guardian note notifications",
+          "description": "Notify guardians about weekly notes."
+        },
+        "subjectResourceNotificationsEnabled": {
+          "label": "Subject resource notifications",
+          "description": "Notify recipients about subject resources."
+        },
+        "onlineSessionNotificationsEnabled": {
+          "label": "Online session notifications",
+          "description": "Notify recipients about online sessions."
+        },
+        "generalResourceNotificationsEnabled": {
+          "label": "General resource notifications",
+          "description": "Notify recipients about general resources."
+        },
+        "significantUpdateNotificationsEnabled": {
+          "label": "Significant update notifications",
+          "description": "Notify recipients when published content changes significantly."
+        },
+        "cancellationNotificationsEnabled": {
+          "label": "Cancellation notifications",
+          "description": "Notify recipients when scheduled content is cancelled."
+        },
+        "onlineSessionRemindersEnabled": {
+          "label": "Online session reminders",
+          "description": "Send reminders before online sessions start."
+        }
+      },
+      "offsets": {
+        "label": "Reminder offsets in minutes",
+        "help": "Enter up to five comma-separated values from 5 to 10080 minutes."
+      },
+      "offset_errors": {
+        "invalid": "Use comma-separated whole numbers only.",
+        "range": "Each reminder must be between 5 and 10080 minutes.",
+        "too_many": "Add no more than five unique reminder offsets."
+      }
+    },
     "workflow": {
       "title": "Approval workflow",
       "description": "Submit teacher preparation for review and follow every approval round.",
@@ -14985,21 +15375,21 @@
       "round": "Round {round}",
       "target_count": "{count, plural, =0 {No targets} one {# target} other {# targets}}",
       "decision_title": "Review decision",
-      "reviewing_revision": "Reviewing submitted revision {id}",
+      "reviewing_revision": "Reviewing submitted version {id}",
       "change_note": "Change request note",
       "request_changes": "Request changes",
       "approve": "Approve",
       "note_required": "Enter a note before requesting changes.",
       "note_too_long": "The note cannot exceed 4000 characters.",
-      "stale_decision": "This review is stale because the server decided a different revision.",
-      "revision_mismatch": "The loaded snapshot does not match the requested revision.",
+      "stale_decision": "The displayed information is out of date. Refresh the page to see the latest decision.",
+      "revision_mismatch": "The submitted version could not be displayed. Refresh the page and try again.",
       "revision_unavailable": "Submitted revision unavailable",
-      "detail_eyebrow": "Immutable submitted snapshot",
-      "detail_title": "Review revision {number}",
+      "detail_eyebrow": "Submitted version · Read-only",
+      "detail_title": "Review version {number}",
       "detail_description": "Inspect the exact submitted content and its academic scope before recording your decision.",
       "back_to_queue": "Back to review queue",
       "decision_description": "Approve this submission or return it to the author with a clear change request.",
-      "reviewing_revision_number": "Reviewing revision {number}",
+      "reviewing_revision_number": "Reviewing version {number}",
       "note_help": "Required only when requesting changes.",
       "filters": {
         "stage": "Stage",
@@ -15014,7 +15404,7 @@
         "round": "Approval round",
         "submitted": "Submitted",
         "submitted_by": "Submitted by",
-        "targets": "Targets"
+        "targets": "Content scope"
       }
     },
     "templates": {
@@ -15030,6 +15420,7 @@
       "subject": "Subject",
       "all_stages": "All stages",
       "all_subjects": "All subjects",
+      "unavailable_selection": "Unavailable selection",
       "options_load_error": "Template filters could not be loaded",
       "name_unavailable": "Name unavailable",
       "new": "New template",
@@ -15109,14 +15500,14 @@
       },
       "sections": {
         "metadata": "Basic information",
-        "targets": "Targets",
+        "targets": "Content scope",
         "details": "Type details",
         "links": "Links",
         "tags": "Tags",
         "files": "Files",
         "readiness": "Readiness",
         "publication": "Publication",
-        "revisions": "Revisions"
+        "revisions": "Versions"
       }
     },
     "metadata": {
@@ -15130,18 +15521,18 @@
       "title_required": "Title is required"
     },
     "targets": {
-      "title": "Academic targets",
-      "description": "Each card is an alternative (OR). Values inside a card apply together (AND).",
-      "add": "Add target",
-      "empty": "No academic targets. Add one or save the empty target set.",
+      "title": "Content scope",
+      "description": "Choose the grades, classrooms, or subjects this content applies to. Matching any one scope is enough.",
+      "add": "Add scope",
+      "empty": "No content scope selected yet.",
       "loading": "Loading academic options…",
-      "save": "Save targets",
-      "options_unavailable": "Target options unavailable",
-      "duplicate": "Duplicate targets are not allowed.",
-      "teacher_unavailable": "Target {index}: Teacher allocation is unavailable.",
-      "subject_required": "Target {index}: Subject is required.",
-      "hierarchy_required": "Target {index}: Choose the required hierarchy value.",
-      "remove": "Remove target {index}",
+      "save": "Save scope",
+      "options_unavailable": "Scope options could not be loaded",
+      "duplicate": "This scope is already added. Choose a different scope.",
+      "teacher_unavailable": "Scope {index}: The teacher assignment is unavailable. Choose another assignment.",
+      "subject_required": "Scope {index}: Choose a subject.",
+      "hierarchy_required": "Scope {index}: Complete the required stage, grade, or classroom selection.",
+      "remove": "Remove scope {index}",
       "scope": "Scope",
       "stage": "Stage",
       "grade": "Grade",
@@ -15151,15 +15542,28 @@
       "teacher_allocation": "Teacher allocation",
       "whole_school": "Whole school",
       "not_required": "Not required",
-      "target": "Target {index}",
-      "alternative": "Alternative target",
+      "target": "Scope {index}",
+      "alternative": "Additional scope",
       "or": "OR",
       "optional": "{label} (optional)",
       "no_subject": "No subject",
       "no_teacher_allocation": "No teacher allocation",
-      "teacher_assignment": "Teacher assignment {id}",
-      "unavailable_value": "Unavailable ({id})",
-      "and_hint": "The hierarchy and subject in this card are combined with AND."
+      "teacher_unavailable_label": "Unavailable teacher",
+      "unavailable_value": "Unavailable selection",
+      "and_hint": "All selections within this card must match.",
+      "includes_any": "Content includes anyone matching any of these scopes",
+      "summary_incomplete": "Complete the content scope",
+      "choose_option": "Choose an option",
+      "no_options": "No options available for this scope",
+      "no_results": "No matching options",
+      "scope_hint": "Choose how broadly this content applies.",
+      "select_stage_first": "Choose a stage first to see its grades.",
+      "select_grade_first": "Choose a grade first to see its sections.",
+      "select_section_first": "Choose a section first to see its classrooms.",
+      "subject_dependency": "Choose the {scope} first to see available subjects.",
+      "teacher_dependency": "Choose a classroom and subject first to see teacher assignments.",
+      "teacher_assignment_hint": "Links content to a teacher's classroom–subject assignment; it does not restrict recipients to that teacher.",
+      "overlap_hint": "This scope may overlap with the broader {scopes}. You can keep both; this warning does not prevent saving."
     },
     "details": {
       "save": "Save type details",
@@ -15167,15 +15571,16 @@
       "loading_references": "Loading academic references…",
       "retry_references": "Retry references",
       "no_references": "No matching references are available.",
+      "target_dependency_hint": "These options depend on the saved content scope. Select the scope and save your changes first to see matching options.",
       "none_selected": "None selected",
       "no_reference": "No {label}",
-      "unavailable_reference": "Unavailable ({id})",
+      "unavailable_reference": "Unavailable reference",
       "add_item": "Add {label}",
       "move_up": "Move {label} {index} up",
       "move_down": "Move {label} {index} down",
       "remove_item": "Remove {label} {index}",
       "general_title": "General resource",
-      "general_description": "General resources have no type-specific detail payload. Use basic information, targets, files, links, and tags to complete this resource.",
+      "general_description": "Complete the resource information and scope, and add files, links, and tags as needed.",
       "preparation_title": "Teacher preparation",
       "preparation_description": "Capture the instructional plan and optional academic references.",
       "weekly_title": "Weekly plan",
@@ -15186,6 +15591,7 @@
       "resource_description": "The resource category is separate from any attached file type.",
       "session_title": "Online session",
       "session_description": "Configure the meeting only; attendance actions are not part of this workspace.",
+      "open_platform": "Open {platform}",
       "empty_items": "Remove or complete empty list items before saving.",
       "date_order": "Choose an ordered start and end date.",
       "term_bounds": "The week must stay inside the selected term.",
@@ -15250,7 +15656,7 @@
     },
     "tags": {
       "title": "Tags",
-      "description": "Add up to 100 ordered tags. The server applies canonical normalization.",
+      "description": "Add up to 100 tags to organize content and make it easier to find.",
       "add": "Add tag",
       "empty": "No tags have been added.",
       "save": "Save tags",
@@ -15282,16 +15688,30 @@
       "empty": "No files are attached.",
       "unlink": "Unlink",
       "actions": "Actions for {name}",
+      "recipient_policy": "Recipient access policy",
+      "student_download_enabled": "Student downloads enabled",
+      "student_download_disabled": "Student downloads disabled",
+      "guardian_download_enabled": "Guardian downloads enabled",
+      "guardian_download_disabled": "Guardian downloads disabled",
+      "inline_preview_enabled": "Inline preview enabled",
+      "inline_preview_disabled": "Inline preview disabled",
+      "retry_policy": "Retry policy",
       "unlink_notice": "Unlinking removes the asset from this content; it does not claim immediate physical file deletion."
     },
     "readiness": {
+      "details": {
+        "missing_count": "Missing information count",
+        "fields": "Fields to complete",
+        "retryable": "Can try again"
+      },
       "title": "Readiness",
-      "description": "Server-authoritative checks for whether this content can advance.",
+      "description": "Check the required information before continuing.",
       "refresh": "Refresh readiness",
       "ready": "Ready",
       "incomplete": "Incomplete",
       "unavailable": "Readiness unavailable",
       "reasons": {
+        "unknown": "Content readiness could not be confirmed. Refresh the data; contact support if the problem continues.",
         "read_only": "This content is read-only.",
         "title_invalid": "Add a title before continuing.",
         "academic_year_missing": "The academic year is unavailable.",
@@ -15299,31 +15719,31 @@
         "term_year_mismatch": "The term does not belong to this academic year.",
         "term_closed": "The term is closed and cannot be edited.",
         "audience_invalid": "The selected audience is not available for this content type.",
-        "targets_missing": "Add at least one academic target.",
-        "subject_target_missing": "Select a subject for every academic target.",
+        "targets_missing": "Select at least one content scope.",
+        "subject_target_missing": "Choose a subject for each content scope.",
         "type_detail_missing": "Complete the required type details."
       }
     },
     "revisions": {
-      "title": "Revision history",
-      "description": "Open immutable snapshots captured by the backend.",
-      "empty": "No revisions have been captured.",
-      "open": "Open revision {number}",
-      "summary": "Revision {number} · Snapshot v{version}",
+      "title": "Version history",
+      "description": "Browse previously saved versions. These versions are read-only.",
+      "empty": "No saved versions yet.",
+      "open": "Open version {number}",
+      "summary": "Version {number} · Save format v{version}",
       "page": "Page {page} of {total}",
-      "previous_page": "Previous revisions page",
-      "next_page": "Next revisions page",
-      "modal_title": "Revision snapshot",
-      "modal_number": "Revision {number}",
-      "immutable": "Immutable historical snapshot · Snapshot contract v{version}",
-      "mismatch": "The revision response did not match the requested snapshot.",
+      "previous_page": "Previous versions page",
+      "next_page": "Next versions page",
+      "modal_title": "Saved version",
+      "modal_number": "Version {number}",
+      "immutable": "Saved, read-only version · Save format v{version}",
+      "mismatch": "The requested version could not be displayed. Refresh the page and try again.",
       "overview": "Submission overview",
       "type_details": "Type details",
-      "no_details": "No type-specific details in this snapshot.",
-      "targets": "Targets",
-      "no_targets": "No historical targets.",
-      "target_context_loading": "Loading target names…",
-      "target_context_unavailable": "Some target names are currently unavailable. The submitted scope is still preserved.",
+      "no_details": "No additional details in this version.",
+      "targets": "Content scope",
+      "no_targets": "No scope was selected in this version.",
+      "target_context_loading": "Loading content scope names…",
+      "target_context_unavailable": "Some scope names are currently unavailable. The original selections are still saved in this version.",
       "context_unavailable": "Unavailable",
       "yes": "Yes",
       "no": "No",
@@ -15336,10 +15756,10 @@
       "field_title": "Title",
       "field_type": "Type",
       "field_audience": "Audience",
-      "field_source_status": "Source status",
+      "field_source_status": "Content status when saved",
       "field_academic_year": "Academic year",
       "field_term": "Term",
-      "field_captured_at": "Captured at",
+      "field_captured_at": "Version saved at",
       "description_label": "Description"
     },
     "lifecycle": {
@@ -15350,7 +15770,7 @@
       "archive_description": "Archive this draft and make its editor read-only? Unsaved local changes are not included.",
       "archive_confirm": "Confirm archive",
       "restore_title": "Restore academic content",
-      "restore_description": "Restore this archived content to a draft? The backend will verify eligibility.",
+      "restore_description": "Restore this archived content to a draft? Restoration is available only when the content is eligible.",
       "restore_confirm": "Confirm restore",
       "delete_title": "Delete draft",
       "delete_description": "Permanently delete this draft? This action cannot be undone.",
@@ -15358,10 +15778,11 @@
       "delete_failed": "The draft was not deleted."
     },
     "publication": {
+      "audience_counts_note": "Each guardian's relationship with an enrolled student is counted separately, so a guardian with several children may be counted more than once. The account count includes each user only once.",
       "title": "Publication",
       "description": "Publish this content now or schedule when it becomes available to its external audience.",
       "readiness_title": "Publication readiness",
-      "readiness_description": "The backend evaluates whether publishing now and scheduling are currently available.",
+      "readiness_description": "Check whether this content can be published now or scheduled for later.",
       "publish_available": "Ready to publish now",
       "schedule_available": "Ready to schedule",
       "publish_unavailable": "Publish now is unavailable",
@@ -15379,44 +15800,62 @@
       "submit_publish": "Start publishing",
       "submit_schedule": "Schedule publication",
       "notify_minor_update": "Notify the audience about this minor update",
-      "notify_minor_update_description": "Minor revisions are silent by default. Enable this only when recipients should be notified.",
+      "notify_minor_update_description": "Minor changes do not send notifications by default. Enable this option to notify recipients.",
+      "revision_publish_rule_title": "Save a meaningful change before publishing",
+      "revision_publish_rule_description": "The new version must differ from the previous published version. Changes to the title, description, tags, audience, content scope, files, links, or details count. Changing publication or visibility times alone is not enough.",
+      "revision_publish_rule_save_hint": "Click Save all changes at the top of the page before continuing.",
       "processing": "Publication is being processed. Final success appears only after the status becomes Published.",
       "scheduled_for": "Scheduled for {date}",
       "poll_timeout": "Automatic status checks stopped before a final status was available. Refresh to check again.",
       "refresh": "Refresh publication data",
       "retry": "Try again",
       "history_title": "Publication history",
-      "history_description": "Review immutable publication attempts and their historical audience counts.",
+      "history_description": "Browse previous publication attempts and the recipient counts recorded at publication time.",
       "history_empty": "No publication attempts yet.",
       "view_detail": "View publication details",
       "detail_title": "Publication details",
       "detail_unavailable": "Publication details could not be loaded.",
       "unschedule": "Unschedule",
       "unschedule_title": "Unschedule publication",
-      "unschedule_description": "Cancel this scheduled publication and restore the content to its source authoring status?",
+      "unschedule_description": "Cancel this scheduled publication? The content will return to its status before scheduling.",
       "confirm_unschedule": "Confirm unschedule",
-      "cancel_publication": "Withdraw publication",
-      "cancel_title": "Withdraw published content",
-      "cancel_description": "Withdraw this publication from recipients? Its revision and historical audience counts will remain available.",
-      "confirm_cancel": "Confirm withdrawal",
-      "start_revision": "Start revision",
-      "start_revision_title": "Start a new revision",
-      "start_revision_description": "Withdraw the active publication and return this content to Draft for editing? The published revision remains in history.",
-      "confirm_start_revision": "Confirm start revision",
+      "cancel_publication": "Withdraw and make read-only",
+      "cancel_title": "Withdraw publication and make content read-only?",
+      "cancel_description": "This publication will be withdrawn from recipients, and the content will become read-only. You will no longer be able to edit it, and it will not return to Draft. The published revision and historical audience counts will remain available.",
+      "confirm_cancel": "Confirm withdrawal and make read-only",
+      "start_revision": "Create editable version",
+      "start_revision_title": "Create a new editable version",
+      "start_revision_description": "Withdraw the current publication and return this content to an editable draft? The previous published version will remain in history.",
+      "confirm_start_revision": "Confirm editable version",
       "students": "Students",
-      "guardian_contexts": "Guardian contexts",
+      "guardian_contexts": "Guardian–student relationships",
       "guardian_accounts": "Guardians with accounts",
-      "guardian_opt_out_contexts": "Guardian notification opt-out contexts",
+      "guardian_opt_out_contexts": "Relationships opted out of notifications",
       "as_of": "Preview calculated at {date}",
-      "source_status": "Source content status",
+      "source_status": "Content status",
       "publication_status": "Publication status",
       "publication_id": "Publication ID",
-      "revision": "Revision",
+      "revision": "Version",
       "created_by": "Created by user",
       "created_at": "Created at",
       "published_at": "Published at",
       "expired_at": "Expired at",
       "cancelled_at": "Cancelled at",
+      "cancellation_reason": "Cancellation reason",
+      "supersedes_publication_id": "Superseded publication ID",
+      "change_significance": "Change significance",
+      "notify_minor_update_audit": "Audience notification requested for minor update",
+      "yes": "Yes",
+      "no": "No",
+      "cancellation_reasons": {
+        "UNSCHEDULED": "Unscheduled",
+        "WITHDRAWN": "Withdrawn",
+        "REVISION_STARTED": "Editable version created"
+      },
+      "change_significance_values": {
+        "MINOR": "Minor",
+        "SIGNIFICANT": "Significant"
+      },
       "recipient_counts": "Historical recipient counts",
       "historical_snapshot_disclaimer": "These are fixed historical counts for this publication. Recipient identities are not available in this view.",
       "publish_permission_missing": "You can review publication data, but you do not have permission to publish or withdraw content.",
@@ -15438,19 +15877,38 @@
         "visible_from_before_publish": "Visibility cannot begin before publication.",
         "visible_until_before_visible_from": "Visibility must end after it begins."
       },
+      "errors": {
+        "idempotency_conflict": "This publish attempt conflicts with an earlier request. Refresh the publication data and try again.",
+        "lineage_conflict": "The published version history could not be verified. Refresh the page; contact support if the problem continues.",
+        "not_ready": "This content is no longer ready to publish. Review the readiness requirements and try again.",
+        "identical_revision": "This version matches the published version. Edit the content, then click Save all changes before publishing again.",
+        "active_conflict": "Another scheduled or published version is already active. Refresh the publication data.",
+        "cannot_unschedule": "This publication can no longer be unscheduled. Refresh its status.",
+        "lifecycle_conflict": "This publication has already changed state. Refresh the publication data and try again.",
+        "validation_failed": "Check the publication dates and version details, then try again.",
+        "unknown": "The publication action could not be completed. Refresh the data and try again.",
+        "trace_id": "Reference: {traceId}"
+      },
+      "success": {
+        "publish_started": "Publishing started successfully.",
+        "scheduled": "Publication scheduled successfully.",
+        "unscheduled": "Publication schedule removed successfully.",
+        "withdrawn": "Publication withdrawn successfully.",
+        "revision_started": "An editable draft version was created successfully."
+      },
       "reasons": {
         "type_or_audience_unavailable": "This content type or audience is not available for external publication.",
         "source_status_unavailable": "The current content status cannot be published.",
         "revision_strategy_unavailable": "The required publishable revision is unavailable.",
-        "authoring_incomplete": "Complete the content authoring requirements before publishing.",
+        "authoring_incomplete": "Complete the required content information before publishing.",
         "term_invalid": "The academic term is unavailable or does not match this content.",
         "term_ended": "This academic term has ended.",
-        "targets_missing": "Add at least one academic target before publishing.",
+        "targets_missing": "Select at least one content scope before publishing.",
         "type_detail_incomplete": "Complete the required content details before publishing.",
         "assets_invalid": "One or more attached files are not valid for publication.",
         "active_publication_exists": "An active scheduled or published version already exists.",
         "online_session_finished_or_missing": "The online session end time is missing or has already passed.",
-        "unknown": "Publication is blocked by a backend rule that is not recognized by this app version."
+        "unknown": "Publication readiness could not be confirmed. Refresh the data; contact support if the problem continues."
       }
     },
     "guardian_note_detail": {
@@ -15462,13 +15920,13 @@
         "resources": "Resources",
         "readiness": "Readiness",
         "publication": "Publication",
-        "revisions": "Revision history"
+        "revisions": "Version history"
       },
       "header": {
         "back": "Back to Guardian Notes",
         "subtitle": "Guardian communication",
         "priority_not_set": "Priority not set",
-        "targets": "{count, plural, =0 {No targets} one {# target} other {# targets}}",
+        "targets": "{count, plural, =0 {No scope selected} one {# scope} other {# scopes}}",
         "acknowledgement_required": "Acknowledgement required",
         "acknowledgement_not_required": "No acknowledgement required"
       },
@@ -15478,7 +15936,7 @@
         "body": "Message body",
         "priority": "Priority",
         "acknowledgement": "Require guardian acknowledgement",
-        "acknowledgement_description": "This records the requirement on the note; acknowledgement tracking is not provided by this contract.",
+        "acknowledgement_description": "This option records that acknowledgement is requested. Tracking guardian acknowledgements is not currently available.",
         "body_required": "Message body is required.",
         "save": "Save guardian message"
       },
@@ -15507,7 +15965,7 @@
       "sections_label": "Weekly plan sections",
       "sections": {
         "details": "Plan details",
-        "targets": "Targets",
+        "targets": "Content scope",
         "objectives": "Learning objectives",
         "topics": "Topics",
         "homework": "Homework",
@@ -15516,14 +15974,14 @@
         "resources": "Resources",
         "readiness": "Readiness",
         "publication": "Publication",
-        "revisions": "Revision history"
+        "revisions": "Version history"
       },
       "header": {
         "back": "Back to Weekly Plans",
         "subtitle": "Weekly academic plan",
         "week_not_set": "Week not set",
         "subjects": "{count, plural, =0 {No subjects} one {# subject} other {# subjects}}",
-        "targets": "{count, plural, =0 {No targets} one {# target} other {# targets}}"
+        "targets": "{count, plural, =0 {No scope selected} one {# scope} other {# scopes}}"
       },
       "details": {
         "week_settings": "Week settings",
@@ -15572,7 +16030,7 @@
         "unavailable": "Unavailable",
         "publication": "Publication status",
         "not_published": "Not published yet",
-        "targets": "Targets",
+        "targets": "Content scope",
         "no_targets": "No targets added",
         "topics": "Topics ({count})",
         "no_topics": "No topics added",
@@ -15587,10 +16045,10 @@
       "unavailable_message": "The file policy could not be loaded.",
       "read_only": "You can view this policy, but only file-policy managers can change it.",
       "saved": "File policy saved.",
-      "maximum": "Maximum file size in bytes",
-      "maximum_help": "Positive decimal bytes; platform maximum is 10 GiB (10737418240 bytes).",
-      "positive_error": "Maximum file size must be a positive decimal byte count.",
-      "hard_max_error": "Maximum file size cannot exceed the 10 GiB platform limit.",
+      "maximum": "Maximum file size (MB)",
+      "maximum_help": "Enter a positive size in MB. The platform maximum is 10,240 MB (10 GiB).",
+      "positive_error": "Maximum file size must be a positive number of MB.",
+      "hard_max_error": "Maximum file size cannot exceed 10,240 MB (10 GiB).",
       "save": "Save file policy",
       "attachments": "Attachments",
       "attachments_help": "Allow academic content to include uploaded files.",
@@ -15605,13 +16063,13 @@
       "archives": "Archives",
       "archives_help": "Allow ZIP and 7Z files.",
       "other": "Other files",
-      "other_help": "Apply the server policy for other registered file formats.",
+      "other_help": "Allow other file formats supported by the platform.",
       "student_downloads": "Student downloads",
       "student_downloads_help": "Allow students to download available attachments.",
       "guardian_downloads": "Guardian downloads",
       "guardian_downloads_help": "Allow guardians to download available attachments.",
-      "inline_preview": "Inline preview",
-      "inline_preview_help": "Allow inline preview when the registered format supports it."
+      "inline_preview": "Preview files on the page",
+      "inline_preview_help": "Display files on the page when the file format supports preview."
     }
   }
 }

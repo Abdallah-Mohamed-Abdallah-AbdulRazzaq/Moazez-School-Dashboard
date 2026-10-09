@@ -31,7 +31,10 @@ function totalResource(
   return { data, error, isLoading: false, partial: false };
 }
 
-function totals(): Record<AcademicContentType, OverviewResource<number | null>> {
+function totals(): Record<
+  AcademicContentType,
+  OverviewResource<number | null>
+> {
   return Object.fromEntries(
     ACADEMIC_CONTENT_TYPES.map((contentType, index) => [
       contentType,
@@ -49,8 +52,12 @@ describe("academic content overview navigation", () => {
   it("hides creation without manage permission and never renders prototype copy", () => {
     render(<AcademicContentOverviewHeader yearId="year-1" termId="term-1" />);
 
-    expect(screen.getByRole("heading", { name: "Academic Content Center" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: /Create content/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Academic Content Center" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /Create content/ }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Screen 1")).not.toBeInTheDocument();
   });
 
@@ -63,9 +70,11 @@ describe("academic content overview navigation", () => {
       fireEvent.click(trigger);
       const menu = screen.getByRole("menu");
       expect(within(menu).getAllByRole("menuitem")).toHaveLength(6);
-      fireEvent.click(within(menu).getByRole("menuitem", {
-        name: new RegExp(contentType.replaceAll("_", " "), "i"),
-      }));
+      fireEvent.click(
+        within(menu).getByRole("menuitem", {
+          name: new RegExp(contentType.replaceAll("_", " "), "i"),
+        }),
+      );
       expect(testState.push).toHaveBeenLastCalledWith(
         `/en/academic-content-hub/new?year=year-1&term=term-1&type=${contentType}`,
       );
@@ -92,9 +101,23 @@ describe("academic content overview navigation", () => {
     expect(screen.getByText("0 items")).toBeVisible();
     expect(screen.getByText("Unavailable")).toBeVisible();
     expect(screen.getAllByRole("link", { name: /View all/ })).toHaveLength(6);
-    expect(screen.getByRole("link", { name: /Teacher preparation.*View all/i })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: /Teacher preparation.*View all/i }),
+    ).toHaveAttribute(
       "href",
       "/en/academic-content-hub/preparations?year=year-1&term=term-1",
+    );
+    expect(
+      screen.getByRole("link", { name: /Weekly plan.*View all/i }),
+    ).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/weekly-plans?year=year-1&term=term-1",
+    );
+    expect(
+      screen.getByRole("link", { name: /Subject resource.*View all/i }),
+    ).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/subject-resources?year=year-1&term=term-1",
     );
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetryType).toHaveBeenCalledWith("WEEKLY_PLAN");
@@ -109,22 +132,52 @@ describe("academic content overview navigation", () => {
       />,
     );
 
-    expect(screen.queryByRole("link", { name: /Review queue/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Preparation templates/ })).toHaveAttribute(
+    expect(
+      screen.queryByRole("link", { name: /Review queue/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Preparation templates/ }),
+    ).toHaveAttribute(
       "href",
       "/en/academic-content-hub/templates?year=year-1&term=term-1",
     );
+    expect(
+      screen.getByRole("link", { name: /Content settings/ }),
+    ).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/settings?year=year-1&term=term-1",
+    );
 
     rerender(
-      <AcademicContentQuickLinks
-        yearId="year-1"
-        termId="term-1"
-        canApprove
-      />,
+      <AcademicContentQuickLinks yearId="year-1" termId="term-1" canApprove />,
     );
     expect(screen.getByRole("link", { name: /Review queue/ })).toHaveAttribute(
       "href",
       "/en/academic-content-hub/review?year=year-1&term=term-1",
+    );
+  });
+
+  it.each([
+    ["Teacher preparation", "/preparations"],
+    ["Weekly plan", "/weekly-plans"],
+    ["Guardian weekly note", "/guardian-notes"],
+    ["Subject resource", "/subject-resources"],
+    ["Online session", "/online-sessions"],
+    ["General resource", "/general-resources"],
+  ])("links %s from quick links", (linkName, routeSuffix) => {
+    render(
+      <AcademicContentQuickLinks
+        yearId="year-1"
+        termId="term-1"
+        canApprove={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole("link", { name: new RegExp(linkName, "i") }),
+    ).toHaveAttribute(
+      "href",
+      `/en/academic-content-hub${routeSuffix}?year=year-1&term=term-1`,
     );
   });
 });

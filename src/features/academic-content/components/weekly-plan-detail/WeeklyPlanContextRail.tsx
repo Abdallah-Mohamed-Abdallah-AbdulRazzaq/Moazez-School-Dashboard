@@ -17,6 +17,7 @@ import type {
   AcademicContentReadinessResponse,
 } from "../../types/contracts";
 import PublicationStatusBadge from "../publication/PublicationStatusBadge";
+import ReadinessReasonText from "../editor/ReadinessReasonText";
 import WeeklyPlanSummaryCard from "./WeeklyPlanSummaryCard";
 
 type WeeklyPlanContent = Extract<
@@ -79,7 +80,7 @@ export default function WeeklyPlanContextRail(
               <ul className="mt-2 space-y-1 text-xs text-gray-600">
                 {props.readiness.blockingReasons.map((reason) => (
                   <li key={`${reason.code}:${reason.message}`}>
-                    {reason.message}
+                    <ReadinessReasonText reason={reason} />
                   </li>
                 ))}
               </ul>

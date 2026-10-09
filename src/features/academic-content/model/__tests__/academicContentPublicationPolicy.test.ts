@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canCancelPublication,
   canUnschedulePublication,
+  hasEligibleMinorUpdatePredecessor,
   isPublicationSurfaceAvailable,
   publicationBlockingReasonKey,
   publicationDraftFingerprint,
@@ -100,6 +101,58 @@ describe("academic content publication policy", () => {
   ] as const)("maps %s lifecycle actions", (status, unschedule, cancel) => {
     expect(canUnschedulePublication(status)).toBe(unschedule);
     expect(canCancelPublication(status)).toBe(cancel);
+  });
+
+  it.each([
+    ["no history", [], false],
+    [
+      "unscheduled draft",
+      [
+        {
+          publicationId: "unscheduled",
+          status: "CANCELLED" as const,
+          publishedAt: null,
+          cancellationReason: "UNSCHEDULED" as const,
+          supersedesPublicationId: null,
+        },
+      ],
+      false,
+    ],
+    [
+      "revision predecessor without a successor",
+      [
+        {
+          publicationId: "predecessor",
+          status: "CANCELLED" as const,
+          publishedAt: "2026-10-05T08:00:00.000Z",
+          cancellationReason: "REVISION_STARTED" as const,
+          supersedesPublicationId: null,
+        },
+      ],
+      true,
+    ],
+    [
+      "revision predecessor with a successor",
+      [
+        {
+          publicationId: "successor",
+          status: "CANCELLED" as const,
+          publishedAt: null,
+          cancellationReason: "UNSCHEDULED" as const,
+          supersedesPublicationId: "predecessor",
+        },
+        {
+          publicationId: "predecessor",
+          status: "CANCELLED" as const,
+          publishedAt: "2026-10-05T08:00:00.000Z",
+          cancellationReason: "REVISION_STARTED" as const,
+          supersedesPublicationId: null,
+        },
+      ],
+      false,
+    ],
+  ] as const)("classifies %s minor-update eligibility", (_scenario, history, expected) => {
+    expect(hasEligibleMinorUpdatePredecessor(history)).toBe(expected);
   });
 
   it.each([

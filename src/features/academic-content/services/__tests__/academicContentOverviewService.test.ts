@@ -70,7 +70,10 @@ describe("academic content overview service", () => {
 
     await expect(loadWorkInProgress(context)).resolves.toEqual({
       data: [changesRequested],
-      error: { code: "UNKNOWN_ERROR", message: "Drafts unavailable" },
+      error: {
+        code: "UNKNOWN_ERROR",
+        message: "This action could not be completed. Try again; contact support if the problem continues.",
+      },
       partial: true,
     });
     expect(listAcademicContent).toHaveBeenNthCalledWith(1, {

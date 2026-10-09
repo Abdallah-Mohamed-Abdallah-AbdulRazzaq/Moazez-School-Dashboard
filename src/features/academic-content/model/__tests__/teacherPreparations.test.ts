@@ -9,7 +9,7 @@ describe("teacher preparation query model", () => {
   it("keeps only supported URL filters", () => {
     const filters = readTeacherPreparationFilters(
       new URLSearchParams(
-        "page=2&limit=25&contentStatus=SUBMITTED&teacherUserId=t1&stageId=s1&gradeId=g1&classroomId=c1&subjectId=sub1&search=fractions&readiness=100&sort=title",
+        "page=2&limit=25&contentStatus=SUBMITTED&teacherUserId=t1&stageId=s1&gradeId=g1&sectionId=sec1&classroomId=c1&subjectId=sub1&tag=fractions&search=fractions&readiness=100&sort=title",
       ),
     );
 
@@ -20,8 +20,10 @@ describe("teacher preparation query model", () => {
       teacherUserId: "t1",
       stageId: "s1",
       gradeId: "g1",
+      sectionId: "sec1",
       classroomId: "c1",
       subjectId: "sub1",
+      tag: "fractions",
       search: "fractions",
     });
     expect(teacherPreparationListQuery(filters, "year-1", "term-1")).toEqual({
@@ -33,8 +35,10 @@ describe("teacher preparation query model", () => {
       teacherUserId: "t1",
       stageId: "s1",
       gradeId: "g1",
+      sectionId: "sec1",
       classroomId: "c1",
       subjectId: "sub1",
+      tag: "fractions",
       search: "fractions",
     });
   });

@@ -27,8 +27,8 @@ interface SubjectResourceSectionNavProps {
 
 const PANELS: readonly SubjectResourcePanel[] = [
   "preview",
-  "details",
   "targets",
+  "details",
   "resources",
   "readiness",
   "publication",

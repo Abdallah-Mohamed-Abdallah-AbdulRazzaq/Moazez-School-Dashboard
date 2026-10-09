@@ -106,7 +106,7 @@ describe("useAcademicContentPublication", () => {
     expect(result.current.history).toEqual(EMPTY_HISTORY);
     expect(result.current.audiencePreview).toBeNull();
     expect(result.current.errors.audiencePreview?.message).toBe(
-      "Preview unavailable",
+      "This action could not be completed. Try again; contact support if the problem continues.",
     );
   });
 
@@ -148,7 +148,7 @@ describe("useAcademicContentPublication", () => {
     ]);
   });
 
-  it("polls publish-now sequentially until the backend reports published", async () => {
+  it("refreshes content when publish-now is scheduled and when it becomes published", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(NOW));
     const scheduled = publication();
@@ -175,6 +175,7 @@ describe("useAcademicContentPublication", () => {
       });
     });
     expect(result.current.trackedPublication?.status).toBe("SCHEDULED");
+    expect(onContentChanged).toHaveBeenCalledOnce();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
@@ -186,7 +187,7 @@ describe("useAcademicContentPublication", () => {
       await vi.advanceTimersByTimeAsync(2_000);
     });
     expect(result.current.trackedPublication).toEqual(published);
-    expect(onContentChanged).toHaveBeenCalledOnce();
+    expect(onContentChanged).toHaveBeenCalledTimes(2);
   });
 
   it("waits until a future schedule is due before polling", async () => {
@@ -199,8 +200,9 @@ describe("useAcademicContentPublication", () => {
     api.getAcademicContentPublication.mockResolvedValue(
       publication("PUBLISHED", publishAt),
     );
+    const onContentChanged = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
-      useAcademicContentPublication(CONTENT_ID, vi.fn()),
+      useAcademicContentPublication(CONTENT_ID, onContentChanged),
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
@@ -212,6 +214,7 @@ describe("useAcademicContentPublication", () => {
         notifyMinorUpdate: false,
       });
     });
+    expect(onContentChanged).toHaveBeenCalledOnce();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(119_999);

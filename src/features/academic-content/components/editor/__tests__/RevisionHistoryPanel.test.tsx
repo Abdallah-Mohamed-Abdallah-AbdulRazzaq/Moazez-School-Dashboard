@@ -45,13 +45,19 @@ describe("RevisionHistoryPanel", () => {
     render(<RevisionHistoryPanel contentId="content-1" />);
 
     expect(await screen.findByText("Revision three")).toBeInTheDocument();
+    expect(screen.queryByText(summary.capturedAt)).not.toBeInTheDocument();
+    expect(screen.getByText(/Sep 30, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Sep 30, 2026/).closest("time")).toHaveAttribute(
+      "datetime",
+      summary.capturedAt,
+    );
     expect(api.listAcademicContentRevisions).toHaveBeenCalledWith("content-1", {
       page: 1,
       limit: 10,
     });
     expect(api.getAcademicContentRevision).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Open revision 3" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open version 3" }));
     await waitFor(() =>
       expect(api.getAcademicContentRevision).toHaveBeenCalledWith(
         "content-1",
@@ -59,12 +65,15 @@ describe("RevisionHistoryPanel", () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Next revisions page" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next versions page" }));
     await waitFor(() =>
-      expect(api.listAcademicContentRevisions).toHaveBeenLastCalledWith("content-1", {
-        page: 2,
-        limit: 10,
-      }),
+      expect(api.listAcademicContentRevisions).toHaveBeenLastCalledWith(
+        "content-1",
+        {
+          page: 2,
+          limit: 10,
+        },
+      ),
     );
   });
 });

@@ -43,7 +43,7 @@ describe("Students & Guardians navigation", () => {
 });
 
 describe("Academic Content Hub navigation", () => {
-  it("links to the active Academic Content workspace", () => {
+  it("exposes every Academic Content workspace destination", () => {
     const academicContent = menuItems.find(
       (menuItem) => menuItem.key === "academic-content-hub",
     );
@@ -55,7 +55,34 @@ describe("Academic Content Hub navigation", () => {
         href_ar: "/ar/academic-content-hub",
       }),
     );
-    expect(academicContent?.statusBadge).toBeUndefined();
+    expect(academicContent?.children?.map((child) => child.key)).toEqual([
+      "academic-content-overview",
+      "academic-content-library",
+      "academic-content-drafts",
+      "academic-content-archived",
+      "academic-content-preparations",
+      "academic-content-weekly-plans",
+      "academic-content-guardian-notes",
+      "academic-content-subject-resources",
+      "academic-content-online-sessions",
+      "academic-content-general-resources",
+      "academic-content-review",
+      "academic-content-templates",
+      "academic-content-settings",
+    ]);
+    expect(academicContent?.children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "academic-content-drafts",
+          href_en: "/en/academic-content-hub/library?contentStatus=DRAFT",
+        }),
+        expect.objectContaining({
+          key: "academic-content-online-sessions",
+          href_en: "/en/academic-content-hub/online-sessions",
+          href_ar: "/ar/academic-content-hub/online-sessions",
+        }),
+      ]),
+    );
   });
 });
 

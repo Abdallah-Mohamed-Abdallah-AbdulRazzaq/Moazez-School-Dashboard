@@ -7,6 +7,7 @@ const reviewState = vi.hoisted(() => ({
   getRevision: vi.fn(),
   approve: vi.fn(),
   requestChanges: vi.fn(),
+  loadTargetOptions: vi.fn(),
   push: vi.fn(),
   refresh: vi.fn(),
 }));
@@ -28,10 +29,35 @@ vi.mock("@/hooks/usePermissions", () => ({
   }),
 }));
 
+vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
+  useAcademicYearTermLayoutContext: () => ({
+    academicYears: [
+      {
+        id: "year-1",
+        name: "Academic year 2026/2027",
+        nameAr: "العام الدراسي 2026/2027",
+        nameEn: "Academic year 2026/2027",
+      },
+    ],
+    terms: [
+      {
+        id: "term-1",
+        name: "First term",
+        nameAr: "الفصل الدراسي الأول",
+        nameEn: "First term",
+      },
+    ],
+  }),
+}));
+
 vi.mock("../../services/academicContentApi", () => ({
   getAcademicContentRevision: reviewState.getRevision,
   approveAcademicContent: reviewState.approve,
   requestAcademicContentChanges: reviewState.requestChanges,
+}));
+
+vi.mock("../../services/academicContentSelectors", () => ({
+  loadAcademicTargetOptions: reviewState.loadTargetOptions,
 }));
 
 function revision() {
@@ -48,7 +74,18 @@ function revision() {
     type: "TEACHER_PREPARATION",
     audience: "INTERNAL_STAFF",
     description: "Submitted description",
-    targets: [],
+    targets: [
+      {
+        id: "target-1",
+        scopeType: "GRADE",
+        stageId: null,
+        gradeId: "grade-1",
+        sectionId: null,
+        classroomId: null,
+        subjectId: "subject-1",
+        teacherSubjectAllocationId: null,
+      },
+    ],
     assets: [],
     links: [],
     tags: [],
@@ -75,6 +112,31 @@ describe("AcademicContentReviewPage", () => {
     reviewState.getRevision.mockReset().mockResolvedValue(revision());
     reviewState.approve.mockReset().mockResolvedValue(transition("revision-1"));
     reviewState.requestChanges.mockReset();
+    reviewState.loadTargetOptions.mockReset().mockResolvedValue({
+      structure: {
+        stages: [],
+        grades: [
+          {
+            id: "grade-1",
+            name: "Grade 5",
+            nameAr: "الصف الخامس",
+            nameEn: "Grade 5",
+          },
+        ],
+        sections: [],
+        classrooms: [],
+      },
+      subjects: [
+        {
+          id: "subject-1",
+          name: "Mathematics",
+          nameAr: "الرياضيات",
+          nameEn: "Mathematics",
+        },
+      ],
+      subjectAllocations: [],
+      teacherAllocations: [],
+    });
     reviewState.push.mockReset();
     reviewState.refresh.mockReset();
   });
@@ -87,8 +149,18 @@ describe("AcademicContentReviewPage", () => {
       />,
     );
 
-    expect(await screen.findByText("Immutable submitted title")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Immutable submitted title"),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Submitted fractions topic/)).toBeInTheDocument();
+    expect(screen.getByText("Academic year 2026/2027")).toBeInTheDocument();
+    expect(screen.getByText("First term")).toBeInTheDocument();
+    expect(await screen.findByText("Grade 5")).toBeInTheDocument();
+    expect(screen.getByText("Mathematics")).toBeInTheDocument();
+    expect(screen.queryByText("year-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("term-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("grade-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("subject-1")).not.toBeInTheDocument();
     expect(screen.queryByText("Live edited title")).not.toBeInTheDocument();
     expect(reviewState.getRevision).toHaveBeenCalledWith(
       "content-1",
@@ -109,7 +181,7 @@ describe("AcademicContentReviewPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "This review is stale because the server decided a different revision.",
+      "The displayed information is out of date. Refresh the page to see the latest decision.",
     );
     expect(reviewState.push).not.toHaveBeenCalled();
   });

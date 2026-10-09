@@ -1,7 +1,5 @@
 "use client";
 
-import { Save } from "lucide-react";
-import { Button } from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import type { TeacherPreparationDetailDraftController } from "../../hooks/useTeacherPreparationDetailDraft";
 import type { AcademicContentEditorSectionState } from "../../hooks/useAcademicContentEditor";
@@ -13,6 +11,7 @@ import type {
 } from "../../types/contracts";
 import BasicInformationSection from "../editor/BasicInformationSection";
 import FilesSection from "../editor/FilesSection";
+import PreparationTemplatePicker from "../templates/PreparationTemplatePicker";
 import TeacherPreparationKeyConcepts from "./TeacherPreparationKeyConcepts";
 
 type PreparationContent = Extract<AcademicContentDetail, { type: "TEACHER_PREPARATION" }>;
@@ -57,29 +56,20 @@ export default function TeacherPreparationOverview({
       />
 
       <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-0 flex-1">
-            <Input
-              label={t("topic")}
-              aria-label={t("topic")}
-              value={controller.draft.topic ?? ""}
-              maxLength={500}
-              disabled={disabled}
-              onChange={(event) => controller.update("topic", event.target.value)}
-            />
-          </div>
-          {!disabled ? (
-            <Button
-              type="button"
-              loading={detailState.saving}
-              disabled={!detailState.dirty}
-              leftIcon={<Save aria-hidden="true" className="size-4" />}
-              onClick={() => void controller.save()}
-            >
-              {t("save_topic")}
-            </Button>
-          ) : null}
+        <div className="mb-4 border-b border-gray-200 pb-4">
+          <PreparationTemplatePicker
+            disabled={disabled}
+            onApply={controller.applyTemplate}
+          />
         </div>
+        <Input
+          label={t("topic")}
+          aria-label={t("topic")}
+          value={controller.draft.topic ?? ""}
+          maxLength={500}
+          disabled={disabled}
+          onChange={(event) => controller.update("topic", event.target.value)}
+        />
         {detailState.error ? <p role="alert" className="mt-3 text-sm text-red-700">{detailState.error.message}</p> : null}
 
         <TeacherPreparationKeyConcepts

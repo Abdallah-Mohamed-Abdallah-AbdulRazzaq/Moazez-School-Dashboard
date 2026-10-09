@@ -30,9 +30,10 @@ function createController(): TeacherPreparationDetailDraftController {
       lessonPlanItemId: "item-1",
       timetableEntryId: "entry-1",
     },
-    validationError: null,
-    update: vi.fn(),
-    save: vi.fn(async () => true),
+  validationError: null,
+  update: vi.fn(),
+  applyTemplate: vi.fn(),
+  save: vi.fn(async () => true),
     resetValidation: vi.fn(),
   };
 }
@@ -40,14 +41,13 @@ function createController(): TeacherPreparationDetailDraftController {
 const dirtyState = { dirty: true, saving: false, error: null };
 
 describe("teacher preparation detail panels", () => {
-  it("edits ordered rows and saves through the shared controller", () => {
+  it("edits ordered rows without exposing a local save action", () => {
     const controller = createController();
     render(
       <TeacherPreparationOrderedListPanel
         title="Objectives"
         description="Define lesson objectives."
         itemLabel="Objectives"
-        saveLabel="Save objectives"
         emptyItemError="Objectives cannot be empty."
         field="objectives"
         controller={controller}
@@ -61,18 +61,17 @@ describe("teacher preparation detail panels", () => {
     });
     expect(controller.update).toHaveBeenCalledWith("objectives", ["Compare equivalent fractions"]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Save objectives" }));
-    expect(controller.save).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "Save objectives" })).not.toBeInTheDocument();
+    expect(controller.save).not.toHaveBeenCalled();
   });
 
-  it("enforces the backend note length and saves the complete shared draft", () => {
+  it("does not expose a local save action in the notes panel", () => {
     const controller = createController();
     render(
       <TeacherPreparationNotesPanel
         title="Teacher notes"
         description="Private preparation notes."
         fieldLabel="Teacher notes"
-        saveLabel="Save teacher notes"
         field="teacherNotes"
         controller={controller}
         sectionState={dirtyState}
@@ -80,11 +79,8 @@ describe("teacher preparation detail panels", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Teacher notes")).toHaveAttribute("maxlength", "4000");
-    fireEvent.change(screen.getByLabelText("Teacher notes"), { target: { value: "Use pairs" } });
-    expect(controller.update).toHaveBeenCalledWith("teacherNotes", "Use pairs");
-    fireEvent.click(screen.getByRole("button", { name: "Save teacher notes" }));
-    expect(controller.save).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "Save teacher notes" })).not.toBeInTheDocument();
+    expect(controller.save).not.toHaveBeenCalled();
   });
 
   it("clears dependent references without constructing a partial save payload", () => {
@@ -109,8 +105,8 @@ describe("teacher preparation detail panels", () => {
     expect(controller.update).toHaveBeenCalledWith("lessonPlanId", null);
     expect(controller.update).toHaveBeenCalledWith("lessonPlanItemId", null);
 
-    fireEvent.click(screen.getByRole("button", { name: "Save academic references" }));
-    expect(controller.save).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "Save academic references" })).not.toBeInTheDocument();
+    expect(controller.save).not.toHaveBeenCalled();
   });
 
   it("isolates a reference-loading failure and offers retry", () => {

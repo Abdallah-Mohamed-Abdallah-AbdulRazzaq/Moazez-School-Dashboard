@@ -70,13 +70,14 @@ function selectOptions(
   items: Array<{ id: string; name: string }>,
   emptyLabel: string,
   selectedId: string | null,
+  unavailableLabel: string,
 ): SelectOption[] {
   const options: SelectOption[] = [
     { value: "", label: emptyLabel },
     ...items.map((item) => ({ value: item.id, label: item.name })),
   ];
   if (selectedId && !options.some((option) => option.value === selectedId)) {
-    options.push({ value: selectedId, label: selectedId, disabled: true });
+    options.push({ value: selectedId, label: unavailableLabel, disabled: true });
   }
   return options;
 }
@@ -223,6 +224,7 @@ export default function PreparationTemplateForm({
               options?.structure.stages ?? [],
               t("all_stages"),
               form.stageId,
+              t("unavailable_selection"),
             )}
             disabled={isSubmitting}
             error={optionsError ?? undefined}
@@ -236,6 +238,7 @@ export default function PreparationTemplateForm({
               options?.subjects ?? [],
               t("all_subjects"),
               form.subjectId,
+              t("unavailable_selection"),
             )}
             disabled={isSubmitting}
             searchable

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
-import TextArea from "@/components/ui/input/TextArea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { allowedAudiences } from "../../model/academicContentPolicy";
 import type {
   AcademicContentAudience,
@@ -127,16 +127,13 @@ export default function BasicInformationSection({
           }}
         />
         <div className="lg:col-span-2">
-          <TextArea
+          <RichTextEditor
             label={t("metadata.field_description")}
-            aria-label={t("metadata.field_description")}
             value={description}
             maxLength={4000}
-            rows={6}
             disabled={disabled}
-            helperText={`${description.length}/4000`}
-            onChange={(event) => {
-              setDescription(event.target.value);
+            onChange={(value) => {
+              setDescription(value);
               markDirty();
             }}
           />

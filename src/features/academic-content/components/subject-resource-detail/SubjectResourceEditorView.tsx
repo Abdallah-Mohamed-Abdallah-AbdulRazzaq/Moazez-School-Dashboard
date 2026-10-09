@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button/Button";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
+import { useAcademicContentDetailOptions } from "../../hooks/useAcademicContentDetailOptions";
 import { useAcademicContentTargetDisplay } from "../../hooks/useAcademicContentTargetDisplay";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import {
@@ -13,12 +14,8 @@ import {
   type SubjectResourcePanel,
 } from "../../model/subjectResourceDetail";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
+import { EMPTY_ACADEMIC_CONTENT_DETAIL_OPTIONS } from "../../services/academicContentDetailOptions";
 import { academicContentUiError } from "../../services/academicContentErrors";
-import {
-  EMPTY_ACADEMIC_CONTENT_DETAIL_OPTIONS,
-  loadAcademicContentDetailOptions,
-  type AcademicContentDetailOptions,
-} from "../../services/academicContentDetailOptions";
 import { downloadAcademicContentAsset } from "../../services/downloadAcademicContentAsset";
 import type {
   AcademicContentBase,
@@ -48,37 +45,6 @@ interface SubjectResourceEditorViewProps {
   canPublish?: boolean;
   onLifecycleChanged: (content: AcademicContentBase) => Promise<unknown>;
   onDeleted: () => void;
-}
-
-function useDetailOptions(content: SubjectResourceEditor["content"]) {
-  const [state, setState] = useState<{
-    options: AcademicContentDetailOptions | null;
-    error: string | null;
-  }>({ options: null, error: null });
-  const [retryKey, setRetryKey] = useState(0);
-  useEffect(() => {
-    let active = true;
-    void loadAcademicContentDetailOptions(content)
-      .then((options) => active && setState({ options, error: null }))
-      .catch(
-        (error: unknown) =>
-          active &&
-          setState({
-            options: null,
-            error: academicContentUiError(error).message,
-          }),
-      );
-    return () => {
-      active = false;
-    };
-  }, [content, retryKey]);
-  return {
-    ...state,
-    retry: () => {
-      setState({ options: null, error: null });
-      setRetryKey((key) => key + 1);
-    },
-  };
 }
 
 function OptionsUnavailable({
@@ -135,7 +101,7 @@ export default function SubjectResourceEditorView(
       null,
   );
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  const optionState = useDetailOptions(editor.content);
+  const optionState = useAcademicContentDetailOptions(editor.content);
   const targetDisplay = useAcademicContentTargetDisplay(
     editor.content,
     locale,
@@ -225,6 +191,7 @@ export default function SubjectResourceEditorView(
       <AcademicContentPublicationPanel
         content={editor.content}
         canMutate={props.canPublish ?? false}
+        canStartRevision={props.canManage && (props.canPublish ?? false)}
         onContentChanged={refreshResources}
       />
     ),

@@ -1,5 +1,6 @@
 import type {
   AcademicContentAudience,
+  AcademicContentPublication,
   AcademicContentPublicationStatus,
   AcademicContentType,
   CreateAcademicContentPublicationRequest,
@@ -104,6 +105,32 @@ export function canCancelPublication(
   status: AcademicContentPublicationStatus,
 ): boolean {
   return status === "PUBLISHED";
+}
+
+type PublicationLineageEntry = Pick<
+  AcademicContentPublication,
+  | "publicationId"
+  | "status"
+  | "publishedAt"
+  | "cancellationReason"
+  | "supersedesPublicationId"
+>;
+
+export function hasEligibleMinorUpdatePredecessor(
+  publications: readonly PublicationLineageEntry[],
+): boolean {
+  const supersededPublicationIds = new Set(
+    publications.flatMap(({ supersedesPublicationId }) =>
+      supersedesPublicationId ? [supersedesPublicationId] : [],
+    ),
+  );
+  return publications.some(
+    (publication) =>
+      publication.status === "CANCELLED" &&
+      publication.cancellationReason === "REVISION_STARTED" &&
+      publication.publishedAt !== null &&
+      !supersededPublicationIds.has(publication.publicationId),
+  );
 }
 
 function publicationScheduleErrors(

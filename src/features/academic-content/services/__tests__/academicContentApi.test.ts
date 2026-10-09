@@ -22,7 +22,9 @@ const ASSET_ID = "asset/id";
 
 describe("academic content endpoint contracts", () => {
   beforeEach(() => {
-    Object.values(apiMocks).forEach((mock) => mock.mockReset().mockResolvedValue({}));
+    Object.values(apiMocks).forEach((mock) =>
+      mock.mockReset().mockResolvedValue({}),
+    );
   });
 
   it("lists content with supported non-empty filters and reads management state", async () => {
@@ -38,16 +40,20 @@ describe("academic content endpoint contracts", () => {
     await academicContentApi.getAcademicContent(CONTENT_ID);
     await academicContentApi.getAcademicContentReadiness(CONTENT_ID);
 
-    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(1, "/academics/academic-content", {
-      params: {
-        academicYearId: "year-1",
-        termId: "term-1",
-        status: "DRAFT",
-        search: "fractions",
-        page: 2,
-        limit: 25,
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
+      1,
+      "/academics/academic-content",
+      {
+        params: {
+          academicYearId: "year-1",
+          termId: "term-1",
+          status: "DRAFT",
+          search: "fractions",
+          page: 2,
+          limit: 25,
+        },
       },
-    });
+    );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       2,
       `/academics/academic-content/${ENCODED_CONTENT_ID}`,
@@ -73,14 +79,17 @@ describe("academic content endpoint contracts", () => {
       audience: "STUDENTS_AND_GUARDIANS",
     });
 
-    expect(apiMocks.apiPost).toHaveBeenCalledWith("/academics/academic-content", {
-      academicYearId: "year-1",
-      termId: "term-1",
-      type: "WEEKLY_PLAN",
-      audience: "STUDENTS",
-      title: "Fractions",
-      description: null,
-    });
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(
+      "/academics/academic-content",
+      {
+        academicYearId: "year-1",
+        termId: "term-1",
+        type: "WEEKLY_PLAN",
+        audience: "STUDENTS",
+        title: "Fractions",
+        description: null,
+      },
+    );
     expect(apiMocks.apiPatch).toHaveBeenCalledWith(
       `/academics/academic-content/${ENCODED_CONTENT_ID}`,
       {
@@ -98,7 +107,9 @@ describe("academic content endpoint contracts", () => {
 
     const contentPath = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
     expect(apiMocks.apiPut).toHaveBeenCalledWith(`${contentPath}/targets`, {
-      targets: [{ scopeType: "GRADE", gradeId: "grade-1", subjectId: "subject-1" }],
+      targets: [
+        { scopeType: "GRADE", gradeId: "grade-1", subjectId: "subject-1" },
+      ],
     });
   });
 
@@ -184,14 +195,17 @@ describe("academic content endpoint contracts", () => {
           timezone: "Africa/Cairo",
         }),
     },
-  ])("writes $scenario detail to its exact endpoint", async ({ suffix, request, invoke }) => {
-    await invoke();
+  ])(
+    "writes $scenario detail to its exact endpoint",
+    async ({ suffix, request, invoke }) => {
+      await invoke();
 
-    expect(apiMocks.apiPut).toHaveBeenCalledWith(
-      `/academics/academic-content/${ENCODED_CONTENT_ID}/details/${suffix}`,
-      request,
-    );
-  });
+      expect(apiMocks.apiPut).toHaveBeenCalledWith(
+        `/academics/academic-content/${ENCODED_CONTENT_ID}/details/${suffix}`,
+        request,
+      );
+    },
+  );
 
   it("replaces ordered links and tags", async () => {
     await academicContentApi.replaceAcademicContentLinks(CONTENT_ID, [
@@ -217,19 +231,29 @@ describe("academic content endpoint contracts", () => {
       expectedMimeType: "application/pdf",
       expectedSizeBytes: "1024",
     });
-    await academicContentApi.completeAcademicContentUpload(CONTENT_ID, UPLOAD_ID);
+    await academicContentApi.completeAcademicContentUpload(
+      CONTENT_ID,
+      UPLOAD_ID,
+    );
     await academicContentApi.cancelAcademicContentUpload(CONTENT_ID, UPLOAD_ID);
     await academicContentApi.unlinkAcademicContentAsset(CONTENT_ID, ASSET_ID);
 
     const contentPath = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
     const uploadPath = `${contentPath}/uploads/${encodeURIComponent(UPLOAD_ID)}`;
-    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(1, `${contentPath}/uploads`, {
-      clientRequestId: "request-1",
-      originalName: "lesson.pdf",
-      expectedMimeType: "application/pdf",
-      expectedSizeBytes: "1024",
-    });
-    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(2, `${uploadPath}/complete`);
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      1,
+      `${contentPath}/uploads`,
+      {
+        clientRequestId: "request-1",
+        originalName: "lesson.pdf",
+        expectedMimeType: "application/pdf",
+        expectedSizeBytes: "1024",
+      },
+    );
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      2,
+      `${uploadPath}/complete`,
+    );
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(3, `${uploadPath}/cancel`);
     expect(apiMocks.apiDelete).toHaveBeenCalledWith(
       `${contentPath}/assets/${encodeURIComponent(ASSET_ID)}`,
@@ -241,10 +265,12 @@ describe("academic content endpoint contracts", () => {
       page: 2,
       limit: 10,
     });
-    await academicContentApi.getAcademicContentRevision(CONTENT_ID, REVISION_ID);
+    await academicContentApi.getAcademicContentRevision(
+      CONTENT_ID,
+      REVISION_ID,
+    );
 
-    const revisionsPath =
-      `/academics/academic-content/${ENCODED_CONTENT_ID}/revisions`;
+    const revisionsPath = `/academics/academic-content/${ENCODED_CONTENT_ID}/revisions`;
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(1, revisionsPath, {
       params: { page: 2, limit: 10 },
     });
@@ -260,8 +286,14 @@ describe("academic content endpoint contracts", () => {
     await academicContentApi.deleteAcademicContent(CONTENT_ID);
 
     const contentPath = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
-    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(1, `${contentPath}/archive`);
-    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(2, `${contentPath}/restore`);
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      1,
+      `${contentPath}/archive`,
+    );
+    expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
+      2,
+      `${contentPath}/restore`,
+    );
     expect(apiMocks.apiDelete).toHaveBeenCalledWith(contentPath);
   });
 
@@ -275,7 +307,10 @@ describe("academic content endpoint contracts", () => {
 
     await academicContentApi.getAcademicContentPublicationReadiness(CONTENT_ID);
     await academicContentApi.getAcademicContentAudiencePreview(CONTENT_ID);
-    await academicContentApi.createAcademicContentPublication(CONTENT_ID, request);
+    await academicContentApi.createAcademicContentPublication(
+      CONTENT_ID,
+      request,
+    );
     await academicContentApi.listAcademicContentPublications(CONTENT_ID, {
       page: 2,
       limit: 20,
@@ -303,7 +338,10 @@ describe("academic content endpoint contracts", () => {
       1,
       `${base}/publication-readiness`,
     );
-    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(2, `${base}/audience-preview`);
+    expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
+      2,
+      `${base}/audience-preview`,
+    );
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       1,
       `${base}/publications`,
@@ -358,6 +396,22 @@ describe("academic content endpoint contracts", () => {
     });
   });
 
+  it("gets and updates the notification policy", async () => {
+    await academicContentApi.getAcademicContentNotificationPolicy();
+    await academicContentApi.updateAcademicContentNotificationPolicy({
+      onlineSessionRemindersEnabled: true,
+      onlineSessionReminderOffsetsMinutes: [30, 60],
+    });
+
+    const policyPath =
+      "/academics/academic-content/settings/notification-policy";
+    expect(apiMocks.apiGet).toHaveBeenCalledWith(policyPath);
+    expect(apiMocks.apiPatch).toHaveBeenCalledWith(policyPath, {
+      onlineSessionRemindersEnabled: true,
+      onlineSessionReminderOffsetsMinutes: [30, 60],
+    });
+  });
+
   it.each([
     {
       action: "submits",
@@ -369,15 +423,18 @@ describe("academic content endpoint contracts", () => {
       suffix: "approve",
       invoke: () => academicContentApi.approveAcademicContent(CONTENT_ID),
     },
-  ])("$action the current preparation round with an empty body", async ({
-    suffix,
-    invoke,
-  }) => {
-    await invoke();
+  ])(
+    "$action the current preparation round with an empty body",
+    async ({ suffix, invoke }) => {
+      await invoke();
 
-    const contentPath = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
-    expect(apiMocks.apiPost).toHaveBeenCalledWith(`${contentPath}/${suffix}`, {});
-  });
+      const contentPath = `/academics/academic-content/${ENCODED_CONTENT_ID}`;
+      expect(apiMocks.apiPost).toHaveBeenCalledWith(
+        `${contentPath}/${suffix}`,
+        {},
+      );
+    },
+  );
 
   it("trims the request-changes decision note", async () => {
     await academicContentApi.requestAcademicContentChanges(
@@ -461,11 +518,18 @@ describe("academic content endpoint contracts", () => {
       limit: 50,
     });
     await academicContentApi.getAcademicContentPreparationTemplate(TEMPLATE_ID);
-    await academicContentApi.createAcademicContentPreparationTemplate(templateRequest);
-    await academicContentApi.updateAcademicContentPreparationTemplate(TEMPLATE_ID, {
-      name: "Updated preparation",
-    });
-    await academicContentApi.deleteAcademicContentPreparationTemplate(TEMPLATE_ID);
+    await academicContentApi.createAcademicContentPreparationTemplate(
+      templateRequest,
+    );
+    await academicContentApi.updateAcademicContentPreparationTemplate(
+      TEMPLATE_ID,
+      {
+        name: "Updated preparation",
+      },
+    );
+    await academicContentApi.deleteAcademicContentPreparationTemplate(
+      TEMPLATE_ID,
+    );
 
     const templatesPath = "/academics/academic-content/templates/preparation";
     const templatePath = `${templatesPath}/${encodeURIComponent(TEMPLATE_ID)}`;
@@ -473,7 +537,10 @@ describe("academic content endpoint contracts", () => {
       params: { stageId: "stage-1", search: "daily", page: 1, limit: 50 },
     });
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(2, templatePath);
-    expect(apiMocks.apiPost).toHaveBeenCalledWith(templatesPath, templateRequest);
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(
+      templatesPath,
+      templateRequest,
+    );
     expect(apiMocks.apiPatch).toHaveBeenCalledWith(templatePath, {
       name: "Updated preparation",
     });

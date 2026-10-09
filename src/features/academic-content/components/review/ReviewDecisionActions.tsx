@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, RotateCcw } from "lucide-react";
+import { BadgeCheck, Check, RotateCcw } from "lucide-react";
 import { AccessDenied } from "@/components/ui/access-denied/AccessDenied";
 import { Button } from "@/components/ui/button/Button";
 import TextArea from "@/components/ui/input/TextArea";
@@ -19,13 +19,13 @@ const MAX_NOTE_LENGTH = 4000;
 
 interface ReviewDecisionActionsProps {
   contentId: string;
-  reviewedRevisionId: string;
+  revisionNumber: number;
   onDecisionComplete: (result: AcademicContentTransitionResponse) => void;
 }
 
 export default function ReviewDecisionActions({
   contentId,
-  reviewedRevisionId,
+  revisionNumber,
   onDecisionComplete,
 }: ReviewDecisionActionsProps) {
   const { hasPermission, isPermissionsReady } = usePermissions();
@@ -70,16 +70,34 @@ export default function ReviewDecisionActions({
   };
 
   return (
-    <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-      <div>
-        <h2 className="text-lg font-bold text-gray-900">{t("decision_title")}</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          {t("reviewing_revision", { id: reviewedRevisionId })}
-        </p>
+    <section
+      aria-labelledby="review-decision-heading"
+      className="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+          <BadgeCheck aria-hidden="true" className="size-5" />
+        </div>
+        <div className="min-w-0">
+          <h2
+            id="review-decision-heading"
+            className="text-lg font-bold text-gray-950"
+          >
+            {t("decision_title")}
+          </h2>
+          <p className="mt-1 text-sm leading-5 text-gray-600">
+            {t("decision_description")}
+          </p>
+        </div>
       </div>
+
+      <p className="w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+        {t("reviewing_revision_number", { number: revisionNumber })}
+      </p>
 
       <TextArea
         label={t("change_note")}
+        helperText={t("note_help")}
         value={note}
         rows={5}
         maxLength={MAX_NOTE_LENGTH}
@@ -111,7 +129,9 @@ export default function ReviewDecisionActions({
           variant="success"
           loading={isSubmitting}
           leftIcon={<Check aria-hidden="true" className="size-4" />}
-          onClick={() => void runDecision(() => approveAcademicContent(contentId))}
+          onClick={() =>
+            void runDecision(() => approveAcademicContent(contentId))
+          }
         >
           {t("approve")}
         </Button>

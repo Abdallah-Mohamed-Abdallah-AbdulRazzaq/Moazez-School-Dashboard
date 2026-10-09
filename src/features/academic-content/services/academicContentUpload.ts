@@ -11,11 +11,7 @@ import type {
 export const ACADEMIC_CONTENT_UPLOAD_CHUNK_SIZE_BYTES = 8 * 1024 * 1024;
 
 export type AcademicContentFileCategory =
-  | "DOCUMENT"
-  | "IMAGE"
-  | "VIDEO"
-  | "AUDIO"
-  | "ARCHIVE";
+  "DOCUMENT" | "IMAGE" | "VIDEO" | "AUDIO" | "ARCHIVE";
 
 export interface AcademicContentFileType {
   extension: string;
@@ -30,13 +26,19 @@ const FILE_TYPES: readonly AcademicContentFileType[] = [
   { extension: ".doc", mimeType: "application/msword", category: "DOCUMENT" },
   {
     extension: ".docx",
-    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     category: "DOCUMENT",
   },
-  { extension: ".xls", mimeType: "application/vnd.ms-excel", category: "DOCUMENT" },
+  {
+    extension: ".xls",
+    mimeType: "application/vnd.ms-excel",
+    category: "DOCUMENT",
+  },
   {
     extension: ".xlsx",
-    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     category: "DOCUMENT",
   },
   {
@@ -46,7 +48,8 @@ const FILE_TYPES: readonly AcademicContentFileType[] = [
   },
   {
     extension: ".pptx",
-    mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     category: "DOCUMENT",
   },
   { extension: ".jpg", mimeType: "image/jpeg", category: "IMAGE" },
@@ -70,7 +73,9 @@ const FILE_TYPES: readonly AcademicContentFileType[] = [
 ];
 
 export const ACADEMIC_CONTENT_FILE_ACCEPT = Array.from(
-  new Set(FILE_TYPES.flatMap(({ extension, mimeType }) => [extension, mimeType])),
+  new Set(
+    FILE_TYPES.flatMap(({ extension, mimeType }) => [extension, mimeType]),
+  ),
 ).join(",");
 
 export interface AcademicContentUploadProgress {
@@ -80,7 +85,10 @@ export interface AcademicContentUploadProgress {
 }
 
 export class AcademicContentUploadValidationError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly code = "UPLOAD_INVALID_FILE",
+  ) {
     super(message);
     this.name = "AcademicContentUploadValidationError";
   }
@@ -96,6 +104,8 @@ export class AcademicContentUploadRestartRequiredError extends Error {
 }
 
 class AcademicContentUploadTransportError extends Error {
+  readonly code = "UPLOAD_TRANSPORT_ERROR";
+
   constructor(message: string) {
     super(message);
     this.name = "AcademicContentUploadTransportError";
@@ -135,7 +145,10 @@ export function validateAcademicContentFileAgainstPolicy(
   policy: AcademicContentFilePolicy,
 ): AcademicContentFileType {
   if (!policy.attachmentsEnabled) {
-    throw new AcademicContentUploadValidationError("Attachments are disabled by school policy.");
+    throw new AcademicContentUploadValidationError(
+      "Attachments are disabled by school policy.",
+      "UPLOAD_ATTACHMENTS_DISABLED",
+    );
   }
   const fileType = resolveAcademicContentFileType(file);
   if (!fileType) {
@@ -144,11 +157,15 @@ export function validateAcademicContentFileAgainstPolicy(
     );
   }
   if (!Number.isSafeInteger(file.size) || file.size <= 0) {
-    throw new AcademicContentUploadValidationError("The file must contain at least one byte.");
+    throw new AcademicContentUploadValidationError(
+      "The file must contain at least one byte.",
+      "UPLOAD_EMPTY_FILE",
+    );
   }
   if (BigInt(file.size) > BigInt(policy.maximumFileSizeBytes)) {
     throw new AcademicContentUploadValidationError(
       `The file exceeds the ${policy.maximumFileSizeBytes}-byte school limit.`,
+      "UPLOAD_FILE_TOO_LARGE",
     );
   }
 
@@ -166,6 +183,7 @@ export function validateAcademicContentFileAgainstPolicy(
         : `${fileType.category[0]}${fileType.category.slice(1).toLowerCase()} files`;
     throw new AcademicContentUploadValidationError(
       `${categoryLabel} are disabled by school policy.`,
+      "UPLOAD_FILE_TYPE_DISABLED",
     );
   }
   return fileType;
@@ -184,7 +202,8 @@ function providerRequest(input: ProviderRequest): Promise<ProviderResponse> {
 
     const request = new XMLHttpRequest();
     const handleAbort = () => request.abort();
-    const cleanup = () => input.signal?.removeEventListener("abort", handleAbort);
+    const cleanup = () =>
+      input.signal?.removeEventListener("abort", handleAbort);
 
     request.open("PUT", input.sessionUrl);
     request.setRequestHeader("Content-Type", input.contentType);
@@ -199,7 +218,11 @@ function providerRequest(input: ProviderRequest): Promise<ProviderResponse> {
     };
     request.onerror = () => {
       cleanup();
-      reject(new AcademicContentUploadTransportError("The upload connection failed."));
+      reject(
+        new AcademicContentUploadTransportError(
+          "The upload connection failed.",
+        ),
+      );
     };
     request.onabort = () => {
       cleanup();
@@ -221,7 +244,10 @@ function acknowledgedOffset(range: string | null): number {
   return Number(match[1]) + 1;
 }
 
-function boundedAcknowledgedOffset(range: string | null, totalBytes: number): number {
+function boundedAcknowledgedOffset(
+  range: string | null,
+  totalBytes: number,
+): number {
   const offset = acknowledgedOffset(range);
   if (!Number.isSafeInteger(offset) || offset > totalBytes) {
     throw new AcademicContentUploadTransportError(
@@ -259,7 +285,8 @@ async function probeUploadOffset(input: {
     signal: input.signal,
   });
   assertActiveCapability(response.status);
-  if (isProviderSuccess(response.status)) return { complete: true, offset: input.totalBytes };
+  if (isProviderSuccess(response.status))
+    return { complete: true, offset: input.totalBytes };
   if (response.status === 308) {
     return {
       complete: false,
@@ -284,7 +311,10 @@ export async function uploadAcademicContentFile(input: {
     );
   }
   if (!Number.isSafeInteger(input.file.size) || input.file.size <= 0) {
-    throw new AcademicContentUploadValidationError("The file must contain at least one byte.");
+    throw new AcademicContentUploadValidationError(
+      "The file must contain at least one byte.",
+      "UPLOAD_EMPTY_FILE",
+    );
   }
   if (input.signal?.aborted) throw abortError();
 
@@ -315,7 +345,10 @@ export async function uploadAcademicContentFile(input: {
           contentType: intent.expectedMimeType,
           signal: input.signal,
           onProgress: (loadedBytes) => {
-            const uploadedBytes = Math.min(offset + loadedBytes, input.file.size);
+            const uploadedBytes = Math.min(
+              offset + loadedBytes,
+              input.file.size,
+            );
             input.onProgress?.({
               uploadedBytes: String(uploadedBytes),
               totalBytes: String(input.file.size),
@@ -324,7 +357,8 @@ export async function uploadAcademicContentFile(input: {
           },
         });
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") throw error;
+        if (error instanceof DOMException && error.name === "AbortError")
+          throw error;
         if (recoveryAttempts >= 2) throw error;
         recoveryAttempts += 1;
         const probe = await probeUploadOffset({
@@ -381,7 +415,10 @@ export async function uploadAcademicContentFile(input: {
       totalBytes: String(input.file.size),
       percent: 100,
     });
-    return await completeAcademicContentUpload(input.contentId, intent.uploadId);
+    return await completeAcademicContentUpload(
+      input.contentId,
+      intent.uploadId,
+    );
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       try {

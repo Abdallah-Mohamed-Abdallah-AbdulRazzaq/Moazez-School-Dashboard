@@ -65,7 +65,9 @@ describe("TeacherPreparationContextRail", () => {
     const readiness = screen.getByRole("heading", { name: "Readiness" }).closest("section");
     expect(readiness).not.toBeNull();
     expect(within(readiness!).getByText("Incomplete")).toBeVisible();
-    expect(within(readiness!).getByText("Complete the preparation")).toBeVisible();
+    expect(within(readiness!).getByText(
+      "Content readiness could not be confirmed. Refresh the data; contact support if the problem continues.",
+    )).toBeVisible();
     expect(within(readiness!).queryByText(/%|sections completed/i)).not.toBeInTheDocument();
   });
 

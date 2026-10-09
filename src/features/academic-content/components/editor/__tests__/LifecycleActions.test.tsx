@@ -155,7 +155,7 @@ describe("LifecycleActions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm archive" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Draft cannot be archived while an upload is active",
+      "The content status has changed. Refresh the page before trying again.",
     );
   });
 

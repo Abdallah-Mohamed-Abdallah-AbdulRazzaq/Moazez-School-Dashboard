@@ -93,6 +93,7 @@ const controller: TeacherPreparationDetailDraftController = {
   },
   validationError: null,
   update: vi.fn(),
+  applyTemplate: vi.fn(),
   save: vi.fn(async () => true),
   resetValidation: vi.fn(),
 };
@@ -140,11 +141,13 @@ describe("teacher preparation overview and resources", () => {
     expect(keyConcepts.compareDocumentPosition(attachments) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(overview).getByText("Equivalent fractions")).toBeVisible();
     expect(within(overview).getByText("fractions.pdf")).toBeVisible();
+    expect(within(overview).queryByRole("button", { name: "Save topic" })).not.toBeInTheDocument();
 
     const resources = screen.getByTestId("preparation-resources");
     expect(within(resources).getByRole("heading", { name: "Resource notes" })).toBeVisible();
     expect(within(resources).getByText("fractions.pdf")).toBeVisible();
     expect(within(resources).getByRole("heading", { name: "Links" })).toBeVisible();
+    expect(within(resources).queryByRole("button", { name: "Save resource notes" })).not.toBeInTheDocument();
   });
 
   it("refreshes shared aggregate state after file actions", () => {

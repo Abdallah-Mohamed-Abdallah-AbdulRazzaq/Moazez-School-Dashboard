@@ -40,8 +40,12 @@ describe("AcademicContentShell", () => {
       </AcademicContentShell>,
     );
 
-    expect(screen.getAllByRole("heading", { name: "Academic Content Center" })).toHaveLength(1);
-    expect(screen.queryByRole("button", { name: /Create content/ })).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole("heading", { name: "Academic Content Center" }),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: /Create content/ }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
       "href",
       "/en/academic-content-hub?year=year-1&term=term-1",
@@ -56,17 +60,51 @@ describe("AcademicContentShell", () => {
     );
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
       "href",
-      "/en/academic-content-hub/settings/file-policy?year=year-1&term=term-1",
+      "/en/academic-content-hub/settings?year=year-1&term=term-1",
     );
-    expect(screen.getByRole("link", { name: "Workflow policy" })).toHaveAttribute(
-      "href",
-      "/en/academic-content-hub/settings/workflow?year=year-1&term=term-1",
-    );
-    expect(screen.getByRole("link", { name: "Preparation templates" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "Preparation templates" }),
+    ).toHaveAttribute(
       "href",
       "/en/academic-content-hub/templates?year=year-1&term=term-1",
     );
-    expect(screen.queryByRole("link", { name: "Review queue" })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Teacher preparation" }),
+    ).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/preparations?year=year-1&term=term-1",
+    );
+    expect(screen.getByRole("link", { name: "Weekly plan" })).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/weekly-plans?year=year-1&term=term-1",
+    );
+    expect(
+      screen.getByRole("link", { name: "Guardian weekly note" }),
+    ).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/guardian-notes?year=year-1&term=term-1",
+    );
+    expect(
+      screen.getByRole("link", { name: "Subject resource" }),
+    ).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/subject-resources?year=year-1&term=term-1",
+    );
+    expect(
+      screen.getByRole("link", { name: "Online session" }),
+    ).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/online-sessions?year=year-1&term=term-1",
+    );
+    expect(
+      screen.getByRole("link", { name: "General resource" }),
+    ).toHaveAttribute(
+      "href",
+      "/en/academic-content-hub/general-resources?year=year-1&term=term-1",
+    );
+    expect(
+      screen.queryByRole("link", { name: "Review queue" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the review queue only with approve permission", () => {
@@ -108,16 +146,26 @@ describe("AcademicContentShell", () => {
       </AcademicContentShell>,
     );
 
-    expect(screen.getByRole("heading", { name: "Academic Content Hub" })).toBeVisible();
-    expect(screen.queryByRole("heading", { name: "Academic Content Center" })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Academic Content Hub" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: "Academic Content Center" }),
+    ).not.toBeInTheDocument();
   });
 
   it.each([
     ["/en/academic-content-hub", "Overview"],
     ["/en/academic-content-hub/library", "All content"],
+    ["/en/academic-content-hub/preparations", "Teacher preparation"],
+    ["/en/academic-content-hub/weekly-plans", "Weekly plan"],
+    ["/en/academic-content-hub/guardian-notes", "Guardian weekly note"],
+    ["/en/academic-content-hub/subject-resources", "Subject resource"],
+    ["/en/academic-content-hub/online-sessions", "Online session"],
+    ["/en/academic-content-hub/general-resources", "General resource"],
     ["/en/academic-content-hub/review", "Review queue"],
     ["/en/academic-content-hub/templates", "Preparation templates"],
-    ["/en/academic-content-hub/settings/file-policy", "Settings"],
+    ["/en/academic-content-hub/settings/notifications", "Settings"],
   ])("marks %s navigation as active", (pathname, linkName) => {
     navigationState.pathname = pathname;
     navigationState.canApprove = true;

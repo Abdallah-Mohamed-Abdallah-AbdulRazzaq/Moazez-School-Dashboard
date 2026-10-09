@@ -4,6 +4,7 @@ import {
   AcademicContentReviewQueueAccess,
   AcademicContentReviewQueueView,
 } from "../AcademicContentReviewQueuePage";
+import { academicContentBrowseOptionsFixture } from "../../__tests__/academicContentBrowseOptionsFixture";
 
 const pageState = vi.hoisted(() => ({
   canApprove: true,
@@ -20,7 +21,8 @@ vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
     isPermissionsReady: true,
     hasPermission: (permission: string) =>
-      permission === "academics.academic_content.approve" && pageState.canApprove,
+      permission === "academics.academic_content.approve" &&
+      pageState.canApprove,
   }),
 }));
 
@@ -80,24 +82,35 @@ describe("AcademicContentReviewQueuePage", () => {
     const { rerender } = render(
       <AcademicContentReviewQueueView
         queue={queueState({ error: { message: "Queue unavailable" }, reload })}
+        browseOptions={academicContentBrowseOptionsFixture}
       />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Queue unavailable");
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(reload).toHaveBeenCalledOnce();
 
-    rerender(<AcademicContentReviewQueueView queue={queueState()} />);
-    expect(screen.getByText("No submissions awaiting review")).toBeInTheDocument();
+    rerender(
+      <AcademicContentReviewQueueView
+        queue={queueState()}
+        browseOptions={academicContentBrowseOptionsFixture}
+      />,
+    );
+    expect(
+      screen.getByText("No submissions awaiting review"),
+    ).toBeInTheDocument();
   });
 
   it("keeps the review table visible while refreshed rows load", () => {
     render(
       <AcademicContentReviewQueueView
         queue={queueState({ isLoading: true, total: 1 })}
+        browseOptions={academicContentBrowseOptionsFixture}
       />,
     );
 
-    expect(screen.getByRole("columnheader", { name: "Title" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "Title" }),
+    ).toBeInTheDocument();
   });
 
   it("opens the immutable submitted revision and preserves context", () => {
@@ -120,6 +133,7 @@ describe("AcademicContentReviewQueuePage", () => {
             },
           ],
         })}
+        browseOptions={academicContentBrowseOptionsFixture}
       />,
     );
 
@@ -128,5 +142,9 @@ describe("AcademicContentReviewQueuePage", () => {
       "/en/academic-content-hub/review/content%2F1/revision%2F2?year=year-1&term=term-1",
       { scroll: false },
     );
+    expect(screen.getByText("Pending submissions: 1")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Oldest submissions appear first/),
+    ).toBeInTheDocument();
   });
 });

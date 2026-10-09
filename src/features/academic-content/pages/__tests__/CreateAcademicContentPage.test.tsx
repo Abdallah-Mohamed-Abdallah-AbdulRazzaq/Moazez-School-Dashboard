@@ -69,7 +69,7 @@ describe("CreateAcademicContentPage", () => {
       "Teacher preparation",
     );
     expect(screen.getByRole("button", { name: "Audience" })).toHaveTextContent(
-      "Internal staff",
+      "School staff",
     );
 
     choose("Content type", "Weekly plan");
@@ -104,7 +104,7 @@ describe("CreateAcademicContentPage", () => {
       "Teacher preparation",
     );
     expect(screen.getByRole("button", { name: "Audience" })).toHaveTextContent(
-      "Internal staff",
+      "School staff",
     );
   });
 
@@ -151,7 +151,9 @@ describe("CreateAcademicContentPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Creation failed");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This action could not be completed. Try again; contact support if the problem continues.",
+    );
     expect(state.push).not.toHaveBeenCalled();
   });
 });

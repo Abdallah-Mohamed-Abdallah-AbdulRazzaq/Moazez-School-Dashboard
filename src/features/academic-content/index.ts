@@ -5,6 +5,8 @@ export { default as AcademicContentOverviewPage } from "./pages/AcademicContentO
 export { default as CreateAcademicContentPage } from "./pages/CreateAcademicContentPage";
 export { default as AcademicContentEditorPage } from "./pages/AcademicContentEditorPage";
 export { default as AcademicContentFilePolicyPage } from "./pages/AcademicContentFilePolicyPage";
+export { default as AcademicContentSettingsPage } from "./pages/AcademicContentSettingsPage";
+export { default as AcademicContentNotificationPolicyPage } from "./pages/AcademicContentNotificationPolicyPage";
 export { default as WorkflowPolicyPage } from "./pages/WorkflowPolicyPage";
 export { default as AcademicContentReviewQueuePage } from "./pages/AcademicContentReviewQueuePage";
 export { default as AcademicContentReviewPage } from "./pages/AcademicContentReviewPage";

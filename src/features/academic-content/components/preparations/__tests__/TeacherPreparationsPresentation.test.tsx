@@ -10,7 +10,8 @@ import TeacherPreparationsHeader from "../TeacherPreparationsHeader";
 const push = vi.hoisted(() => vi.fn());
 let canManage = true;
 vi.mock("next/navigation", async () => {
-  const actual = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+  const actual =
+    await vi.importActual<typeof import("next/navigation")>("next/navigation");
   return { ...actual, useRouter: () => ({ push }) };
 });
 vi.mock("@/hooks/usePermissions", () => ({
@@ -67,7 +68,9 @@ describe("teacher preparations presentation", () => {
   });
 
   it("gates creation and keeps the fixed preparation type", () => {
-    const { rerender } = render(<TeacherPreparationsHeader yearId="year-1" termId="term-1" />);
+    const { rerender } = render(
+      <TeacherPreparationsHeader yearId="year-1" termId="term-1" />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "New preparation" }));
     expect(push).toHaveBeenCalledWith(
       "/en/academic-content-hub/new?year=year-1&term=term-1&type=TEACHER_PREPARATION",
@@ -75,17 +78,38 @@ describe("teacher preparations presentation", () => {
 
     canManage = false;
     rerender(<TeacherPreparationsHeader yearId="year-1" termId="term-1" />);
-    expect(screen.queryByRole("button", { name: "New preparation" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "New preparation" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders only supported filters", () => {
     const onFiltersChange = vi.fn();
     render(
       <TeacherPreparationFilters
-        filters={{ page: 1, limit: 10, status: "", teacherUserId: "", stageId: "", gradeId: "", classroomId: "", subjectId: "", search: "" }}
+        filters={{
+          page: 1,
+          limit: 10,
+          status: "",
+          teacherUserId: "",
+          stageId: "",
+          gradeId: "",
+          sectionId: "",
+          classroomId: "",
+          subjectId: "",
+          tag: "",
+          search: "",
+        }}
         search=""
         resultCount={0}
-        browseOptions={{ targetOptions: null, teachers: [], isLoadingTargets: false, isLoadingTeachers: false, targetOptionsUnavailable: false, teachersUnavailable: false }}
+        browseOptions={{
+          targetOptions: null,
+          teachers: [],
+          isLoadingTargets: false,
+          isLoadingTeachers: false,
+          targetOptionsUnavailable: false,
+          teachersUnavailable: false,
+        }}
         onSearchChange={vi.fn()}
         onFiltersChange={onFiltersChange}
         onClear={vi.fn()}
@@ -93,6 +117,8 @@ describe("teacher preparations presentation", () => {
     );
 
     expect(screen.getByLabelText("Teacher")).toBeVisible();
+    expect(screen.getByLabelText("Section")).toBeVisible();
+    expect(screen.getByLabelText("Tag")).toBeVisible();
     expect(screen.getByLabelText("Status")).toBeVisible();
     expect(screen.queryByText("Readiness")).not.toBeInTheDocument();
     expect(screen.queryByText(/Sort/)).not.toBeInTheDocument();
@@ -119,8 +145,13 @@ describe("teacher preparations presentation", () => {
     );
 
     expect(screen.getAllByText("Fractions").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Equivalent fractions").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Equivalent fractions").length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getAllByText("Pending approval").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("columnheader", { name: "Description" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Teacher")).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]);
     expect(onOpen).toHaveBeenCalledWith("content/1");

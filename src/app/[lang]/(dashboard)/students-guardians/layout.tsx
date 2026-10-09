@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import StudentsGuardiansYearTermContextBar from "@/features/students-guardians/shared/components/StudentsGuardiansYearTermContextBar";
+import { DashboardAnnouncementSlot } from "@/components/layout/DashboardAnnouncementPlacement";
 import {
   StudentsGuardiansYearTermProvider,
   useStudentsGuardiansYearTermContext,
@@ -40,6 +41,7 @@ function StudentsGuardiansLayoutContent({
         onTermChange={setTermId}
         showTermSelector={!usesYearOnlyStudentContext}
       />
+      <DashboardAnnouncementSlot />
       {children}
     </div>
   );

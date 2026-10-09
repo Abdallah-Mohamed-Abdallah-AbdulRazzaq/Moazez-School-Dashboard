@@ -36,11 +36,18 @@ export default function AcademicContentTable({
   const locale = useLocale();
   const t = useAcademicContentTranslations();
   const columns: Column<AcademicContentTableRow>[] = [
-    { key: "title", label: t("library.columns.title"), searchable: true },
     {
-      key: "type",
-      label: t("library.columns.type"),
-      render: (type) => t(`types.${String(type)}`),
+      key: "title",
+      label: t("library.columns.title"),
+      searchable: true,
+      render: (title, row) => (
+        <div className="min-w-44 space-y-1">
+          <p className="font-semibold text-gray-900">{String(title)}</p>
+          <p className="text-xs font-medium text-indigo-700">
+            {t(`types.${row.type}`)}
+          </p>
+        </div>
+      ),
     },
     {
       key: "status",
@@ -52,23 +59,30 @@ export default function AcademicContentTable({
       ),
     },
     {
-      key: "audience",
-      label: t("library.columns.audience"),
-      render: (audience) => t(`audiences.${String(audience)}`),
-    },
-    {
-      key: "summary",
-      label: t("library.columns.summary"),
-      render: (_, row) => <AcademicContentSummary summary={row.summary} />,
+      key: "details",
+      label: t("library.columns.details"),
+      render: (_, row) => (
+        <div className="min-w-40 space-y-1">
+          <p className="text-sm font-medium text-gray-800">
+            {t(`audiences.${row.audience}`)}
+          </p>
+          <div className="text-xs text-gray-600">
+            <AcademicContentSummary summary={row.summary} />
+          </div>
+        </div>
+      ),
     },
     {
       key: "updatedAt",
       label: t("library.columns.updated"),
-      render: (updatedAt) =>
-        new Intl.DateTimeFormat(locale, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(String(updatedAt))),
+      render: (updatedAt) => (
+        <time dateTime={String(updatedAt)}>
+          {new Intl.DateTimeFormat(locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(new Date(String(updatedAt)))}
+        </time>
+      ),
     },
   ];
   const rows = items as AcademicContentTableRow[];

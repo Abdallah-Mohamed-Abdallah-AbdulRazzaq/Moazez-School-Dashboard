@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { LockKeyhole, RefreshCw } from "lucide-react";
+import { useCallback, useEffect } from "react";
+import { RefreshCw } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button/Button";
@@ -10,42 +10,18 @@ import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { useGuardedAcademicContextChange } from "@/features/academics/hooks/useGuardedAcademicContextChange";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import BasicInformationSection from "../components/editor/BasicInformationSection";
-import AcademicTargetsSection from "../components/editor/AcademicTargetsSection";
-import LinksSection from "../components/editor/LinksSection";
-import TagsSection from "../components/editor/TagsSection";
-import FilesSection from "../components/editor/FilesSection";
-import LifecycleActions from "../components/editor/LifecycleActions";
-import ReadinessPanel from "../components/editor/ReadinessPanel";
-import RevisionHistoryPanel from "../components/editor/RevisionHistoryPanel";
-import AcademicContentPublicationPanel from "../components/publication/AcademicContentPublicationPanel";
-import EditorSectionNav, {
-  EDITOR_SECTIONS,
-  type AcademicContentEditorPanel,
-  type EditorSectionIndicator,
-} from "../components/editor/EditorSectionNav";
+import GenericAcademicContentEditorView from "../components/editor/GenericAcademicContentEditorView";
 import { useAcademicContentEditor } from "../hooks/useAcademicContentEditor";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
-import TypeDetailSection from "../components/editor/details/TypeDetailSection";
 import type { AcademicContentBase } from "../types/contracts";
-import { isPublicationSurfaceAvailable } from "../model/academicContentPublicationPolicy";
 import TeacherPreparationEditorView from "../components/preparation-detail/TeacherPreparationEditorView";
 import WeeklyPlanEditorView from "../components/weekly-plan-detail/WeeklyPlanEditorView";
 import GuardianNoteEditorView from "../components/guardian-note-detail/GuardianNoteEditorView";
 import SubjectResourceEditorView from "../components/subject-resource-detail/SubjectResourceEditorView";
+import OnlineSessionEditorView from "../components/online-session-detail/OnlineSessionEditorView";
+import GeneralResourceEditorView from "../components/general-resource-detail/GeneralResourceEditorView";
 
 type AcademicContentEditorState = ReturnType<typeof useAcademicContentEditor>;
-
-function editorSectionIndicator(section: {
-  dirty: boolean;
-  saving: boolean;
-  error: unknown;
-}): EditorSectionIndicator | undefined {
-  if (section.error) return "error";
-  if (section.saving) return "saving";
-  if (section.dirty) return "unsaved";
-  return undefined;
-}
 
 interface AcademicContentEditorViewProps {
   editor: AcademicContentEditorState;
@@ -70,8 +46,6 @@ export function AcademicContentEditorView({
   onLifecycleChanged = async () => undefined,
   onDeleted = () => undefined,
 }: AcademicContentEditorViewProps) {
-  const [activeSection, setActiveSection] =
-    useState<AcademicContentEditorPanel>("metadata");
   const t = useAcademicContentTranslations();
 
   if (editor.isLoading) {
@@ -152,194 +126,46 @@ export function AcademicContentEditorView({
     );
   }
 
-  const editingDisabled = editor.isReadOnly || !canManage;
-  const publicationAvailable = isPublicationSurfaceAvailable(
-    content.type,
-    content.audience,
-  );
-  const editorSections = publicationAvailable
-    ? [
-        ...EDITOR_SECTIONS.slice(0, -1),
-        { id: "publication", labelKey: "publication" } as const,
-        EDITOR_SECTIONS[EDITOR_SECTIONS.length - 1],
-      ]
-    : EDITOR_SECTIONS;
-  const resolvedActiveSection = editorSections.some(
-    (section) => section.id === activeSection,
-  )
-    ? activeSection
-    : "metadata";
-  const indicators = {
-    metadata: editorSectionIndicator(editor.sections.metadata),
-    targets: editorSectionIndicator(editor.sections.targets),
-    details: editorSectionIndicator(editor.sections.details),
-    links: editorSectionIndicator(editor.sections.links),
-    tags: editorSectionIndicator(editor.sections.tags),
-    files: editorSectionIndicator(editor.sections.files),
-    readiness: editor.readiness
-      ? editor.readiness.canAdvance
-        ? ("ready" as const)
-        : ("blocked" as const)
-      : undefined,
-  };
+  if (content.type === "ONLINE_SESSION") {
+    return (
+      <OnlineSessionEditorView
+        editor={{ ...editor, content }}
+        canManage={canManage}
+        canPublish={canPublish}
+        academicYearName={academicYearName}
+        termName={termName}
+        termBounds={termBounds}
+        onLifecycleChanged={onLifecycleChanged}
+        onDeleted={onDeleted}
+      />
+    );
+  }
+
+  if (content.type === "GENERAL_RESOURCE") {
+    return (
+      <GeneralResourceEditorView
+        editor={{ ...editor, content }}
+        canManage={canManage}
+        canPublish={canPublish}
+        academicYearName={academicYearName}
+        termName={termName}
+        onLifecycleChanged={onLifecycleChanged}
+        onDeleted={onDeleted}
+      />
+    );
+  }
 
   return (
-    <main className="mx-auto max-w-screen-2xl space-y-4 p-4 sm:p-6">
-      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-primary">
-              {t(`statuses.${content.status}`)}
-            </p>
-            <h2 className="mt-1 truncate text-xl font-bold text-gray-900 sm:text-2xl">
-              {content.title}
-            </h2>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            {editor.isReadOnly && (
-              <div
-                role="status"
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700"
-              >
-                <LockKeyhole aria-hidden="true" className="size-4" />
-                {t("editor.read_only")}
-              </div>
-            )}
-            <LifecycleActions
-              content={content}
-              canManage={canManage}
-              onChanged={onLifecycleChanged}
-              onDeleted={onDeleted}
-            />
-          </div>
-        </div>
-        <dl className="mt-5 grid gap-3 sm:grid-cols-3">
-          {[
-            [t("editor.content_type"), t(`types.${content.type}`)],
-            [t("editor.academic_year"), academicYearName],
-            [t("editor.term"), termName],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-lg bg-gray-50 px-3 py-2">
-              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                {label}
-              </dt>
-              <dd className="mt-1 text-sm font-semibold text-gray-900">
-                {value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <EditorSectionNav
-        variant="mobile"
-        activeSection={resolvedActiveSection}
-        sections={editorSections}
-        indicators={indicators}
-        onChange={setActiveSection}
-      />
-
-      <div className="grid min-w-0 gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
-        <aside>
-          <EditorSectionNav
-            variant="desktop"
-            activeSection={resolvedActiveSection}
-            sections={editorSections}
-            indicators={indicators}
-            onChange={setActiveSection}
-          />
-        </aside>
-        <div className="min-w-0">
-          {resolvedActiveSection === "metadata" ? (
-            <BasicInformationSection
-              content={content}
-              disabled={editingDisabled}
-              sectionState={editor.sections.metadata}
-              onDirtyChange={(dirty) =>
-                editor.markSectionDirty("metadata", dirty)
-              }
-              onSave={editor.saveMetadata}
-            />
-          ) : resolvedActiveSection === "targets" ? (
-            <AcademicTargetsSection
-              content={content}
-              disabled={editingDisabled}
-              sectionState={editor.sections.targets}
-              onDirtyChange={(dirty) =>
-                editor.markSectionDirty("targets", dirty)
-              }
-              onSave={editor.saveTargets}
-            />
-          ) : resolvedActiveSection === "details" ? (
-            <TypeDetailSection
-              content={content}
-              disabled={editingDisabled}
-              sectionState={editor.sections.details}
-              termStartDate={termBounds?.startDate}
-              termEndDate={termBounds?.endDate}
-              onDirty={() => editor.markSectionDirty("details", true)}
-              onSavePreparation={editor.savePreparationDetails}
-              onSaveWeeklyPlan={editor.saveWeeklyPlanDetails}
-              onSaveGuardianNote={editor.saveGuardianNoteDetails}
-              onSaveSubjectResource={editor.saveSubjectResourceDetails}
-              onSaveOnlineSession={editor.saveOnlineSessionDetails}
-            />
-          ) : resolvedActiveSection === "links" ? (
-            <LinksSection
-              key={JSON.stringify(content.links)}
-              initial={content.links}
-              disabled={editingDisabled}
-              sectionState={editor.sections.links}
-              onDirty={() => editor.markSectionDirty("links", true)}
-              onSave={editor.saveLinks}
-            />
-          ) : resolvedActiveSection === "tags" ? (
-            <TagsSection
-              key={JSON.stringify(content.tags)}
-              initial={content.tags}
-              disabled={editingDisabled}
-              sectionState={editor.sections.tags}
-              onDirty={() => editor.markSectionDirty("tags", true)}
-              onSave={editor.saveTags}
-            />
-          ) : resolvedActiveSection === "files" ? (
-            <FilesSection
-              contentId={content.id}
-              assets={content.assets}
-              disabled={editingDisabled}
-              onFilesChanged={async () => {
-                await Promise.all([
-                  editor.refreshAggregate(),
-                  editor.refreshReadiness(),
-                ]);
-              }}
-            />
-          ) : resolvedActiveSection === "readiness" ? (
-            <ReadinessPanel
-              readiness={editor.readiness}
-              onRefresh={editor.refreshReadiness}
-            />
-          ) : resolvedActiveSection === "publication" &&
-            publicationAvailable ? (
-            <AcademicContentPublicationPanel
-              content={content}
-              canMutate={canPublish}
-              onContentChanged={async () => {
-                await Promise.all([
-                  editor.refreshAggregate(),
-                  editor.refreshReadiness(),
-                ]);
-              }}
-            />
-          ) : (
-            <RevisionHistoryPanel
-              key={`${content.id}:${content.updatedAt}`}
-              contentId={content.id}
-            />
-          )}
-        </div>
-      </div>
-    </main>
+    <GenericAcademicContentEditorView
+      editor={{ ...editor, content }}
+      canManage={canManage}
+      canPublish={canPublish}
+      academicYearName={academicYearName}
+      termName={termName}
+      termBounds={termBounds}
+      onLifecycleChanged={onLifecycleChanged}
+      onDeleted={onDeleted}
+    />
   );
 }
 
@@ -412,7 +238,11 @@ export default function AcademicContentEditorPage({
         const routeSuffix =
           editor.content?.type === "SUBJECT_RESOURCE"
             ? "/subject-resources"
-            : "";
+            : editor.content?.type === "ONLINE_SESSION"
+              ? "/online-sessions"
+              : editor.content?.type === "GENERAL_RESOURCE"
+                ? "/general-resources"
+                : "";
         router.push(
           `/${locale}/academic-content-hub${routeSuffix}${serializedQuery ? `?${serializedQuery}` : ""}`,
         );

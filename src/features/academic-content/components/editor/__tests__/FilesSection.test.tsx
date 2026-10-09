@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AcademicContentAsset } from "../../../types/contracts";
 import FilesSection from "../FilesSection";
 
 const mocks = vi.hoisted(() => ({
@@ -10,11 +11,19 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/components/ui/drag-drop-upload/DragDropUploadArea", () => ({
-  default: ({ onFilesSelected, disabled }: { onFilesSelected: (files: File[]) => void; disabled?: boolean }) => (
+  default: ({
+    onFilesSelected,
+    disabled,
+  }: {
+    onFilesSelected: (files: File[]) => void;
+    disabled?: boolean;
+  }) => (
     <button
       type="button"
       disabled={disabled}
-      onClick={() => mocks.selectedFile && onFilesSelected([mocks.selectedFile])}
+      onClick={() =>
+        mocks.selectedFile && onFilesSelected([mocks.selectedFile])
+      }
     >
       Select files
     </button>
@@ -22,7 +31,15 @@ vi.mock("@/components/ui/drag-drop-upload/DragDropUploadArea", () => ({
 }));
 
 vi.mock("@/components/ui/attachment-list-item/AttachmentListItem", () => ({
-  default: ({ title, subtitle, actions = [] }: { title: string; subtitle?: string; actions?: { label: string; onClick: () => void }[] }) => (
+  default: ({
+    title,
+    subtitle,
+    actions = [],
+  }: {
+    title: string;
+    subtitle?: string;
+    actions?: { label: string; onClick: () => void }[];
+  }) => (
     <div>
       <span>{title}</span>
       <span>{subtitle}</span>
@@ -41,8 +58,14 @@ vi.mock("../../../services/academicContentApi", () => ({
 }));
 
 vi.mock("../../../services/academicContentUpload", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../services/academicContentUpload")>();
-  return { ...actual, uploadAcademicContentFile: mocks.uploadAcademicContentFile };
+  const actual =
+    await importOriginal<
+      typeof import("../../../services/academicContentUpload")
+    >();
+  return {
+    ...actual,
+    uploadAcademicContentFile: mocks.uploadAcademicContentFile,
+  };
 });
 
 const policy = {
@@ -59,31 +82,45 @@ const policy = {
   allowInlinePreview: true,
 };
 
+const attachedAsset: AcademicContentAsset = {
+  assetId: "asset-1",
+  fileId: "file-1",
+  originalName: "lesson.pdf",
+  mimeType: "application/pdf",
+  sizeBytes: "1024",
+  sortOrder: 0,
+  createdAt: "2026-10-05T10:30:00.000Z",
+};
+
 describe("FilesSection", () => {
   beforeEach(() => {
-    mocks.selectedFile = new File(["pdf"], "lesson.pdf", { type: "application/pdf" });
+    mocks.selectedFile = new File(["pdf"], "lesson.pdf", {
+      type: "application/pdf",
+    });
     mocks.getAcademicContentFilePolicy.mockReset().mockResolvedValue(policy);
     mocks.unlinkAcademicContentAsset.mockReset().mockResolvedValue({
       ok: true,
       assetId: "asset-1",
     });
-    mocks.uploadAcademicContentFile.mockReset().mockImplementation(async ({ onProgress }) => {
-      onProgress?.({ uploadedBytes: "3", totalBytes: "3", percent: 100 });
-      return {
-        asset: {
-          id: "asset-new",
-          academicContentId: "content-1",
-          fileId: "file-new",
-          createdAt: "2026-09-30T00:00:00.000Z",
-        },
-        file: {
-          id: "file-new",
-          originalName: "lesson.pdf",
-          mimeType: "application/pdf",
-          sizeBytes: "3",
-        },
-      };
-    });
+    mocks.uploadAcademicContentFile
+      .mockReset()
+      .mockImplementation(async ({ onProgress }) => {
+        onProgress?.({ uploadedBytes: "3", totalBytes: "3", percent: 100 });
+        return {
+          asset: {
+            id: "asset-new",
+            academicContentId: "content-1",
+            fileId: "file-new",
+            createdAt: "2026-09-30T00:00:00.000Z",
+          },
+          file: {
+            id: "file-new",
+            originalName: "lesson.pdf",
+            mimeType: "application/pdf",
+            sizeBytes: "3",
+          },
+        };
+      });
   });
 
   it("uploads a policy-allowed file and refreshes the aggregate", async () => {
@@ -100,7 +137,9 @@ describe("FilesSection", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Select files" }));
 
-    await waitFor(() => expect(mocks.uploadAcademicContentFile).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(mocks.uploadAcademicContentFile).toHaveBeenCalledOnce(),
+    );
     expect(mocks.uploadAcademicContentFile).toHaveBeenCalledWith(
       expect.objectContaining({
         contentId: "content-1",
@@ -113,7 +152,9 @@ describe("FilesSection", () => {
   });
 
   it("rejects a disabled file category before creating an upload", async () => {
-    mocks.selectedFile = new File(["zip"], "pack.zip", { type: "application/zip" });
+    mocks.selectedFile = new File(["zip"], "pack.zip", {
+      type: "application/zip",
+    });
     render(
       <FilesSection
         contentId="content-1"
@@ -126,7 +167,9 @@ describe("FilesSection", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Select files" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Archives are disabled");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This file category is disabled in the current school settings.",
+    );
     expect(mocks.uploadAcademicContentFile).not.toHaveBeenCalled();
   });
 
@@ -177,8 +220,38 @@ describe("FilesSection", () => {
       />,
     );
 
-    expect(await screen.findByRole("heading", { name: "Files", level: 2 })).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Files", level: 2 }),
+    ).toBeVisible();
     expect(container.querySelector("section")).toHaveClass("pt-5");
-    expect(screen.queryByRole("button", { name: "Select files" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Select files" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses injected policy state and presents asset and recipient-access details", () => {
+    render(
+      <FilesSection
+        contentId="content-1"
+        assets={[attachedAsset]}
+        disabled
+        policyState={{
+          policy: { ...policy, allowGuardianDownload: false },
+          isLoading: false,
+          error: null,
+          reload: vi.fn(),
+        }}
+        showRecipientAccessPolicy
+        onFilesChanged={vi.fn()}
+      />,
+    );
+
+    expect(mocks.getAcademicContentFilePolicy).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/application\/pdf.*1 KiB.*Oct 5, 2026/i),
+    ).toBeVisible();
+    expect(screen.getByText("Student downloads enabled")).toBeVisible();
+    expect(screen.getByText("Guardian downloads disabled")).toBeVisible();
+    expect(screen.getByText("Inline preview enabled")).toBeVisible();
   });
 });

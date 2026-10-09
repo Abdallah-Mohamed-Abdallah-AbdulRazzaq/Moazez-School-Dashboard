@@ -7,7 +7,6 @@ import {
   menuItems,
 } from "@/config/navigation";
 import {
-  Building2,
   Menu,
   ChevronLeft,
   ChevronDown,
@@ -86,12 +85,10 @@ function getActiveExpandedKeys(
 
 export default function Sidebar({
   onSelect,
-  schoolName = "School Name",
   isOpen = true,
   onToggle,
   isRTL = false,
 }: SidebarProps) {
-  const t = useTranslations("sidebar");
   const tApp = useTranslations();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -541,6 +538,7 @@ export default function Sidebar({
                     {/* Parent Item */}
                     {hasChildren ? (
                       <button
+                        aria-label={isArabic ? item.label_ar : item.label_en}
                         onClick={(e) => {
                           if (isOpen) {
                             toggleExpand(item.key, e);
@@ -577,9 +575,20 @@ export default function Sidebar({
                         />
                         {isOpen && (
                           <>
-                            <span className="font-semibold text-[15px] flex-1 truncate">
-                              {isArabic ? item.label_ar : item.label_en}
-                            </span>
+                            <OverflowMarquee
+                              className="flex-1 text-[15px] font-semibold"
+                              isRTL={isArabic}
+                              label={isArabic ? item.label_ar : item.label_en}
+                            />
+                            {item.statusBadge ? (
+                              <NavigationStatusBadge
+                                label={
+                                  isArabic
+                                    ? item.statusBadge.label_ar
+                                    : item.statusBadge.label_en
+                                }
+                              />
+                            ) : null}
                             <ChevronDown
                               className={`w-4 h-4 transition-transform shrink-0 ${
                                 isExpanded ? "rotate-180" : ""

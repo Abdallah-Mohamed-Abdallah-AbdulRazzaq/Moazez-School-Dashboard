@@ -73,8 +73,12 @@ describe("AcademicContentTable", () => {
     );
 
     expect(screen.getByText("Fractions")).toBeInTheDocument();
+    expect(screen.getByText("Teacher preparation")).toBeInTheDocument();
+    expect(screen.getAllByText("Students")).not.toHaveLength(0);
     expect(screen.getByText("Sep 27, 2026 – Oct 1, 2026")).toBeInTheDocument();
-    expect(screen.getByText(/Important.*Acknowledgement required/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Important.*Acknowledgement required/),
+    ).toBeInTheDocument();
     expect(screen.getByText("Worksheet")).toBeInTheDocument();
     expect(screen.getByText(/Zoom.*Sep 30, 2026/)).toBeInTheDocument();
     expect(screen.getByText("No details yet")).toBeInTheDocument();

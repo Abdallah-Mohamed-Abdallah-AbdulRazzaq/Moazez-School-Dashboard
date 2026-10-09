@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/api-error";
 import PreparationTemplateForm from "../PreparationTemplateForm";
 
 const loadAcademicTargetOptions = vi.hoisted(() => vi.fn());
@@ -73,6 +74,9 @@ describe("PreparationTemplateForm", () => {
     );
     expect(screen.getByLabelText("Stage")).toBeInTheDocument();
     expect(screen.getByLabelText("Subject")).toBeInTheDocument();
+    expect(screen.getAllByText("Unavailable selection")).toHaveLength(2);
+    expect(screen.queryByText("stage-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("subject-1")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Save template" }));
 
@@ -153,9 +157,13 @@ describe("PreparationTemplateForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save template" }));
     expect(onSubmit).toHaveBeenCalledTimes(1);
 
-    rejectSubmit(new Error("An active template with this name already exists"));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    rejectSubmit(new ApiError(
       "An active template with this name already exists",
+      409,
+      "academic_content.preparation_template.duplicate_name",
+    ));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "A template with this name already exists. Choose a different name.",
     );
   });
 

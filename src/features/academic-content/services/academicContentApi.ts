@@ -12,6 +12,7 @@ import type {
   AcademicContentLinksResponse,
   AcademicContentListResponse,
   AcademicContentOnlineSessionDetail,
+  AcademicContentNotificationPolicy,
   AcademicContentPaginationQuery,
   AcademicContentPreparationDetail,
   AcademicContentPreparationTemplateDeleteResponse,
@@ -49,6 +50,7 @@ import type {
   ReplaceAcademicContentSubjectResourceDetailRequest,
   ReplaceAcademicContentWeeklyPlanDetailRequest,
   UpdateAcademicContentFilePolicyRequest,
+  UpdateAcademicContentNotificationPolicyRequest,
   UpdateAcademicContentPreparationTemplateRequest,
   UpdateAcademicContentRequest,
   UpdateAcademicContentWorkflowPolicyRequest,
@@ -57,6 +59,7 @@ import type {
 const BASE_PATH = "/academics/academic-content";
 const FILE_POLICY_PATH = `${BASE_PATH}/settings/file-policy`;
 const WORKFLOW_POLICY_PATH = `${BASE_PATH}/settings/workflow-policy`;
+const NOTIFICATION_POLICY_PATH = `${BASE_PATH}/settings/notification-policy`;
 const REVIEW_QUEUE_PATH = `${BASE_PATH}/review-queue`;
 const PREPARATION_TEMPLATES_PATH = `${BASE_PATH}/templates/preparation`;
 
@@ -355,6 +358,19 @@ export function updateAcademicContentWorkflowPolicy(
   request: UpdateAcademicContentWorkflowPolicyRequest,
 ): Promise<AcademicContentWorkflowPolicy> {
   return apiPatch<AcademicContentWorkflowPolicy>(WORKFLOW_POLICY_PATH, request);
+}
+
+export function getAcademicContentNotificationPolicy(): Promise<AcademicContentNotificationPolicy> {
+  return apiGet<AcademicContentNotificationPolicy>(NOTIFICATION_POLICY_PATH);
+}
+
+export function updateAcademicContentNotificationPolicy(
+  request: UpdateAcademicContentNotificationPolicyRequest,
+): Promise<AcademicContentNotificationPolicy> {
+  return apiPatch<AcademicContentNotificationPolicy>(
+    NOTIFICATION_POLICY_PATH,
+    request,
+  );
 }
 
 export function submitAcademicContent(

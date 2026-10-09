@@ -39,7 +39,7 @@ export default function SubjectResourceForm({ initial, disabled, sectionState, o
     <DetailFormShell title={t("details.resource_title")} description={t("details.resource_description")} disabled={disabled} sectionState={sectionState} validationError={null} onSave={() => void onSave({ ...form })}>
       <Select label={t("fields.resource_category")} triggerAriaLabel={t("fields.resource_category")} value={form.resourceCategory} options={ACADEMIC_SUBJECT_RESOURCE_CATEGORIES.map((category) => ({ value: category, label: t(`resource_categories.${category}`) }))} required disabled={disabled} onChange={(value) => update("resourceCategory", value as AcademicSubjectResourceCategory)} />
       <div className="grid gap-4 sm:grid-cols-3">
-        <OptionalReferenceSelect label={t("fields.curriculum")} value={form.curriculumId} options={options.curricula.map((item) => ({ value: item.id, label: item.title }))} disabled={disabled} onChange={(value) => {
+        <OptionalReferenceSelect label={t("fields.curriculum")} value={form.curriculumId} options={options.curricula.map((item) => ({ value: item.id, label: item.title }))} disabled={disabled} helperText={t("details.target_dependency_hint")} onChange={(value) => {
           setForm((current) => ({ ...current, curriculumId: value, curriculumUnitId: null, curriculumLessonId: null }));
           onDirty();
         }} />

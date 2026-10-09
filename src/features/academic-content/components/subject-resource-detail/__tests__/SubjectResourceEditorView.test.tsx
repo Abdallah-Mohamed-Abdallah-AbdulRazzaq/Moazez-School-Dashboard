@@ -123,12 +123,10 @@ describe("SubjectResourceEditorView", () => {
     ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
     expect(
-      screen.getByRole("heading", { name: "Academic targets" }),
+      screen.getByRole("heading", { name: "Content scope" }),
     ).toBeVisible();
     expect(
-      await screen.findByText(
-        "No academic targets. Add one or save the empty target set.",
-      ),
+      await screen.findByText("No content scope selected yet."),
     ).toBeVisible();
     expect(
       screen.getAllByRole("button", { name: "Publication" }),

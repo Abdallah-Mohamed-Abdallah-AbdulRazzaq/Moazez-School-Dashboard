@@ -24,8 +24,10 @@ const FILTER_QUERY_KEYS = [
   "teacherUserId",
   "stageId",
   "gradeId",
+  "sectionId",
   "classroomId",
   "subjectId",
+  "tag",
   "search",
 ] as const;
 
@@ -75,7 +77,9 @@ export function useTeacherPreparations() {
   const [items, setItems] = useState<AcademicContentLibraryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<ReturnType<typeof academicContentUiError> | null>(null);
+  const [error, setError] = useState<ReturnType<
+    typeof academicContentUiError
+  > | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [counts, setCounts] = useState<TeacherPreparationCounts>(initialCounts);
   const listRequestId = useRef(0);
@@ -205,7 +209,10 @@ export function useTeacherPreparations() {
     setFilters,
     setPage: (page: number) => replaceQuery({ page: Math.max(1, page) }, false),
     setLimit: (limit: number) =>
-      replaceQuery({ limit: Math.min(100, Math.max(1, limit)), page: null }, false),
+      replaceQuery(
+        { limit: Math.min(100, Math.max(1, limit)), page: null },
+        false,
+      ),
     clearFilters: () =>
       replaceQuery(
         Object.fromEntries(FILTER_QUERY_KEYS.map((key) => [key, null])),

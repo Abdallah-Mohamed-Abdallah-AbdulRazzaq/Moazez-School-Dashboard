@@ -1,17 +1,21 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AcademicContentLibraryView } from "../AcademicContentLibraryPage";
+import type { AcademicContentBrowseOptionsState } from "../../hooks/useAcademicContentBrowseOptions";
 
 const libraryState = vi.hoisted(() => ({
   error: null as { message: string } | null,
   reload: vi.fn(),
 }));
 
-vi.mock("@/features/teachers/services/teacherApi", () => ({
-  teacherApi: {
-    list: vi.fn(() => new Promise(() => {})),
-  },
-}));
+const browseOptions: AcademicContentBrowseOptionsState = {
+  targetOptions: null,
+  teachers: [],
+  isLoadingTargets: false,
+  isLoadingTeachers: false,
+  targetOptionsUnavailable: false,
+  teachersUnavailable: false,
+};
 
 function emptyLibraryState() {
   return {
@@ -58,14 +62,24 @@ describe("AcademicContentLibraryPage", () => {
   });
 
   it("shows the library empty state", () => {
-    render(<AcademicContentLibraryView library={emptyLibraryState()} />);
+    render(
+      <AcademicContentLibraryView
+        library={emptyLibraryState()}
+        browseOptions={browseOptions}
+      />,
+    );
 
     expect(screen.getByText("No academic content yet")).toBeInTheDocument();
   });
 
   it("shows a recoverable error state", () => {
     libraryState.error = { message: "Library unavailable" };
-    render(<AcademicContentLibraryView library={emptyLibraryState()} />);
+    render(
+      <AcademicContentLibraryView
+        library={emptyLibraryState()}
+        browseOptions={browseOptions}
+      />,
+    );
 
     expect(screen.getByRole("alert")).toHaveTextContent("Library unavailable");
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));

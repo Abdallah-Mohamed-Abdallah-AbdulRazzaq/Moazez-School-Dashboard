@@ -13,8 +13,10 @@ export interface TeacherPreparationFilters {
   teacherUserId: string;
   stageId: string;
   gradeId: string;
+  sectionId: string;
   classroomId: string;
   subjectId: string;
+  tag: string;
   search: string;
 }
 
@@ -59,8 +61,10 @@ export function readTeacherPreparationFilters(
     teacherUserId: searchParams.get("teacherUserId") ?? "",
     stageId: searchParams.get("stageId") ?? "",
     gradeId: searchParams.get("gradeId") ?? "",
+    sectionId: searchParams.get("sectionId") ?? "",
     classroomId: searchParams.get("classroomId") ?? "",
     subjectId: searchParams.get("subjectId") ?? "",
+    tag: (searchParams.get("tag") ?? "").slice(0, 80),
     search: (searchParams.get("search") ?? "").slice(0, 120),
   };
 }
@@ -79,8 +83,10 @@ export function teacherPreparationListQuery(
     teacherUserId: filters.teacherUserId,
     stageId: filters.stageId,
     gradeId: filters.gradeId,
+    sectionId: filters.sectionId,
     classroomId: filters.classroomId,
     subjectId: filters.subjectId,
+    tag: filters.tag,
     search: filters.search,
   };
   return Object.fromEntries(

@@ -1,0 +1,62 @@
+.richText {
+  overflow-wrap: anywhere;
+}
+
+.richText > :first-child {
+  margin-top: 0;
+}
+
+.richText > :last-child {
+  margin-bottom: 0;
+}
+
+.richText p,
+.richText ul,
+.richText ol {
+  margin-block: 0.375rem;
+}
+
+.richText h1,
+.richText h2,
+.richText h3 {
+  margin-block: 0.75rem 0.375rem;
+  color: var(--color-gray-950);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.richText h1 {
+  font-size: 1.25em;
+}
+
+.richText h2 {
+  font-size: 1.125em;
+}
+
+.richText h3 {
+  font-size: 1em;
+}
+
+.richText ul,
+.richText ol {
+  padding-inline-start: 1.5rem;
+}
+
+.richText ul {
+  list-style: disc;
+}
+
+.richText ol {
+  list-style: decimal;
+}
+
+.richText a {
+  color: var(--color-primary);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.richText u {
+  text-underline-offset: 2px;
+}

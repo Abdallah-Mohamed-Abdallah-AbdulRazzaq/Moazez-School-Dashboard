@@ -1,14 +1,5 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
-import {
-  CalendarDays,
-  FileText,
-  FolderOpen,
-  MessageSquareText,
-  NotebookPen,
-  Video,
-} from "lucide-react";
 import { useLocale } from "next-intl";
 import Link from "next/link";
 import { Button } from "@/components/ui/button/Button";
@@ -19,21 +10,8 @@ import {
   ACADEMIC_CONTENT_TYPES,
   type AcademicContentType,
 } from "../../types/contracts";
+import { CONTENT_TYPE_PRESENTATION } from "./contentTypePresentation";
 import { academicContentTypeHref } from "./overviewRoutes";
-
-interface TypeCardStyle {
-  icon: LucideIcon;
-  iconClassName: string;
-}
-
-const TYPE_CARD_STYLES: Record<AcademicContentType, TypeCardStyle> = {
-  TEACHER_PREPARATION: { icon: NotebookPen, iconClassName: "bg-blue-50 text-blue-600" },
-  WEEKLY_PLAN: { icon: CalendarDays, iconClassName: "bg-emerald-50 text-emerald-600" },
-  GUARDIAN_WEEKLY_NOTE: { icon: MessageSquareText, iconClassName: "bg-orange-50 text-orange-600" },
-  SUBJECT_RESOURCE: { icon: FileText, iconClassName: "bg-violet-50 text-violet-600" },
-  ONLINE_SESSION: { icon: Video, iconClassName: "bg-rose-50 text-rose-600" },
-  GENERAL_RESOURCE: { icon: FolderOpen, iconClassName: "bg-sky-50 text-sky-600" },
-};
 
 export interface ContentTypeGridProps {
   yearId: string;
@@ -56,7 +34,8 @@ export default function ContentTypeGrid({
     <section aria-label={t("title")} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {ACADEMIC_CONTENT_TYPES.map((contentType) => {
         const total = totals[contentType];
-        const { icon: Icon, iconClassName } = TYPE_CARD_STYLES[contentType];
+        const { icon: Icon, iconClassName } =
+          CONTENT_TYPE_PRESENTATION[contentType];
         const href = academicContentTypeHref({
           locale,
           contentType,

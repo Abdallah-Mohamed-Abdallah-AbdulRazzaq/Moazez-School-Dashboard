@@ -14279,6 +14279,13 @@
     "invalid": "أدخل رقم هاتف صالحًا."
   },
   "academic_content": {
+    "announcement": {
+      "title": "مركز المحتوى الأكاديمي",
+      "description": "نظّم وأدِر المحتوى الأكاديمي لمدرستك في مكان واحد.",
+      "new": "جديد",
+      "explore": "استكشف",
+      "dismiss": "إغلاق الإعلان"
+    },
     "common": {
       "retry": "إعادة المحاولة",
       "save": "حفظ",
@@ -14408,6 +14415,7 @@
       "all_teachers": "كل المعلمين",
       "all_stages": "كل المراحل",
       "all_grades": "كل الصفوف",
+      "all_sections": "كل الشعب",
       "all_classrooms": "كل الفصول",
       "all_subjects": "كل المواد",
       "all_statuses": "كل الحالات",
@@ -14417,9 +14425,11 @@
         "teacher": "المعلم",
         "stage": "المرحلة",
         "grade": "الصف",
+        "section": "الشعبة",
         "classroom": "الفصل",
         "subject": "المادة",
-        "status": "الحالة"
+        "status": "الحالة",
+        "tag": "الوسم"
       },
       "columns": {
         "preparation": "التحضير / الموضوع",
@@ -14468,18 +14478,26 @@
       "last_updated": "الترتيب: آخر تحديث",
       "all_stages": "كل المراحل",
       "all_grades": "كل الصفوف",
+      "all_sections": "كل الشعب",
       "all_classrooms": "كل الفصول",
       "all_subjects": "كل المواد",
+      "all_teachers": "كل المعلمين المعيّنين",
       "all_audiences": "كل الجماهير",
       "all_statuses": "كل الحالات",
       "unavailable_name": "الاسم غير متاح",
       "filters": {
         "stage": "المرحلة",
         "grade": "الصف",
+        "section": "الشعبة",
         "classroom": "الفصل",
         "subject": "المادة",
+        "teacher": "المعلم المعيّن",
         "audience": "الجمهور",
-        "status": "حالة النشر"
+        "status": "حالة النشر",
+        "tag": "الوسم",
+        "date_from": "يتداخل الأسبوع بدءًا من",
+        "date_to": "يتداخل الأسبوع حتى",
+        "date_range": "نطاق الأسبوع"
       },
       "audiences": {
         "INTERNAL_STAFF": "الكادر الداخلي",
@@ -14524,7 +14542,7 @@
         "resources": "الملفات والروابط",
         "readiness": "الجاهزية",
         "publication": "النشر",
-        "revisions": "سجل المراجعات"
+        "revisions": "سجل الإصدارات"
       },
       "preview": {
         "title": "معاينة المورد",
@@ -14559,7 +14577,7 @@
         "visible_until": "ظاهر حتى",
         "not_set": "غير محدد",
         "unavailable": "غير متاح",
-        "no_targets": "لا توجد نطاقات أكاديمية",
+        "no_targets": "لم يُحدّد نطاق للمحتوى",
         "no_tags": "لا توجد وسوم",
         "no_links": "لا توجد روابط"
       }
@@ -14593,6 +14611,7 @@
       "grid_view": "عرض الشبكة",
       "all_stages": "كل المراحل",
       "all_grades": "كل الصفوف",
+      "all_sections": "كل الشعب",
       "all_classrooms": "كل الفصول",
       "all_subjects": "كل المواد",
       "all_categories": "كل الفئات",
@@ -14604,12 +14623,14 @@
       "filters": {
         "stage": "المرحلة",
         "grade": "الصف",
+        "section": "الشعبة",
         "classroom": "الفصل",
         "subject": "المادة",
         "category": "فئة المورد",
         "teacher": "المعلم المعيّن",
         "audience": "الفئة المستهدفة",
-        "status": "حالة المحتوى"
+        "status": "حالة المحتوى",
+        "tag": "الوسم"
       },
       "columns": {
         "resource": "المورد",
@@ -14629,6 +14650,277 @@
       "empty_description": "أنشئ مورد مادة للسياق الأكاديمي المحدد.",
       "filtered_empty_title": "لا توجد موارد مطابقة",
       "filtered_empty_description": "غيّر عوامل التصفية الحالية أو امسحها لعرض نتائج أخرى."
+    },
+    "general_resource_detail": {
+      "workspace_label": "مساحة عمل المورد العام",
+      "sections_label": "أقسام المورد العام",
+      "sections": {
+        "overview": "نظرة عامة",
+        "targets": "نطاق المحتوى",
+        "resources": "الموارد",
+        "readiness": "الجاهزية",
+        "publication": "النشر",
+        "revisions": "سجل الإصدارات"
+      },
+      "header": {
+        "back": "العودة إلى الموارد العامة",
+        "no_description": "لا يوجد وصف",
+        "targets": "{count, plural, one {نطاق واحد} two {نطاقان} few {# نطاقات} other {# نطاقًا}}",
+        "attachments": "{count, plural, one {مرفق واحد} two {مرفقان} few {# مرفقات} other {# مرفقًا}}"
+      },
+      "overview": {
+        "content_type": "نوع المحتوى",
+        "academic_year": "العام الدراسي",
+        "term": "الفصل الدراسي"
+      },
+      "context": {
+        "rail_label": "سياق المورد العام",
+        "readiness": "الجاهزية",
+        "refresh": "تحديث",
+        "ready": "جاهز للتقدم",
+        "blocked": "يحتاج إلى اهتمام",
+        "unavailable": "غير متاح",
+        "targets": "نطاق المحتوى",
+        "no_targets": "لم يُحدّد نطاق للمحتوى",
+        "tags": "الوسوم",
+        "no_tags": "لا توجد وسوم",
+        "publication": "النشر",
+        "not_published": "غير منشور",
+        "publish_at": "وقت النشر",
+        "visible_from": "بداية الظهور",
+        "visible_until": "نهاية الظهور",
+        "audit": "تواريخ التدقيق",
+        "created": "تاريخ الإنشاء",
+        "updated": "آخر تحديث",
+        "resources": "الوصول إلى الموارد",
+        "asset_count": "{count, plural, one {مرفق واحد} two {مرفقان} few {# مرفقات} other {# مرفقًا}}",
+        "link_count": "{count, plural, one {رابط واحد} two {رابطان} few {# روابط} other {# رابطًا}}",
+        "policy_loading": "جارٍ تحميل سياسة الملفات…",
+        "policy_unavailable": "سياسة الملفات غير متاحة",
+        "retry_policy": "إعادة محاولة تحميل السياسة",
+        "student_download_enabled": "تنزيل الطلاب مفعّل",
+        "student_download_disabled": "تنزيل الطلاب معطّل",
+        "guardian_download_enabled": "تنزيل أولياء الأمور مفعّل",
+        "guardian_download_disabled": "تنزيل أولياء الأمور معطّل",
+        "inline_preview_enabled": "المعاينة المباشرة مفعّلة",
+        "inline_preview_disabled": "المعاينة المباشرة معطّلة"
+      }
+    },
+    "general_resources": {
+      "title": "الموارد العامة",
+      "description": "تنظيم ومشاركة الملفات والمراجع والسياسات والمواد الأكاديمية المساندة على مستوى المدرسة.",
+      "new_resource": "مورد عام جديد",
+      "retry": "إعادة المحاولة",
+      "loading": "جارٍ تحميل الموارد العامة…",
+      "previous_page": "صفحة الموارد العامة السابقة",
+      "next_page": "صفحة الموارد العامة التالية",
+      "page_size": "عدد الموارد العامة في الصفحة",
+      "breadcrumb": {
+        "overview": "مركز المحتوى الأكاديمي"
+      },
+      "stats": {
+        "label": "ملخص الموارد العامة",
+        "total": "إجمالي الموارد",
+        "pageItems": "موارد هذه الصفحة",
+        "publishedOnPage": "المنشورة في هذه الصفحة",
+        "audiencesOnPage": "الفئات المستهدفة في هذه الصفحة"
+      },
+      "search": "البحث بالعنوان أو الوصف أو الوسم",
+      "show_filters": "إظهار عوامل التصفية",
+      "hide_filters": "إخفاء عوامل التصفية",
+      "clear_filters": "مسح الكل",
+      "remove_filter": "إزالة {label}",
+      "results": "تم العثور على {count} مورد عام",
+      "last_updated": "الترتيب: آخر تحديث",
+      "view_options": "خيارات عرض الموارد العامة",
+      "table_view": "عرض الجدول",
+      "grid_view": "عرض البطاقات",
+      "all_stages": "كل المراحل",
+      "all_grades": "كل الصفوف",
+      "all_sections": "كل الشعب",
+      "all_classrooms": "كل الفصول",
+      "all_subjects": "كل المواد",
+      "all_teachers": "كل المعلمين المعيّنين",
+      "all_audiences": "كل الفئات المستهدفة",
+      "all_statuses": "كل الحالات",
+      "unavailable_name": "الاسم غير متاح",
+      "filters": {
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل",
+        "subject": "المادة",
+        "teacher": "المعلم المعيّن",
+        "audience": "الفئة المستهدفة",
+        "status": "حالة المحتوى",
+        "tag": "الوسم"
+      },
+      "columns": {
+        "resource": "المورد",
+        "audience": "الفئة المستهدفة",
+        "status": "حالة المحتوى",
+        "updated": "آخر تحديث",
+        "actions": "الإجراءات"
+      },
+      "actions": {
+        "open_menu": "فتح إجراءات المورد العام",
+        "open": "فتح المورد"
+      },
+      "description_unavailable": "لا يوجد وصف",
+      "unavailable_title": "الموارد العامة غير متاحة",
+      "empty_title": "لا توجد موارد عامة بعد",
+      "empty_description": "أنشئ موردًا عامًا للسياق الأكاديمي المحدد.",
+      "filtered_empty_title": "لا توجد موارد عامة مطابقة",
+      "filtered_empty_description": "غيّر عوامل التصفية الحالية أو امسحها لعرض نتائج أخرى."
+    },
+    "online_sessions": {
+      "title": "الجلسات عبر الإنترنت",
+      "description": "أنشئ وأدر وجدول الحصص والاجتماعات وجلسات التعلم المباشرة عبر الإنترنت.",
+      "new_session": "جلسة جديدة عبر الإنترنت",
+      "retry": "إعادة المحاولة",
+      "loading": "جارٍ تحميل الجلسات عبر الإنترنت…",
+      "previous_page": "صفحة الجلسات السابقة",
+      "next_page": "صفحة الجلسات التالية",
+      "page_size": "عدد الجلسات في الصفحة",
+      "breadcrumb": { "overview": "مركز المحتوى الأكاديمي" },
+      "stats": {
+        "label": "ملخص الجلسات عبر الإنترنت",
+        "total": "إجمالي الجلسات",
+        "upcomingOnPage": "القادمة في هذه الصفحة",
+        "liveOnPage": "المباشرة في هذه الصفحة",
+        "endedOnPage": "المنتهية في هذه الصفحة",
+        "draftOnPage": "المسودات في هذه الصفحة"
+      },
+      "search": "البحث بالعنوان أو الوصف أو الوسم",
+      "show_filters": "إظهار عوامل التصفية",
+      "hide_filters": "إخفاء عوامل التصفية",
+      "clear_filters": "مسح الكل",
+      "remove_filter": "إزالة {label}",
+      "results": "تم العثور على {count} جلسة عبر الإنترنت",
+      "last_updated": "الترتيب: آخر تحديث",
+      "all_stages": "كل المراحل",
+      "all_grades": "كل الصفوف",
+      "all_sections": "كل الشعب",
+      "all_classrooms": "كل الفصول",
+      "all_subjects": "كل المواد",
+      "all_teachers": "كل المعلمين المعيّنين",
+      "all_platforms": "كل المنصات",
+      "all_audiences": "كل الفئات المستهدفة",
+      "all_statuses": "كل الحالات",
+      "unavailable_name": "الاسم غير متاح",
+      "unavailable": "غير متاح",
+      "incomplete_setup": "الإعداد غير مكتمل",
+      "duration_minutes": "{minutes} دقيقة",
+      "duration_hours": "{hours} ساعة و{minutes} دقيقة",
+      "filters": {
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل",
+        "subject": "المادة",
+        "teacher": "المعلم المعيّن",
+        "platform": "المنصة",
+        "audience": "الفئة المستهدفة",
+        "status": "حالة المحتوى",
+        "date_from": "تبدأ من",
+        "date_to": "تبدأ حتى",
+        "quick_dates": "تصفية سريعة بالتاريخ",
+        "tag": "الوسم"
+      },
+      "date_presets": {
+        "today": "تبدأ اليوم",
+        "tomorrow": "غدًا",
+        "next7Days": "الأيام السبعة القادمة",
+        "custom": "تواريخ مخصصة"
+      },
+      "temporal": {
+        "incomplete": "غير مكتملة",
+        "live": "مباشرة الآن",
+        "upcoming": "قادمة",
+        "ended": "منتهية"
+      },
+      "columns": {
+        "session": "الجلسة",
+        "platform": "المنصة",
+        "date_time": "التاريخ والوقت والمدة",
+        "audience": "الفئة المستهدفة",
+        "time_state": "التوقيت",
+        "status": "حالة المحتوى",
+        "actions": "الإجراءات"
+      },
+      "actions": { "open_menu": "فتح إجراءات الجلسة", "open": "فتح الجلسة" },
+      "description_unavailable": "لا يوجد وصف",
+      "unavailable_title": "الجلسات عبر الإنترنت غير متاحة",
+      "empty_title": "لا توجد جلسات عبر الإنترنت بعد",
+      "empty_description": "أنشئ جلسة عبر الإنترنت للسياق الأكاديمي المحدد.",
+      "filtered_empty_title": "لا توجد جلسات مطابقة",
+      "filtered_empty_description": "غيّر عوامل التصفية الحالية أو امسحها لعرض نتائج أخرى."
+    },
+    "online_session_detail": {
+      "workspace_label": "ردهة الجلسة عبر الإنترنت",
+      "breadcrumb_label": "مسار الجلسة عبر الإنترنت",
+      "content_center": "مركز المحتوى الأكاديمي",
+      "online_sessions": "الجلسات عبر الإنترنت",
+      "back": "العودة إلى الجلسات",
+      "edit": "تعديل الجلسة",
+      "back_to_lobby": "العودة إلى ردهة الاجتماع",
+      "join_session": "الانضمام إلى الجلسة",
+      "join_session_named": "الانضمام إلى {title}",
+      "meeting_link_unavailable": "رابط الاجتماع غير متاح",
+      "incomplete_title": "إعداد الاجتماع غير مكتمل",
+      "incomplete_description": "أضف منصة الاجتماع والرابط الآمن والموعد والمنطقة الزمنية قبل استخدام الردهة.",
+      "duration_minutes": "{minutes} دقيقة",
+      "starts_in": "تبدأ خلال {minutes} دقيقة",
+      "access_code": "رمز الدخول",
+      "copy_access_code": "نسخ رمز الدخول",
+      "copy": "نسخ",
+      "copied": "تم النسخ",
+      "copied_announcement": "تم نسخ رمز الدخول",
+      "copy_failed": "تعذر نسخ رمز الدخول.",
+      "about_session": "حول هذه الجلسة",
+      "instructions": "تعليمات الاجتماع",
+      "target_audience": "الفئة المستهدفة",
+      "no_targets": "لم يُحدّد نطاق للمحتوى",
+      "schedule": "موعد الاجتماع",
+      "starts_at": "يبدأ",
+      "ends_at": "ينتهي",
+      "duration": "المدة",
+      "timezone": "المنطقة الزمنية",
+      "timetable_reference": "مرجع الجدول",
+      "reference_unavailable": "مرجع الجدول المحفوظ غير متاح.",
+      "resources": "موارد الاجتماع",
+      "materials": "مواد الاجتماع",
+      "related_links": "الروابط ذات الصلة",
+      "tags": "الوسوم",
+      "download": "تنزيل",
+      "download_named": "تنزيل {name}",
+      "context_label": "سياق الاجتماع",
+      "status": "حالة الاجتماع",
+      "readiness": "الجاهزية",
+      "ready": "جاهزة للمتابعة",
+      "not_ready": "المحتوى غير جاهز",
+      "readiness_unavailable": "الجاهزية غير متاحة",
+      "dates": "تواريخ النشر والتدقيق",
+      "publish_at": "موعد النشر",
+      "visible_from": "ظاهر من",
+      "visible_until": "ظاهر حتى",
+      "created": "تاريخ الإنشاء",
+      "updated": "آخر تحديث",
+      "not_set": "غير محدد",
+      "options_unavailable": "مراجع الاجتماع غير متاحة.",
+      "retry_references": "إعادة محاولة المراجع",
+      "read_only": "هذه الجلسة للقراءة فقط في حالتها الحالية.",
+      "states": {
+        "upcoming": "قادمة",
+        "live": "مباشرة الآن",
+        "ended": "منتهية"
+      },
+      "management": {
+        "label": "الإدارة والسجل",
+        "readiness": "الجاهزية",
+        "publication": "النشر",
+        "revisions": "سجل الإصدارات"
+      }
     },
     "guardian_notes": {
       "title": "ملاحظات أولياء الأمور",
@@ -14661,8 +14953,10 @@
       "grid_view": "عرض البطاقات",
       "all_stages": "كل المراحل",
       "all_grades": "كل الصفوف",
+      "all_sections": "كل الشعب",
       "all_classrooms": "كل الفصول",
       "all_subjects": "كل المواد",
+      "all_teachers": "كل المعلمين المعيّنين",
       "all_priorities": "كل الأولويات",
       "all_statuses": "كل الحالات",
       "unavailable_name": "الاسم غير متاح",
@@ -14671,10 +14965,13 @@
       "filters": {
         "stage": "المرحلة",
         "grade": "الصف",
+        "section": "الشعبة",
         "classroom": "الفصل",
         "subject": "المادة",
+        "teacher": "المعلم المعيّن",
         "priority": "الأولوية",
-        "status": "حالة المحتوى"
+        "status": "حالة المحتوى",
+        "tag": "الوسم"
       },
       "priorities": {
         "NORMAL": "عادية",
@@ -14713,6 +15010,7 @@
       "assigned_teacher": "المعلم المسند: {name}",
       "assigned_teachers_count": "{count} معلمين مسندين",
       "assigned_teacher_unavailable": "المعلم المسند غير متاح",
+      "save_all": "حفظ جميع التغييرات",
       "overview": {
         "topic": "موضوع الدرس",
         "save_topic": "حفظ الموضوع",
@@ -14780,7 +15078,7 @@
       },
       "sections": {
         "overview": "نظرة عامة",
-        "targets": "الفئات المستهدفة",
+        "targets": "نطاق المحتوى",
         "objectives": "الأهداف",
         "learning_outcomes": "نواتج التعلم",
         "teaching_strategies": "استراتيجيات التدريس",
@@ -14791,7 +15089,7 @@
         "references": "المراجع الأكاديمية",
         "readiness": "الجاهزية",
         "publication": "النشر",
-        "revisions": "سجل المراجعات"
+        "revisions": "سجل الإصدارات"
       }
     },
     "types": {
@@ -14803,7 +15101,7 @@
       "GENERAL_RESOURCE": "مورد عام"
     },
     "audiences": {
-      "INTERNAL_STAFF": "فريق العمل الداخلي",
+      "INTERNAL_STAFF": "موظفو المدرسة",
       "STUDENTS": "الطلاب",
       "GUARDIANS": "أولياء الأمور",
       "STUDENTS_AND_GUARDIANS": "الطلاب وأولياء الأمور"
@@ -14811,7 +15109,7 @@
     "statuses": {
       "DRAFT": "مسودة",
       "SUBMITTED": "مُرسل",
-      "CHANGES_REQUESTED": "مطلوب تعديلات",
+      "CHANGES_REQUESTED": "يتطلب تعديلات",
       "APPROVED": "معتمد",
       "SCHEDULED": "مجدول",
       "PUBLISHED": "منشور",
@@ -14923,6 +15221,95 @@
       "unavailable_title": "سياسة سير العمل غير متاحة",
       "unavailable_message": "تعذر تحميل سياسة سير العمل."
     },
+    "settings_hub": {
+      "title": "إعدادات المحتوى الأكاديمي",
+      "description": "إدارة الوصول إلى الملفات وسير الاعتماد وسلوك الإشعارات.",
+      "file_policy": {
+        "title": "سياسة الملفات",
+        "description": "إعداد أنواع الملفات والحدود والتنزيل والمعاينة.",
+        "open": "فتح سياسة الملفات"
+      },
+      "workflow": {
+        "title": "سير عمل الاعتماد",
+        "description": "التحكم في اشتراط اعتماد تحضيرات المعلمين.",
+        "open": "فتح سياسة سير العمل"
+      },
+      "notifications": {
+        "title": "الإشعارات",
+        "description": "تحديد المستلمين وأحداث المحتوى وتذكيرات الجلسات.",
+        "open": "فتح سياسة الإشعارات"
+      }
+    },
+    "notification_policy": {
+      "title": "سياسة الإشعارات",
+      "description": "التحكم في إشعارات المحتوى الأكاديمي ومواعيد تذكير الجلسات عبر الإنترنت.",
+      "save": "حفظ سياسة الإشعارات",
+      "saved": "تم حفظ سياسة الإشعارات.",
+      "read_only": "يمكنك عرض هذه السياسة، لكن لا يغيّرها إلا مديرو الإعدادات.",
+      "retry": "إعادة المحاولة",
+      "unavailable_title": "سياسة الإشعارات غير متاحة",
+      "unavailable_message": "تعذر تحميل سياسة الإشعارات.",
+      "groups": {
+        "delivery": "التوصيل والمستلمون",
+        "content_types": "أنواع المحتوى",
+        "events": "الأحداث والتذكيرات"
+      },
+      "fields": {
+        "notificationsEnabled": {
+          "label": "إشعارات المحتوى الأكاديمي",
+          "description": "المفتاح الرئيسي لجميع إشعارات هذه الميزة."
+        },
+        "studentNotificationsEnabled": {
+          "label": "إشعارات الطلاب",
+          "description": "السماح بإرسال الإشعارات إلى الطلاب."
+        },
+        "guardianNotificationsEnabled": {
+          "label": "إشعارات أولياء الأمور",
+          "description": "السماح بإرسال الإشعارات إلى أولياء الأمور."
+        },
+        "weeklyPlanNotificationsEnabled": {
+          "label": "إشعارات الخطط الأسبوعية",
+          "description": "إشعار المستلمين بالخطط الأسبوعية."
+        },
+        "guardianWeeklyNoteNotificationsEnabled": {
+          "label": "إشعارات ملاحظات أولياء الأمور",
+          "description": "إشعار أولياء الأمور بالملاحظات الأسبوعية."
+        },
+        "subjectResourceNotificationsEnabled": {
+          "label": "إشعارات موارد المواد",
+          "description": "إشعار المستلمين بموارد المواد."
+        },
+        "onlineSessionNotificationsEnabled": {
+          "label": "إشعارات الجلسات عبر الإنترنت",
+          "description": "إشعار المستلمين بالجلسات عبر الإنترنت."
+        },
+        "generalResourceNotificationsEnabled": {
+          "label": "إشعارات الموارد العامة",
+          "description": "إشعار المستلمين بالموارد العامة."
+        },
+        "significantUpdateNotificationsEnabled": {
+          "label": "إشعارات التحديثات المهمة",
+          "description": "إشعار المستلمين عند تغيير المحتوى المنشور بشكل مهم."
+        },
+        "cancellationNotificationsEnabled": {
+          "label": "إشعارات الإلغاء",
+          "description": "إشعار المستلمين عند إلغاء محتوى مجدول."
+        },
+        "onlineSessionRemindersEnabled": {
+          "label": "تذكيرات الجلسات عبر الإنترنت",
+          "description": "إرسال تذكيرات قبل بدء الجلسات عبر الإنترنت."
+        }
+      },
+      "offsets": {
+        "label": "فترات التذكير بالدقائق",
+        "help": "أدخل حتى خمس قيم مفصولة بفواصل من 5 إلى 10080 دقيقة."
+      },
+      "offset_errors": {
+        "invalid": "استخدم أعدادًا صحيحة مفصولة بفواصل فقط.",
+        "range": "يجب أن تكون كل فترة بين 5 و10080 دقيقة.",
+        "too_many": "أضف خمس فترات تذكير فريدة كحد أقصى."
+      }
+    },
     "workflow": {
       "title": "سير عمل الاعتماد",
       "description": "أرسل تحضير المعلم للمراجعة وتابع جميع جولات الاعتماد.",
@@ -14976,21 +15363,21 @@
       "round": "الجولة {round}",
       "target_count": "{count, plural, =0 {لا أهداف} one {هدف واحد} two {هدفان} few {# أهداف} many {# هدفًا} other {# هدف}}",
       "decision_title": "قرار المراجعة",
-      "reviewing_revision": "تتم مراجعة النسخة المرسلة {id}",
+      "reviewing_revision": "تراجع النسخة المرسلة {id}",
       "change_note": "ملاحظة طلب التعديل",
       "request_changes": "طلب تعديلات",
       "approve": "اعتماد",
       "note_required": "أدخل ملاحظة قبل طلب التعديلات.",
       "note_too_long": "يجب ألا تتجاوز الملاحظة 4000 حرف.",
-      "stale_decision": "هذه المراجعة قديمة لأن الخادم اتخذ القرار على نسخة مختلفة.",
-      "revision_mismatch": "النسخة المحمّلة لا تطابق النسخة المطلوبة.",
+      "stale_decision": "البيانات المعروضة قديمة. حدّث الصفحة للاطلاع على آخر قرار.",
+      "revision_mismatch": "تعذر عرض النسخة المرسلة للمراجعة. حدّث الصفحة وحاول مرة أخرى.",
       "revision_unavailable": "النسخة المرسلة غير متاحة",
-      "detail_eyebrow": "لقطة الإرسال غير القابلة للتعديل",
+      "detail_eyebrow": "النسخة المرسلة للمراجعة · للعرض فقط",
       "detail_title": "مراجعة النسخة {number}",
       "detail_description": "راجع المحتوى المرسل ونطاقه الأكاديمي كما تم اعتمادهما قبل تسجيل قرارك.",
       "back_to_queue": "العودة إلى قائمة المراجعة",
       "decision_description": "اعتمد هذا الإرسال أو أعده إلى صاحبه مع طلب تعديل واضح.",
-      "reviewing_revision_number": "تتم مراجعة النسخة {number}",
+      "reviewing_revision_number": "تراجع النسخة {number}",
       "note_help": "مطلوبة فقط عند طلب تعديلات.",
       "filters": {
         "stage": "المرحلة",
@@ -15005,7 +15392,7 @@
         "round": "جولة الاعتماد",
         "submitted": "تاريخ الإرسال",
         "submitted_by": "أرسله",
-        "targets": "الأهداف"
+        "targets": "نطاق المحتوى"
       }
     },
     "templates": {
@@ -15021,6 +15408,7 @@
       "subject": "المادة",
       "all_stages": "كل المراحل",
       "all_subjects": "كل المواد",
+      "unavailable_selection": "اختيار غير متاح",
       "options_load_error": "تعذر تحميل عوامل تصفية القوالب",
       "name_unavailable": "الاسم غير متاح",
       "new": "قالب جديد",
@@ -15100,14 +15488,14 @@
       },
       "sections": {
         "metadata": "المعلومات الأساسية",
-        "targets": "الأهداف",
+        "targets": "نطاق المحتوى",
         "details": "تفاصيل النوع",
         "links": "الروابط",
         "tags": "الوسوم",
         "files": "الملفات",
         "readiness": "الجاهزية",
         "publication": "النشر",
-        "revisions": "المراجعات"
+        "revisions": "الإصدارات"
       }
     },
     "metadata": {
@@ -15121,18 +15509,18 @@
       "title_required": "العنوان مطلوب"
     },
     "targets": {
-      "title": "الأهداف الأكاديمية",
-      "description": "كل بطاقة بديل (أو)، والقيم داخل البطاقة تُطبّق معًا (و).",
-      "add": "إضافة هدف",
-      "empty": "لا توجد أهداف أكاديمية. أضف هدفًا أو احفظ مجموعة فارغة.",
+      "title": "نطاق المحتوى",
+      "description": "حدّد الصفوف أو الفصول أو المواد التي يخصها المحتوى. يكفي أن ينطبق أحد النطاقات المحددة.",
+      "add": "إضافة نطاق",
+      "empty": "لم تحدّد نطاقًا للمحتوى بعد.",
       "loading": "جارٍ تحميل الخيارات الأكاديمية…",
-      "save": "حفظ الأهداف",
-      "options_unavailable": "خيارات الأهداف غير متاحة",
-      "duplicate": "لا يُسمح بالأهداف المكررة.",
-      "teacher_unavailable": "الهدف {index}: إسناد المعلم غير متاح.",
-      "subject_required": "الهدف {index}: المادة مطلوبة.",
-      "hierarchy_required": "الهدف {index}: اختر قيمة التسلسل المطلوبة.",
-      "remove": "إزالة الهدف {index}",
+      "save": "حفظ النطاق",
+      "options_unavailable": "تعذر تحميل خيارات النطاق",
+      "duplicate": "هذا النطاق مضاف بالفعل. اختر نطاقًا مختلفًا.",
+      "teacher_unavailable": "النطاق {index}: إسناد المعلم غير متاح. اختر إسنادًا آخر.",
+      "subject_required": "النطاق {index}: اختر المادة.",
+      "hierarchy_required": "النطاق {index}: أكمل اختيار المرحلة أو الصف أو الفصل المطلوب.",
+      "remove": "إزالة النطاق {index}",
       "scope": "النطاق",
       "stage": "المرحلة",
       "grade": "الصف",
@@ -15142,15 +15530,28 @@
       "teacher_allocation": "إسناد المعلم",
       "whole_school": "المدرسة كاملة",
       "not_required": "غير مطلوب",
-      "target": "الهدف {index}",
-      "alternative": "هدف بديل",
+      "target": "النطاق {index}",
+      "alternative": "نطاق إضافي",
       "or": "أو",
       "optional": "{label} (اختياري)",
       "no_subject": "بدون مادة",
       "no_teacher_allocation": "بدون تكليف معلم",
-      "teacher_assignment": "تكليف المعلم {id}",
-      "unavailable_value": "غير متاح ({id})",
-      "and_hint": "يتم دمج التسلسل والمادة في هذه البطاقة بعلاقة AND."
+      "teacher_unavailable_label": "معلم غير متاح",
+      "unavailable_value": "اختيار غير متاح",
+      "and_hint": "يجب أن تنطبق جميع الاختيارات داخل هذه البطاقة.",
+      "includes_any": "يشمل المحتوى أيًّا من هذه النطاقات",
+      "summary_incomplete": "أكمل تحديد نطاق المحتوى",
+      "choose_option": "اختر من القائمة",
+      "no_options": "لا توجد خيارات متاحة لهذا النطاق",
+      "no_results": "لا توجد خيارات مطابقة",
+      "scope_hint": "حدد المستوى الذي ينطبق عليه المحتوى.",
+      "select_stage_first": "اختر المرحلة أولًا لعرض الصفوف التابعة لها.",
+      "select_grade_first": "اختر الصف أولًا لعرض الشعب التابعة له.",
+      "select_section_first": "اختر الشعبة أولًا لعرض الفصول التابعة لها.",
+      "subject_dependency": "اختر {scope} أولًا لعرض المواد المتاحة.",
+      "teacher_dependency": "اختر الفصل والمادة أولًا لعرض تكليفات المعلمين.",
+      "teacher_assignment_hint": "يربط المحتوى بتكليف المعلم للفصل والمادة، ولا يعني إرسال المحتوى إلى هذا المعلم فقط.",
+      "overlap_hint": "قد يتداخل هذا النطاق مع {scopes} الأوسع. يمكنك الاحتفاظ بكليهما؛ هذا التنبيه لا يمنع الحفظ."
     },
     "details": {
       "save": "حفظ تفاصيل النوع",
@@ -15158,15 +15559,16 @@
       "loading_references": "جارٍ تحميل المراجع الأكاديمية…",
       "retry_references": "إعادة محاولة تحميل المراجع",
       "no_references": "لا توجد مراجع مطابقة.",
+      "target_dependency_hint": "تعتمد هذه الخيارات على نطاق المحتوى المحفوظ. حدّد النطاق واحفظ التغييرات أولًا لعرض الخيارات المناسبة.",
       "none_selected": "لم يتم الاختيار",
       "no_reference": "بدون {label}",
-      "unavailable_reference": "غير متاح ({id})",
+      "unavailable_reference": "مرجع غير متاح",
       "add_item": "إضافة {label}",
       "move_up": "نقل {label} {index} لأعلى",
       "move_down": "نقل {label} {index} لأسفل",
       "remove_item": "إزالة {label} {index}",
       "general_title": "مورد عام",
-      "general_description": "لا يحتوي المورد العام على بيانات خاصة بالنوع. استخدم المعلومات الأساسية والأهداف والملفات والروابط والوسوم لإكمال المورد.",
+      "general_description": "أكمل معلومات المورد ونطاقه، وأضف الملفات والروابط والوسوم عند الحاجة.",
       "preparation_title": "تحضير المعلم",
       "preparation_description": "سجّل الخطة التعليمية والمراجع الأكاديمية الاختيارية.",
       "weekly_title": "الخطة الأسبوعية",
@@ -15177,6 +15579,7 @@
       "resource_description": "تصنيف المورد مستقل عن نوع أي ملف مرفق.",
       "session_title": "جلسة عبر الإنترنت",
       "session_description": "اضبط الاجتماع فقط؛ إجراءات الحضور ليست ضمن مساحة العمل.",
+      "open_platform": "فتح {platform}",
       "empty_items": "أزل عناصر القائمة الفارغة أو أكملها قبل الحفظ.",
       "date_order": "اختر تاريخ بداية ونهاية بترتيب صحيح.",
       "term_bounds": "يجب أن يبقى الأسبوع داخل الفصل المحدد.",
@@ -15241,7 +15644,7 @@
     },
     "tags": {
       "title": "الوسوم",
-      "description": "أضف حتى 100 وسم مرتب. يطبق الخادم التطبيع المعتمد.",
+      "description": "أضف حتى 100 وسم لتسهيل تنظيم المحتوى والبحث عنه.",
       "add": "إضافة وسم",
       "empty": "لم تتم إضافة وسوم.",
       "save": "حفظ الوسوم",
@@ -15273,16 +15676,30 @@
       "empty": "لا توجد ملفات مرفقة.",
       "unlink": "فك الارتباط",
       "actions": "إجراءات {name}",
+      "recipient_policy": "سياسة وصول المستلمين",
+      "student_download_enabled": "تنزيل الطلاب مفعّل",
+      "student_download_disabled": "تنزيل الطلاب معطّل",
+      "guardian_download_enabled": "تنزيل أولياء الأمور مفعّل",
+      "guardian_download_disabled": "تنزيل أولياء الأمور معطّل",
+      "inline_preview_enabled": "المعاينة المباشرة مفعّلة",
+      "inline_preview_disabled": "المعاينة المباشرة معطّلة",
+      "retry_policy": "إعادة محاولة تحميل السياسة",
       "unlink_notice": "فك الارتباط يزيل الأصل من هذا المحتوى ولا يعني الحذف المادي الفوري للملف."
     },
     "readiness": {
+      "details": {
+        "missing_count": "عدد البيانات الناقصة",
+        "fields": "حقول تحتاج إلى استكمال",
+        "retryable": "يمكن إعادة المحاولة"
+      },
       "title": "الجاهزية",
-      "description": "فحوص الخادم المعتمدة لتحديد إمكانية تقدم هذا المحتوى.",
+      "description": "تحقّق من البيانات المطلوبة قبل المتابعة.",
       "refresh": "تحديث الجاهزية",
       "ready": "جاهز",
       "incomplete": "غير مكتمل",
       "unavailable": "الجاهزية غير متاحة",
       "reasons": {
+        "unknown": "تعذر تأكيد جاهزية المحتوى. حدّث البيانات، وتواصل مع الدعم إذا استمرت المشكلة.",
         "read_only": "هذا المحتوى للقراءة فقط.",
         "title_invalid": "أضف عنوانًا قبل المتابعة.",
         "academic_year_missing": "العام الدراسي غير متاح.",
@@ -15290,31 +15707,31 @@
         "term_year_mismatch": "الفصل الدراسي لا يتبع هذا العام الدراسي.",
         "term_closed": "الفصل الدراسي مغلق ولا يمكن تعديله.",
         "audience_invalid": "الجمهور المحدد غير متاح لهذا النوع من المحتوى.",
-        "targets_missing": "أضف هدفًا أكاديميًا واحدًا على الأقل.",
-        "subject_target_missing": "اختر مادة لكل هدف أكاديمي.",
+        "targets_missing": "حدّد نطاقًا واحدًا على الأقل للمحتوى.",
+        "subject_target_missing": "اختر مادة لكل نطاق من نطاقات المحتوى.",
         "type_detail_missing": "أكمل التفاصيل المطلوبة لهذا النوع من المحتوى."
       }
     },
     "revisions": {
-      "title": "سجل المراجعات",
-      "description": "افتح اللقطات التاريخية غير القابلة للتعديل التي حفظها الخادم.",
-      "empty": "لم تُحفظ مراجعات بعد.",
-      "open": "فتح المراجعة {number}",
-      "summary": "المراجعة {number} · اللقطة v{version}",
+      "title": "سجل الإصدارات",
+      "description": "استعرض النسخ المحفوظة سابقًا. هذه النسخ للعرض فقط ولا يمكن تعديلها.",
+      "empty": "لا توجد إصدارات محفوظة بعد.",
+      "open": "عرض النسخة {number}",
+      "summary": "النسخة {number} · تنسيق الحفظ v{version}",
       "page": "الصفحة {page} من {total}",
-      "previous_page": "صفحة المراجعات السابقة",
-      "next_page": "صفحة المراجعات التالية",
-      "modal_title": "لقطة المراجعة",
-      "modal_number": "المراجعة {number}",
-      "immutable": "لقطة تاريخية غير قابلة للتعديل · عقد اللقطة v{version}",
-      "mismatch": "استجابة المراجعة لا تطابق اللقطة المطلوبة.",
+      "previous_page": "صفحة الإصدارات السابقة",
+      "next_page": "صفحة الإصدارات التالية",
+      "modal_title": "النسخة المحفوظة",
+      "modal_number": "النسخة {number}",
+      "immutable": "نسخة محفوظة للعرض فقط · تنسيق الحفظ v{version}",
+      "mismatch": "تعذر عرض النسخة المطلوبة. حدّث الصفحة وحاول مرة أخرى.",
       "overview": "ملخص الإرسال",
       "type_details": "تفاصيل النوع",
-      "no_details": "لا توجد تفاصيل خاصة بالنوع في هذه اللقطة.",
-      "targets": "الأهداف",
-      "no_targets": "لا توجد أهداف تاريخية.",
-      "target_context_loading": "جارٍ تحميل أسماء الأهداف…",
-      "target_context_unavailable": "بعض أسماء الأهداف غير متاحة حاليًا، لكن النطاق المرسل ما زال محفوظًا.",
+      "no_details": "لا توجد تفاصيل إضافية في هذه النسخة.",
+      "targets": "نطاق المحتوى",
+      "no_targets": "لم يُحدّد نطاق في هذه النسخة.",
+      "target_context_loading": "جارٍ تحميل أسماء نطاق المحتوى…",
+      "target_context_unavailable": "بعض أسماء النطاق غير متاحة حاليًا. تظل الاختيارات الأصلية محفوظة في هذه النسخة.",
       "context_unavailable": "غير متاح",
       "yes": "نعم",
       "no": "لا",
@@ -15327,10 +15744,10 @@
       "field_title": "العنوان",
       "field_type": "النوع",
       "field_audience": "الجمهور",
-      "field_source_status": "حالة المصدر",
+      "field_source_status": "حالة المحتوى عند الحفظ",
       "field_academic_year": "العام الدراسي",
       "field_term": "الفصل الدراسي",
-      "field_captured_at": "وقت الالتقاط",
+      "field_captured_at": "وقت حفظ النسخة",
       "description_label": "الوصف"
     },
     "lifecycle": {
@@ -15341,7 +15758,7 @@
       "archive_description": "هل تريد أرشفة هذه المسودة وجعل المحرر للقراءة فقط؟ لن تُضمَّن التغييرات المحلية غير المحفوظة.",
       "archive_confirm": "تأكيد الأرشفة",
       "restore_title": "استعادة المحتوى الأكاديمي",
-      "restore_description": "هل تريد استعادة هذا المحتوى المؤرشف إلى مسودة؟ سيتحقق الخادم من الأهلية.",
+      "restore_description": "هل تريد إعادة هذا المحتوى المؤرشف إلى مسودة؟ تتم الإعادة إذا كانت حالة المحتوى تسمح بذلك.",
       "restore_confirm": "تأكيد الاستعادة",
       "delete_title": "حذف المسودة",
       "delete_description": "هل تريد حذف هذه المسودة نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.",
@@ -15349,10 +15766,11 @@
       "delete_failed": "لم تُحذف المسودة."
     },
     "publication": {
+      "audience_counts_note": "تُحسب ارتباطات ولي الأمر بكل طالب مسجّل على حدة؛ لذا قد يُحتسب ولي الأمر أكثر من مرة إذا كان لديه عدة أبناء. أما عدد الحسابات فيحسب كل مستخدم مرة واحدة.",
       "title": "النشر",
       "description": "انشر هذا المحتوى الآن أو حدّد موعد إتاحته للجمهور الخارجي.",
       "readiness_title": "جاهزية النشر",
-      "readiness_description": "يتحقق الخادم من إمكانية النشر الآن أو الجدولة في الوقت الحالي.",
+      "readiness_description": "تحقّق من إمكانية نشر المحتوى الآن أو تحديد موعد لنشره.",
       "publish_available": "جاهز للنشر الآن",
       "schedule_available": "جاهز للجدولة",
       "publish_unavailable": "النشر الآن غير متاح",
@@ -15370,44 +15788,62 @@
       "submit_publish": "بدء النشر",
       "submit_schedule": "جدولة النشر",
       "notify_minor_update": "إشعار الجمهور بهذا التحديث البسيط",
-      "notify_minor_update_description": "لا تُرسل إشعارات للمراجعات البسيطة افتراضيًا. فعّل هذا الخيار فقط عند الحاجة إلى إشعار المستلمين.",
+      "notify_minor_update_description": "لا تُرسل إشعارات للتغييرات البسيطة افتراضيًا. فعّل هذا الخيار إذا أردت إشعار المستلمين.",
+      "revision_publish_rule_title": "احفظ تغييرًا فعليًا قبل النشر",
+      "revision_publish_rule_description": "يجب أن تختلف النسخة الجديدة عن النسخة المنشورة السابقة. يُحتسب تغيير العنوان أو الوصف أو الوسوم أو الجمهور أو نطاق المحتوى أو الملفات أو الروابط أو التفاصيل. تغيير موعد النشر أو مدة الظهور وحده لا يكفي.",
+      "revision_publish_rule_save_hint": "اضغط «حفظ جميع التغييرات» أعلى الصفحة قبل المتابعة.",
       "processing": "تجري معالجة النشر. لن يظهر النجاح النهائي إلا بعد تحوّل الحالة إلى منشور.",
       "scheduled_for": "مجدول في {date}",
       "poll_timeout": "توقفت متابعة الحالة تلقائيًا قبل ظهور حالة نهائية. حدّث البيانات للتحقق مرة أخرى.",
       "refresh": "تحديث بيانات النشر",
       "retry": "إعادة المحاولة",
       "history_title": "سجل النشر",
-      "history_description": "راجع محاولات النشر الثابتة وأعداد جمهورها التاريخية.",
+      "history_description": "استعرض محاولات النشر السابقة وأعداد المستلمين المسجلة وقت النشر.",
       "history_empty": "لا توجد محاولات نشر بعد.",
       "view_detail": "عرض تفاصيل النشر",
       "detail_title": "تفاصيل النشر",
       "detail_unavailable": "تعذر تحميل تفاصيل النشر.",
       "unschedule": "إلغاء الجدولة",
       "unschedule_title": "إلغاء جدولة النشر",
-      "unschedule_description": "هل تريد إلغاء هذا النشر المجدول وإعادة المحتوى إلى حالة التأليف المصدرية؟",
+      "unschedule_description": "هل تريد إلغاء النشر المجدول؟ سيعود المحتوى إلى حالته السابقة قبل جدولة النشر.",
       "confirm_unschedule": "تأكيد إلغاء الجدولة",
-      "cancel_publication": "سحب النشر",
-      "cancel_title": "سحب المحتوى المنشور",
-      "cancel_description": "هل تريد سحب هذا النشر من المستلمين؟ ستظل المراجعة وأعداد الجمهور التاريخية محفوظة.",
-      "confirm_cancel": "تأكيد السحب",
-      "start_revision": "بدء مراجعة جديدة",
-      "start_revision_title": "بدء مراجعة جديدة",
-      "start_revision_description": "هل تريد سحب النشر النشط وإعادة المحتوى إلى حالة المسودة للتعديل؟ ستظل المراجعة المنشورة محفوظة في السجل.",
-      "confirm_start_revision": "تأكيد بدء المراجعة",
+      "cancel_publication": "سحب النشر وجعل المحتوى للقراءة فقط",
+      "cancel_title": "سحب النشر وجعل المحتوى للقراءة فقط؟",
+      "cancel_description": "سيُسحب هذا النشر من المستلمين، وسيصبح المحتوى للقراءة فقط ولن تتمكن من تعديله. لن يعود إلى حالة المسودة. ستظل النسخة المنشورة وأعداد الجمهور التاريخية محفوظة.",
+      "confirm_cancel": "تأكيد السحب وجعل المحتوى للقراءة فقط",
+      "start_revision": "إنشاء نسخة قابلة للتعديل",
+      "start_revision_title": "إنشاء نسخة جديدة قابلة للتعديل",
+      "start_revision_description": "هل تريد سحب النشر الحالي وإعادة المحتوى إلى مسودة قابلة للتعديل؟ ستظل النسخة المنشورة السابقة محفوظة في السجل.",
+      "confirm_start_revision": "تأكيد إنشاء نسخة قابلة للتعديل",
       "students": "الطلاب",
-      "guardian_contexts": "سياقات أولياء الأمور",
-      "guardian_accounts": "أولياء الأمور الذين لديهم حسابات",
-      "guardian_opt_out_contexts": "سياقات أولياء الأمور المستبعدين من الإشعارات",
+      "guardian_contexts": "ارتباطات أولياء الأمور بالطلاب",
+      "guardian_accounts": "أولياء أمور لديهم حسابات",
+      "guardian_opt_out_contexts": "ارتباطات مستبعدة من الإشعارات",
       "as_of": "حُسبت المعاينة في {date}",
-      "source_status": "حالة المحتوى المصدرية",
+      "source_status": "حالة المحتوى",
       "publication_status": "حالة النشر",
       "publication_id": "معرّف النشر",
-      "revision": "المراجعة",
+      "revision": "النسخة",
       "created_by": "أنشأه المستخدم",
       "created_at": "وقت الإنشاء",
       "published_at": "وقت النشر",
       "expired_at": "وقت الانتهاء",
       "cancelled_at": "وقت الإلغاء",
+      "cancellation_reason": "سبب الإلغاء",
+      "supersedes_publication_id": "معرّف النشر السابق",
+      "change_significance": "أهمية التغيير",
+      "notify_minor_update_audit": "طُلب إشعار الجمهور بالتغيير البسيط",
+      "yes": "نعم",
+      "no": "لا",
+      "cancellation_reasons": {
+        "UNSCHEDULED": "أُلغيت الجدولة",
+        "WITHDRAWN": "مسحوب",
+        "REVISION_STARTED": "أُنشئت نسخة قابلة للتعديل"
+      },
+      "change_significance_values": {
+        "MINOR": "بسيط",
+        "SIGNIFICANT": "جوهري"
+      },
       "recipient_counts": "أعداد المستلمين التاريخية",
       "historical_snapshot_disclaimer": "هذه أعداد تاريخية ثابتة لهذا النشر، ولا تتوفر هويات المستلمين في هذا العرض.",
       "publish_permission_missing": "يمكنك مراجعة بيانات النشر، لكنك لا تملك صلاحية نشر المحتوى أو سحبه.",
@@ -15429,19 +15865,38 @@
         "visible_from_before_publish": "لا يمكن أن يبدأ الظهور قبل النشر.",
         "visible_until_before_visible_from": "يجب أن ينتهي الظهور بعد بدايته."
       },
+      "errors": {
+        "idempotency_conflict": "تتعارض محاولة النشر هذه مع طلب سابق. حدّث بيانات النشر ثم حاول مرة أخرى.",
+        "lineage_conflict": "تعذر التحقق من تسلسل النسخ المنشورة. حدّث الصفحة، وتواصل مع الدعم إذا استمرت المشكلة.",
+        "not_ready": "لم يعد المحتوى جاهزًا للنشر. راجع متطلبات الجاهزية ثم حاول مرة أخرى.",
+        "identical_revision": "هذه النسخة مطابقة للنسخة المنشورة. عدّل بيانات المحتوى، ثم اضغط «حفظ جميع التغييرات» قبل إعادة النشر.",
+        "active_conflict": "توجد نسخة مجدولة أو منشورة نشطة بالفعل. حدّث بيانات النشر.",
+        "cannot_unschedule": "لم يعد من الممكن إلغاء جدولة هذا النشر. حدّث حالته.",
+        "lifecycle_conflict": "تغيّرت حالة هذا النشر بالفعل. حدّث بيانات النشر ثم حاول مرة أخرى.",
+        "validation_failed": "راجع مواعيد النشر وبيانات النسخة، ثم حاول مرة أخرى.",
+        "unknown": "تعذر إكمال إجراء النشر. حدّث البيانات ثم حاول مرة أخرى.",
+        "trace_id": "المرجع: {traceId}"
+      },
+      "success": {
+        "publish_started": "بدأت عملية النشر بنجاح.",
+        "scheduled": "تمت جدولة النشر بنجاح.",
+        "unscheduled": "تم إلغاء جدولة النشر بنجاح.",
+        "withdrawn": "تم سحب النشر بنجاح.",
+        "revision_started": "أُنشئت نسخة مسودة قابلة للتعديل بنجاح."
+      },
       "reasons": {
         "type_or_audience_unavailable": "نوع المحتوى أو جمهوره غير متاح للنشر الخارجي.",
         "source_status_unavailable": "لا يمكن نشر المحتوى في حالته الحالية.",
         "revision_strategy_unavailable": "المراجعة المطلوبة للنشر غير متاحة.",
-        "authoring_incomplete": "أكمل متطلبات تأليف المحتوى قبل النشر.",
+        "authoring_incomplete": "أكمل بيانات المحتوى المطلوبة قبل النشر.",
         "term_invalid": "الفصل الدراسي غير متاح أو لا يطابق هذا المحتوى.",
         "term_ended": "انتهى هذا الفصل الدراسي.",
-        "targets_missing": "أضف هدفًا أكاديميًا واحدًا على الأقل قبل النشر.",
+        "targets_missing": "حدّد نطاقًا واحدًا على الأقل للمحتوى قبل النشر.",
         "type_detail_incomplete": "أكمل تفاصيل المحتوى المطلوبة قبل النشر.",
         "assets_invalid": "ملف مرفق واحد أو أكثر غير صالح للنشر.",
         "active_publication_exists": "يوجد إصدار مجدول أو منشور نشط بالفعل.",
         "online_session_finished_or_missing": "وقت انتهاء الجلسة الإلكترونية غير موجود أو مضى بالفعل.",
-        "unknown": "النشر متوقف بسبب قاعدة من الخادم لا يتعرف إليها إصدار التطبيق الحالي."
+        "unknown": "تعذر تأكيد جاهزية النشر. حدّث البيانات، وتواصل مع الدعم إذا استمرت المشكلة."
       }
     },
     "guardian_note_detail": {
@@ -15453,13 +15908,13 @@
         "resources": "الموارد",
         "readiness": "الجاهزية",
         "publication": "النشر",
-        "revisions": "سجل المراجعات"
+        "revisions": "سجل الإصدارات"
       },
       "header": {
         "back": "العودة إلى ملاحظات أولياء الأمور",
         "subtitle": "تواصل مع أولياء الأمور",
         "priority_not_set": "لم تُحدد الأولوية",
-        "targets": "{count, plural, =0 {لا توجد فئات مستهدفة} one {فئة واحدة} two {فئتان} few {# فئات} many {# فئة} other {# فئة}}",
+        "targets": "{count, plural, =0 {لم يُحدّد نطاق} one {نطاق واحد} two {نطاقان} few {# نطاقات} many {# نطاقًا} other {# نطاق}}",
         "acknowledgement_required": "يتطلب إقرارًا بالاستلام",
         "acknowledgement_not_required": "لا يتطلب إقرارًا بالاستلام"
       },
@@ -15469,7 +15924,7 @@
         "body": "نص الرسالة",
         "priority": "الأولوية",
         "acknowledgement": "طلب إقرار ولي الأمر بالاستلام",
-        "acknowledgement_description": "يسجل هذا الخيار المتطلب على الملاحظة فقط؛ عقد الواجهة الخلفية لا يوفر تتبع الإقرارات.",
+        "acknowledgement_description": "يسجل هذا الخيار طلب تأكيد الاستلام فقط. لا تتوفر متابعة تأكيدات أولياء الأمور حاليًا.",
         "body_required": "نص الرسالة مطلوب.",
         "save": "حفظ رسالة ولي الأمر"
       },
@@ -15498,7 +15953,7 @@
       "sections_label": "أقسام الخطة الأسبوعية",
       "sections": {
         "details": "تفاصيل الخطة",
-        "targets": "الفئات المستهدفة",
+        "targets": "نطاق المحتوى",
         "objectives": "أهداف التعلم",
         "topics": "الموضوعات",
         "homework": "الواجبات",
@@ -15507,14 +15962,14 @@
         "resources": "الموارد",
         "readiness": "الجاهزية",
         "publication": "النشر",
-        "revisions": "سجل المراجعات"
+        "revisions": "سجل الإصدارات"
       },
       "header": {
         "back": "العودة إلى الخطط الأسبوعية",
         "subtitle": "خطة أكاديمية أسبوعية",
         "week_not_set": "لم يتم تحديد الأسبوع",
         "subjects": "{count, plural, =0 {لا توجد مواد} one {مادة واحدة} two {مادتان} few {# مواد} many {# مادة} other {# مادة}}",
-        "targets": "{count, plural, =0 {لا توجد فئات مستهدفة} one {فئة واحدة} two {فئتان} few {# فئات} many {# فئة} other {# فئة}}"
+        "targets": "{count, plural, =0 {لم يُحدّد نطاق} one {نطاق واحد} two {نطاقان} few {# نطاقات} many {# نطاقًا} other {# نطاق}}"
       },
       "details": {
         "week_settings": "إعدادات الأسبوع",
@@ -15563,7 +16018,7 @@
         "unavailable": "غير متاح",
         "publication": "حالة النشر",
         "not_published": "لم تُنشر بعد",
-        "targets": "الفئات المستهدفة",
+        "targets": "نطاق المحتوى",
         "no_targets": "لم تتم إضافة فئات مستهدفة",
         "topics": "الموضوعات ({count})",
         "no_topics": "لم تتم إضافة موضوعات",
@@ -15578,10 +16033,10 @@
       "unavailable_message": "تعذر تحميل سياسة الملفات.",
       "read_only": "يمكنك عرض السياسة، لكن لا يغيّرها إلا مديرو سياسة الملفات.",
       "saved": "تم حفظ سياسة الملفات.",
-      "maximum": "الحد الأقصى لحجم الملف بالبايت",
-      "maximum_help": "عدد بايتات عشري موجب؛ الحد الأقصى للمنصة 10 GiB (10737418240 بايت).",
-      "positive_error": "يجب أن يكون الحد الأقصى للحجم عدد بايتات عشريًا موجبًا.",
-      "hard_max_error": "لا يمكن أن يتجاوز الحد الأقصى للحجم 10 GiB.",
+      "maximum": "الحد الأقصى لحجم الملف (MB)",
+      "maximum_help": "أدخل حجمًا موجبًا بالميجابايت. الحد الأقصى للمنصة هو 10,240 MB ‏(10 GiB).",
+      "positive_error": "يجب أن يكون الحد الأقصى للحجم عددًا موجبًا بالميجابايت.",
+      "hard_max_error": "لا يمكن أن يتجاوز الحد الأقصى للحجم 10,240 MB ‏(10 GiB).",
       "save": "حفظ سياسة الملفات",
       "attachments": "المرفقات",
       "attachments_help": "السماح للمحتوى الأكاديمي باحتواء ملفات مرفوعة.",
@@ -15596,13 +16051,13 @@
       "archives": "الأرشيفات",
       "archives_help": "السماح بملفات ZIP و7Z.",
       "other": "ملفات أخرى",
-      "other_help": "تطبيق سياسة الخادم على صيغ الملفات المسجلة الأخرى.",
+      "other_help": "السماح بصيغ الملفات الأخرى التي تدعمها المنصة.",
       "student_downloads": "تنزيل الطلاب",
       "student_downloads_help": "السماح للطلاب بتنزيل المرفقات المتاحة.",
       "guardian_downloads": "تنزيل أولياء الأمور",
       "guardian_downloads_help": "السماح لأولياء الأمور بتنزيل المرفقات المتاحة.",
-      "inline_preview": "المعاينة المضمنة",
-      "inline_preview_help": "السماح بالمعاينة المضمنة عندما تدعمها الصيغة المسجلة."
+      "inline_preview": "معاينة الملفات داخل الصفحة",
+      "inline_preview_help": "عرض الملفات داخل الصفحة عندما تكون صيغة الملف مدعومة."
     }
   }
 }

@@ -19,9 +19,61 @@ export function academicContentTypeHref({
   yearId: string;
   termId: string;
 }): string {
-  return contentType === "TEACHER_PREPARATION"
-    ? academicContentOverviewHref({ locale, routeSuffix: "/preparations", yearId, termId })
-    : academicContentOverviewHref({ locale, routeSuffix: "/library", yearId, termId, extraQuery: { type: contentType } });
+  if (contentType === "TEACHER_PREPARATION") {
+    return academicContentOverviewHref({
+      locale,
+      routeSuffix: "/preparations",
+      yearId,
+      termId,
+    });
+  }
+  if (contentType === "WEEKLY_PLAN") {
+    return academicContentOverviewHref({
+      locale,
+      routeSuffix: "/weekly-plans",
+      yearId,
+      termId,
+    });
+  }
+  if (contentType === "GUARDIAN_WEEKLY_NOTE") {
+    return academicContentOverviewHref({
+      locale,
+      routeSuffix: "/guardian-notes",
+      yearId,
+      termId,
+    });
+  }
+  if (contentType === "SUBJECT_RESOURCE") {
+    return academicContentOverviewHref({
+      locale,
+      routeSuffix: "/subject-resources",
+      yearId,
+      termId,
+    });
+  }
+  if (contentType === "ONLINE_SESSION") {
+    return academicContentOverviewHref({
+      locale,
+      routeSuffix: "/online-sessions",
+      yearId,
+      termId,
+    });
+  }
+  if (contentType === "GENERAL_RESOURCE") {
+    return academicContentOverviewHref({
+      locale,
+      routeSuffix: "/general-resources",
+      yearId,
+      termId,
+    });
+  }
+  return academicContentOverviewHref({
+    locale,
+    routeSuffix: "/library",
+    yearId,
+    termId,
+    extraQuery: { type: contentType },
+  });
 }
 
 export function academicContentOverviewHref({

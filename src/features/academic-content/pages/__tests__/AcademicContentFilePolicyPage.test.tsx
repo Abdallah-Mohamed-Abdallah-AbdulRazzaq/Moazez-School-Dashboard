@@ -44,10 +44,10 @@ describe("AcademicContentFilePolicyPage", () => {
 
   it("sends only changed decimal-string and boolean fields", async () => {
     render(<AcademicContentFilePolicyPage />);
-    await screen.findByDisplayValue("536870912");
+    await screen.findByDisplayValue("512");
 
-    fireEvent.change(screen.getByLabelText("Maximum file size in bytes"), {
-      target: { value: "10737418240" },
+    fireEvent.change(screen.getByLabelText("Maximum file size (MB)"), {
+      target: { value: "10240" },
     });
     fireEvent.click(screen.getByRole("checkbox", { name: "Documents" }));
     fireEvent.click(screen.getByRole("button", { name: "Save file policy" }));
@@ -65,13 +65,13 @@ describe("AcademicContentFilePolicyPage", () => {
     render(<AcademicContentFilePolicyPage />);
 
     expect(await screen.findByRole("checkbox", { name: "Attachments" })).toBeDisabled();
-    expect(screen.getByLabelText("Maximum file size in bytes")).toBeDisabled();
+    expect(screen.getByLabelText("Maximum file size (MB)")).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Save file policy" })).not.toBeInTheDocument();
   });
 
   it("renders every backend policy switch", async () => {
     render(<AcademicContentFilePolicyPage />);
-    await screen.findByDisplayValue("536870912");
+    await screen.findByDisplayValue("512");
 
     for (const label of [
       "Attachments",
@@ -83,7 +83,7 @@ describe("AcademicContentFilePolicyPage", () => {
       "Other files",
       "Student downloads",
       "Guardian downloads",
-      "Inline preview",
+      "Preview files on the page",
     ]) {
       expect(screen.getByRole("checkbox", { name: label })).toBeInTheDocument();
     }
@@ -91,10 +91,10 @@ describe("AcademicContentFilePolicyPage", () => {
 
   it("rejects values above the 10 GiB hard maximum", async () => {
     render(<AcademicContentFilePolicyPage />);
-    await screen.findByDisplayValue("536870912");
+    await screen.findByDisplayValue("512");
 
-    fireEvent.change(screen.getByLabelText("Maximum file size in bytes"), {
-      target: { value: "10737418241" },
+    fireEvent.change(screen.getByLabelText("Maximum file size (MB)"), {
+      target: { value: "10241" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save file policy" }));
 

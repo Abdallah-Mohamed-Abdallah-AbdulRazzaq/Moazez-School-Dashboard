@@ -1,6 +1,13 @@
 "use client";
 
-import { RefreshCw, Users } from "lucide-react";
+import {
+  BellOff,
+  RefreshCw,
+  UserCheck,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button/Button";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
@@ -11,6 +18,13 @@ interface AudiencePreviewCardProps {
   preview: AcademicContentAudiencePreviewResponse | null;
   error: AcademicContentUiError | null;
   onRetry: () => void;
+}
+
+interface AudienceMetric {
+  label: string;
+  count: number;
+  icon: LucideIcon;
+  iconClassName: string;
 }
 
 export default function AudiencePreviewCard({
@@ -24,14 +38,31 @@ export default function AudiencePreviewCard({
     dateStyle: "medium",
     timeStyle: "short",
   });
-  const metrics: ReadonlyArray<{ label: string; value: number }> = preview
+  const metrics: ReadonlyArray<AudienceMetric> = preview
     ? [
-        { label: "students", value: preview.students },
-        { label: "guardian_contexts", value: preview.guardianContexts },
-        { label: "guardian_accounts", value: preview.guardianUsersWithAccounts },
+        {
+          label: "students",
+          count: preview.students,
+          icon: Users,
+          iconClassName: "bg-blue-50 text-blue-700",
+        },
+        {
+          label: "guardian_contexts",
+          count: preview.guardianContexts,
+          icon: UserRound,
+          iconClassName: "bg-violet-50 text-violet-700",
+        },
+        {
+          label: "guardian_accounts",
+          count: preview.guardianUsersWithAccounts,
+          icon: UserCheck,
+          iconClassName: "bg-emerald-50 text-emerald-700",
+        },
         {
           label: "guardian_opt_out_contexts",
-          value: preview.guardianNotificationOptOutContexts,
+          count: preview.guardianNotificationOptOutContexts,
+          icon: BellOff,
+          iconClassName: "bg-amber-50 text-amber-700",
         },
       ]
     : [];
@@ -78,27 +109,37 @@ export default function AudiencePreviewCard({
 
       {preview ? (
         <>
-          <dl className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
-            {metrics.map(({ label, value }) => (
+          <dl className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {metrics.map(({ label, count, icon: Icon, iconClassName }) => (
               <div
                 key={label}
-                className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                className="flex min-h-28 items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/70 p-4"
               >
-                <dt className="text-xs font-medium leading-5 text-gray-600">
-                  {t(label)}
-                </dt>
-                <dd className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
-                  {value}
-                </dd>
+                <div
+                  className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${iconClassName}`}
+                >
+                  <Icon aria-hidden="true" className="size-5" />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <dt className="text-sm font-medium leading-5 text-gray-600">
+                    {t(label)}
+                  </dt>
+                  <dd className="mt-auto text-3xl font-semibold leading-none tabular-nums text-gray-900">
+                    {new Intl.NumberFormat(locale).format(count)}
+                  </dd>
+                </div>
               </div>
             ))}
           </dl>
+          <p className="mt-4 text-xs leading-5 text-gray-600">
+            {t("audience_counts_note")}
+          </p>
           <p className="mt-4 text-xs text-gray-600">
             {t("as_of", {
               date: formatter.format(new Date(preview.asOf)),
             })}
           </p>
-          {metrics.every(({ value }) => value === 0) ? (
+          {metrics.every(({ count }) => count === 0) ? (
             <p className="mt-2 text-xs text-gray-600">
               {t("zero_audience_valid")}
             </p>

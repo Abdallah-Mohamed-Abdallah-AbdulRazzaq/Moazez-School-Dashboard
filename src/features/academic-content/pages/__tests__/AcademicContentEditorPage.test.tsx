@@ -23,6 +23,15 @@ vi.mock("../../services/academicContentSelectors", () => ({
   loadAcademicTargetOptions: academicContentBoundaries.loadTargets,
 }));
 
+vi.mock("../../services/academicContentApi", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("../../services/academicContentApi")>();
+  return {
+    ...original,
+    getAcademicContentFilePolicy: vi.fn(() => new Promise(() => undefined)),
+  };
+});
+
 vi.mock(
   "../../services/academicContentDetailOptions",
   async (importOriginal) => {
@@ -131,6 +140,22 @@ function editorState(
 }
 
 describe("AcademicContentEditorPage", () => {
+  it("routes general resources to their dedicated workspace", () => {
+    render(
+      <AcademicContentEditorView
+        editor={editorState()}
+        canManage
+        academicYearName="Academic year 2026/2027"
+        termName="First term"
+      />,
+    );
+
+    expect(
+      screen.getByRole("main", { name: "General resource workspace" }),
+    ).toBeVisible();
+    expect(screen.getAllByRole("button", { name: "Overview" })).toHaveLength(2);
+  });
+
   it("routes weekly plans to their dedicated workspace", () => {
     render(
       <AcademicContentEditorView
@@ -190,6 +215,57 @@ describe("AcademicContentEditorPage", () => {
       expect(academicContentBoundaries.loadTargets).toHaveBeenCalled();
       expect(academicContentBoundaries.loadDetails).toHaveBeenCalled();
     });
+  });
+
+  it("routes online sessions to the meeting lobby", async () => {
+    academicContentBoundaries.loadDetails.mockResolvedValueOnce({
+      curricula: [],
+      lessonPlans: [],
+      homeworkAssignments: [],
+      assessments: [],
+      timetableEntries: [
+        {
+          id: "entry-1",
+          classroom: { nameEn: "Grade 4 - A", nameAr: "الصف الرابع - أ" },
+          subject: { nameEn: "Mathematics", nameAr: "الرياضيات" },
+          period: { label: "Period 2" },
+        },
+      ],
+    });
+    render(
+      <AcademicContentEditorView
+        editor={editorState("DRAFT", false, {
+          type: "ONLINE_SESSION",
+          audience: "STUDENTS",
+          title: "Fractions review",
+          details: {
+            platform: "ZOOM",
+            providerName: null,
+            joinUrl: "https://example.com/join",
+            accessCode: null,
+            instructions: null,
+            startAt: "2026-10-06T10:00:00.000Z",
+            endAt: "2026-10-06T10:45:00.000Z",
+            timezone: "Africa/Cairo",
+            timetableEntryId: "entry-1",
+          },
+        })}
+        canManage
+        canPublish
+        academicYearName="Academic year 2026/2027"
+        termName="First term"
+      />,
+    );
+
+    expect(
+      screen.getByRole("main", { name: "Online session meeting lobby" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "Join Fractions review" }),
+    ).toHaveAttribute("href", "https://example.com/join");
+    expect(
+      await screen.findByText("Grade 4 - A · Mathematics · Period 2"),
+    ).toBeVisible();
   });
 
   it("shows immutable context and saves metadata explicitly", async () => {
@@ -259,13 +335,11 @@ describe("AcademicContentEditorPage", () => {
       />,
     );
 
-    const basicInformationTabs = screen.getAllByRole("button", {
-      name: "Basic information",
+    const overviewTabs = screen.getAllByRole("button", {
+      name: "Overview",
     });
     expect(
-      basicInformationTabs.some(
-        (tab) => tab.getAttribute("aria-current") === "true",
-      ),
+      overviewTabs.some((tab) => tab.getAttribute("aria-current") === "page"),
     ).toBe(true);
   });
 

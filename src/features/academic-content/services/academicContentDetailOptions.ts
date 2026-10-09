@@ -8,9 +8,7 @@ import {
   getLessonPlan,
   type LessonPlan,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
-import {
-  listHomeworkAssignments,
-} from "@/features/academics/homework/services/homeworkService";
+import { listHomeworkAssignments } from "@/features/academics/homework/services/homeworkService";
 import type { HomeworkAssignmentUiModel } from "@/features/academics/homework/services/homeworkApi.types";
 import { fetchAssessments } from "@/features/grades/overview/services/gradesOverviewService";
 import type { Assessment } from "@/features/grades/shared/types";
@@ -20,9 +18,12 @@ import type { BackendTimetableEntryDto } from "@/features/academics/timetable/se
 import type { AcademicContentDetail } from "../types/contracts";
 import {
   loadAcademicTargetOptions,
-  targetGradeIds,
   targetLineage,
 } from "./academicContentSelectors";
+import {
+  academicReferenceMatcher,
+  assessmentReferenceScope,
+} from "./academicContentReferenceScope";
 
 export interface AcademicContentDetailOptions {
   curricula: Curriculum[];
@@ -32,31 +33,17 @@ export interface AcademicContentDetailOptions {
   timetableEntries: BackendTimetableEntryDto[];
 }
 
-export const EMPTY_ACADEMIC_CONTENT_DETAIL_OPTIONS: AcademicContentDetailOptions = {
-  curricula: [],
-  lessonPlans: [],
-  homeworkAssignments: [],
-  assessments: [],
-  timetableEntries: [],
-};
+export const EMPTY_ACADEMIC_CONTENT_DETAIL_OPTIONS: AcademicContentDetailOptions =
+  {
+    curricula: [],
+    lessonPlans: [],
+    homeworkAssignments: [],
+    assessments: [],
+    timetableEntries: [],
+  };
 
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
   return [...new Map(items.map((item) => [item.id, item])).values()];
-}
-
-interface ReferenceScope {
-  stageId?: string;
-  gradeId?: string;
-  sectionId?: string;
-  classroomId?: string;
-  subjectId?: string;
-}
-
-function scopesIntersect(left: ReferenceScope, right: ReferenceScope): boolean {
-  if (!left.subjectId || left.subjectId !== right.subjectId) return false;
-  return (["stageId", "gradeId", "sectionId", "classroomId"] as const).every(
-    (field) => !left[field] || !right[field] || left[field] === right[field],
-  );
 }
 
 export async function loadAcademicContentDetailOptions(
@@ -77,56 +64,51 @@ export async function loadAcademicContentDetailOptions(
       classroomId: target.classroomId ?? undefined,
     };
   });
-  const targetScopes: ReferenceScope[] = content.targets.map((target) => {
-    const lineage = targetLineage(targetOptions, target);
-    return {
-      stageId: lineage.stageId || undefined,
-      gradeId: lineage.gradeId || undefined,
-      sectionId: lineage.sectionId || undefined,
-      classroomId: target.classroomId ?? undefined,
-      subjectId: target.subjectId ?? undefined,
-    };
-  });
-  const matchesTarget = (reference: ReferenceScope) =>
-    targetScopes.some((target) => scopesIntersect(target, reference));
-  const [curriculumSummaries, lessonPlanSummaries, homeworkResult, assessments, configs] =
-    await Promise.all([
-      listCurricula({
-        academicYearId: content.academicYearId,
-        termId: content.termId,
-        status: "ACTIVE",
-      }),
-      listLessonPlans({
-        academicYearId: content.academicYearId,
-        termId: content.termId,
-      }),
-      listHomeworkAssignments({
-        academicYearId: content.academicYearId,
-        termId: content.termId,
-        page: 1,
-        limit: 100,
-      }),
-      fetchAssessments(content.academicYearId, content.termId, {
-        scopeType: "school",
-        includeDrafts: true,
-      }),
-      Promise.all(
-        [
-          {
-            academicYearId: content.academicYearId,
-            termId: content.termId,
-          },
-          ...timetableContexts,
-        ].map(fetchTimetableConfigs),
-      ).then((configGroups) => uniqueById(configGroups.flat())),
-    ]);
+  const matchesTarget = academicReferenceMatcher(
+    content.targets,
+    targetOptions.structure,
+  );
+  const [
+    curriculumSummaries,
+    lessonPlanSummaries,
+    homeworkResult,
+    assessments,
+    configs,
+  ] = await Promise.all([
+    listCurricula({
+      academicYearId: content.academicYearId,
+      termId: content.termId,
+    }),
+    listLessonPlans({
+      academicYearId: content.academicYearId,
+      termId: content.termId,
+    }),
+    listHomeworkAssignments({
+      academicYearId: content.academicYearId,
+      termId: content.termId,
+      page: 1,
+      limit: 100,
+    }),
+    fetchAssessments(content.academicYearId, content.termId, {
+      includeDrafts: true,
+    }),
+    Promise.all(
+      [
+        {
+          academicYearId: content.academicYearId,
+          termId: content.termId,
+        },
+        ...timetableContexts,
+      ].map(fetchTimetableConfigs),
+    ).then((configGroups) => uniqueById(configGroups.flat())),
+  ]);
 
   const relevantCurricula = curriculumSummaries.filter((curriculum) =>
-    content.targets.some(
-      (target) =>
-        target.subjectId === curriculum.subjectId &&
-        targetGradeIds(targetOptions, target).includes(curriculum.gradeId),
-    ),
+    matchesTarget({
+      scopeType: "GRADE",
+      subjectId: curriculum.subjectId,
+      gradeId: curriculum.gradeId,
+    }),
   );
   const curricula = await Promise.all(
     relevantCurricula.map((curriculum) => getCurriculum(curriculum.id)),
@@ -135,6 +117,7 @@ export async function loadAcademicContentDetailOptions(
     lessonPlanSummaries
       .filter((plan) =>
         matchesTarget({
+          scopeType: "CLASSROOM",
           classroomId: plan.classroomId,
           subjectId: plan.subjectId,
         }),
@@ -155,23 +138,17 @@ export async function loadAcademicContentDetailOptions(
     lessonPlans,
     homeworkAssignments: homeworkResult.items.filter((homework) =>
       matchesTarget({
-        gradeId: homework.classroomGradeId,
-        sectionId: homework.classroomSectionId,
+        scopeType: "CLASSROOM",
         classroomId: homework.classroomId,
         subjectId: homework.subjectId,
       }),
     ),
     assessments: assessments.filter((assessment) =>
-      matchesTarget({
-        stageId: assessment.stageId,
-        gradeId: assessment.gradeId,
-        sectionId: assessment.sectionId,
-        classroomId: assessment.classroomId,
-        subjectId: assessment.subjectId,
-      }),
+      matchesTarget(assessmentReferenceScope(assessment)),
     ),
     timetableEntries: timetableEntries.filter((entry) =>
       matchesTarget({
+        scopeType: "CLASSROOM",
         classroomId: entry.classroom.id,
         subjectId: entry.subject?.id,
       }),

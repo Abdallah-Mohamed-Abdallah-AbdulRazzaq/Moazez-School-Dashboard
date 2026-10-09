@@ -1,23 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
+import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button/Button";
 import FilterPanel from "@/components/ui/filter-panel/FilterPanel";
 import Input from "@/components/ui/input/Input";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
-import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
-import { teacherApi } from "@/features/teachers/services/teacherApi";
+import type { AcademicContentBrowseOptionsState } from "../../hooks/useAcademicContentBrowseOptions";
 import type { AcademicContentReviewQueueFilters } from "../../hooks/useAcademicContentReviewQueue";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
-import {
-  loadAcademicTargetOptions,
-  type AcademicTargetOptions,
-} from "../../services/academicContentSelectors";
+import { localizedAcademicName } from "../../model/academicContentDisplay";
 
 interface ReviewQueueFiltersProps {
   filters: AcademicContentReviewQueueFilters;
   search: string;
+  browseOptions: AcademicContentBrowseOptionsState;
   onSearchChange: (search: string) => void;
   onFiltersChange: (
     filters: Partial<
@@ -27,30 +25,25 @@ interface ReviewQueueFiltersProps {
   onClear: () => void;
 }
 
-function selectOptions(
-  items: Array<{ id: string; name: string }>,
+function withAllOption(
+  options: SelectOption[],
   allLabel: string,
 ): SelectOption[] {
-  return [
-    { value: "", label: allLabel },
-    ...items.map((item) => ({ value: item.id, label: item.name })),
-  ];
+  return [{ value: "", label: allLabel }, ...options];
 }
 
 export default function ReviewQueueFilters({
   filters,
   search,
+  browseOptions,
   onSearchChange,
   onFiltersChange,
   onClear,
 }: ReviewQueueFiltersProps) {
-  const { academicYearId, termId } = useAcademicYearTermLayoutContext();
   const [showFilters, setShowFilters] = useState(false);
-  const [options, setOptions] = useState<AcademicTargetOptions | null>(null);
-  const [teacherOptions, setTeacherOptions] = useState<SelectOption[]>([]);
-  const [optionsLoadFailed, setOptionsLoadFailed] = useState(false);
-  const [teacherLoadFailed, setTeacherLoadFailed] = useState(false);
+  const locale = useLocale();
   const t = useAcademicContentTranslations("review");
+  const { targetOptions, teachers } = browseOptions;
   const hasActiveFilters = useMemo(
     () =>
       Boolean(search) ||
@@ -61,60 +54,29 @@ export default function ReviewQueueFilters({
     [filters, search],
   );
 
-  useEffect(() => {
-    if (!academicYearId || !termId) return;
-    let isCurrent = true;
-    queueMicrotask(() => {
-      if (!isCurrent) return;
-      setOptions(null);
-      setOptionsLoadFailed(false);
-    });
-    void loadAcademicTargetOptions({ academicYearId, termId })
-      .then((loadedOptions) => {
-        if (isCurrent) setOptions(loadedOptions);
-      })
-      .catch(() => {
-        if (isCurrent) setOptionsLoadFailed(true);
-      });
-    return () => {
-      isCurrent = false;
-    };
-  }, [academicYearId, termId]);
-
-  useEffect(() => {
-    let isCurrent = true;
-    void teacherApi
-      .list({ employmentStatus: "ACTIVE", page: 1, limit: 100 })
-      .then((response) => {
-        if (!isCurrent) return;
-        setTeacherOptions(
-          response.items.map((teacher) => ({
-            value: teacher.userId,
-            label: teacher.displayName.fullName,
-          })),
-        );
-      })
-      .catch(() => {
-        if (isCurrent) setTeacherLoadFailed(true);
-      });
-    return () => {
-      isCurrent = false;
-    };
-  }, []);
-
+  const toOption = (item: {
+    id: string;
+    name: string;
+    nameAr?: string;
+    nameEn?: string;
+  }): SelectOption => ({
+    value: item.id,
+    label: localizedAcademicName(item, locale) ?? t("name_unavailable"),
+  });
   const grades =
-    options?.structure.grades.filter(
+    targetOptions?.structure.grades.filter(
       (grade) => !filters.stageId || grade.stageId === filters.stageId,
     ) ?? [];
   const sections =
-    options?.structure.sections.filter(
+    targetOptions?.structure.sections.filter(
       (section) => !filters.gradeId || section.gradeId === filters.gradeId,
     ) ?? [];
   const classrooms =
-    options?.structure.classrooms.filter(
+    targetOptions?.structure.classrooms.filter(
       (classroom) =>
         !filters.sectionId || classroom.sectionId === filters.sectionId,
     ) ?? [];
+  const optionsLoadFailed = browseOptions.targetOptionsUnavailable;
 
   return (
     <FilterPanel
@@ -149,8 +111,13 @@ export default function ReviewQueueFilters({
             label={t("filters.stage")}
             triggerAriaLabel={t("filters.stage")}
             value={filters.stageId}
-            options={selectOptions(options?.structure.stages ?? [], t("all_stages"))}
+            options={withAllOption(
+              (targetOptions?.structure.stages ?? []).map(toOption),
+              t("all_stages"),
+            )}
+            disabled={browseOptions.isLoadingTargets}
             error={optionsLoadFailed ? t("options_load_error") : undefined}
+            searchable
             onChange={(stageId) =>
               onFiltersChange({
                 stageId,
@@ -164,8 +131,9 @@ export default function ReviewQueueFilters({
             label={t("filters.grade")}
             triggerAriaLabel={t("filters.grade")}
             value={filters.gradeId}
-            options={selectOptions(grades, t("all_grades"))}
-            disabled={!options}
+            options={withAllOption(grades.map(toOption), t("all_grades"))}
+            disabled={browseOptions.isLoadingTargets || !filters.stageId}
+            searchable
             onChange={(gradeId) =>
               onFiltersChange({ gradeId, sectionId: "", classroomId: "" })
             }
@@ -174,8 +142,9 @@ export default function ReviewQueueFilters({
             label={t("filters.section")}
             triggerAriaLabel={t("filters.section")}
             value={filters.sectionId}
-            options={selectOptions(sections, t("all_sections"))}
-            disabled={!options}
+            options={withAllOption(sections.map(toOption), t("all_sections"))}
+            disabled={browseOptions.isLoadingTargets || !filters.gradeId}
+            searchable
             onChange={(sectionId) =>
               onFiltersChange({ sectionId, classroomId: "" })
             }
@@ -184,16 +153,23 @@ export default function ReviewQueueFilters({
             label={t("filters.classroom")}
             triggerAriaLabel={t("filters.classroom")}
             value={filters.classroomId}
-            options={selectOptions(classrooms, t("all_classrooms"))}
-            disabled={!options}
+            options={withAllOption(
+              classrooms.map(toOption),
+              t("all_classrooms"),
+            )}
+            disabled={browseOptions.isLoadingTargets || !filters.sectionId}
+            searchable
             onChange={(classroomId) => onFiltersChange({ classroomId })}
           />
           <Select
             label={t("filters.subject")}
             triggerAriaLabel={t("filters.subject")}
             value={filters.subjectId}
-            options={selectOptions(options?.subjects ?? [], t("all_subjects"))}
-            disabled={!options}
+            options={withAllOption(
+              (targetOptions?.subjects ?? []).map(toOption),
+              t("all_subjects"),
+            )}
+            disabled={browseOptions.isLoadingTargets}
             searchable
             onChange={(subjectId) => onFiltersChange({ subjectId })}
           />
@@ -201,12 +177,20 @@ export default function ReviewQueueFilters({
             label={t("filters.teacher")}
             triggerAriaLabel={t("filters.teacher")}
             value={filters.teacherUserId}
-            options={[
-              { value: "", label: t("all_teachers") },
-              ...teacherOptions,
-            ]}
+            options={withAllOption(
+              teachers.map((teacher) => ({
+                value: teacher.userId,
+                label: teacher.displayName.fullName,
+              })),
+              t("all_teachers"),
+            )}
+            disabled={browseOptions.isLoadingTeachers}
             searchable
-            error={teacherLoadFailed ? t("teachers_load_error") : undefined}
+            error={
+              browseOptions.teachersUnavailable
+                ? t("teachers_load_error")
+                : undefined
+            }
             onChange={(teacherUserId) => onFiltersChange({ teacherUserId })}
           />
         </div>

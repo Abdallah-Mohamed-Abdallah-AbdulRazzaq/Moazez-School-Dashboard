@@ -255,7 +255,7 @@ export function useAcademicContentPublication(
         if (activeContentIdRef.current !== contentId) return null;
         attemptRef.current = null;
         setTrackedPublication(response);
-        await reload();
+        await refreshAfterMutation();
         return response;
       } catch (error) {
         if (activeContentIdRef.current === contentId) {
@@ -266,7 +266,7 @@ export function useAcademicContentPublication(
         if (activeContentIdRef.current === contentId) setIsMutating(false);
       }
     },
-    [contentId, reload, updateError],
+    [contentId, refreshAfterMutation, updateError],
   );
 
   const loadDetail = useCallback(

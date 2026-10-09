@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { applyPreparationTemplate } from "../model/preparationTemplatePolicy";
 import { normalizeTeacherPreparationDetail } from "../model/teacherPreparationDetail";
 import type {
   AcademicContentPreparationDetail,
+  AcademicContentPreparationTemplateDetail,
   ReplaceAcademicContentPreparationDetailRequest,
 } from "../types/contracts";
 import type { AcademicContentEditorSectionState } from "./useAcademicContentEditor";
@@ -38,6 +40,7 @@ export interface TeacherPreparationDetailDraftController {
     field: Field,
     fieldValue: AcademicContentPreparationDetail[Field],
   ) => void;
+  applyTemplate: (template: AcademicContentPreparationTemplateDetail) => void;
   save: () => Promise<boolean>;
   resetValidation: () => void;
 }
@@ -77,6 +80,17 @@ export function useTeacherPreparationDetailDraft({
     [onDirty],
   );
 
+  const applyTemplate = useCallback(
+    (template: AcademicContentPreparationTemplateDetail) => {
+      setDraft((currentDraft) =>
+        applyPreparationTemplate(currentDraft, template),
+      );
+      setValidationError(null);
+      onDirty();
+    },
+    [onDirty],
+  );
+
   const save = useCallback(async () => {
     if (hasEmptyOrderedEntry(draft)) {
       setValidationError("empty_items");
@@ -88,5 +102,12 @@ export function useTeacherPreparationDetailDraft({
 
   const resetValidation = useCallback(() => setValidationError(null), []);
 
-  return { draft, validationError, update, save, resetValidation };
+  return {
+    draft,
+    validationError,
+    update,
+    applyTemplate,
+    save,
+    resetValidation,
+  };
 }

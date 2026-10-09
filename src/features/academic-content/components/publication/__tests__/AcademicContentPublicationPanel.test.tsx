@@ -56,9 +56,19 @@ const hook = vi.hoisted(() => ({
   state: {} as Record<string, unknown>,
   useAcademicContentPublication: vi.fn(),
 }));
+const toast = vi.hoisted(() => ({
+  showError: vi.fn(),
+  showSuccess: vi.fn(),
+}));
 
 vi.mock("../../../hooks/useAcademicContentPublication", () => ({
   useAcademicContentPublication: hook.useAcademicContentPublication,
+}));
+vi.mock("@/components/ui/toast/Toast", () => ({
+  useToast: () => ({
+    showError: toast.showError,
+    showSuccess: toast.showSuccess,
+  }),
 }));
 
 function publicationState(overrides: Record<string, unknown> = {}) {
@@ -100,8 +110,48 @@ function publicationState(overrides: Record<string, unknown> = {}) {
 
 describe("AcademicContentPublicationPanel", () => {
   beforeEach(() => {
+    toast.showError.mockReset();
+    toast.showSuccess.mockReset();
     hook.state = publicationState();
-    hook.useAcademicContentPublication.mockReset().mockImplementation(() => hook.state);
+    hook.useAcademicContentPublication
+      .mockReset()
+      .mockImplementation(() => hook.state);
+  });
+
+  it("localizes publication mutation errors in the panel and toast", async () => {
+    hook.state = publicationState({
+      errors: {
+        readiness: null,
+        audiencePreview: null,
+        history: null,
+        mutation: {
+          code: "academic_content.publication.identical_revision",
+          message: "Successor revision has no semantic changes",
+          traceId: "trace-1",
+        },
+        detail: null,
+      },
+    });
+
+    render(
+      <AcademicContentPublicationPanel
+        content={content}
+        canMutate
+        canStartRevision
+        onContentChanged={vi.fn()}
+      />,
+    );
+
+    const localizedMessage =
+      "This version matches the published version. Edit the content, then click Save all changes before publishing again.";
+    expect(screen.getByRole("alert")).toHaveTextContent(localizedMessage);
+    expect(screen.getByRole("alert")).toHaveTextContent("Reference: trace-1");
+    expect(
+      screen.queryByText("Successor revision has no semantic changes"),
+    ).toBeNull();
+    await waitFor(() =>
+      expect(toast.showError).toHaveBeenCalledWith(localizedMessage),
+    );
   });
 
   it("opens publish-now and schedule dialogs and delegates validated drafts", async () => {
@@ -109,6 +159,7 @@ describe("AcademicContentPublicationPanel", () => {
       <AcademicContentPublicationPanel
         content={content}
         canMutate
+        canStartRevision
         onContentChanged={vi.fn()}
       />,
     );
@@ -123,6 +174,9 @@ describe("AcademicContentPublicationPanel", () => {
         visibleUntil: null,
         notifyMinorUpdate: false,
       }),
+    );
+    expect(toast.showSuccess).toHaveBeenCalledWith(
+      "Publishing started successfully.",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
@@ -139,11 +193,14 @@ describe("AcademicContentPublicationPanel", () => {
       <AcademicContentPublicationPanel
         content={content}
         canMutate
+        canStartRevision
         onContentChanged={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "View publication details" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "View publication details" }),
+    );
     await waitFor(() =>
       expect(hook.state.loadDetail).toHaveBeenCalledWith("publication-1"),
     );
@@ -154,6 +211,59 @@ describe("AcademicContentPublicationPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm unschedule" }));
     await waitFor(() =>
       expect(hook.state.unschedule).toHaveBeenCalledWith("publication-1"),
+    );
+    expect(toast.showSuccess).toHaveBeenCalledWith(
+      "Publication schedule removed successfully.",
+    );
+  });
+
+  it("shows success feedback for withdrawal and revision creation", async () => {
+    const published = {
+      ...publication,
+      status: "PUBLISHED" as const,
+      publishedAt: NOW,
+    };
+    hook.state = publicationState({
+      history: { items: [published], page: 1, limit: 20, total: 1 },
+      cancel: vi.fn().mockResolvedValue(published),
+      startRevision: vi.fn().mockResolvedValue({
+        contentId: "content-1",
+        revisionId: "revision-2",
+      }),
+    });
+    render(
+      <AcademicContentPublicationPanel
+        content={content}
+        canMutate
+        canStartRevision
+        onContentChanged={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Withdraw and make read-only" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm withdrawal and make read-only",
+      }),
+    );
+    await waitFor(() =>
+      expect(toast.showSuccess).toHaveBeenCalledWith(
+        "Publication withdrawn successfully.",
+      ),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create editable version" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirm editable version" }),
+    );
+    await waitFor(() =>
+      expect(toast.showSuccess).toHaveBeenCalledWith(
+        "An editable draft version was created successfully.",
+      ),
     );
   });
 
@@ -166,12 +276,17 @@ describe("AcademicContentPublicationPanel", () => {
       <AcademicContentPublicationPanel
         content={content}
         canMutate
+        canStartRevision
         onContentChanged={vi.fn()}
       />,
     );
 
-    expect(screen.getByText(/Publication is being processed/i)).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(/Automatic status checks stopped/i);
+    expect(
+      screen.getByText(/Publication is being processed/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /Automatic status checks stopped/i,
+    );
     expect(screen.queryByText(/^Published$/)).toBeNull();
   });
 
@@ -181,6 +296,7 @@ describe("AcademicContentPublicationPanel", () => {
       <AcademicContentPublicationPanel
         content={content}
         canMutate={false}
+        canStartRevision={false}
         onContentChanged={onContentChanged}
       />,
     );
@@ -190,5 +306,40 @@ describe("AcademicContentPublicationPanel", () => {
       onContentChanged,
     );
     expect(screen.queryByRole("button", { name: "Publish now" })).toBeNull();
+  });
+
+  it("offers minor-update notifications only for an eligible revision predecessor", () => {
+    hook.state = publicationState({
+      history: {
+        items: [
+          {
+            ...publication,
+            status: "CANCELLED",
+            publishedAt: NOW,
+            cancelledAt: NOW,
+            cancellationReason: "REVISION_STARTED",
+          },
+        ],
+        page: 1,
+        limit: 20,
+        total: 1,
+      },
+    });
+    render(
+      <AcademicContentPublicationPanel
+        content={content}
+        canMutate
+        canStartRevision
+        onContentChanged={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Publish now" }));
+
+    expect(
+      screen.getByRole("checkbox", {
+        name: /Notify the audience about this minor update/i,
+      }),
+    ).toBeInTheDocument();
   });
 });
