@@ -45,6 +45,35 @@ describe("academicContentUiError", () => {
     });
   });
 
+  it.each([
+    [
+      "ar",
+      "رفع الملفات غير متاح لأن خدمة تخزين المدرسة لا تدعم طريقة الرفع المطلوبة. تواصل مع مسؤول المدرسة أو الدعم لتجهيز الخدمة.",
+    ],
+    [
+      "en",
+      "File uploads are unavailable because the school's storage service does not support the required upload method. Contact your school administrator or support to configure the service.",
+    ],
+  ])(
+    "explains unavailable upload storage instead of a content conflict in %s",
+    (locale, message) => {
+      const code = "academic_content.file.storage_resumable_upload_unavailable";
+      expect(
+        academicContentUiError(
+          new ApiError(
+            "Resumable upload unavailable",
+            409,
+            code,
+            undefined,
+            undefined,
+            "storage-trace",
+          ),
+          locale,
+        ),
+      ).toEqual({ code, message, traceId: "storage-trace" });
+    },
+  );
+
   it("replaces unexpected errors with safe copy without inventing metadata", () => {
     expect(
       academicContentUiError(new Error("Unexpected failure"), "en"),

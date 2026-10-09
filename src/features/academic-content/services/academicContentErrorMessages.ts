@@ -87,6 +87,10 @@ const ERROR_COPY = {
     ar: "انتهت صلاحية جلسة الرفع. ابدأ رفع الملف من جديد.",
     en: "The upload session has expired. Start the file upload again.",
   },
+  upload_storage_unavailable: {
+    ar: "رفع الملفات غير متاح لأن خدمة تخزين المدرسة لا تدعم طريقة الرفع المطلوبة. تواصل مع مسؤول المدرسة أو الدعم لتجهيز الخدمة.",
+    en: "File uploads are unavailable because the school's storage service does not support the required upload method. Contact your school administrator or support to configure the service.",
+  },
   upload_failed: {
     ar: "تعذر رفع الملف. تحقق من الاتصال وحاول رفعه مرة أخرى.",
     en: "The file could not be uploaded. Check your connection and try uploading it again.",
@@ -127,6 +131,8 @@ const ERROR_KEYS: Readonly<Record<string, keyof typeof ERROR_COPY>> = {
   "academic_content.file.object_missing": "not_found",
   "academic_content.file.upload_expired": "upload_restart",
   "academic_content.file.upload_capability_not_reissuable": "upload_restart",
+  "academic_content.file.storage_resumable_upload_unavailable":
+    "upload_storage_unavailable",
   "academic_content.file.verification_retryable": "upload_failed",
   "academic_content.file.upload_not_cancellable": "conflict",
   "academic_content.file.idempotency_payload_mismatch": "conflict",
