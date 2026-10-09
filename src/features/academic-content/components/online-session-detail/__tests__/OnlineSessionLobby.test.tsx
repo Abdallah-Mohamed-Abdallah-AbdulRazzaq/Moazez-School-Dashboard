@@ -59,6 +59,31 @@ const content = {
 } satisfies Extract<AcademicContentDetail, { type: "ONLINE_SESSION" }>;
 
 describe("online session meeting lobby", () => {
+  it("shows the saved meeting timezone rather than the viewer timezone", () => {
+    const tokyoMeeting = {
+      ...content,
+      details: { ...content.details, timezone: "Asia/Tokyo" },
+    };
+    const { container } = render(
+      <>
+        <OnlineSessionLobbyHero content={tokyoMeeting} />
+        <OnlineSessionInformation
+          content={tokyoMeeting}
+          targets={[]}
+          targetError={null}
+          timetableLabel={null}
+        />
+      </>,
+    );
+
+    const scheduledTimes = container.querySelectorAll('time[datetime="2026-10-06T10:00:00.000Z"]');
+    expect(scheduledTimes).toHaveLength(2);
+    scheduledTimes.forEach((scheduledTime) => {
+      expect(scheduledTime).toHaveTextContent("7:00 PM");
+    });
+    expect(container.querySelector('time[datetime="2026-10-06T10:45:00.000Z"]')).toHaveTextContent("7:45 PM");
+  });
+
   it("keeps a valid join action available after the scheduled session ends", () => {
     render(
       <OnlineSessionLobbyHero

@@ -93,6 +93,7 @@ export default function OnlineSessionLobbyHero({
   const formatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: detail.timezone,
   });
   const copyCode = async () => {
     if (!detail.accessCode) return;

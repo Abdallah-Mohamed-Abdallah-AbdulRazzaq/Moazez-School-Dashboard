@@ -35,6 +35,7 @@ export default function OnlineSessionInformation({
   const formatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: detail.timezone,
   });
   return (
     <div className="grid gap-4 md:grid-cols-2">
