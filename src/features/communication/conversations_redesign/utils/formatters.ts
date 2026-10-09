@@ -125,13 +125,21 @@ export function participantUserId(participant: ConversationParticipant) {
 
 
 export function conversationTypeLabel(
-  type: Conversation["type"] | undefined,
+  type: string | undefined,
   labels: ConversationRedesignLabels,
 ) {
-  if (type === "group") return labels.group;
-  if (type === "classroom") return labels.classroom;
-  if (type === "direct") return labels.direct;
-  return type?.replace(/_/g, " ") || labels.direct;
+  const typeLabels: Record<string, string> = {
+    direct: labels.direct,
+    group: labels.group,
+    classroom: labels.classroom,
+    grade: labels.grade,
+    section: labels.section,
+    stage: labels.stage,
+    school_wide: labels.schoolWide,
+    support: labels.support,
+    system: labels.system,
+  };
+  return typeLabels[type ?? "direct"] ?? type?.replace(/_/g, " ") ?? labels.direct;
 }
 
 

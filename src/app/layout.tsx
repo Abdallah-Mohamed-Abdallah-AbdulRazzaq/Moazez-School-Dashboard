@@ -4,7 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata = {
-  title: "Moazzez | معزز",
+  title: "Moazez | معزز",
   description: "School Management System",
   manifest: "/manifest.json",
 };
@@ -19,7 +19,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const requestHeaders = await headers();
-  const locale = requestHeaders.get("X-NEXT-INTL-LOCALE") === "en" ? "en" : "ar";
+  const locale =
+    requestHeaders.get("X-NEXT-INTL-LOCALE") === "en" ? "en" : "ar";
 
   return (
     <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>

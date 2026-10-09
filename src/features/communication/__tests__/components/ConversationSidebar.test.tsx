@@ -69,6 +69,28 @@ describe("ConversationSidebar last-message previews", () => {
   });
 
   it.each([
+    ["direct", "Direct", "مباشر"],
+    ["group", "Group", "مجموعة"],
+    ["classroom", "Class", "فصل"],
+    ["grade", "Grade", "صف"],
+    ["section", "Section", "قسم"],
+    ["stage", "Stage", "مرحلة"],
+    ["school_wide", "School-wide", "كل المدرسة"],
+    ["support", "Support", "دعم"],
+    ["system", "System", "نظام"],
+  ] as const)("localizes the listed %s conversation type in both languages", (type, english, arabic) => {
+    const conversation: ConversationListItemModel = {
+      id: "conversation-1", type, status: "active", title: "Conversation", lastMessage: null,
+    };
+    renderSidebarWithProps({ conversations: [conversation] });
+    expect(screen.getByText(english, { exact: true })).toBeInTheDocument();
+    cleanup();
+    localeState.value = "ar";
+    renderSidebarWithProps({ conversations: [conversation] });
+    expect(screen.getByText(arabic, { exact: true })).toBeInTheDocument();
+  });
+
+  it.each([
     ["image", "Image"],
     ["video", "Video"],
     ["voice", "Voice note"],

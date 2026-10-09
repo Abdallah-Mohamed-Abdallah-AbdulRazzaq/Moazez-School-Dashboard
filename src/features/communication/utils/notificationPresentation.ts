@@ -187,6 +187,16 @@ export function isAnnouncementNotification(notification: NotificationRecord) {
   );
 }
 
+export function notificationAnnouncementId(notification: NotificationRecord) {
+  if (!isAnnouncementNotification(notification)) return undefined;
+  const deepLink = notificationDeepLink(notification);
+  const metadata = recordValue(notification.metadata);
+  return stringValue(deepLink?.announcementId) ??
+    stringValue(deepLink?.announcement_id) ??
+    stringValue(metadata?.announcementId) ??
+    stringValue(metadata?.announcement_id) ?? sourceId(notification);
+}
+
 function isMessageNotification(notification: NotificationRecord) {
   const deepLink = notificationDeepLink(notification);
   const type = stringValue(notification.type)?.toLowerCase();
@@ -266,6 +276,19 @@ function messageInfoConversationId(
     stringValue(message?.conversationId) ??
     stringValue(message?.conversation_id)
   );
+}
+
+export async function loadNotificationConversationId(notification: NotificationRecord) {
+  const conversationId = communicationConversationId(notification);
+  if (conversationId) return conversationId;
+  const messageId = notificationMessageId(notification);
+  if (!messageId) return undefined;
+  const messageInfo = await sharedSettledRecord(
+    messageInfoRequests,
+    messageId,
+    () => getMessageInfo(messageId),
+  );
+  return messageInfoConversationId(messageInfo);
 }
 
 function sourceLabel(sourceModule: string | undefined, locale: string) {

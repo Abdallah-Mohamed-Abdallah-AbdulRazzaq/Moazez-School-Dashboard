@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { Subject } from "@/features/academics/subjects/services/subjectsService";
 import type {
+  Room,
+  TimetableEntry,
+} from "@/features/academics/timetable/types/timetable";
+import type {
   Teacher,
   TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import {
+  persistedEntriesClearedForDeletion,
+  resolveTimetableLessonDefaults,
   subjectOptionsForGradeAllocations,
   teacherAllocationOptions,
 } from "@/features/academics/timetable/services/timetableSlotEditing";
@@ -172,5 +178,90 @@ describe("subjectOptionsForGradeAllocations", () => {
         gradeId: "grade-1",
       }).map((subject) => subject.id),
     ).toEqual(["subject-math"]);
+  });
+});
+
+describe("persistedEntriesClearedForDeletion", () => {
+  it("clears every persisted slot and discards unsaved temporary slots", () => {
+    const persistedEntry: TimetableEntry = {
+      id: "entry-1",
+      termId: "term-1",
+      sectionId: "section-1",
+      classroomId: "classroom-1",
+      dayKey: "sun",
+      periodIndex: 1,
+      subjectId: "subject-math",
+      teacherId: "teacher-1",
+      roomId: "room-1",
+    };
+
+    expect(
+      persistedEntriesClearedForDeletion([
+        persistedEntry,
+        { ...persistedEntry, id: "temp-new-slot", periodIndex: 2 },
+      ]),
+    ).toEqual([
+      {
+        ...persistedEntry,
+        subjectId: null,
+        teacherId: null,
+        roomId: null,
+      },
+    ]);
+  });
+});
+
+describe("resolveTimetableLessonDefaults", () => {
+  const rooms: Room[] = [
+    {
+      id: "room-1",
+      schoolId: "school-1",
+      nameAr: "فصل 1",
+      nameEn: "Classroom 1",
+      capacity: 30,
+      isActive: true,
+    },
+  ];
+
+  it("resolves the classroom teacher allocation and recommended room", () => {
+    expect(
+      resolveTimetableLessonDefaults({
+        subjectId: "subject-math",
+        sectionId: "section-1",
+        classroomId: "classroom-1",
+        teacherAllocations: allocations,
+        teachers,
+        subjects,
+        rooms,
+        selectedClassroom: {
+          id: "classroom-1",
+          nameAr: "فصل 1",
+          nameEn: "Classroom 1",
+          capacity: 25,
+        },
+        locale: "en",
+      }),
+    ).toEqual({ teacherId: "teacher-1", roomId: "room-1" });
+  });
+
+  it("returns null defaults when no classroom resources are allocated", () => {
+    expect(
+      resolveTimetableLessonDefaults({
+        subjectId: "subject-math",
+        sectionId: "section-1",
+        classroomId: "classroom-missing",
+        teacherAllocations: allocations,
+        teachers,
+        subjects,
+        rooms: [],
+        selectedClassroom: {
+          id: "classroom-missing",
+          nameAr: "فصل مفقود",
+          nameEn: "Missing classroom",
+          capacity: 25,
+        },
+        locale: "en",
+      }),
+    ).toEqual({ teacherId: null, roomId: null });
   });
 });

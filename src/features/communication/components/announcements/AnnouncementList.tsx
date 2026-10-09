@@ -5,22 +5,33 @@ import Link from "next/link";
 import Button from "@/components/ui/button/Button";
 import CommunicationEmptyState from "@/features/communication/components/layout/CommunicationEmptyState";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
-import type { Announcement } from "@/features/communication/types/announcement.types";
+import type { CommunicationStatusTone } from "@/features/communication/components/layout/CommunicationStatusChip";
+import type { Announcement, AnnouncementPriority } from "@/features/communication/types/announcement.types";
 
 export interface AnnouncementListLabels {
   emptyTitle: string;
   emptyDescription: string;
   untitled: string;
-  noBody: string;
   draft: string;
   published: string;
   archived: string;
   priority: string;
+  low: string;
+  normal: string;
+  high: string;
+  urgent: string;
   view: string;
   edit: string;
   publish: string;
   archive: string;
 }
+
+const priorityTones: Record<AnnouncementPriority, CommunicationStatusTone> = {
+  low: "neutral",
+  normal: "info",
+  high: "warning",
+  urgent: "error",
+};
 
 export interface AnnouncementListProps {
   announcements: Announcement[];
@@ -42,16 +53,6 @@ function titleForAnnouncement(
   const secondary =
     locale === "ar" ? announcement.titleEn : announcement.titleAr;
   return preferred || secondary || announcement.title || fallback;
-}
-
-function bodyForAnnouncement(
-  announcement: Announcement,
-  locale: string,
-  fallback: string,
-) {
-  const preferred = locale === "ar" ? announcement.bodyAr : announcement.bodyEn;
-  const secondary = locale === "ar" ? announcement.bodyEn : announcement.bodyAr;
-  return preferred || secondary || announcement.body || fallback;
 }
 
 function formatDate(value?: string | null) {
@@ -116,17 +117,15 @@ export default function AnnouncementList({
                     tone={statusTone(status)}
                   />
                   {announcement.priority ? (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                      {labels.priority}: {announcement.priority}
-                    </span>
+                    <CommunicationStatusChip
+                      label={`${labels.priority}: ${labels[announcement.priority]}`}
+                      tone={priorityTones[announcement.priority]}
+                    />
                   ) : null}
                 </div>
                 <h3 className="truncate text-base font-semibold text-slate-900">
                   {titleForAnnouncement(announcement, locale, labels.untitled)}
                 </h3>
-                <p className="mt-1 line-clamp-2 text-sm text-slate-600">
-                  {bodyForAnnouncement(announcement, locale, labels.noBody)}
-                </p>
                 <p className="mt-2 text-xs text-slate-500">
                   {formatDate(
                     announcement.publishedAt ?? announcement.updatedAt,

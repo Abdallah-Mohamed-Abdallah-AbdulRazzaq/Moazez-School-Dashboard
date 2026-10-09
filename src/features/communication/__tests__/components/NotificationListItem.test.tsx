@@ -24,11 +24,63 @@ describe("NotificationListItem", () => {
     untitled: "Untitled",
     noBody: "No Preview",
     type: "Type",
+    priority: "Priority",
+    low: "Low",
+    normal: "Normal",
+    high: "High",
+    urgent: "Urgent",
     markRead: "Mark read",
     archive: "Archive",
     viewDetails: "View details",
     archived: "Archived",
   };
+
+  it.each([
+    ["low", "منخفضة", "bg-slate-100"],
+    ["normal", "عادية", "bg-primary-100"],
+    ["high", "عالية", "bg-amber-100"],
+    ["urgent", "عاجلة", "bg-rose-100"],
+  ] as const)("shows a localized colored %s priority badge", (priority, arabic, color) => {
+    const { rerender } = render(<NotificationListItem notification={{ ...mockNotification, priority }} locale="en" labels={labels} />);
+    expect(screen.getByText(`Priority: ${labels[priority]}`)).toHaveClass(color);
+    rerender(<NotificationListItem notification={{ ...mockNotification, priority }} locale="ar"
+      labels={{ ...labels, priority: "الأولوية", [priority]: arabic }} />);
+    expect(screen.getByText(`الأولوية: ${arabic}`)).toHaveClass(color);
+  });
+
+  it.each([
+    ["message_received", "message-square", "bg-primary", "bg-primary-50"],
+    ["announcement_published", "megaphone", "bg-violet-600", "bg-violet-50"],
+    ["attendance_absence", "calendar", "bg-slate-800", "bg-slate-100"],
+    ["grade_posted", "award", "bg-slate-800", "bg-slate-100"],
+    ["behavior_record_created", "shield-alert", "bg-slate-800", "bg-slate-100"],
+    ["reinforcement_reward_granted", "gift", "bg-slate-800", "bg-slate-100"],
+    ["system_alert", "triangle-alert", "bg-slate-800", "bg-slate-100"],
+  ] as const)("matches navbar icons and read-state colors for %s", (type, icon, unreadColor, readColor) => {
+    const { container, rerender } = render(<NotificationListItem notification={{ ...mockNotification, type }} locale="en" labels={labels} />);
+    expect(container.querySelector(`svg.lucide-${icon}`)?.parentElement).toHaveClass(unreadColor);
+    rerender(<NotificationListItem notification={{ ...mockNotification, type, status: "read" }} locale="en" labels={labels} />);
+    expect(container.querySelector(`svg.lucide-${icon}`)?.parentElement).toHaveClass(readColor);
+  });
+
+  it.each([
+    ["announcement_published", "Announcement published", "نشر إعلان"],
+    ["message_received", "Message received", "رسالة واردة"],
+    ["message_mention", "Message mention", "إشارة في رسالة"],
+    ["attendance_absence", "Absence", "غياب"],
+    ["attendance_late", "Late arrival", "تأخر في الحضور"],
+    ["attendance_early_leave", "Early departure", "انصراف مبكر"],
+    ["grade_posted", "Grade posted", "رصد درجة"],
+    ["behavior_record_created", "Behavior record created", "تسجيل سلوك"],
+    ["reinforcement_reward_granted", "Reinforcement reward granted", "منح مكافأة تعزيز"],
+    ["system_alert", "System alert", "تنبيه النظام"],
+  ] as const)("localizes the listed %s badge in both languages", (type, english, arabic) => {
+    const { rerender } = render(<NotificationListItem notification={{ ...mockNotification, type }} locale="en" labels={labels} />);
+    expect(screen.getByText(`Type: ${english}`)).toBeInTheDocument();
+    rerender(<NotificationListItem notification={{ ...mockNotification, type }} locale="ar" labels={{ ...labels, type: "النوع" }} />);
+    expect(screen.getByText(`النوع: ${arabic}`)).toBeInTheDocument();
+    expect(screen.queryByText(`النوع: ${type}`)).not.toBeInTheDocument();
+  });
 
   it("renders notification details correctly", () => {
     render(

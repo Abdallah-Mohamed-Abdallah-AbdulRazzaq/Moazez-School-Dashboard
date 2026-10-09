@@ -101,15 +101,15 @@ const backendConfig: BackendTimetableConfigDto = {
   id: "config-1",
   academicYearId: "year-1",
   termId: "term-1",
-  name: "Classroom timetable",
+  name: "Term timetable",
   weekStartDay: 0,
   activeDays: [0, 1, 2, 3, 4],
-  scopeType: "classroom",
-  scopeKey: "classroom-1",
+  scopeType: "term",
+  scopeKey: "term-1",
   stageId: null,
   gradeId: null,
   sectionId: null,
-  classroomId: "classroom-1",
+  classroomId: null,
   status: "draft",
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-02T00:00:00.000Z",
@@ -212,7 +212,7 @@ describe("useTimetableData", () => {
     mockTimetableLoad(activePublication);
   });
 
-  it("loads backend config, periods, entries, and publication state for the selected scope", async () => {
+  it("loads the exact term config while filtering entries by classroom", async () => {
     const { result } = renderHook(() => useTimetableData(hookParams));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -220,8 +220,7 @@ describe("useTimetableData", () => {
     expect(mockedGetConfig).toHaveBeenCalledWith({
       academicYearId: "year-1",
       termId: "term-1",
-      scopeType: "CLASSROOM",
-      classroomId: "classroom-1",
+      scopeType: "TERM",
     });
     expect(mockedGetDashboardTimetable).toHaveBeenCalledWith({
       termId: "term-1",
@@ -248,20 +247,47 @@ describe("useTimetableData", () => {
     );
   });
 
-  it("loads a term-wide config when no grade, section, or classroom is selected", async () => {
+  it("loads a narrower config only for an explicit configuration scope", async () => {
+    mockedGetConfig.mockResolvedValueOnce({
+      ...backendConfig,
+      id: "stage-config",
+      scopeType: "stage",
+      scopeKey: "stage-1",
+      stageId: "stage-1",
+    });
     const { result } = renderHook(() =>
       useTimetableData({
         ...hookParams,
-        selectedStageId: "",
-        selectedGradeId: "",
-        selectedSectionId: "",
-        selectedClassroomId: "",
+        configurationScope: { scopeType: "STAGE", stageId: "stage-1" },
       }),
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockedGetConfig).toHaveBeenCalledWith({
+      academicYearId: "year-1",
+      termId: "term-1",
+      scopeType: "STAGE",
+      stageId: "stage-1",
+    });
+    expect(result.current.config?.id).toBe("stage-config");
+  });
+
+  it("keeps the term config while the classroom filter changes", async () => {
+    const { result, rerender } = renderHook(
+      ({ classroomId }) =>
+        useTimetableData({
+          ...hookParams,
+          selectedClassroomId: classroomId,
+        }),
+      { initialProps: { classroomId: "classroom-1" } },
+    );
+
+    await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
+    rerender({ classroomId: "classroom-2" });
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+
+    expect(mockedGetConfig).toHaveBeenLastCalledWith({
       academicYearId: "year-1",
       termId: "term-1",
       scopeType: "TERM",
@@ -434,7 +460,15 @@ describe("useTimetableData", () => {
       ),
     );
 
-    const { result } = renderHook(() => useTimetableData(hookParams));
+    const { result } = renderHook(() =>
+      useTimetableData({
+        ...hookParams,
+        configurationScope: {
+          scopeType: "CLASSROOM",
+          classroomId: "classroom-1",
+        },
+      }),
+    );
 
     await waitFor(() => expect(result.current.timetableLoading).toBe(false));
     expect(result.current.config).toBeNull();
@@ -503,7 +537,15 @@ describe("useTimetableData", () => {
       ],
     });
 
-    const { result } = renderHook(() => useTimetableData(hookParams));
+    const { result } = renderHook(() =>
+      useTimetableData({
+        ...hookParams,
+        configurationScope: {
+          scopeType: "CLASSROOM",
+          classroomId: "classroom-1",
+        },
+      }),
+    );
 
     await waitFor(() => expect(result.current.timetableLoading).toBe(false));
     expect(result.current.config).toBeNull();
@@ -637,6 +679,7 @@ describe("useTimetableData", () => {
     });
 
     expect(unpublishResult!).toEqual({ ok: true });
+    expect(mockedUnpublish).toHaveBeenCalledWith({ termId: "term-1" });
     expect(result.current.config?.status).toBe("draft");
     expect(result.current.isPublished).toBe(false);
   });
@@ -691,7 +734,16 @@ describe("useTimetableData", () => {
         classroomId: null,
         ...scopeIds,
       });
-      const { result } = renderHook(() => useTimetableData(hookParams));
+      const { result } = renderHook(() =>
+        useTimetableData({
+          ...hookParams,
+          configurationScope: {
+            scopeType: scopeType.toUpperCase() as "STAGE" | "SECTION",
+            stageId: scopeIds.stageId ?? undefined,
+            sectionId: scopeIds.sectionId ?? undefined,
+          },
+        }),
+      );
 
       await waitFor(() =>
         expect(result.current.config?.scopeType).toBe(scopeType),

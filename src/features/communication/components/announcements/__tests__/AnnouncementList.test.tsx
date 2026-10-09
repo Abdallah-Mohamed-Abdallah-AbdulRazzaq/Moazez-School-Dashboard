@@ -13,11 +13,14 @@ const labels: AnnouncementListLabels = {
   emptyTitle: "No announcements",
   emptyDescription: "Create one",
   untitled: "Untitled",
-  noBody: "No body",
   draft: "Draft",
   published: "Published",
   archived: "Archived",
   priority: "Priority",
+  low: "Low",
+  normal: "Normal",
+  high: "High",
+  urgent: "Urgent",
   view: "View",
   edit: "Edit",
   publish: "Publish",
@@ -31,6 +34,21 @@ const draftAnnouncement = {
 } as Announcement;
 
 describe("AnnouncementList", () => {
+  it.each([
+    ["low", "bg-slate-100"],
+    ["normal", "bg-primary-100"],
+    ["high", "bg-amber-100"],
+    ["urgent", "bg-rose-100"],
+  ] as const)("shows localized labels and a distinct color for %s priority", (priority, color) => {
+    const arabicLabels = { ...labels, priority: "الأولوية", low: "منخفضة", normal: "عادية", high: "مرتفعة", urgent: "عاجلة" };
+    const { rerender } = render(<AnnouncementList announcements={[{ ...draftAnnouncement, priority }]}
+      canManageActions={false} labels={labels} locale="en" onArchive={vi.fn()} onPublish={vi.fn()} />);
+    expect(screen.getByText(`Priority: ${labels[priority]}`)).toHaveClass(color);
+    rerender(<AnnouncementList announcements={[{ ...draftAnnouncement, priority }]}
+      canManageActions={false} labels={arabicLabels} locale="ar" onArchive={vi.fn()} onPublish={vi.fn()} />);
+    expect(screen.getByText(`الأولوية: ${arabicLabels[priority]}`)).toHaveClass(color);
+  });
+
   it("keeps announcement viewing available while hiding manage actions", () => {
     render(
       <AnnouncementList

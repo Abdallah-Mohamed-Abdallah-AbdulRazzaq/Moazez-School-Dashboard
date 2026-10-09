@@ -3,9 +3,9 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Tabs, Tab } from "@mui/material";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
 import TimetableView from "../components/TimetableView";
+import TimetableSetupGate from "../components/TimetableSetupGate";
 import RoomsView from "../../rooms/components/RoomsView";
 import { TimetablePageLoadingSkeleton } from "../components/TimetableLoadingSkeletons";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
@@ -141,15 +141,6 @@ export default function TimetablePageContent() {
     applyViewChange?.();
   }, [clearDirty]);
 
-  const handleTabChange = useCallback(
-    (_event: React.SyntheticEvent, newValue: "timetable" | "rooms") => {
-      requestViewChange(() =>
-        syncQueryParams({ activeTab: newValue }, "push"),
-      );
-    },
-    [requestViewChange, syncQueryParams],
-  );
-
   const handleDirtyChange = useCallback(
     (dirty: boolean) => {
       if (dirty) {
@@ -276,52 +267,40 @@ export default function TimetablePageContent() {
           <p className="text-sm text-yellow-800">{t("readOnlyBanner")}</p>
         </div>
       )}
-
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 px-6">
-        <Tabs
-          value={queryState.activeTab}
-          onChange={handleTabChange}
-          sx={{
-            "& .MuiTab-root": {
-              textTransform: "none",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              minHeight: "48px",
-            },
-          }}
-        >
-          <Tab label={t("tabs.timetable")} value="timetable" />
-          <Tab label={t("tabs.rooms")} value="rooms" />
-        </Tabs>
-      </div>
-
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {queryState.activeTab === "timetable" && (
-          <TimetableView
-            schoolId={schoolId}
+          <TimetableSetupGate
             academicYearId={academicYearId}
-            academicYearName={localizedContextName(
-              selectedAcademicYear,
-              locale,
-            )}
             termId={termId}
-            termName={localizedContextName(selectedTerm, locale)}
             termStatus={termStatus}
-            isReadOnly={isReadOnly}
-            isDirty={isDirty}
-            onDirtyChange={handleDirtyChange}
-            selectedStageId={queryState.stageId}
-            selectedGradeId={queryState.gradeId}
-            selectedSectionId={queryState.sectionId}
-            selectedClassroomId={queryState.classroomId}
-            onStageChange={handleStageChange}
-            onGradeChange={handleGradeChange}
-            onSectionChange={handleSectionChange}
-            onClassroomChange={handleClassroomChange}
-            onNormalizeSelection={handleNormalizeSelection}
-          />
+            canManage={canManageStructure}
+          >
+            <TimetableView
+              key={`${academicYearId}:${termId}`}
+              schoolId={schoolId}
+              academicYearId={academicYearId}
+              academicYearName={localizedContextName(
+                selectedAcademicYear,
+                locale,
+              )}
+              termId={termId}
+              termName={localizedContextName(selectedTerm, locale)}
+              termStatus={termStatus}
+              isReadOnly={isReadOnly}
+              isDirty={isDirty}
+              onDirtyChange={handleDirtyChange}
+              selectedStageId={queryState.stageId}
+              selectedGradeId={queryState.gradeId}
+              selectedSectionId={queryState.sectionId}
+              selectedClassroomId={queryState.classroomId}
+              onStageChange={handleStageChange}
+              onGradeChange={handleGradeChange}
+              onSectionChange={handleSectionChange}
+              onClassroomChange={handleClassroomChange}
+              onNormalizeSelection={handleNormalizeSelection}
+            />
+          </TimetableSetupGate>
         )}
         {queryState.activeTab === "rooms" && (
           <RoomsView

@@ -6539,7 +6539,7 @@
         "saturday": "Saturday",
         "holiday": "Holiday",
         "emptySlot": "Empty",
-        "add": "Add",
+        "add": "Add period",
         "break": "Break",
         "dropHere": "Drop here",
         "clickToEdit": "Click to edit",
@@ -6551,6 +6551,50 @@
           "class": "Class",
           "assembly": "Assembly",
           "activity": "Activity"
+        }
+      },
+      "schedulingLibrary": {
+        "title": "Scheduling library",
+        "hint": "Drag an item to a slot, or select it and then choose a slot.",
+        "open": "Open scheduling library",
+        "close": "Close",
+        "searchLabel": "Search scheduling resources",
+        "searchPlaceholder": "Search subjects, teachers, or rooms",
+        "unscheduledOnly": "Show remaining lessons only",
+        "remainingPeriods": "{remaining} of {target} remaining",
+        "roomCapacity": "Capacity {capacity}",
+        "noLessons": "No lesson bundles match this classroom.",
+        "noTeachers": "No teacher allocations match this classroom.",
+        "noRooms": "No rooms match your search.",
+        "clickSlotHint": "Choose a timetable slot to place the selected item.",
+        "selectClassroomHint": "Select one classroom to use direct scheduling.",
+        "dragging": "Move to a highlighted timetable slot",
+        "undo": "Undo",
+        "dismissUndo": "Dismiss undo message",
+        "undoComplete": "The last timetable change was undone.",
+        "tabs": {
+          "label": "Scheduling resource type",
+          "lessons": "Lessons",
+          "teachers": "Teachers",
+          "rooms": "Rooms"
+        },
+        "effects": {
+          "create": "Lesson added to the timetable.",
+          "update": "Timetable slot updated.",
+          "replace": "Timetable slot replaced.",
+          "move": "Lesson moved to a new slot.",
+          "swap": "Timetable lessons swapped."
+        },
+        "rejections": {
+          "READ_ONLY": "This timetable is read-only.",
+          "HOLIDAY": "Items cannot be placed on a holiday.",
+          "NON_INSTRUCTIONAL": "Items cannot be placed in a non-instructional period.",
+          "SUBJECT_REQUIRED": "Add a subject before assigning a teacher or room.",
+          "TEACHER_SUBJECT_MISMATCH": "This teacher is not allocated to the subject in that slot.",
+          "ROOM_INELIGIBLE": "This room is not eligible for the selected classroom.",
+          "TEACHER_CONFLICT": "This teacher is already scheduled at that time.",
+          "ROOM_CONFLICT": "This room is already scheduled at that time.",
+          "SAME_SLOT": "This lesson is already in that slot."
         }
       },
       "actions": {
@@ -6565,9 +6609,14 @@
         "generate": "Auto Generate",
         "copyFrom": "Copy From",
         "clearAll": "Clear All",
+        "deleteAllEntries": "Delete all entries",
+        "deleteAllEntriesConfirmTitle": "Delete all timetable entries?",
+        "deleteAllEntriesConfirmMessage": "This will remove all {count} entries from the current timetable draft. Save changes to apply the deletion. Period settings will not be changed.",
+        "deleteAllEntriesSuccess": "All timetable entries were removed. Save changes to apply the deletion.",
         "reset": "Reset",
         "resetSuccess": "Timetable reset successfully",
         "resetError": "Failed to reset timetable",
+        "settings": "Timetable settings",
         "resetConfirmTitle": "Reset Timetable",
         "resetConfirmMessage": "Are you sure you want to reset the timetable? All unsaved changes will be lost.",
         "export": "Export",
@@ -6802,10 +6851,71 @@
         "label": "Unsaved changes",
         "message": "You have unsaved changes. Are you sure you want to leave?"
       },
+      "setup": {
+        "title": "Set up the term timetable",
+        "description": "Choose the school week and lesson periods once. These settings become the default for every stage, grade, section, and classroom in this term.",
+        "academicYear": "Academic year",
+        "term": "Term",
+        "navigationLabel": "Timetable setup progress",
+        "defaultConfigName": "{term} timetable",
+        "saveAndContinue": "Save and continue",
+        "continue": "Continue",
+        "back": "Back",
+        "retry": "Try again",
+        "startBuilding": "Start building the timetable",
+        "existingScopes": {
+          "title": "Your custom setups are preserved",
+          "description": "Creating a term default does not delete or change any existing stage, grade, section, or classroom setup. Custom setups keep priority inside their own scope."
+        },
+        "notice": {
+          "missingConfigTitle": "This term does not have a default setup yet",
+          "missingConfigDescription": "Select a stage, grade, section, or classroom, then open the selected scope to access its existing setup—or create one default for the rest of the school.",
+          "missingPeriodsTitle": "The term default still needs lesson periods",
+          "missingPeriodsDescription": "Add period times to the default setup, or select an existing custom scope to continue working there.",
+          "existingScopesSafe": "Existing custom timetables and setups will not be changed.",
+          "openSetup": "Set up term default",
+          "loadTitle": "We could not check the term setup",
+          "loadDescription": "You can keep using the timetable workspace or try the check again."
+        },
+        "stepStatus": {
+          "current": "Current step",
+          "completed": "Completed"
+        },
+        "steps": {
+          "days": {
+            "title": "School week",
+            "subtitle": "Active days",
+            "description": "Select the teaching days and the first day shown in the timetable."
+          },
+          "periods": {
+            "title": "Lesson periods",
+            "subtitle": "Times and breaks",
+            "description": "Add class periods, breaks, assemblies, and activities in their daily order. At least one instructional period is required."
+          },
+          "review": {
+            "title": "Review setup",
+            "subtitle": "Confirm defaults",
+            "description": "Check the term defaults before opening the timetable workspace."
+          }
+        },
+        "review": {
+          "activeDays": "Active days",
+          "periods": "Periods",
+          "firstTime": "Day starts",
+          "lastTime": "Day ends",
+          "defaultScope": "These term settings apply by default to every stage, grade, section, and classroom. Academic selectors in the timetable filter what you see; they do not create another setup."
+        },
+        "readOnly": {
+          "closedTerm": "This term is closed, so its timetable setup cannot be changed.",
+          "missingPermission": "You can view timetables, but you do not have permission to complete this setup."
+        },
+        "loadError": "We could not load the timetable setup. Try again."
+      },
       "config": {
         "title": "Timetable Configuration",
         "subtitle": "Configure days, periods, and scope for your timetable",
         "button": "Settings",
+        "saveSuccess": "Timetable settings saved successfully",
         "steps": {
           "days": "Days",
           "periods": "Periods",
@@ -6948,12 +7058,21 @@
       "source": {
         "exactTitle": "Scope timetable",
         "exactDescription": "This scope uses its own timetable configuration.",
+        "termDefaultTitle": "Term default timetable",
+        "termDefaultDescription": "This timetable setup is the default for every stage, grade, section, and classroom in the term.",
         "inheritedTitle": "Inherited published timetable",
         "inheritedDescription": "This published timetable is inherited and read-only.",
+        "unconfiguredTitle": "No setup is loaded for this view",
+        "unconfiguredDescription": "Choose a scope above, then open it to check for an existing custom setup or create a new one.",
+        "unconfiguredScopeDescription": "No custom setup was found for this scope. You can create one if you have manage permission.",
         "sourceLabel": "Source",
         "lockedLabel": "Inherited timetable is locked",
         "createOverride": "Create custom timetable",
-        "overrideUnavailable": "You cannot create an override for this scope while the term is closed or without manage permission."
+        "customizeScope": "Customize a specific scope",
+        "openSelectedScope": "Open selected scope",
+        "returnToTermDefault": "Return to term default",
+        "overrideUnavailable": "Select a stage, grade, section, or classroom and make sure you have manage permission before customizing.",
+        "publishedOverridesNote": "Published overrides take precedence only inside their specific scopes."
       },
       "export": {
         "status": "Status",
