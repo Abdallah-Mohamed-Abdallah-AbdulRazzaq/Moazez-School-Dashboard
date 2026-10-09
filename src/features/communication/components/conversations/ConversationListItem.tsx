@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
 import type { ConversationListItemModel } from "@/features/communication/hooks/useConversations";
+import { labelsForLocale } from "@/features/communication/conversations_redesign/labels";
+import { conversationTypeLabel } from "@/features/communication/conversations_redesign/utils/formatters";
 
 export interface ConversationListItemLabels {
   untitled: string;
@@ -121,7 +123,7 @@ export default function ConversationListItem({
             ) : null}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            {conversation.type ? <span>{conversation.type}</span> : null}
+            {conversation.type ? <span>{conversationTypeLabel(conversation.type, labelsForLocale(locale))}</span> : null}
             {conversation.type && updatedAt ? <span>•</span> : null}
             {updatedAt ? <span>{updatedAt}</span> : null}
           </div>

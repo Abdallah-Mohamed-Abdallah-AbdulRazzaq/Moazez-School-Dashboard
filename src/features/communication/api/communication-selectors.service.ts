@@ -175,13 +175,9 @@ export async function searchTerms(
   return filterOptions(terms.filter(isRecord).map(optionFromRecord).filter(isOption), query);
 }
 
-async function searchStructure(
-  query: string,
-  academicYearId: string | undefined,
-  termId: string | undefined,
-  key: "stages" | "grades" | "sections" | "classrooms",
-  parentKey?: "stageId" | "gradeId" | "sectionId",
-  parentId?: string,
+export async function loadCommunicationStructure(
+  academicYearId?: string,
+  termId?: string,
 ) {
   let yearId = academicYearId;
   let selectedTermId = termId;
@@ -196,11 +192,23 @@ async function searchStructure(
     selectedTermId = stringValue(terms.find(isRecord)?.id);
   }
 
-  if (!yearId || !selectedTermId) return [];
-  const tree = await fetchAcademicStructureTree({
+  if (!yearId || !selectedTermId) return null;
+  return fetchAcademicStructureTree({
     yearId,
     termId: selectedTermId,
   });
+}
+
+async function searchStructure(
+  query: string,
+  academicYearId: string | undefined,
+  termId: string | undefined,
+  key: "stages" | "grades" | "sections" | "classrooms",
+  parentKey?: "stageId" | "gradeId" | "sectionId",
+  parentId?: string,
+) {
+  const tree = await loadCommunicationStructure(academicYearId, termId);
+  if (!tree) return [];
   const records = tree[key].filter((record) =>
     parentKey && parentId
       ? stringValue((record as unknown as RecordLike)[parentKey]) === parentId

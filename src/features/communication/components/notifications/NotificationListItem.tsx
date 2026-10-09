@@ -1,9 +1,31 @@
 "use client";
 
-import { Archive, BellRing, Check, Eye } from "lucide-react";
+import { Archive, Check, Eye } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import CommunicationStatusChip from "@/features/communication/components/layout/CommunicationStatusChip";
-import type { CommunicationNotification } from "@/features/communication/types/notification.types";
+import CommunicationStatusChip, { type CommunicationStatusTone } from "@/features/communication/components/layout/CommunicationStatusChip";
+import type { CommunicationNotification, NotificationPriority, NotificationType } from "@/features/communication/types/notification.types";
+import { notificationAppearance } from "@/features/communication/utils/notificationAppearance";
+import { notificationPresentationFallback } from "@/features/communication/utils/notificationPresentation";
+
+const notificationTypeLabels: Record<NotificationType, { en: string; ar: string }> = {
+  announcement_published: { en: "Announcement published", ar: "نشر إعلان" },
+  message_received: { en: "Message received", ar: "رسالة واردة" },
+  message_mention: { en: "Message mention", ar: "إشارة في رسالة" },
+  attendance_absence: { en: "Absence", ar: "غياب" },
+  attendance_late: { en: "Late arrival", ar: "تأخر في الحضور" },
+  attendance_early_leave: { en: "Early departure", ar: "انصراف مبكر" },
+  grade_posted: { en: "Grade posted", ar: "رصد درجة" },
+  behavior_record_created: { en: "Behavior record created", ar: "تسجيل سلوك" },
+  reinforcement_reward_granted: { en: "Reinforcement reward granted", ar: "منح مكافأة تعزيز" },
+  system_alert: { en: "System alert", ar: "تنبيه النظام" },
+};
+
+const priorityTones: Record<NotificationPriority, CommunicationStatusTone> = {
+  low: "neutral",
+  normal: "info",
+  high: "warning",
+  urgent: "error",
+};
 
 export interface NotificationListItemLabels {
   unread: string;
@@ -11,6 +33,11 @@ export interface NotificationListItemLabels {
   untitled: string;
   noBody: string;
   type: string;
+  priority: string;
+  low: string;
+  normal: string;
+  high: string;
+  urgent: string;
   markRead: string;
   archive: string;
   viewDetails: string;
@@ -71,6 +98,10 @@ export default function NotificationListItem({
   onViewDetails,
 }: NotificationListItemProps) {
   const isRead = Boolean(notification.readAt);
+  const priority = notification.priority ?? "normal";
+  const isUnread = notification.status === "unread" || (notification.status !== "read" && !notification.readAt);
+  const appearance = notificationAppearance(notificationPresentationFallback(notification, locale).kind, notification.type, notification.sourceModule);
+  const Icon = appearance.icon;
   const isOwned = Boolean(currentUserId) && (notification.recipientUserId === currentUserId || notification.userId === currentUserId);
 
   const handleCardClick = () => {
@@ -100,12 +131,12 @@ export default function NotificationListItem({
       <div className="flex gap-3">
         <div
           className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-            isRead
-              ? "bg-slate-100 text-slate-500"
-              : "bg-primary-100 text-primary-700"
+            isUnread
+              ? appearance.unreadIconClass
+              : appearance.readIconClass
           }`}
         >
-          <BellRing className="h-4 w-4" aria-hidden />
+          <Icon className="h-[18px] w-[18px]" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -115,6 +146,10 @@ export default function NotificationListItem({
             <CommunicationStatusChip
               label={isRead ? labels.read : labels.unread}
               tone={isRead ? "success" : "info"}
+            />
+            <CommunicationStatusChip
+              label={`${labels.priority}: ${labels[priority]}`}
+              tone={priorityTones[priority]}
             />
             {notification.status && notification.status !== (isRead ? "read" : "unread") ? (() => {
               let secondaryTone: "success" | "info" | "warning" | "neutral" = "neutral";
@@ -142,7 +177,7 @@ export default function NotificationListItem({
             })() : null}
             {notification.type ? (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                {labels.type}: {notification.type}
+                {labels.type}: {notificationTypeLabels[notification.type]?.[locale === "ar" ? "ar" : "en"] ?? notification.type}
               </span>
             ) : null}
           </div>

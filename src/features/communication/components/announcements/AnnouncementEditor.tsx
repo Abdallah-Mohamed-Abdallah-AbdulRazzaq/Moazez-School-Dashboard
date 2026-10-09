@@ -6,10 +6,6 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
-import ClassroomSelect from "@/features/communication/components/selectors/ClassroomSelect";
-import GradeSelect from "@/features/communication/components/selectors/GradeSelect";
-import SectionSelect from "@/features/communication/components/selectors/SectionSelect";
-import StageSelect from "@/features/communication/components/selectors/StageSelect";
 import UserMultiSearchSelect from "@/features/communication/components/selectors/UserMultiSearchSelect";
 import type {
   Announcement,
@@ -19,6 +15,8 @@ import type {
 } from "@/features/communication/types/announcement.types";
 import type { AnnouncementFormValues } from "@/features/communication/hooks/useAnnouncements";
 import { FILES_UPLOAD_CONSTRAINTS } from "@/features/communication/api/files.service";
+import AnnouncementAudienceChain from "./AnnouncementAudienceChain";
+import { useAnnouncementAudienceStructure } from "@/features/communication/hooks/useAnnouncementAudienceStructure";
 
 export interface AnnouncementEditorLabels {
   title: string;
@@ -71,7 +69,16 @@ function initialValues(announcement?: Announcement | null): AnnouncementFormValu
   const firstAudience = announcement?.audiences?.[0];
   const audienceType =
     firstAudience?.audienceType ?? announcement?.audienceType ?? "";
+  const scopedAudienceId = audienceType ? {
+    school: undefined,
+    stage: firstAudience?.stageId,
+    grade: firstAudience?.gradeId,
+    section: firstAudience?.sectionId,
+    classroom: firstAudience?.classroomId,
+    custom: firstAudience?.userId,
+  }[audienceType] : undefined;
   const audienceId =
+    scopedAudienceId ??
     firstAudience?.stageId ??
     firstAudience?.gradeId ??
     firstAudience?.sectionId ??
@@ -117,6 +124,7 @@ export default function AnnouncementEditor({
   allowedAttachmentMimeTypes,
   maxAttachmentSizeMb,
 }: AnnouncementEditorProps) {
+  const audienceStructure = useAnnouncementAudienceStructure();
   const maxAttachmentSizeBytes = Math.min(
     maxAttachmentSizeMb
       ? maxAttachmentSizeMb * 1024 * 1024
@@ -275,44 +283,16 @@ export default function AnnouncementEditor({
             }))
           }
         />
-        {values.audienceType === "stage" ? (
-          <StageSelect
-            label={labels.audienceId}
-            value={values.audienceId ?? ""}
+        {values.audienceType &&
+        values.audienceType !== "school" &&
+        values.audienceType !== "custom" ? (
+          <AnnouncementAudienceChain
+            key={values.audienceType}
+            audienceType={values.audienceType}
+            audienceId={values.audienceId ?? ""}
+            labels={labels}
             disabled={readOnly}
-            error={error === labels.audienceRequired ? error : undefined}
-            onChange={(audienceId) =>
-              setValues((current) => ({ ...current, audienceId }))
-            }
-          />
-        ) : null}
-        {values.audienceType === "grade" ? (
-          <GradeSelect
-            label={labels.audienceId}
-            value={values.audienceId ?? ""}
-            disabled={readOnly}
-            error={error === labels.audienceRequired ? error : undefined}
-            onChange={(audienceId) =>
-              setValues((current) => ({ ...current, audienceId }))
-            }
-          />
-        ) : null}
-        {values.audienceType === "section" ? (
-          <SectionSelect
-            label={labels.audienceId}
-            value={values.audienceId ?? ""}
-            disabled={readOnly}
-            error={error === labels.audienceRequired ? error : undefined}
-            onChange={(audienceId) =>
-              setValues((current) => ({ ...current, audienceId }))
-            }
-          />
-        ) : null}
-        {values.audienceType === "classroom" ? (
-          <ClassroomSelect
-            label={labels.audienceId}
-            value={values.audienceId ?? ""}
-            disabled={readOnly}
+            {...audienceStructure}
             error={error === labels.audienceRequired ? error : undefined}
             onChange={(audienceId) =>
               setValues((current) => ({ ...current, audienceId }))

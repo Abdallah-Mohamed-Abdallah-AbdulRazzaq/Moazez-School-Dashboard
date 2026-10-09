@@ -5,13 +5,6 @@ import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import {
   Bell,
-  Megaphone,
-  MessageSquare,
-  Calendar,
-  Award,
-  ShieldAlert,
-  Gift,
-  AlertTriangle,
   Archive,
   Volume2,
   VolumeX,
@@ -20,7 +13,6 @@ import {
   AlertCircle,
   ArrowRight,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import {
   getNotificationMuted,
@@ -36,8 +28,8 @@ import {
   notificationPresentation,
   notificationPresentationFallback,
   type NotificationPresentation,
-  type NotificationPresentationKind,
 } from "@/features/communication/utils/notificationPresentation";
+import { notificationAppearance } from "@/features/communication/utils/notificationAppearance";
 
 function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
@@ -50,16 +42,6 @@ function recordValue(value: unknown): Record<string, unknown> | undefined {
 }
 
 type NotificationTab = "all" | "chat" | "announcements";
-
-const DOMAIN_NOTIFICATION_ICONS: ReadonlyArray<
-  readonly [keyword: string, icon: LucideIcon]
-> = [
-  ["attendance", Calendar],
-  ["grade", Award],
-  ["behavior", ShieldAlert],
-  ["reinforcement", Gift],
-  ["system", AlertTriangle],
-];
 
 interface TopNavNotificationDropdownProps {
   notifications: CommunicationNotification[];
@@ -156,48 +138,6 @@ function useNotificationPresentations(
   }, [isOpen, locale, notifications]);
 
   return presentationsById;
-}
-
-function notificationAppearance(
-  kind: NotificationPresentationKind,
-  type?: string,
-  sourceModule?: string,
-): {
-  icon: LucideIcon;
-  readIconClass: string;
-  unreadIconClass: string;
-} {
-  if (kind === "message") {
-    return {
-      icon: MessageSquare,
-      readIconClass: "bg-primary-50 text-primary-700",
-      unreadIconClass: "bg-primary text-white",
-    };
-  }
-  if (kind === "announcement") {
-    return {
-      icon: Megaphone,
-      readIconClass: "bg-violet-50 text-violet-700",
-      unreadIconClass: "bg-violet-600 text-white",
-    };
-  }
-
-  return {
-    icon: domainNotificationIcon(type, sourceModule),
-    readIconClass: "bg-slate-100 text-slate-600",
-    unreadIconClass: "bg-slate-800 text-white",
-  };
-}
-
-function domainNotificationIcon(
-  type?: string,
-  sourceModule?: string,
-): LucideIcon {
-  const key = `${type ?? ""} ${sourceModule ?? ""}`.toLowerCase();
-  return (
-    DOMAIN_NOTIFICATION_ICONS.find(([keyword]) => key.includes(keyword))?.[1] ??
-    Bell
-  );
 }
 
 export default function TopNavNotificationDropdown({

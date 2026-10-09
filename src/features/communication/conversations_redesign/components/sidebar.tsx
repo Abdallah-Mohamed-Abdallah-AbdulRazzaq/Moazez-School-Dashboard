@@ -32,7 +32,7 @@ import {
   labelsForLocale,
   type ConversationRedesignLabels,
 } from "@/features/communication/conversations_redesign/labels";
-import { formatTime } from "@/features/communication/conversations_redesign/utils/formatters";
+import { conversationTypeLabel, formatTime } from "@/features/communication/conversations_redesign/utils/formatters";
 import { messageBodyForDisplay } from "@/features/communication/conversations_redesign/utils/messageContent";
 import type {
   ConversationFiltersState,
@@ -223,7 +223,7 @@ function ConversationTypeBadge({
 
   const entry = config[type ?? ""] ?? {
     icon: <MessageCircle className="h-2.5 w-2.5" />,
-    label: type ?? labels.direct,
+    label: conversationTypeLabel(type, labels),
     color: "text-slate-600",
   };
 
