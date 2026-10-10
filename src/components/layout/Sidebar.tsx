@@ -7,7 +7,6 @@ import {
   menuItems,
 } from "@/config/navigation";
 import {
-  Building2,
   Menu,
   ChevronLeft,
   ChevronDown,
@@ -86,12 +85,10 @@ function getActiveExpandedKeys(
 
 export default function Sidebar({
   onSelect,
-  schoolName = "School Name",
   isOpen = true,
   onToggle,
   isRTL = false,
 }: SidebarProps) {
-  const t = useTranslations("sidebar");
   const tApp = useTranslations();
   const pathname = usePathname();
   const searchParams = useSearchParams();
