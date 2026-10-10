@@ -14407,6 +14407,13 @@
     "invalid": "Enter a valid phone number."
   },
   "academic_content": {
+    "downloads": {
+      "preparing_button": "Preparing download…",
+      "preparing": "Preparing download: {name}",
+      "downloading": "Fetching file: {name}",
+      "started": "Download started: {name}. Check your browser’s downloads.",
+      "progress_label": "Download progress: {name}"
+    },
     "announcement": {
       "title": "Academic Content Hub",
       "description": "Organize and manage your school's academic content in one place.",
@@ -15787,6 +15794,11 @@
     },
     "files": {
       "title": "Files",
+      "preview": "Preview",
+      "preview_named": "Preview {name}",
+      "download": "Download",
+      "download_named": "Download {name}",
+      "large_file_preview": "Files larger than 25 MiB are download-only to keep the page responsive.",
       "description": "Upload registered formats directly to secure resumable storage.",
       "add": "Add files",
       "add_description": "Files are checked against the current school policy before upload.",

@@ -1,10 +1,8 @@
 "use client";
 
-import { Download, FileText, Link2, Tags } from "lucide-react";
-import { Button } from "@/components/ui/button/Button";
+import { FileText, Link2, Tags } from "lucide-react";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import {
-  formatByteCount,
   isValidHttpsUrl,
 } from "../../model/academicContentPolicy";
 import type {
@@ -12,6 +10,8 @@ import type {
   AcademicContentDetail,
 } from "../../types/contracts";
 import EditorSummaryCard from "../editor/EditorSummaryCard";
+import AcademicContentAssetAccess from "../editor/AcademicContentAssetAccess";
+import { useAcademicContentFilePolicy } from "../../hooks/useAcademicContentFilePolicy";
 
 type Content = Extract<AcademicContentDetail, { type: "ONLINE_SESSION" }>;
 
@@ -19,12 +19,15 @@ export default function OnlineSessionResources({
   content,
   downloadError,
   onDownload,
+  isDownloading,
 }: {
   content: Content;
   downloadError: string | null;
   onDownload: (asset: AcademicContentAsset) => void;
+  isDownloading?: boolean;
 }) {
   const t = useAcademicContentTranslations("online_session_detail");
+  const { policy } = useAcademicContentFilePolicy(content.assets.length > 0);
   if (!content.assets.length && !content.links.length && !content.tags.length)
     return null;
   return (
@@ -42,33 +45,13 @@ export default function OnlineSessionResources({
           icon={<FileText aria-hidden="true" className="size-5" />}
           title={t("materials")}
         >
-          <ul className="divide-y divide-gray-100">
+          <div className="space-y-3">
             {content.assets.map((asset) => (
-              <li
-                key={asset.assetId}
-                className="flex flex-wrap items-center justify-between gap-3 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-gray-900">
-                    {asset.originalName}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {asset.mimeType} · {formatByteCount(asset.sizeBytes)}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  aria-label={t("download_named", { name: asset.originalName })}
-                  leftIcon={<Download aria-hidden="true" className="size-4" />}
-                  onClick={() => onDownload(asset)}
-                >
-                  {t("download")}
-                </Button>
-              </li>
+              <AcademicContentAssetAccess key={asset.assetId} asset={asset}
+                allowInlinePreview={policy?.allowInlinePreview === true}
+                isDownloading={isDownloading ?? false} onDownload={onDownload} />
             ))}
-          </ul>
+          </div>
         </EditorSummaryCard>
       ) : null}
       <div className="grid gap-4 md:grid-cols-2">

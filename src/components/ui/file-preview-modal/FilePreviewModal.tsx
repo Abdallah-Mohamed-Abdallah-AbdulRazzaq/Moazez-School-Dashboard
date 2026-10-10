@@ -105,6 +105,7 @@ export default function FilePreviewModal({ attachment, isOpen, onClose }: FilePr
       <img src={contentUrl} alt={attachment.name} className="max-h-full max-w-full object-contain" />
     </div>;
     if (mimeType.startsWith("video/")) return <div className="flex h-[70vh] items-center justify-center overflow-hidden rounded-xl bg-black" style={{ border: "1px solid var(--border-color)" }}><video controls className="max-h-full max-w-full" aria-label={attachment.name}><source src={contentUrl} type={mimeType} />{t("videoUnsupported")}</video></div>;
+    if (mimeType.startsWith("audio/")) return <audio controls src={contentUrl} aria-label={attachment.name} className="w-full" />;
     return <div className="space-y-4 rounded-xl p-4" style={{ border: "1px solid var(--border-color)", backgroundColor: "var(--background)" }}><p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("unavailable")}</p><p className="text-sm" style={{ color: "var(--text-secondary)" }}>{t("openInNewTab")}</p><Button variant="outline" size="sm" leftIcon={<ExternalLink className="h-4 w-4" />} onClick={openPreview}>{tCommon("open")}</Button></div>;
   };
 

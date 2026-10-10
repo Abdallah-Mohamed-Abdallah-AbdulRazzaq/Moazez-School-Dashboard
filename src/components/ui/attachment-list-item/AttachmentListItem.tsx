@@ -18,6 +18,7 @@ export interface AttachmentAction {
   onClick: () => void;
   color?: "default" | "error";
   hidden?: boolean;
+  disabled?: boolean;
 }
 
 export interface AttachmentListItemProps {
@@ -51,6 +52,7 @@ export default function AttachmentListItem({
   };
 
   const handleActionClick = (action: AttachmentAction) => {
+    if (action.disabled) return;
     action.onClick();
     handleMenuClose();
   };
@@ -116,6 +118,7 @@ export default function AttachmentListItem({
         {visibleActions.map((action, index) => (
           <MenuItem
             key={index}
+            disabled={action.disabled}
             onClick={() => handleActionClick(action)}
             sx={action.color === "error" ? { color: "error.main" } : {}}
           >

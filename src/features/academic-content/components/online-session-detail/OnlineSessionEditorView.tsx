@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { useLocale } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -17,10 +16,9 @@ import { useAcademicContentTargetDisplay } from "../../hooks/useAcademicContentT
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
 import { EMPTY_ACADEMIC_CONTENT_DETAIL_OPTIONS } from "../../services/academicContentDetailOptions";
-import { academicContentUiError } from "../../services/academicContentErrors";
-import { downloadAcademicContentAsset } from "../../services/downloadAcademicContentAsset";
+import { useAcademicContentDownload } from "../../hooks/useAcademicContentDownload";
+import AcademicContentDownloadFeedback from "../editor/AcademicContentDownloadFeedback";
 import type {
-  AcademicContentAsset,
   AcademicContentBase,
   AcademicContentDetail,
 } from "../../types/contracts";
@@ -75,7 +73,7 @@ export default function OnlineSessionEditorView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const t = useAcademicContentTranslations("online_session_detail");
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const { state: downloadState, isDownloading, requestDownload } = useAcademicContentDownload();
   const optionState = useAcademicContentDetailOptions(content);
   const targetDisplay = useAcademicContentTargetDisplay(
     content,
@@ -114,12 +112,6 @@ export default function OnlineSessionEditorView({
     router.push(
       queryWithMode(pathname, new URLSearchParams(searchParams), mode),
     );
-  };
-  const requestDownload = (asset: AcademicContentAsset) => {
-    setDownloadError(null);
-    void downloadAcademicContentAsset(asset).catch((error: unknown) => {
-      setDownloadError(academicContentUiError(error).message);
-    });
   };
 
   if (inEditMode && canEdit) {
@@ -205,9 +197,11 @@ export default function OnlineSessionEditorView({
             targetError={targetDisplay.error}
             timetableLabel={timetableLabel}
           />
+          <AcademicContentDownloadFeedback state={downloadState} />
           <OnlineSessionResources
             content={content}
-            downloadError={downloadError}
+            downloadError={null}
+            isDownloading={isDownloading}
             onDownload={requestDownload}
           />
           <OnlineSessionManagementHistory
