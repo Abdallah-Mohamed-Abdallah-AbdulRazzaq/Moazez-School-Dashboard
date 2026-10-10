@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type PropsWithChildren } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import Sidebar from "../Sidebar";
 import {
   filterMenuItems,
@@ -11,12 +11,13 @@ import {
 
 const navigationState = vi.hoisted(() => ({
   pathname: "/en/dashboard",
+  query: "",
   grantedPermissions: null as Set<string> | null,
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigationState.pathname,
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(navigationState.query),
 }));
 
 vi.mock("@/hooks/usePermissions", async (importOriginal) => {
@@ -54,6 +55,49 @@ vi.mock("next/image", () => ({
 }));
 
 describe("Sidebar toggle control", () => {
+  beforeEach(() => {
+    navigationState.query = "";
+  });
+
+  it.each([
+    ["en", "", "All Content"],
+    ["en", "DRAFT", "Drafts"],
+    ["en", "ARCHIVED", "Archived"],
+    ["ar", "", "كل المحتوى"],
+    ["ar", "DRAFT", "المسودات"],
+    ["ar", "ARCHIVED", "المؤرشف"],
+  ])("keeps %s academic context and highlights only status %s", async (locale, status, activeLabel) => {
+    navigationState.pathname = `/${locale}/academic-content-hub/library`;
+    navigationState.query = `year=year-1&term=term-1&search=old&page=3${status ? `&contentStatus=${status}` : ""}`;
+    try {
+      render(<Sidebar isOpen onToggle={vi.fn()} />);
+      const labels = locale === "ar"
+        ? ["كل المحتوى", "المسودات", "المؤرشف"]
+        : ["All Content", "Drafts", "Archived"];
+      await screen.findByRole("link", { name: labels[0] });
+      for (const [index, label] of labels.entries()) {
+        const targetStatus = [null, "DRAFT", "ARCHIVED"][index];
+        const link = screen.getByRole("link", { name: label });
+        const destination = new URL(
+          link.getAttribute("href")!,
+          window.location.origin,
+        );
+        expect(destination.searchParams.get("year")).toBe("year-1");
+        expect(destination.searchParams.get("term")).toBe("term-1");
+        expect(destination.searchParams.get("contentStatus")).toBe(targetStatus);
+        expect(destination.searchParams.has("page")).toBe(false);
+        expect(destination.searchParams.has("search")).toBe(false);
+        if (label === activeLabel) {
+          expect(link).toHaveAttribute("aria-current", "page");
+        } else {
+          expect(link).not.toHaveAttribute("aria-current");
+        }
+      }
+    } finally {
+      navigationState.pathname = "/en/dashboard";
+    }
+  });
+
   it("hides Academic Content without its view permission", () => {
     navigationState.grantedPermissions = new Set();
 
@@ -81,9 +125,10 @@ describe("Sidebar toggle control", () => {
       );
       expect(screen.getByText("New")).toBeInTheDocument();
 
-      expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
+      expect(screen.queryByRole("link", { name: "Overview" })).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "All Content" })).toHaveAttribute(
         "href",
-        "/en/academic-content-hub",
+        "/en/academic-content-hub/library",
       );
       expect(
         screen.getByRole("link", { name: "Online Sessions" }),

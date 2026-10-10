@@ -5,7 +5,7 @@ import AcademicContentShell from "../AcademicContentShell";
 const navigationState = vi.hoisted(() => ({
   canManage: false,
   canApprove: false,
-  pathname: "/en/academic-content-hub",
+  pathname: "/en/academic-content-hub/library",
   push: vi.fn(),
 }));
 
@@ -29,11 +29,11 @@ describe("AcademicContentShell", () => {
   beforeEach(() => {
     navigationState.canManage = false;
     navigationState.canApprove = false;
-    navigationState.pathname = "/en/academic-content-hub";
+    navigationState.pathname = "/en/academic-content-hub/library";
     navigationState.push.mockReset();
   });
 
-  it("renders the overview header once and preserves context in navigation", () => {
+  it("opens All Content without an overview tab and preserves context in navigation", () => {
     render(
       <AcademicContentShell>
         <div>workspace content</div>
@@ -41,15 +41,12 @@ describe("AcademicContentShell", () => {
     );
 
     expect(
-      screen.getAllByRole("heading", { name: "Academic Content Center" }),
+      screen.getAllByRole("heading", { name: "Academic Content Hub" }),
     ).toHaveLength(1);
     expect(
       screen.queryByRole("button", { name: /Create content/ }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
-      "href",
-      "/en/academic-content-hub?year=year-1&term=term-1",
-    );
+    expect(screen.queryByRole("link", { name: "Overview" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "All content" })).toHaveAttribute(
       "href",
       "/en/academic-content-hub/library?year=year-1&term=term-1",
@@ -130,14 +127,13 @@ describe("AcademicContentShell", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /Create content/ }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Online session" }));
 
     expect(navigationState.push).toHaveBeenCalledWith(
-      "/en/academic-content-hub/new?year=year-1&term=term-1&type=ONLINE_SESSION",
+      "/en/academic-content-hub/new?year=year-1&term=term-1",
     );
   });
 
-  it("keeps the compact shell header on non-overview routes", () => {
+  it("keeps the compact shell header on All Content", () => {
     navigationState.pathname = "/en/academic-content-hub/library";
     navigationState.canManage = true;
     render(
@@ -155,7 +151,6 @@ describe("AcademicContentShell", () => {
   });
 
   it.each([
-    ["/en/academic-content-hub", "Overview"],
     ["/en/academic-content-hub/library", "All content"],
     ["/en/academic-content-hub/preparations", "Teacher preparation"],
     ["/en/academic-content-hub/weekly-plans", "Weekly plan"],

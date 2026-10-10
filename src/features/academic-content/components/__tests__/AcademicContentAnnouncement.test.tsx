@@ -71,7 +71,7 @@ describe("Academic Content new-feature announcement", () => {
     expect(within(banner).getByText(badge)).toBeInTheDocument();
     expect(within(banner).getByRole("link", { name: action })).toHaveAttribute(
       "href",
-      `/${locale}/academic-content-hub`,
+      `/${locale}/academic-content-hub/library`,
     );
   });
 

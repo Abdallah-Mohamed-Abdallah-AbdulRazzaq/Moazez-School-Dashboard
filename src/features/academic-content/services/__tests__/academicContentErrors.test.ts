@@ -10,6 +10,19 @@ import {
 } from "../academicContentErrors";
 
 describe("academicContentUiError", () => {
+  it.each([
+    ["academic_content.file.actual_size_mismatch", "en", "The uploaded file is incomplete or its size does not match the selected file. Start the upload again."],
+    ["academic_content.file.actual_size_mismatch", "ar", "الملف المرفوع غير مكتمل أو حجمه لا يطابق الملف المختار. ابدأ الرفع من جديد."],
+    ["academic_content.file.provider_content_type_mismatch", "en", "The file format is unsupported or does not match its contents. Choose an allowed file format."],
+    ["academic_content.file.provider_content_type_mismatch", "ar", "صيغة الملف غير مدعومة أو لا تطابق محتواه. اختر ملفًا بصيغة مسموحة."],
+    ["academic_content.file.verification_in_progress", "en", "The server is still verifying this file. Wait briefly, then retry verification; you do not need to upload it again."],
+    ["academic_content.file.verification_in_progress", "ar", "جارٍ التحقق من الملف في الخادم. انتظر قليلًا ثم أعد محاولة التحقق؛ لا تحتاج إلى رفعه مرة أخرى."],
+    ["academic_content.file.verification_retryable", "en", "The file was transferred but could not be confirmed. Retry file verification without uploading it again."],
+    ["academic_content.file.verification_retryable", "ar", "تم نقل الملف، لكن تعذر تأكيده. أعد محاولة التحقق من الملف دون رفعه مرة أخرى."],
+  ])("explains upload error %s in %s instead of suggesting a content refresh", (code, locale, message) => {
+    expect(academicContentUiError(new ApiError("Internal details", 409, code), locale)).toEqual({ code, message });
+  });
+
   it("uses Arabic errors on an Arabic page without requiring callers to pass a locale", () => {
     const originalPath = window.location.pathname;
     try {

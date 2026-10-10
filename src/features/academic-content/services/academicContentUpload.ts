@@ -130,7 +130,11 @@ export function resolveAcademicContentFileType(
   file: Pick<File, "name" | "type">,
 ): AcademicContentFileType | null {
   const extension = /\.[^.]+$/u.exec(file.name)?.[0].toLowerCase();
-  const mimeType = file.type.trim().toLowerCase();
+  const browserMimeType = file.type.trim().toLowerCase();
+  // Windows reports ZIPs using an alias that the backend registry does not accept.
+  const mimeType = browserMimeType === "application/x-zip-compressed"
+    ? "application/zip"
+    : browserMimeType;
   if (!extension || !mimeType) return null;
   return (
     FILE_TYPES.find(
@@ -303,6 +307,7 @@ export async function uploadAcademicContentFile(input: {
   file: File;
   signal?: AbortSignal;
   onProgress?: (progress: AcademicContentUploadProgress) => void;
+  onVerifying?: (uploadId: string) => void;
 }): Promise<AcademicContentUploadCompleteResponse> {
   const fileType = resolveAcademicContentFileType(input.file);
   if (!fileType) {
@@ -415,6 +420,7 @@ export async function uploadAcademicContentFile(input: {
       totalBytes: String(input.file.size),
       percent: 100,
     });
+    input.onVerifying?.(intent.uploadId);
     return await completeAcademicContentUpload(
       input.contentId,
       intent.uploadId,

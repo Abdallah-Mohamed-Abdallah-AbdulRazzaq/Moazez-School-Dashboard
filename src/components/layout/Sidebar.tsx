@@ -92,6 +92,7 @@ export default function Sidebar({
   const tApp = useTranslations();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const currentQuery = searchParams.toString();
   const { hasPermission } = usePermissions();
   const { logout } = useAuth();
   const isArabic = pathname.startsWith("/ar");
@@ -131,13 +132,13 @@ export default function Sidebar({
     [hasSearchQuery, isArabic, searchQuery, visibleMenuItems],
   );
 
-  // Clear pending state when pathname changes (navigation complete)
+  // Filter-only navigation also needs to clear the pending link indicator.
   useEffect(() => {
     if (pendingHref !== null) {
       void Promise.resolve().then(() => setPendingHref(null));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, currentQuery]);
 
   useEffect(() => {
     const wasOpen = previousIsOpenRef.current;
@@ -247,7 +248,23 @@ export default function Sidebar({
     setHoveredCollapsedItemKey(null);
   };
 
-  const preserveGradesQuery = (href: string) => {
+  const preserveAcademicContentContext = (href: string) => {
+    const [targetPath, targetQuery] = href.split("?");
+    const nextQuery = new URLSearchParams(targetQuery);
+    for (const key of ["year", "term"]) {
+      const contextId = searchParams.get(key);
+      if (contextId && !nextQuery.has(key)) nextQuery.set(key, contextId);
+    }
+    return nextQuery.size ? `${targetPath}?${nextQuery.toString()}` : targetPath;
+  };
+
+  const preserveNavigationQuery = (href: string) => {
+    const academicContentPrefix = isArabic
+      ? "/ar/academic-content-hub"
+      : "/en/academic-content-hub";
+    if (href.startsWith(`${academicContentPrefix}/`)) {
+      return preserveAcademicContentContext(href);
+    }
     const currentGradesPrefix = isArabic ? "/ar/grades" : "/en/grades";
     if (
       !pathname.startsWith(currentGradesPrefix) ||
@@ -256,12 +273,24 @@ export default function Sidebar({
       return href;
     }
 
-    const currentQuery = searchParams.toString();
     if (!currentQuery || href.includes("?")) {
       return href;
     }
 
     return `${href}?${currentQuery}`;
+  };
+
+  const isChildRouteActive = (href: string) => {
+    const [targetPath, targetQuery] = href.split("?");
+    if (pathname !== targetPath) return false;
+    const libraryPath = isArabic
+      ? "/ar/academic-content-hub/library"
+      : "/en/academic-content-hub/library";
+    return (
+      targetPath !== libraryPath ||
+      new URLSearchParams(targetQuery).get("contentStatus") ===
+        searchParams.get("contentStatus")
+    );
   };
 
   const toggleExpand = (key: string, e: React.MouseEvent) => {
@@ -500,7 +529,7 @@ export default function Sidebar({
               displayMenuItems.map((item) => {
                 const Icon = item.icon;
                 const itemHref = isArabic ? item.href_ar : item.href_en;
-                const itemNavigationHref = preserveGradesQuery(itemHref);
+                const itemNavigationHref = preserveNavigationQuery(itemHref);
                 const isHeroJourneyItem = item.key === "hero-journey";
 
                 const isActive = isItemActive(item);
@@ -693,8 +722,8 @@ export default function Sidebar({
                                   ? child.href_ar
                                   : child.href_en;
                                 const childNavigationHref =
-                                  preserveGradesQuery(childHref);
-                                const isChildActive = pathname === childHref;
+                                  preserveNavigationQuery(childHref);
+                                const isChildActive = isChildRouteActive(childHref);
                                 const hasGrandchildren =
                                   child.children && child.children.length > 0;
                                 const isChildExpanded = expandedItems.includes(
@@ -734,6 +763,7 @@ export default function Sidebar({
                                     ) : (
                                       <GuardedLink
                                         href={childNavigationHref}
+                                        aria-current={isChildActive ? "page" : undefined}
                                         onClick={() =>
                                           handleItemClick(child.key)
                                         }
@@ -781,7 +811,7 @@ export default function Sidebar({
                                             ? grandchild.href_ar
                                             : grandchild.href_en;
                                           const grandchildNavigationHref =
-                                            preserveGradesQuery(grandchildHref);
+                                            preserveNavigationQuery(grandchildHref);
                                           const isGrandchildActive =
                                             pathname === grandchildHref;
 
@@ -969,8 +999,8 @@ export default function Sidebar({
                   {children.map((child) => {
                     const ChildIcon = child.icon;
                     const childHref = isArabic ? child.href_ar : child.href_en;
-                    const childNavigationHref = preserveGradesQuery(childHref);
-                    const isChildActive = pathname === childHref;
+                    const childNavigationHref = preserveNavigationQuery(childHref);
+                    const isChildActive = isChildRouteActive(childHref);
                     const hasGrandchildren =
                       child.children && child.children.length > 0;
                     const isChildExpanded = expandedItems.includes(child.key);
@@ -1002,6 +1032,7 @@ export default function Sidebar({
                         ) : (
                           <GuardedLink
                             href={childNavigationHref}
+                            aria-current={isChildActive ? "page" : undefined}
                             onClick={() => handleItemClick(child.key)}
                             onNavigationStart={() =>
                               handleNavigationStart(childNavigationHref)
@@ -1034,7 +1065,7 @@ export default function Sidebar({
                                 ? grandchild.href_ar
                                 : grandchild.href_en;
                               const grandchildNavigationHref =
-                                preserveGradesQuery(grandchildHref);
+                                preserveNavigationQuery(grandchildHref);
                               const isGrandchildActive =
                                 pathname === grandchildHref;
 

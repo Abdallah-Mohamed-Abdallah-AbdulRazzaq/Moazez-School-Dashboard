@@ -5,7 +5,7 @@ import { useNavigationGuard } from "@/providers/NavigationGuardProvider";
 import { useProgressBar } from "@/providers/ProgressBarProvider";
 import React, { useCallback } from "react";
 
-interface GuardedLinkProps {
+interface GuardedLinkProps extends Pick<React.AriaAttributes, "aria-current"> {
   href: string;
   children: React.ReactNode;
   className?: string;
@@ -17,33 +17,6 @@ interface GuardedLinkProps {
   title?: string;
   onMouseEnter?: () => void;
   onNavigationStart?: () => void; // Called only when navigation actually starts
-}
-
-/**
- * Normalize a URL to extract pathname for comparison
- * Handles absolute URLs, relative URLs, and URLs with query params/hash
- */
-function normalizePathname(href: string, currentPathname: string): string {
-  try {
-    // If href is absolute (starts with http/https), parse it
-    if (href.startsWith("http://") || href.startsWith("https://")) {
-      const url = new URL(href);
-      return url.pathname;
-    }
-    
-    // If href starts with /, it's already a pathname
-    if (href.startsWith("/")) {
-      // Remove query params and hash
-      return href.split("?")[0].split("#")[0];
-    }
-    
-    // Relative URL - resolve against current pathname
-    const base = currentPathname.endsWith("/") ? currentPathname : currentPathname + "/";
-    return (base + href).split("?")[0].split("#")[0];
-  } catch {
-    // Fallback: just remove query/hash
-    return href.split("?")[0].split("#")[0];
-  }
 }
 
 /**
@@ -73,6 +46,7 @@ export default function GuardedLink({
   title,
   onMouseEnter,
   onNavigationStart,
+  "aria-current": ariaCurrent,
 }: GuardedLinkProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -101,11 +75,12 @@ export default function GuardedLink({
     
     if (disabled) return;
     
-    // Check if clicking the same route
-    const targetPathname = normalizePathname(href, pathname);
-    const currentPathname = pathname;
-    
-    if (targetPathname === currentPathname) {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.pathname = pathname;
+    const targetUrl = new URL(href, currentUrl);
+
+    // Status-filter links share a pathname but represent different destinations.
+    if (targetUrl.href === currentUrl.href) {
       // Same route - do nothing (no navigation, no loading, no progress)
       onClick?.(e);
       return;
@@ -145,6 +120,7 @@ export default function GuardedLink({
       className={className}
       title={title}
       aria-disabled={disabled}
+      aria-current={ariaCurrent}
       style={{ ...style, cursor: disabled ? "not-allowed" : "pointer" }}
     >
       {children}
