@@ -234,8 +234,12 @@ describe("HomeworkGradeSyncPanel endpoint permissions and lifecycle", () => {
     render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
 
     const select = await screen.findByLabelText("link.assessmentId");
+    await screen.findByRole("option", { name: "Assignment - 10" });
+    await waitFor(() => expect(select).toBeEnabled());
     fireEvent.change(select, { target: { value: "assessment-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "actions.link" }));
+    const link = screen.getByRole("button", { name: "actions.link" });
+    await waitFor(() => expect(link).toBeEnabled());
+    fireEvent.click(link);
 
     await waitFor(() =>
       expect(linkHomeworkGradeSync).toHaveBeenCalledWith(
@@ -269,8 +273,12 @@ describe("HomeworkGradeSyncPanel endpoint permissions and lifecycle", () => {
     render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
 
     const select = await screen.findByLabelText("link.assessmentId");
+    await screen.findByRole("option", { name: "Assignment - 10" });
+    await waitFor(() => expect(select).toBeEnabled());
     fireEvent.change(select, { target: { value: "assessment-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "actions.link" }));
+    const link = screen.getByRole("button", { name: "actions.link" });
+    await waitFor(() => expect(link).toBeEnabled());
+    fireEvent.click(link);
     await waitFor(() => expect(showError).toHaveBeenCalledWith("errors.link"));
     expect(screen.queryByText("link.alreadyLinked")).not.toBeInTheDocument();
   });
