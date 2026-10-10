@@ -15797,6 +15797,8 @@
       "uploading": "Uploading…",
       "progress": "{percent}% uploaded",
       "complete_refreshing": "Upload complete. Refreshing files…",
+      "verifying": "File transferred. Verifying the file…",
+      "retry_verification": "Retry file verification",
       "cancelled": "Upload cancelled.",
       "uploaded": "{name} uploaded and attached.",
       "removed": "{name} was removed from this content.",

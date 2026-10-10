@@ -273,7 +273,6 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "academics-lesson-plans": "academics.lesson_plans.view",
     "academics-homework": "homework.assignments.view",
     "academic-content-hub": "academics.academic_content.view",
-    "academic-content-overview": "academics.academic_content.view",
     "academic-content-library": "academics.academic_content.view",
     "academic-content-drafts": "academics.academic_content.view",
     "academic-content-archived": "academics.academic_content.view",

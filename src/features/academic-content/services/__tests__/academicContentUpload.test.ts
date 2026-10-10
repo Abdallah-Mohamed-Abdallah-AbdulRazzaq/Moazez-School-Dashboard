@@ -3,6 +3,7 @@ import {
   AcademicContentUploadRestartRequiredError,
   AcademicContentUploadValidationError,
   uploadAcademicContentFile,
+  validateAcademicContentFileAgainstPolicy,
 } from "../academicContentUpload";
 
 const api = vi.hoisted(() => ({
@@ -215,11 +216,51 @@ describe("uploadAcademicContentFile", () => {
     expect(api.completeAcademicContentUpload).not.toHaveBeenCalled();
   });
 
-  it("rejects MIME and extension mismatches before creating an intent", async () => {
+  it("uploads a Windows ZIP using the backend's canonical MIME type", async () => {
+    const file = new File(["zip"], "نهج_المرحلة_الأولى.ZIP", {
+      type: "application/x-zip-compressed",
+    });
+    const fileType = validateAcademicContentFileAgainstPolicy(file, {
+      attachmentsEnabled: true,
+      maximumFileSizeBytes: "536870912",
+      documentsEnabled: true,
+      imagesEnabled: true,
+      videosEnabled: true,
+      audioEnabled: true,
+      archivesEnabled: true,
+      otherFilesEnabled: true,
+      allowStudentDownload: true,
+      allowGuardianDownload: true,
+      allowInlinePreview: true,
+    });
+    expect(fileType.category).toBe("ARCHIVE");
+    api.createAcademicContentUpload.mockResolvedValue({
+      ...intent, expectedMimeType: "application/zip", expectedSizeBytes: "3",
+    });
+    FakeXMLHttpRequest.responses = [{ event: "load", status: 200 }];
+
+    await uploadAcademicContentFile({ contentId: "content-1", file });
+
+    expect(api.createAcademicContentUpload).toHaveBeenCalledWith("content-1", {
+      clientRequestId: expect.any(String),
+      originalName: file.name,
+      expectedMimeType: "application/zip",
+      expectedSizeBytes: "3",
+    });
+    expect(FakeXMLHttpRequest.requests[0].requestHeaders["Content-Type"]).toBe("application/zip");
+    expect(api.completeAcademicContentUpload).toHaveBeenCalledWith("content-1", "upload-1");
+  });
+
+  it.each([
+    ["lesson.png", "application/pdf"],
+    ["lesson.png", "application/x-zip-compressed"],
+    ["lesson.zip", "application/pdf"],
+    ["lesson.zip", ""],
+  ])("rejects mismatched or missing MIME for %s (%s) before creating an intent", async (name, type) => {
     await expect(
       uploadAcademicContentFile({
         contentId: "content-1",
-        file: new File(["not a png"], "lesson.png", { type: "application/pdf" }),
+        file: new File(["file"], name, { type }),
       }),
     ).rejects.toBeInstanceOf(AcademicContentUploadValidationError);
     expect(api.createAcademicContentUpload).not.toHaveBeenCalled();

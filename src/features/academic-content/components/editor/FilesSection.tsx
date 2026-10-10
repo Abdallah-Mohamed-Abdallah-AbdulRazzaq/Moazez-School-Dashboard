@@ -13,7 +13,10 @@ import AttachmentListItem from "@/components/ui/attachment-list-item/AttachmentL
 import { Button } from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import { formatByteCount } from "../../model/academicContentPolicy";
-import { unlinkAcademicContentAsset } from "../../services/academicContentApi";
+import {
+  completeAcademicContentUpload,
+  unlinkAcademicContentAsset,
+} from "../../services/academicContentApi";
 import { academicContentUiError } from "../../services/academicContentErrors";
 import {
   ACADEMIC_CONTENT_FILE_ACCEPT,
@@ -29,7 +32,7 @@ import {
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 type UploadState =
-  "uploading" | "completed" | "cancelled" | "error" | "restart-required";
+  "uploading" | "verifying" | "completed" | "cancelled" | "error" | "restart-required";
 
 interface UploadQueueItem {
   key: string;
@@ -37,6 +40,7 @@ interface UploadQueueItem {
   state: UploadState;
   percent: number;
   message: string;
+  completionUploadId?: string;
 }
 
 interface FilesSectionProps {
@@ -82,10 +86,23 @@ export default function FilesSection({
   const effectivePolicyState = policyState ?? internalPolicyState;
   const { policy, isLoading: isPolicyLoading } = effectivePolicyState;
   const displayedError = error ?? effectivePolicyState.error?.message ?? null;
+  const hasActiveUpload = queue.some(
+    (upload) => upload.state === "uploading" || upload.state === "verifying",
+  );
   const dateFormatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+  useEffect(() => {
+    if (!hasActiveUpload) return;
+    const warnBeforeClosing = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeClosing);
+    return () => window.removeEventListener("beforeunload", warnBeforeClosing);
+  }, [hasActiveUpload]);
 
   useEffect(() => {
     const activeControllers = controllers.current;
@@ -104,25 +121,38 @@ export default function FilesSection({
   };
 
   const startUpload = async (item: UploadQueueItem) => {
+    let completionUploadId = item.completionUploadId;
     const controller = new AbortController();
     controllers.current.set(item.key, controller);
     updateQueueItem(item.key, {
-      state: "uploading",
-      percent: 0,
-      message: t("uploading"),
+      state: completionUploadId ? "verifying" : "uploading",
+      percent: completionUploadId ? 100 : 0,
+      message: t(completionUploadId ? "verifying" : "uploading"),
     });
 
     try {
-      await uploadAcademicContentFile({
-        contentId,
-        file: item.file,
-        signal: controller.signal,
-        onProgress: (progress) =>
-          updateQueueItem(item.key, {
-            percent: progress.percent,
-            message: t("progress", { percent: progress.percent }),
-          }),
-      });
+      if (completionUploadId) {
+        await completeAcademicContentUpload(contentId, completionUploadId);
+      } else {
+        await uploadAcademicContentFile({
+          contentId,
+          file: item.file,
+          signal: controller.signal,
+          onVerifying: (uploadId) => {
+            completionUploadId = uploadId;
+            updateQueueItem(item.key, {
+              completionUploadId: uploadId,
+              state: "verifying",
+              message: t("verifying"),
+            });
+          },
+          onProgress: (progress) =>
+            updateQueueItem(item.key, {
+              percent: progress.percent,
+              message: t("progress", { percent: progress.percent }),
+            }),
+        });
+      }
       updateQueueItem(item.key, {
         state: "completed",
         percent: 100,
@@ -150,9 +180,22 @@ export default function FilesSection({
           message: academicContentUiError(uploadError).message,
         });
       } else {
+        const uploadUiError = academicContentUiError(uploadError);
+        const requiresNewUpload = [
+          "academic_content.file.upload_expired",
+          "academic_content.file.upload_not_completable",
+          "academic_content.file.actual_size_invalid",
+          "academic_content.file.actual_size_mismatch",
+          "academic_content.file.platform_size_exceeded",
+          "academic_content.file.provider_content_type_mismatch",
+          "academic_content.file.mime_signature_mismatch",
+          "academic_content.file.unsupported_file_type",
+          "academic_content.file.object_missing",
+        ].includes(uploadUiError.code);
         updateQueueItem(item.key, {
-          state: "error",
-          message: academicContentUiError(uploadError).message,
+          state: requiresNewUpload ? "restart-required" : "error",
+          completionUploadId: requiresNewUpload ? undefined : completionUploadId,
+          message: uploadUiError.message,
         });
       }
     } finally {
@@ -299,7 +342,7 @@ export default function FilesSection({
                   >
                     {t("cancel_upload")}
                   </Button>
-                ) : item.state !== "completed" ? (
+                ) : item.state !== "completed" && item.state !== "verifying" ? (
                   <Button
                     type="button"
                     size="sm"
@@ -309,7 +352,7 @@ export default function FilesSection({
                     }
                     onClick={() => void startUpload(item)}
                   >
-                    {t("retry_upload")}
+                    {t(item.completionUploadId ? "retry_verification" : "retry_upload")}
                   </Button>
                 ) : null}
               </div>
@@ -319,6 +362,7 @@ export default function FilesSection({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={item.percent}
+                aria-valuetext={item.message}
                 className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100"
               >
                 <div

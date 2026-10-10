@@ -15785,6 +15785,8 @@
       "uploading": "جارٍ الرفع…",
       "progress": "تم رفع {percent}%",
       "complete_refreshing": "اكتمل الرفع. جارٍ تحديث الملفات…",
+      "verifying": "تم نقل الملف. جارٍ التحقق من الملف…",
+      "retry_verification": "إعادة محاولة التحقق من الملف",
       "cancelled": "أُلغي الرفع.",
       "uploaded": "تم رفع {name} وإرفاقه.",
       "removed": "تمت إزالة {name} من هذا المحتوى.",

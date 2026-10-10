@@ -61,7 +61,7 @@ export default function AcademicContentAnnouncement({
         onClose={closeAnnouncement}
         action={
           <GuardedLink
-            href={`/${locale}/academic-content-hub`}
+            href={`/${locale}/academic-content-hub/library`}
             className={buttonClassName({
               size: "sm",
               className: "min-h-9 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",

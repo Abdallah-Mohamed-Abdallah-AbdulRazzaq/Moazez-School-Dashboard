@@ -6,7 +6,6 @@ import {
   ClipboardCheck,
   FilePlus2,
   Files,
-  LayoutDashboard,
   LayoutTemplate,
   LibraryBig,
   Settings2,
@@ -18,7 +17,6 @@ import { Button } from "@/components/ui/button/Button";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAcademicContentTranslations } from "../hooks/useAcademicContentTranslations";
 import { ACADEMIC_CONTENT_TYPES } from "../types/contracts";
-import AcademicContentOverviewHeader from "./overview/AcademicContentOverviewHeader";
 import { CONTENT_TYPE_PRESENTATION } from "./overview/contentTypePresentation";
 import { academicContentTypeHref } from "./overview/overviewRoutes";
 
@@ -77,7 +75,6 @@ export default function AcademicContentShell({
   const selectedStatus = searchParams.get("contentStatus");
   const selectedYearId = searchParams.get("year") ?? "";
   const selectedTermId = searchParams.get("term") ?? "";
-  const isOverview = pathname === rootPath;
   const canManage = hasPermission("academics.academic_content.manage");
   const canApprove = hasPermission("academics.academic_content.approve");
   const query = contextQuery(searchParams);
@@ -91,43 +88,30 @@ export default function AcademicContentShell({
     <div className="min-w-0 bg-gray-50">
       <header className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-screen-2xl">
-          {isOverview ? (
-            <AcademicContentOverviewHeader
-              yearId={selectedYearId}
-              termId={selectedTermId}
-            />
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Files aria-hidden="true" className="size-5" />
-                </span>
-                <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">
-                  {t("title")}
-                </h1>
-              </div>
-              {canManage ? (
-                <Button
-                  size="sm"
-                  leftIcon={<FilePlus2 aria-hidden="true" className="size-4" />}
-                  onClick={() => router.push(`${rootPath}/new${query}`)}
-                >
-                  {t("create")}
-                </Button>
-              ) : null}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Files aria-hidden="true" className="size-5" />
+              </span>
+              <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">
+                {t("title")}
+              </h1>
             </div>
-          )}
+            {canManage ? (
+              <Button
+                size="sm"
+                leftIcon={<FilePlus2 aria-hidden="true" className="size-4" />}
+                onClick={() => router.push(`${rootPath}/new${query}`)}
+              >
+                {t("create")}
+              </Button>
+            ) : null}
+          </div>
         </div>
         <nav
           aria-label={t("nav_label")}
           className="mx-auto mt-4 flex max-w-screen-2xl gap-1 overflow-x-auto"
         >
-          <ShellNavLink
-            icon={LayoutDashboard}
-            label={t("overview")}
-            href={`${rootPath}${query}`}
-            active={isOverview}
-          />
           {libraryLinks.map(({ icon, label, status }) => (
             <ShellNavLink
               key={label}

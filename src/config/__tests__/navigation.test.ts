@@ -51,12 +51,11 @@ describe("Academic Content Hub navigation", () => {
     expect(academicContent).toEqual(
       expect.objectContaining({
         key: "academic-content-hub",
-        href_en: "/en/academic-content-hub",
-        href_ar: "/ar/academic-content-hub",
+        href_en: "/en/academic-content-hub/library",
+        href_ar: "/ar/academic-content-hub/library",
       }),
     );
     expect(academicContent?.children?.map((child) => child.key)).toEqual([
-      "academic-content-overview",
       "academic-content-library",
       "academic-content-drafts",
       "academic-content-archived",

@@ -593,19 +593,10 @@ export const menuItems: MenuItem[] = [
     label_en: "Academic Content Hub",
     label_ar: "مركز المحتوى الأكاديمي",
     statusBadge: { label_en: "New", label_ar: "جديد" },
-    href_en: "/en/academic-content-hub",
-    href_ar: "/ar/academic-content-hub",
+    href_en: "/en/academic-content-hub/library",
+    href_ar: "/ar/academic-content-hub/library",
     icon: LibraryBig,
     children: [
-      {
-        key: "academic-content-overview",
-        subgroup: "academic-content-workspace",
-        label_en: "Overview",
-        label_ar: "نظرة عامة",
-        href_en: "/en/academic-content-hub",
-        href_ar: "/ar/academic-content-hub",
-        icon: LayoutDashboard,
-      },
       {
         key: "academic-content-library",
         subgroup: "academic-content-workspace",
