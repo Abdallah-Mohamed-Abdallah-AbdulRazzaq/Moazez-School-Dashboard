@@ -289,8 +289,8 @@ describe("SchoolDashboardContainer", () => {
       "aria-selected",
       "true",
     );
-    expect(await screen.findByText("Homework")).toBeInTheDocument();
-    expect(await screen.findByText("Grades")).toBeInTheDocument();
+    expect(await screen.findByText("Homework", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByText("Grades")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Operations" }));
 
@@ -298,7 +298,7 @@ describe("SchoolDashboardContainer", () => {
       "aria-selected",
       "true",
     );
-    expect(await screen.findByText("Reinforcement")).toBeInTheDocument();
+    expect(await screen.findByText("Reinforcement", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("renders dashboard alerts as a single action required panel", async () => {

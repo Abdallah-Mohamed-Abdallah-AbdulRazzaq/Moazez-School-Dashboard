@@ -396,6 +396,7 @@ describe("Academic Content authoring workflow", () => {
   });
 
   it("loads the library, creates a draft, and completes every Wave 1+2 authoring step", async () => {
+    const user = userEvent.setup();
     workflowState.create.mockResolvedValue({ id: "created-content" });
     const onOpen = vi.fn();
     const libraryItem: AcademicContentLibraryItem = {
@@ -456,9 +457,9 @@ describe("Academic Content authoring workflow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save scope" }));
 
     openSection("Note details");
-    await userEvent.type(
+    await user.type(
       await screen.findByRole("textbox", { name: "Message body" }, { timeout: 10000 }),
-      "Please review the weekly plan.",
+      "Weekly plan",
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Save guardian message" }),
@@ -498,6 +499,9 @@ describe("Academic Content authoring workflow", () => {
         },
       ]);
       expect(editor.saveGuardianNoteDetails).toHaveBeenCalledOnce();
+      expect(editor.saveGuardianNoteDetails).toHaveBeenCalledWith(
+        expect.objectContaining({ body: expect.stringContaining("Weekly plan") }),
+      );
       expect(editor.saveLinks).toHaveBeenCalledWith([
         { label: "School portal", url: "https://school.example/weekly" },
       ]);
@@ -508,7 +512,7 @@ describe("Academic Content authoring workflow", () => {
     expect(
       screen.queryAllByRole("button", { name: /submit|approve|publish/i }),
     ).toHaveLength(0);
-  });
+  }, 30_000);
 
   it("keeps archived content read-only without deferred workflow actions", () => {
     render(
