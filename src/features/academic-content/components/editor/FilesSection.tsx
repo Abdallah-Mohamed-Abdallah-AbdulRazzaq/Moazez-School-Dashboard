@@ -2,14 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  File as FileIcon,
   RefreshCw,
   Trash2,
   UploadCloud,
   X,
 } from "lucide-react";
 import { useLocale } from "next-intl";
-import AttachmentListItem from "@/components/ui/attachment-list-item/AttachmentListItem";
 import { Button } from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import { formatByteCount } from "../../model/academicContentPolicy";
@@ -27,6 +25,9 @@ import {
   type AcademicContentFilePolicyState,
 } from "../../hooks/useAcademicContentFilePolicy";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
+import { useAcademicContentDownload } from "../../hooks/useAcademicContentDownload";
+import AcademicContentAssetAccess from "./AcademicContentAssetAccess";
+import AcademicContentDownloadFeedback from "./AcademicContentDownloadFeedback";
 
 type UploadState =
   "uploading" | "completed" | "cancelled" | "error" | "restart-required";
@@ -81,6 +82,7 @@ export default function FilesSection({
   );
   const effectivePolicyState = policyState ?? internalPolicyState;
   const { policy, isLoading: isPolicyLoading } = effectivePolicyState;
+  const { state: downloadState, isDownloading, requestDownload } = useAcademicContentDownload();
   const displayedError = error ?? effectivePolicyState.error?.message ?? null;
   const dateFormatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
@@ -333,6 +335,7 @@ export default function FilesSection({
 
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-900">{t("attached")}</h3>
+        <AcademicContentDownloadFeedback state={downloadState} />
         {assets.length === 0 ? (
           <p className="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
             {t("empty")}
@@ -340,19 +343,15 @@ export default function FilesSection({
         ) : (
           <div className="mt-3">
             {assets.map((asset) => (
-              <AttachmentListItem
+              <AcademicContentAssetAccess
                 key={asset.assetId}
-                icon={
-                  <FileIcon
-                    aria-hidden="true"
-                    className="size-5 text-primary"
-                  />
-                }
-                title={asset.originalName}
+                asset={asset}
                 subtitle={`${asset.mimeType} · ${formatByteCount(asset.sizeBytes)} · ${dateFormatter.format(new Date(asset.createdAt))}`}
                 disabled={unlinkingAssetId === asset.assetId}
-                actionsLabel={t("actions", { name: asset.originalName })}
-                actions={
+                allowInlinePreview={policy?.allowInlinePreview === true}
+                isDownloading={isDownloading}
+                onDownload={(selectedAsset) => void requestDownload(selectedAsset)}
+                extraActions={
                   disabled
                     ? []
                     : [

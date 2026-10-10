@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AcademicContentAsset } from "../../../types/contracts";
 import FilesSection from "../FilesSection";
 
@@ -27,28 +27,6 @@ vi.mock("@/components/ui/drag-drop-upload/DragDropUploadArea", () => ({
     >
       Select files
     </button>
-  ),
-}));
-
-vi.mock("@/components/ui/attachment-list-item/AttachmentListItem", () => ({
-  default: ({
-    title,
-    subtitle,
-    actions = [],
-  }: {
-    title: string;
-    subtitle?: string;
-    actions?: { label: string; onClick: () => void }[];
-  }) => (
-    <div>
-      <span>{title}</span>
-      <span>{subtitle}</span>
-      {actions.map((action) => (
-        <button key={action.label} type="button" onClick={action.onClick}>
-          {action.label}
-        </button>
-      ))}
-    </div>
   ),
 }));
 
@@ -94,6 +72,7 @@ const attachedAsset: AcademicContentAsset = {
 
 describe("FilesSection", () => {
   beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 40, 40));
     mocks.selectedFile = new File(["pdf"], "lesson.pdf", {
       type: "application/pdf",
     });
@@ -122,6 +101,8 @@ describe("FilesSection", () => {
         };
       });
   });
+
+  afterEach(() => vi.restoreAllMocks());
 
   it("uploads a policy-allowed file and refreshes the aggregate", async () => {
     const onFilesChanged = vi.fn(async () => undefined);
@@ -195,7 +176,8 @@ describe("FilesSection", () => {
     );
 
     await screen.findByText("lesson.pdf");
-    fireEvent.click(screen.getByRole("button", { name: "Unlink" }));
+    fireEvent.click(screen.getByRole("button", { name: "Actions for lesson.pdf" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Unlink" }));
 
     await waitFor(() =>
       expect(mocks.unlinkAcademicContentAsset).toHaveBeenCalledWith(
@@ -253,5 +235,9 @@ describe("FilesSection", () => {
     expect(screen.getByText("Student downloads enabled")).toBeVisible();
     expect(screen.getByText("Guardian downloads disabled")).toBeVisible();
     expect(screen.getByText("Inline preview enabled")).toBeVisible();
+    expect(screen.getByRole("button", { name: /^lesson.pdf/ })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Actions for lesson.pdf" }));
+    expect(screen.getByRole("menuitem", { name: "Download" })).toBeEnabled();
+    expect(screen.queryByRole("menuitem", { name: "Unlink" })).not.toBeInTheDocument();
   });
 });

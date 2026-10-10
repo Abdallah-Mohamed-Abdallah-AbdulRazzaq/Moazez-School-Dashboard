@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button/Button";
 import { EmbeddedFilePreview } from "@/components/ui/embedded-file-preview";
 import { formatByteCount } from "../../model/academicContentPolicy";
 import {
+  MAX_ACADEMIC_CONTENT_PREVIEW_BYTES,
   orderedSubjectResourceAssets,
   subjectResourceAssetKind,
 } from "../../model/subjectResourceDetail";
@@ -16,6 +17,7 @@ interface SubjectResourcePreviewWorkspaceProps {
   selectedAssetId: string | null;
   onSelectAsset: (assetId: string) => void;
   onDownload: (asset: AcademicContentAsset) => void;
+  isDownloading?: boolean;
 }
 
 type Translate = ReturnType<typeof useAcademicContentTranslations>;
@@ -89,11 +91,15 @@ function SelectedAssetPreview({
   asset,
   onDownload,
   t,
+  isDownloading,
 }: {
   asset: AcademicContentAsset;
   onDownload: (asset: AcademicContentAsset) => void;
   t: Translate;
+  isDownloading?: boolean;
 }) {
+  const downloadT = useAcademicContentTranslations("downloads");
+  const filesT = useAcademicContentTranslations("files");
   const previewFile = {
     id: asset.fileId,
     name: asset.originalName,
@@ -116,16 +122,21 @@ function SelectedAssetPreview({
           variant="secondary"
           leftIcon={<Download aria-hidden="true" className="size-4" />}
           onClick={() => onDownload(asset)}
+          loading={isDownloading}
         >
-          {t("actions.download")}
+          {isDownloading ? downloadT("preparing_button") : t("actions.download")}
         </Button>
       </header>
       <div className="bg-gray-50">
-        <EmbeddedFilePreview
-          file={previewFile}
-          kind={subjectResourceAssetKind(asset)}
-          labels={previewLabels(t)}
-        />
+        {Number(asset.sizeBytes) > MAX_ACADEMIC_CONTENT_PREVIEW_BYTES ? (
+          <p className="p-6 text-sm text-gray-500">{filesT("large_file_preview")}</p>
+        ) : (
+          <EmbeddedFilePreview
+            file={previewFile}
+            kind={subjectResourceAssetKind(asset)}
+            labels={previewLabels(t)}
+          />
+        )}
       </div>
     </>
   );
@@ -136,6 +147,7 @@ export default function SubjectResourcePreviewWorkspace({
   selectedAssetId,
   onSelectAsset,
   onDownload,
+  isDownloading,
 }: SubjectResourcePreviewWorkspaceProps) {
   const t = useAcademicContentTranslations("subject_resource_detail");
   const orderedAssets = orderedSubjectResourceAssets(assets);
@@ -153,6 +165,7 @@ export default function SubjectResourcePreviewWorkspace({
         asset={selectedAsset}
         onDownload={onDownload}
         t={t}
+        isDownloading={isDownloading}
       />
       <AssetSelector
         assets={orderedAssets}

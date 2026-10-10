@@ -3,6 +3,9 @@ import type {
   AcademicContentSubjectResourceDetail,
 } from "../types/contracts";
 
+// Authenticated previews buffer the complete file in browser memory.
+export const MAX_ACADEMIC_CONTENT_PREVIEW_BYTES = 25 * 1024 * 1024;
+
 export type SubjectResourcePanel =
   | "preview"
   | "details"

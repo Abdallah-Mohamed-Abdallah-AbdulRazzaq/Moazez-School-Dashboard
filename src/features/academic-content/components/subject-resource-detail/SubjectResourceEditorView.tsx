@@ -15,8 +15,8 @@ import {
 } from "../../model/subjectResourceDetail";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
 import { EMPTY_ACADEMIC_CONTENT_DETAIL_OPTIONS } from "../../services/academicContentDetailOptions";
-import { academicContentUiError } from "../../services/academicContentErrors";
-import { downloadAcademicContentAsset } from "../../services/downloadAcademicContentAsset";
+import { useAcademicContentDownload } from "../../hooks/useAcademicContentDownload";
+import AcademicContentDownloadFeedback from "../editor/AcademicContentDownloadFeedback";
 import type {
   AcademicContentBase,
   AcademicContentDetail,
@@ -100,7 +100,7 @@ export default function SubjectResourceEditorView(
       firstPreviewableSubjectResourceAsset(editor.content.assets)?.assetId ??
       null,
   );
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const { state: downloadState, isDownloading, requestDownload } = useAcademicContentDownload();
   const optionState = useAcademicContentDetailOptions(editor.content);
   const targetDisplay = useAcademicContentTargetDisplay(
     editor.content,
@@ -122,12 +122,6 @@ export default function SubjectResourceEditorView(
   const refreshResources = async () => {
     await Promise.all([editor.refreshAggregate(), editor.refreshReadiness()]);
   };
-  const requestDownload = (asset: NonNullable<typeof selectedAsset>) => {
-    setDownloadError(null);
-    void downloadAcademicContentAsset(asset).catch((error: unknown) =>
-      setDownloadError(academicContentUiError(error).message),
-    );
-  };
   const panels: Record<SubjectResourcePanel, React.ReactNode> = {
     preview: (
       <SubjectResourcePreviewWorkspace
@@ -135,6 +129,7 @@ export default function SubjectResourceEditorView(
         selectedAssetId={selectedAsset?.assetId ?? null}
         onSelectAsset={setPreferredAssetId}
         onDownload={requestDownload}
+        isDownloading={isDownloading}
       />
     ),
     details: optionState.error ? (
@@ -216,14 +211,7 @@ export default function SubjectResourceEditorView(
           {t("read_only")}
         </div>
       ) : null}
-      {downloadError ? (
-        <p
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          {downloadError}
-        </p>
-      ) : null}
+      <AcademicContentDownloadFeedback state={downloadState} />
       <SubjectResourceHeader
         content={editor.content}
         locale={locale}
@@ -232,6 +220,7 @@ export default function SubjectResourceEditorView(
         onEdit={() => setActivePanel("details")}
         onShare={() => setActivePanel("targets")}
         onDownload={requestDownload}
+        isDownloading={isDownloading}
         lifecycleActions={
           <LifecycleActions
             content={editor.content}

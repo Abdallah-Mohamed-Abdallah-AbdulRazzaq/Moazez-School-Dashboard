@@ -1,5 +1,14 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("../../../services/academicContentApi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../services/academicContentApi")>();
+  return { ...actual, getAcademicContentFilePolicy: vi.fn(async () => ({
+    attachmentsEnabled: true, maximumFileSizeBytes: "536870912",
+    documentsEnabled: true, imagesEnabled: true, videosEnabled: true,
+    audioEnabled: true, archivesEnabled: true, otherFilesEnabled: true,
+    allowStudentDownload: true, allowGuardianDownload: true, allowInlinePreview: true,
+  })) };
+});
 import type { AcademicContentDetail } from "../../../types/contracts";
 import OnlineSessionContextRail from "../OnlineSessionContextRail";
 import OnlineSessionInformation from "../OnlineSessionInformation";
@@ -59,6 +68,10 @@ const content = {
 } satisfies Extract<AcademicContentDetail, { type: "ONLINE_SESSION" }>;
 
 describe("online session meeting lobby", () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 40, 40));
+  });
+  afterEach(() => vi.restoreAllMocks());
   it("shows the saved meeting timezone rather than the viewer timezone", () => {
     const tokyoMeeting = {
       ...content,
@@ -114,7 +127,7 @@ describe("online session meeting lobby", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("presents the aggregate resources, schedule, context, and management surfaces", () => {
+  it("presents the aggregate resources, schedule, context, and management surfaces", async () => {
     const onDownload = vi.fn();
     render(
       <>
@@ -160,6 +173,7 @@ describe("online session meeting lobby", () => {
       screen.getByText("Grade 4 - A · Mathematics · Period 2"),
     ).toBeVisible();
     expect(screen.getByText("Fractions worksheet.pdf")).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Fractions worksheet.pdf/ })).not.toHaveAttribute("aria-disabled", "true"));
     expect(
       screen.getByRole("link", { name: "Preparation notes" }),
     ).toHaveAttribute("href", "https://example.com/notes");
@@ -167,8 +181,9 @@ describe("online session meeting lobby", () => {
     expect(screen.getByText("Ready to advance")).toBeVisible();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Download Fractions worksheet.pdf" }),
+      screen.getByRole("button", { name: "Actions for Fractions worksheet.pdf" }),
     );
+    fireEvent.click(screen.getByRole("menuitem", { name: "Download" }));
     expect(onDownload).toHaveBeenCalledWith(content.assets[0]);
     fireEvent.click(screen.getByRole("button", { name: "Publication" }));
     expect(screen.getByText("Publication contract panel")).toBeVisible();

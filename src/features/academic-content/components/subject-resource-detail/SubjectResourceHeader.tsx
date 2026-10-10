@@ -27,11 +27,13 @@ interface SubjectResourceHeaderProps {
   onEdit: () => void;
   onShare: () => void;
   onDownload: (asset: AcademicContentAsset) => void;
+  isDownloading?: boolean;
   lifecycleActions?: ReactNode;
 }
 
 function HeaderActions(props: SubjectResourceHeaderProps) {
   const t = useAcademicContentTranslations("subject_resource_detail.actions");
+  const downloadT = useAcademicContentTranslations("downloads");
   return (
     <div className="flex flex-wrap items-center gap-2">
       {props.canManage ? (
@@ -56,11 +58,12 @@ function HeaderActions(props: SubjectResourceHeaderProps) {
         variant="secondary"
         leftIcon={<Download aria-hidden="true" className="size-4" />}
         disabled={!props.selectedAsset}
+        loading={props.isDownloading}
         onClick={() =>
           props.selectedAsset && props.onDownload(props.selectedAsset)
         }
       >
-        {t("download")}
+        {props.isDownloading ? downloadT("preparing_button") : t("download")}
       </Button>
       {props.lifecycleActions}
     </div>
