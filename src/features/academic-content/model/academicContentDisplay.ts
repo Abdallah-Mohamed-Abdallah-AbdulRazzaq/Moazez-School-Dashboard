@@ -62,6 +62,29 @@ export function academicTargetScopeName(
   }
 }
 
+export function academicTargetScopeChainName(
+  target: AcademicTargetScope,
+  options: AcademicTargetOptions | null,
+  locale: string,
+): string | undefined {
+  if (!options || target.scopeType === "SCHOOL") return undefined;
+  const { structure } = options;
+  const classroom = target.scopeType === "CLASSROOM"
+    ? structure.classrooms.find(({ id }) => id === target.classroomId)
+    : undefined;
+  const section = target.scopeType === "SECTION" || target.scopeType === "CLASSROOM"
+    ? structure.sections.find(({ id }) => id === (classroom?.sectionId ?? target.sectionId))
+    : undefined;
+  const grade = target.scopeType !== "STAGE"
+    ? structure.grades.find(({ id }) => id === (section?.gradeId ?? target.gradeId))
+    : undefined;
+  const stage = structure.stages.find(({ id }) => id === (grade?.stageId ?? target.stageId));
+  return [stage, grade, section, classroom]
+    .map((entity) => localizedAcademicName(entity, locale))
+    .filter(Boolean)
+    .join(" / ") || undefined;
+}
+
 export function academicSubjectName(
   subjectId: string | null | undefined,
   options: AcademicTargetOptions | null,

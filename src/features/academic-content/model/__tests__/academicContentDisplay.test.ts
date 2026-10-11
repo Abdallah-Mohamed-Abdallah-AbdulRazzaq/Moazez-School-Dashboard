@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { TeacherDirectoryListItem } from "@/features/teachers/types";
 import type { AcademicTargetOptions } from "../../services/academicContentSelectors";
 import type { AcademicContentTarget } from "../../types/contracts";
+import { academicContentBrowseOptionsFixture } from "../../__tests__/academicContentBrowseOptionsFixture";
 import {
   academicSubjectName,
   academicTargetScopeName,
+  academicTargetScopeChainName,
   localizedAcademicName,
   teacherDisplayName,
 } from "../academicContentDisplay";
@@ -83,6 +85,22 @@ const teacher: TeacherDirectoryListItem = {
 };
 
 describe("academic content display names", () => {
+  it.each([
+    ["STAGE", "stage-1", null, null, null, "en", "Primary"],
+    ["GRADE", null, "grade-1", null, null, "en", "Primary / Grade 5"],
+    ["SECTION", null, null, "section-1", null, "en", "Primary / Grade 5 / Section A"],
+    ["CLASSROOM", null, null, null, "classroom-1", "en", "Primary / Grade 5 / Section A / Class 5A"],
+    ["CLASSROOM", null, null, null, "classroom-1", "ar", "المرحلة الابتدائية / الصف الخامس / الشعبة أ / فصل ٥أ"],
+    ["CLASSROOM", null, null, null, "missing", "en", undefined],
+    ["SCHOOL", null, null, null, null, "en", undefined],
+  ] as const)("resolves the %s structure chain from its leaf", (scopeType, stageId, gradeId, sectionId, classroomId, locale, expected) => {
+    expect(academicTargetScopeChainName(
+      { scopeType, stageId, gradeId, sectionId, classroomId },
+      academicContentBrowseOptionsFixture.targetOptions,
+      locale,
+    )).toBe(expected);
+  });
+
   it.each([
     ["ar", { nameAr: "الرياضيات", nameEn: "Mathematics" }, "الرياضيات"],
     ["en", { nameAr: "الرياضيات", nameEn: "Mathematics" }, "Mathematics"],

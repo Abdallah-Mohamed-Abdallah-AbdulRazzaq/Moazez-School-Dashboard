@@ -73,5 +73,5 @@ export function useAcademicContentTargetDisplay(
     [content.targets, locale, options],
   );
 
-  return { targets, error };
+  return { targets, error, options };
 }
