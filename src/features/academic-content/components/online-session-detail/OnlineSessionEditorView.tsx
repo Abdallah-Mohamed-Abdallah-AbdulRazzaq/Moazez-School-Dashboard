@@ -203,6 +203,7 @@ export default function OnlineSessionEditorView({
               ) ?? target.scope,
             }))}
             targetError={targetDisplay.error}
+            isLoadingTargets={targetDisplay.isLoading}
             timetableLabel={timetableLabel}
           />
           <AcademicContentDownloadFeedback state={downloadState} />

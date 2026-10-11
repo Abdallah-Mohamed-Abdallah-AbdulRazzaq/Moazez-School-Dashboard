@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useLocale } from "next-intl";
 import { RichTextContent } from "@/components/ui/rich-text-content";
+import Skeleton from "@/components/ui/skeleton/Skeleton";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import type { TeacherPreparationTargetDisplay } from "../../model/teacherPreparationDetail";
 import { onlineSessionDetailDurationMinutes } from "../../model/onlineSessionDetail";
@@ -21,14 +22,17 @@ export default function OnlineSessionInformation({
   content,
   targets,
   targetError,
+  isLoadingTargets,
   timetableLabel,
 }: {
   content: Content;
   targets: readonly TeacherPreparationTargetDisplay[];
   targetError: string | null;
+  isLoadingTargets: boolean;
   timetableLabel: string | null;
 }) {
   const t = useAcademicContentTranslations("online_session_detail");
+  const scopeT = useAcademicContentTranslations("revisions");
   const locale = useLocale();
   const detail = content.details;
   if (!detail) return null;
@@ -67,7 +71,13 @@ export default function OnlineSessionInformation({
         icon={<UsersRound aria-hidden="true" className="size-5" />}
         title={t("target_audience")}
       >
-        {targetError ? (
+        {isLoadingTargets ? (
+          <div role="status" aria-busy="true" className="space-y-2">
+            <span className="sr-only">{scopeT("target_context_loading")}</span>
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        ) : targetError ? (
           <p role="alert" className="text-sm text-amber-700">
             {targetError}
           </p>

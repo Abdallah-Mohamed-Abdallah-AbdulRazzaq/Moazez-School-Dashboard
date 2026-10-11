@@ -68,6 +68,28 @@ const content = {
 } satisfies Extract<AcademicContentDetail, { type: "ONLINE_SESSION" }>;
 
 describe("online session meeting lobby", () => {
+  it("replaces target loading feedback with the resolved structure chain", () => {
+    const targetProps = {
+      content,
+      targets: [{
+        targetId: "target-1",
+        subject: "Mathematics",
+        scope: "Primary / Grade 4 / Section A",
+        assignedTeacher: null,
+      }],
+      targetError: null,
+      timetableLabel: null,
+    };
+    const { rerender } = render(
+      <OnlineSessionInformation {...targetProps} isLoadingTargets />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Loading content scope names…");
+    expect(screen.queryByText("Mathematics · Primary / Grade 4 / Section A")).not.toBeInTheDocument();
+    rerender(<OnlineSessionInformation {...targetProps} isLoadingTargets={false} />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText("Mathematics · Primary / Grade 4 / Section A")).toBeVisible();
+  });
+
   beforeEach(() => {
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 40, 40));
   });
@@ -84,6 +106,7 @@ describe("online session meeting lobby", () => {
           content={tokyoMeeting}
           targets={[]}
           targetError={null}
+          isLoadingTargets={false}
           timetableLabel={null}
         />
       </>,
@@ -142,6 +165,7 @@ describe("online session meeting lobby", () => {
             },
           ]}
           targetError={null}
+          isLoadingTargets={false}
           timetableLabel="Grade 4 - A · Mathematics · Period 2"
         />
         <OnlineSessionResources
