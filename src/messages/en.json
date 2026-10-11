@@ -14581,6 +14581,16 @@
       "filtered_empty_title": "No matching preparations",
       "filtered_empty_description": "Change or clear the current filters to see more results."
     },
+    "term_weeks": {
+      "week": "Week",
+      "week_number": "Week {number}",
+      "choose_week": "Choose a week",
+      "all_weeks": "All weeks",
+      "custom_period": "Custom period",
+      "search_weeks": "Search weeks…",
+      "no_results": "No matching weeks",
+      "term_dates_unavailable": "Term dates are unavailable. Choose a term with start and end dates."
+    },
     "weekly_plans": {
       "title": "Weekly Plans",
       "description": "Create and manage weekly academic plans for subjects and classes in the selected term.",

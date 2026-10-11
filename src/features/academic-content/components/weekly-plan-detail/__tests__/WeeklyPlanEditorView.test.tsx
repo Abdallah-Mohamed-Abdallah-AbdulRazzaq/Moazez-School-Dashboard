@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { apiClient } from "@/lib/api";
 import type { AcademicContentDetail } from "../../../types/contracts";
 import WeeklyPlanEditorView from "../WeeklyPlanEditorView";
 
@@ -91,6 +92,12 @@ function editor() {
 
 describe("WeeklyPlanEditorView", () => {
   beforeEach(() => {
+    vi.spyOn(apiClient, "get").mockResolvedValue({ data: {
+      attachmentsEnabled: true, maximumFileSizeBytes: "536870912",
+      documentsEnabled: true, imagesEnabled: true, videosEnabled: true,
+      audioEnabled: true, archivesEnabled: true, otherFilesEnabled: true,
+      allowStudentDownload: true, allowGuardianDownload: true, allowInlinePreview: true,
+    } });
     mocks.loadTargets.mockReset().mockResolvedValue({
       structure: { stages: [], grades: [], sections: [], classrooms: [] },
       subjects: [],
@@ -102,6 +109,34 @@ describe("WeeklyPlanEditorView", () => {
       assessments: [],
       errors: { homeworkAssignments: null, assessments: null },
     });
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each(["existing", "new"] as const)("saves both dates together when selecting a week for a %s plan", async (scenario) => {
+    const state = {
+      ...editor(),
+      content: { ...content, details: scenario === "new" ? null : content.details },
+    };
+    state.sections.details = { dirty: true, saving: false, error: null };
+    render(<WeeklyPlanEditorView
+      editor={state}
+      canManage
+      canPublish={false}
+      termBounds={{ startDate: "2026-10-01", endDate: "2026-10-17" }}
+      onLifecycleChanged={vi.fn(async () => undefined)}
+      onDeleted={vi.fn()}
+    />);
+    await waitFor(() => expect(mocks.loadDetailOptions).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "Week" })).toHaveTextContent(
+      scenario === "new" ? "Week 1 ·" : "Custom period ·",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Week" }));
+    fireEvent.click(screen.getByRole("button", { name: /Week 3 ·/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Save week settings" }));
+    await waitFor(() => expect(state.saveWeeklyPlanDetails).toHaveBeenCalledWith(
+      expect.objectContaining({ weekStartDate: "2026-10-15", weekEndDate: "2026-10-17" }),
+    ));
   });
 
   it("preserves an unsaved detail draft while navigating the dedicated workspace", async () => {

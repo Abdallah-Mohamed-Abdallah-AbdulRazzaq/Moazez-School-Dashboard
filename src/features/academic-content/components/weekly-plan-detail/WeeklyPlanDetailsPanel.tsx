@@ -2,7 +2,7 @@
 
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
+import TermWeekSelect from "../weekly-plans/TermWeekSelect";
 import type { WeeklyPlanDetailDraftController } from "../../hooks/useWeeklyPlanDetailDraft";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import type { AcademicContentEditorSectionState } from "../../hooks/useAcademicContentEditor";
@@ -58,27 +58,12 @@ export default function WeeklyPlanDetailsPanel(
           {t("week_settings_description")}
         </p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Input
-            label={t("week_start")}
-            type="date"
-            value={props.controller.draft.weekStartDate}
-            min={props.termBounds?.startDate}
-            max={props.termBounds?.endDate}
+          <TermWeekSelect
+            startDate={props.controller.draft.weekStartDate}
+            endDate={props.controller.draft.weekEndDate}
+            termBounds={props.termBounds}
             disabled={props.disabled}
-            onChange={(event) =>
-              props.controller.update("weekStartDate", event.target.value)
-            }
-          />
-          <Input
-            label={t("week_end")}
-            type="date"
-            value={props.controller.draft.weekEndDate}
-            min={props.termBounds?.startDate}
-            max={props.termBounds?.endDate}
-            disabled={props.disabled}
-            onChange={(event) =>
-              props.controller.update("weekEndDate", event.target.value)
-            }
+            onChange={props.controller.updateWeek}
           />
         </div>
         {validationMessage ? (

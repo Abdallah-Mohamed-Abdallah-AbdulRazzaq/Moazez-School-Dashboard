@@ -2,6 +2,7 @@ import type {
   AcademicContentWeeklyPlanDetail,
   ReplaceAcademicContentWeeklyPlanDetailRequest,
 } from "../types/contracts";
+import { calculateTermWeeks } from "./termWeeks";
 
 export const WEEKLY_PLAN_PANELS = [
   "details",
@@ -28,10 +29,14 @@ export interface WeeklyPlanTermBounds {
 
 export function emptyWeeklyPlanDetail(
   termStartDate = "",
+  termEndDate?: string,
 ): AcademicContentWeeklyPlanDetail {
+  const firstWeek = termEndDate
+    ? calculateTermWeeks({ startDate: termStartDate, endDate: termEndDate })[0]
+    : undefined;
   return {
     weekStartDate: termStartDate,
-    weekEndDate: termStartDate,
+    weekEndDate: firstWeek?.endDate ?? termStartDate,
     objectives: [],
     topics: [],
     expectedHomework: null,

@@ -64,7 +64,7 @@ export default function WeeklyPlanEditorView({
   );
   const disabled = editor.isReadOnly || !canManage;
   const controller = useWeeklyPlanDetailDraft({
-    initial: content.details ?? emptyWeeklyPlanDetail(termBounds?.startDate),
+    initial: content.details ?? emptyWeeklyPlanDetail(termBounds?.startDate, termBounds?.endDate),
     contentVersion: `${content.id}:${content.updatedAt}`,
     sectionState: editor.sections.details,
     termBounds,

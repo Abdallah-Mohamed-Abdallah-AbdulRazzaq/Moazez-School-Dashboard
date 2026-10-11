@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import WeeklyPlanFilters from "../WeeklyPlanFilters";
 
 describe("WeeklyPlanFilters", () => {
-  it("exposes backend weekly dates, section, teacher, and tag filters", () => {
+  it("maps a numbered week to both backend dates and clears them together", () => {
     const onFiltersChange = vi.fn();
     render(
       <WeeklyPlanFilters
@@ -25,6 +25,7 @@ describe("WeeklyPlanFilters", () => {
           view: "table",
         }}
         search=""
+        termBounds={{ startDate: "2026-10-01", endDate: "2026-10-21" }}
         browseOptions={{
           targetOptions: null,
           teachers: [],
@@ -42,15 +43,14 @@ describe("WeeklyPlanFilters", () => {
     expect(screen.getByLabelText("Section")).toBeVisible();
     expect(screen.getByLabelText("Assigned teacher")).toBeVisible();
     expect(screen.getByLabelText("Tag")).toBeVisible();
-    expect(screen.getByLabelText("Week overlaps through")).toHaveAttribute(
-      "min",
-      "2026-10-05",
-    );
-    fireEvent.change(screen.getByLabelText("Week overlaps from"), {
-      target: { value: "2026-10-06" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Week" }));
+    fireEvent.click(screen.getByRole("button", { name: /Week 3 ·/ }));
     expect(onFiltersChange).toHaveBeenCalledWith({
-      weeklyDateFrom: "2026-10-06",
+      weeklyDateFrom: "2026-10-15",
+      weeklyDateTo: "2026-10-21",
     });
+    fireEvent.click(screen.getByRole("button", { name: "Week" }));
+    fireEvent.click(screen.getByRole("button", { name: "All weeks" }));
+    expect(onFiltersChange).toHaveBeenLastCalledWith({ weeklyDateFrom: "", weeklyDateTo: "" });
   });
 });

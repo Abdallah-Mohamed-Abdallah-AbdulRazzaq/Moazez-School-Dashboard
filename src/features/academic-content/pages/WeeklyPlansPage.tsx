@@ -15,7 +15,7 @@ import { useWeeklyPlans } from "../hooks/useWeeklyPlans";
 export default function WeeklyPlansPage() {
   const locale = useLocale();
   const router = useRouter();
-  const { academicYearId, termId } = useAcademicYearTermLayoutContext();
+  const { academicYearId, termId, selectedTerm } = useAcademicYearTermLayoutContext();
   const weeklyPlans = useWeeklyPlans();
   const browseOptions = useAcademicContentBrowseOptions({
     includeTeachers: false,
@@ -30,7 +30,9 @@ export default function WeeklyPlansPage() {
     weeklyPlans.filters.stageId ||
     weeklyPlans.filters.gradeId ||
     weeklyPlans.filters.classroomId ||
-    weeklyPlans.filters.subjectId,
+    weeklyPlans.filters.subjectId ||
+    weeklyPlans.filters.weeklyDateFrom ||
+    weeklyPlans.filters.weeklyDateTo,
   );
   const openPlan = (contentId: string) =>
     router.push(
@@ -57,6 +59,9 @@ export default function WeeklyPlansPage() {
         filters={weeklyPlans.filters}
         search={weeklyPlans.search}
         browseOptions={browseOptions}
+        termBounds={selectedTerm?.id === termId
+          ? { startDate: selectedTerm.startDate, endDate: selectedTerm.endDate }
+          : undefined}
         onSearchChange={weeklyPlans.setSearch}
         onFiltersChange={weeklyPlans.setFilters}
         onClear={weeklyPlans.clearFilters}

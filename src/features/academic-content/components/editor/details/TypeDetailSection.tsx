@@ -23,6 +23,7 @@ import OnlineSessionForm from "./OnlineSessionForm";
 import SubjectResourceForm from "./SubjectResourceForm";
 import TeacherPreparationForm from "./TeacherPreparationForm";
 import WeeklyPlanForm from "./WeeklyPlanForm";
+import { emptyWeeklyPlanDetail } from "../../../model/weeklyPlanDetail";
 import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 interface TypeDetailSectionProps {
@@ -174,17 +175,7 @@ function LoadedTypeDetailSection(props: TypeDetailSectionProps) {
       return (
         <WeeklyPlanForm
           initial={
-            content.details ?? {
-              weekStartDate: props.termStartDate ?? "",
-              weekEndDate: props.termStartDate ?? "",
-              objectives: [],
-              topics: [],
-              expectedHomework: null,
-              upcomingAssessments: null,
-              notes: null,
-              homeworkAssignmentIds: [],
-              gradeAssessmentIds: [],
-            }
+            content.details ?? emptyWeeklyPlanDetail(props.termStartDate, props.termEndDate)
           }
           termStartDate={props.termStartDate}
           termEndDate={props.termEndDate}
