@@ -14398,6 +14398,34 @@
     "invalid": "أدخل رقم هاتف صالحًا."
   },
   "academic_content": {
+    "reference_details": {
+      "classroom": "الفصل",
+      "statuses": {
+        "closed": "مغلق",
+        "draft": "مسودة",
+        "published": "منشور",
+        "approved": "معتمد",
+        "cancelled": "ملغى",
+        "archived": "مؤرشف"
+      },
+      "status": "الحالة",
+      "date": "التاريخ",
+      "type": "النوع",
+      "subject": "المادة",
+      "marks": "الدرجة القصوى",
+      "teacher": "المعلم",
+      "duration": "المدة (بالدقائق)",
+      "assessment_types": {
+        "ASSIGNMENT": "تكليف",
+        "MIDTERM": "اختبار منتصف الفصل",
+        "MONTH_EXAM": "اختبار شهري",
+        "FINAL": "اختبار نهائي",
+        "PRACTICAL": "اختبار عملي",
+        "QUIZ": "اختبار قصير",
+        "TERM_EXAM": "اختبار الفصل"
+      },
+      "due_date": "موعد التسليم"
+    },
     "downloads": {
       "preparing_button": "جارٍ تجهيز التنزيل…",
       "preparing": "جارٍ تجهيز تنزيل: {name}",

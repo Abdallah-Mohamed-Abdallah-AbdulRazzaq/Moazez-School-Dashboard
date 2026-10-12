@@ -7,6 +7,7 @@ import type { WeeklyPlanDetailDraftController } from "../../hooks/useWeeklyPlanD
 import type { AcademicContentEditorSectionState } from "../../hooks/useAcademicContentEditor";
 import type { WeeklyPlanDetailOptions } from "../../services/weeklyPlanDetailOptions";
 import { ReferenceChecklist } from "../editor/details/AcademicReferenceFields";
+import { useWeeklyPlanReferenceOptions } from "../../hooks/useWeeklyPlanReferenceOptions";
 
 interface WeeklyPlanReferenceNotesPanelProps {
   kind: "homework" | "assessments";
@@ -29,15 +30,10 @@ export default function WeeklyPlanReferenceNotesPanel(
   const referencesField = isHomework
     ? "homeworkAssignmentIds"
     : "gradeAssessmentIds";
+  const referenceOptions = useWeeklyPlanReferenceOptions(props.options);
   const options = isHomework
-    ? props.options.homeworkAssignments.map(({ id, title }) => ({
-        value: id,
-        label: title,
-      }))
-    : props.options.assessments.map(({ id, title }) => ({
-        value: id,
-        label: title,
-      }));
+    ? referenceOptions.homeworkAssignments
+    : referenceOptions.assessments;
   const loadError = isHomework
     ? props.options.errors.homeworkAssignments
     : props.options.errors.assessments;

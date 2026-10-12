@@ -2,11 +2,13 @@
 
 import { useId } from "react";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
+import Checkbox from "@/components/ui/checkbox/Checkbox";
 import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 export interface AcademicReferenceOption {
   value: string;
   label: string;
+  description?: string;
 }
 
 export function OptionalReferenceSelect({
@@ -71,7 +73,7 @@ export function ReferenceChecklist({
   const helperTextId = useId();
   const selectedValues = new Set(values);
   const availableValues = new Set(options.map((option) => option.value));
-  const displayedOptions = [
+  const displayedOptions: AcademicReferenceOption[] = [
     ...options,
     ...[...new Set(values)]
       .filter((value) => !availableValues.has(value))
@@ -96,21 +98,20 @@ export function ReferenceChecklist({
           {displayedOptions.map((option) => {
             const checked = selectedValues.has(option.value);
             return (
-              <label key={option.value} className="flex items-start gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  disabled={disabled || (!checked && values.length >= maximumItems)}
-                  onChange={() =>
-                    onChange(
-                      checked
-                        ? values.filter((value) => value !== option.value)
-                        : [...values, option.value],
-                    )
-                  }
-                />
-                <span>{option.label}</span>
-              </label>
+              <Checkbox
+                key={option.value}
+                label={option.label}
+                description={option.description}
+                checked={checked}
+                disabled={disabled || (!checked && values.length >= maximumItems)}
+                onChange={() =>
+                  onChange(
+                    checked
+                      ? values.filter((value) => value !== option.value)
+                      : [...values, option.value],
+                  )
+                }
+              />
             );
           })}
         </div>
