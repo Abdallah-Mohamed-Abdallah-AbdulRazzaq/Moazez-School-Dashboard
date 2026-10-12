@@ -2,7 +2,7 @@
 
 Date: 2026-10-12
 
-Status: targeting and save behavior approved in chat on 2026-10-12. Written specification awaiting user review before implementation planning.
+Status: targeting and save behavior approved in chat on 2026-10-12. Contract, workflow, and UX audit completed after user review; the user authorized continuation on 2026-10-12.
 
 ## Scope and approved decisions
 
@@ -42,6 +42,12 @@ No shared parent assignment spanning several classes exists in this contract. Ba
 
 Every batch payload uses the frozen academic year and term, the class's allocation ID, and `targetMode: "classroom"`. It does not send student IDs, a shared timetable entry, or a schedule date. A publication scheduling timestamp already entered in the form may be copied after the existing due-date validation; creation still creates drafts and invokes no publish action.
 
+Construct each payload explicitly from the allowed request fields: `academicYearId`, `termId`, `teacherSubjectAllocationId`, `title`, `targetMode`, `dueAt`, and optional `description`, `mode`, `publishAt`, `estimatedMinutes`, `totalMarks`, and `isGraded`. Do not spread a preview/result row or the entire form into the request. Target type, group/class identifiers, teacher labels/IDs, student counts, statuses, and workbook source rows are UI state, not additional DTO fields.
+
+Creation and question writes use `homework.assignments.manage`; viewing an editor and its questions uses `homework.assignments.view`. The permission hook does not infer view from manage. The new batch mode requires both permissions because reviewing and recovering created drafts is part of this workflow; this does not change existing manual/single-import gating. Existing lookup permissions remain enforced by their read endpoints. A denied or failed structure/allocation/enrollment lookup blocks a trustworthy preview and offers Retry loading, rather than marking every class skipped.
+
+The backend's operational allocation gate locks the current allocation and derives its current teacher/class/subject at the write. The frontend cannot enforce a frozen teacher ID through the manager create DTO. Never substitute a different allocation ID after approval; revalidate the plan before the first write and let backend conflict checks remain authoritative. Use server-returned assignment details for final result labels when available; preview labels must not be presented as a server ownership guarantee. If allocation ownership changes during saving, the created draft remains the authority for its assigned teacher.
+
 The workbook remains the existing assignment template: Details, Questions, Choices, and guidance in Instructions. Existing file/question/choice limits, single-text fields, supported question types, point precision, and other bounds continue to apply as described in the [original Excel import specification](2026-10-12-assignment-assessment-excel-import-design.md).
 
 ## User flow and target preview
@@ -59,6 +65,22 @@ The Create page exposes an explicit batch targeting mode while an assignment wor
 Selection changes update the preview before creation. At submission, refresh/revalidate the required context and current imported metadata/questions. If refreshed target eligibility or allocation/teacher mapping differs from the displayed preview, show the updated preview and require another Create drafts action rather than silently changing the targets being created.
 
 All eligible rows in that final preview are included. Per-row exclusion toggles, mixed subjects, and custom per-class workbook content are outside this version; the user can choose the selected-classes target type for an explicit subset.
+
+## User-friendly UI and accessibility
+
+Preserve the dashboard's existing colors, typography, hierarchy terminology, and components. The UX review used UI/UX Pro Max's form-label, progress-feedback, mobile-table, and recovery guidance; its generic landing-page/color/font suggestions do not override this application's UI.
+
+- Keep three clear areas on the existing page: assignment content, where to assign it, and review/results. Batch mode is a labeled control, such as Assign to multiple classes, available after applying a workbook. When enabled, hide single-class student/timetable controls and explain that every included class receives a whole-class draft. Disabling it before saving restores the existing single-class controls without silently rewriting their selections.
+- Default the target type to Selected classes, never Whole school. Reuse the currently selected class/subject when valid; otherwise require selection. Use existing searchable Select components for subject and group selection. Selected classes uses existing Input/Checkbox components for search and multiple selection; Select itself is single-value. Keep selected items when search changes and label select-all precisely as Select all matching classes.
+- Display names and hierarchy breadcrumbs so similarly named classes are distinguishable. Use allocation teacher names/localized directory labels, not UUIDs or internal field names. Missing display labels are not proof of missing allocation/teacher eligibility.
+- Show a compact summary beside the creation action: for example 8 classes will receive this assignment; 2 classes will be skipped. Show question count, common due date, and total marks. Label the action Create 8 drafts, with the count drawn from the complete eligible plan, not the current table page/search.
+- Place skip reasons on their class rows and keep the skipped count visible. Use text such as No teacher assigned for this subject or No enrolled students, rather than a large repeated-error list. A failed lookup shows one contextual load error and a read-only reload action. Disabled creation controls have nearby text explaining the missing prerequisite.
+- During saving show processed classes out of the total, the current class, and per-class status. Do not claim a percentage for individual question/network work or show one toast for every class. Keep one overall result summary, with a Needs attention filter for partial/failed/unconfirmed rows.
+- Give partial results a clear Open created draft action and unconfirmed results a Check assignment list action. Say what the user should inspect before retrying; never label a mixed batch as complete success.
+- Use the existing DataTable for desktop previews/results, with pagination/search in local state. At narrow widths use a contained scroll region or stacked summaries using the existing UI controls; avoid page-wide overflow, clipped names, or tiny controls. Verify 375, 768, 1024, and 1440 pixel layouts, Arabic RTL and English, and the existing theme behavior.
+- Provide associated labels, visible keyboard focus, approximately 44-pixel touch targets for new primary controls, and text/icons in addition to status colors. Announce class progress politely without moving focus on every update. Explain before Create that successful drafts open in new tabs; accessible link labels identify the class and new-tab behavior.
+
+No new global design system, stepper dependency, font download, or unrelated UI refactor is required.
 
 ## Batch execution and result states
 
@@ -86,6 +108,8 @@ Attempt a new editor tab only after a class reaches Created, not after parent cr
 
 Browsers may block tabs opened after asynchronous requests. Creation must still succeed, and the UI explains that automatic tabs can require allowing pop-ups for the dashboard. Manual row links provide a user-triggered fallback. Do not change browser settings, repeatedly attempt blocked tabs, or open blank tabs for failed/queued classes. Partially saved rows offer recovery links and do not open automatically.
 
+A `window.open` call using `noopener` may return null even when opening succeeds. Do not treat that return value alone as proof that a tab was blocked. Always provide the manual links and a brief conditional hint: If a tab did not open, use Open assignment or allow pop-ups for this dashboard. This behavior was checked against [MDN's Window.open reference](https://developer.mozilla.org/en-US/docs/Web/API/Window/open).
+
 Use the existing dirty-navigation provider for pending imports and unresolved partial/unconfirmed/failed results. Before creation, Cancel retains the current Stay/Leave behavior. While requests are active, disable the page's Cancel action and guard other navigation. After all eligible classes are fully saved, clear this feature's dirty state; skipped classes alone do not count as unsaved work. No automatic server cleanup or refresh persistence is added. If a user leaves after acknowledging unresolved results, the drafts already created remain in the backend.
 
 ## Implementation responsibilities and scope control
@@ -107,6 +131,8 @@ Apply Clean Code Guard to every production change and Test Guard to every test c
 Focused tests cover all target types, subject/term filtering, missing/ambiguous allocations, zero eligible classes, enrollment/load failures, deduplication, refreshed-preview changes, and the one-parent-per-class contract. Test a mix of complete success, a second-question failure with a retained parent, a definite parent rejection, and an ambiguous parent response while later classes continue. Verify no duplicate submission, no automatic retry, isolated result IDs, and correct frozen context on every editor link.
 
 Component tests exercise target selection and previews, skipped rows, locking, progress, results, successful-only tab attempts, popup fallback links, and dirty-navigation behavior. Verify English/Arabic messages and preserve existing single-class assignment and assessment import regression tests.
+
+Include regression checks for manage-without-view batch gating, lookup failure versus genuinely empty rosters, exact parent payload keys, preserving selected classes across search/page changes, and a null `window.open` return that must not mark a successful save as failed or cause a retry.
 
 Run relevant focused tests, lint, typecheck, and build during implementation. Keep the user's existing instruction to use focused checks only; do not run the full test suite without new permission. Record actual desktop/mobile and browser tab checks, with any unavailable checks stated explicitly. No real school records are created merely for automated QA.
 
