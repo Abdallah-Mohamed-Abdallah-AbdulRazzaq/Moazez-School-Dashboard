@@ -43,7 +43,7 @@ export default function HomeworkImportBatchTargets({ batch, writable }: { batch:
     const ids = selection.classroomIds;
     batch.setSelection({ type: "classes", classroomIds: ids.includes(id) ? ids.filter(selected => selected !== id) : [...ids, id] });
   };
-  return <fieldset disabled={batch.saving || batch.loading || !writable} className="space-y-4">
+  return <fieldset disabled={batch.saving || batch.loading || !writable} className="space-y-4 rounded-xl border border-gray-100 bg-gray-50/70 p-4">
     <div className="grid gap-4 md:grid-cols-2">
       <Select label={t("subject")} placeholder={t("chooseSubject")} searchable searchPlaceholder={t("searchGroups")} value={batch.subjectId} onChange={batch.setSubjectId} options={(batch.context?.subjects ?? []).map(subject => ({ value: subject.id, label: localizedLabel(locale, subject) }))} />
       <Select label={t("scope")} value={selection.type} onChange={type => batch.setSelection(scopeSelections[type])} options={Object.keys(scopeSelections).map(type => ({ value: type, label: t(`scopes.${type}`) }))} />

@@ -9,6 +9,7 @@ import DatePicker from "@/components/ui/input/DatePicker";
 import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import Select from "@/components/ui/input/Select";
 import Checkbox from "@/components/ui/checkbox/Checkbox";
+import { ClipboardList, ChevronDown, FileSpreadsheet } from "lucide-react";
 import HomeworkImportBatchPanel from "../components/HomeworkImportBatchPanel";
 import type { HomeworkBatchPageState } from "../utils/homeworkImportBatch.types";
 import TimetableSlotSelect from "@/features/academics/lesson-plans/components/TimetableSlotSelect";
@@ -640,29 +641,39 @@ export default function CreateHomeworkPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
-      <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
-        <div className="rounded-lg border border-border bg-white p-4 sm:p-6">
-          <div className="mb-6">
-            <h1 className="text-xl font-semibold text-gray-900">
+      <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+        <div className="space-y-6">
+          <div className="flex items-start gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary"><ClipboardList size={26} aria-hidden="true" /></span>
+            <div><h1 className="text-2xl font-semibold text-gray-900">
               {t("title")}
             </h1>
-            <p className="mt-1 text-sm text-gray-600">{t("description")}</p>
+            <p className="mt-2 text-sm leading-6 text-gray-600">{t("description")}</p></div>
           </div>
 
+          <div className="space-y-3">
+          <p className="flex items-center gap-2 text-sm font-semibold text-gray-800"><FileSpreadsheet size={18} className="text-primary" aria-hidden="true" />{tBatch("importContent")}</p>
+          <div className="[&>div]:my-0 [&>div]:rounded-xl [&>div]:border-primary-100 [&>div]:bg-primary-50/40 [&>div]:p-5 [&_button]:min-h-11 [&_button]:text-sm">
           <ExcelImportActions module="assignment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: effectiveDraft }} disabled={!canImport || isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} onApply={applyImport} onRemove={resetBatchImport} />
-          {pendingImport && <Checkbox label={tBatch("toggle")} description={!canView ? tBatch("permission") : undefined} checked={batchEnabled} onChange={event => setBatchEnabled(event.target.checked)} disabled={!canView || !canImport || isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className="mb-4" />}
+          </div>
+          {pendingImport && <Checkbox label={tBatch("toggle")} description={!canView ? tBatch("permission") : tBatch("toggleHelp")} checked={batchEnabled} onChange={event => setBatchEnabled(event.target.checked)} disabled={!canView || !canImport || isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className="bg-white" />}
+          </div>
           {importIssues.length > 0 && <ImportIssues issues={importIssues} />}
           {partialImport && <div role="alert" className="mb-4 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm">{tImport("messages.partialSave", { saved: partialImport.failedQuestionIndex, total: pendingImport?.questions.length ?? 0 })}</p>
             <Button variant="secondary" onClick={() => openImportedDraft(partialImport.homeworkId)}>{tImport("actions.openDraft")}</Button>
           </div>}
-          <fieldset disabled={isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className="grid gap-4 md:grid-cols-2">
+          <div className={batchEnabled && !batchState.hasStarted ? "grid items-start gap-6 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]" : "grid gap-6"}>
+          <details open={!batchState.hasStarted} className="group min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-base font-semibold text-gray-900 sm:p-6 [&::-webkit-details-marker]:hidden">
+              <span>{tBatch("assignmentDetails")}{batchState.hasStarted && <span className="mt-1 block text-sm font-normal text-gray-600">{draft.title}</span>}</span>
+              <ChevronDown size={20} aria-hidden="true" className="shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-gray-100 p-5 sm:p-6">
+          <fieldset disabled={isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className={batchEnabled ? "grid gap-5 md:grid-cols-2 xl:grid-cols-1 xl:[&>div]:col-span-1" : "grid gap-5 md:grid-cols-2"}>
             <div className="md:col-span-2">
-              <h2 className="text-sm font-semibold text-gray-900">
-                {t("sections.assignment")}
-              </h2>
               <p className="mt-1 text-sm text-gray-600">
-                {t("sections.assignmentDescription")}
+                {batchEnabled ? tBatch("detailsHelp") : t("sections.assignmentDescription")}
               </p>
             </div>
             <Input
@@ -748,7 +759,7 @@ export default function CreateHomeworkPage() {
                 {t("sections.schedule")}
               </h2>
               <p className="mt-1 text-sm text-gray-600">
-                {t("sections.scheduleDescription")}
+                {batchEnabled ? tBatch("dueHelp") : t("sections.scheduleDescription")}
               </p>
             </div>
             <DateTimePicker
@@ -980,10 +991,13 @@ export default function CreateHomeworkPage() {
               </div>
             )}
           </fieldset>}
+            </div>
+          </details>
 
           {batchEnabled && pendingImport && <HomeworkImportBatchPanel importedDraft={pendingImport} metadata={effectiveDraft} publishAt={draft.publishAt} academicYearId={academicYearId || ""} termId={termId || ""} termStart={selectedTerm?.startDate ?? ""} termEnd={selectedTerm?.endDate ?? ""} writable={canImport && canView && Boolean(academicYearId && termId)} initialSubjectId={selectedAllocation?.allocation.subjectId} initialClassroomId={selectedAllocation?.allocation.classroomId} onStateChange={updateBatchState} onReset={resetBatchImport} />}
+          </div>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-5">
             <Button
               variant="secondary"
               onClick={() => guardedNavigate(() => {
@@ -994,7 +1008,7 @@ export default function CreateHomeworkPage() {
               })}
               disabled={isSubmitting || batchState.isSaving}
             >
-              {t("actions.cancel")}
+              {batchState.hasStarted && !batchState.isSaving ? tBatch("backToAssignments") : t("actions.cancel")}
             </Button>
             {!batchEnabled && <Button onClick={() => void handleSubmit()} loading={isSubmitting} disabled={Boolean(partialImport) || Boolean(pendingImport && !canImport)}>
               {t("actions.createDraft")}

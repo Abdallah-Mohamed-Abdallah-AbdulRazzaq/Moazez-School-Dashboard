@@ -69,9 +69,10 @@ it("creates a grade batch with distinct allocations, locks the workbook and keep
   expect(screen.getByRole("button", { name: "Remove import" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Import Excel" })).toBeDisabled();
   expect(screen.getByRole("checkbox", { name: "Assign to multiple classes" })).toBeDisabled();
-  expect(screen.getByRole("textbox", { name: /^Title/ })).toBeDisabled();
-  await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled());
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.getByLabelText(/^Title/)).toBeDisabled();
+  const back = await screen.findByRole("button", { name: "Back to assignments" });
+  expect(back).toBeEnabled();
+  fireEvent.click(back);
   await waitFor(() => expect(boundary.push).toHaveBeenCalledTimes(1));
   expect(screen.queryByText(en.common.unsavedChangesTitle)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "New import" }));
@@ -101,8 +102,9 @@ it("retains a partially saved draft while continuing and opens only a later comp
   expect(window.open).toHaveBeenCalledTimes(1);
   expect(window.open).toHaveBeenCalledWith(expect.stringContaining("/parent-2?"), "_blank", "noopener,noreferrer");
   expect(boundary.replace).not.toHaveBeenCalled();
-  await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled());
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  const back = await screen.findByRole("button", { name: "Back to assignments" });
+  expect(back).toBeEnabled();
+  fireEvent.click(back);
   await screen.findByText(en.common.unsavedChangesTitle);
   expect(boundary.push).not.toHaveBeenCalled();
 });
@@ -131,7 +133,7 @@ it("freezes payloads and recovery URLs when dashboard context changes during sav
   boundary.context.termId = "10000000-0000-4000-8000-000000000098";
   boundary.context.isInitializing = true;
   view.rerender(pageElement());
-  expect(screen.getByRole("region", { name: "Review class targets" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Assignment creation results" })).toBeInTheDocument();
   releaseQuestion();
   await screen.findByText("2 of 2 assignments created");
   for (const [, payload] of vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments")) expect(payload).toMatchObject({ academicYearId: batchIds.year, termId: batchIds.term });

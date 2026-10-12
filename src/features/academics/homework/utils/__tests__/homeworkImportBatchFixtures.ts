@@ -37,6 +37,6 @@ export function batchHttpResponse(path: string, context: HomeworkBatchContext) {
   if (path.startsWith("/students-guardians/enrollments")) return context.enrollments;
   if (path.startsWith("/students-guardians/students")) return { items: context.enrollments.map(enrollment => ({ id: enrollment.studentId, full_name_en: "Student", student_id: "S1" })) };
   if (path.startsWith("/settings/roles")) return { items: [], pagination: { page: 1, limit: 100, total: 0 } };
-  if (path.endsWith("/all")) return { entries: [] };
+  if (path.endsWith("/all")) return { academicYearId: batchIds.year, termId: batchIds.term, publishedAt: null, isPublished: false, items: [] };
   throw new Error(`Unexpected GET ${path}`);
 }

@@ -50,7 +50,7 @@ it.each(["null return", "browser exception"])("preserves selected classes across
   expect(window.open).toHaveBeenCalledTimes(2);
   expect(window.open).toHaveBeenNthCalledWith(1, expect.stringContaining(`/parent-1?year=${batchIds.year}&term=${batchIds.term}`), "_blank", "noopener,noreferrer");
   expect(screen.getAllByRole("link", { name: /^Open assignment/ })).toHaveLength(2);
-  expect(onStateChange).toHaveBeenLastCalledWith({ hasStarted: true, isSaving: false, allCreated: true });
+  await waitFor(() => expect(onStateChange).toHaveBeenLastCalledWith({ hasStarted: true, isSaving: false, allCreated: true }));
 });
 
 it("blocks writes after refresh failure and preserves selections for a successful read-only retry", async () => {
@@ -76,7 +76,7 @@ it("requires another review after allocation ownership changes and creates only 
   fireEvent.click(screen.getByRole("button", { name: "Create 2 drafts" }));
   await screen.findByText("2 of 2 assignments created");
   expect(vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments")).toHaveLength(2);
-  expect(screen.getAllByText("Skipped")).toHaveLength(2);
+  expect(screen.getAllByText("No subject allocation for this class")).toHaveLength(2);
 });
 
 it("blocks creation after a required context read fails and allows a read-only retry", async () => {
