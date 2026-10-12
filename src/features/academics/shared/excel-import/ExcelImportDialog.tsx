@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { ChevronDown } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
@@ -55,7 +56,13 @@ export default function ExcelImportDialog(props: ExcelImportDialogProps) {
     <Button disabled={props.disabled || isParsing || validation?.kind !== "valid"} onClick={() => { if (validation?.kind === "valid") props.onApply(validation.draft); }}>{t("actions.apply")}</Button>
   </>}>
     <div className="space-y-4">
-      <DragDropUploadArea title={t("labels.dropWorkbook")} accept=".xlsx" multiple={false} maxSizeBytes={MAX_IMPORT_BYTES} disabled={props.disabled || isParsing} buttonLabel={t("actions.chooseFile")} onFilesSelected={selectWorkbook} helperText={t("labels.limits")} onError={() => setValidation(null)} />
+      <details open={validation?.kind !== "valid"} className="group rounded-2xl border border-gray-200 bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold text-gray-900 [&::-webkit-details-marker]:hidden">
+          <span>{t("labels.workbookFile")}{validation?.kind === "valid" && <span className="ms-2 text-xs font-normal text-gray-500">{t("actions.replaceFile")}</span>}</span>
+          <ChevronDown size={18} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-gray-100 p-4"><DragDropUploadArea title={t("labels.dropWorkbook")} accept=".xlsx" multiple={false} maxSizeBytes={MAX_IMPORT_BYTES} disabled={props.disabled || isParsing} buttonLabel={t("actions.chooseFile")} onFilesSelected={selectWorkbook} helperText={t("labels.limits")} onError={() => setValidation(null)} /></div>
+      </details>
       {isParsing && <p role="status" aria-live="polite">{t("labels.parsing")}</p>}
       {validation?.kind === "invalid" && <ImportIssues issues={validation.issues} />}
       {validation?.kind === "valid" && <ExcelImportPreview draft={validation.draft} warnings={validation.warnings} />}

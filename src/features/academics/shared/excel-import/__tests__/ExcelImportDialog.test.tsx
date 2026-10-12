@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 vi.unmock("next-intl");
 import { NextIntlClientProvider } from "next-intl";
@@ -51,4 +51,33 @@ it.each(["unsupported", "oversized"])("rejects an %s replacement dropped on the 
   expect(screen.queryByText("Is 2 even?")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Apply import" })).toBeDisabled();
   expect(onApply).not.toHaveBeenCalled();
+});
+
+it("reviews questions as paginated cards without losing questions when applying", async () => {
+  const onApply = vi.fn();
+  const workbook = await fixtureWorkbook();
+  for (let number = 2; number <= 12; number++) setSheetRow(workbook.getWorksheet("Questions")!, number + 1, { questionNumber: number, questionType: "TRUE_FALSE", questionText: `Prompt ${number}`, points: 1, correctAnswer: false });
+  render(<NextIntlClientProvider locale="en" messages={en}><ExcelImportDialog isOpen module="assignment" context={fixtureContext} disabled={false} onClose={vi.fn()} onApply={onApply} /></NextIntlClientProvider>);
+  fireEvent.change(screen.getByLabelText("Choose Excel file"), { target: { files: [await workbookFile(workbook)] } });
+  const card = await screen.findByRole("article", { name: "Question 1" });
+  expect(within(card).getByText("Is 2 even?")).toBeInTheDocument();
+  expect(within(card).getByText("False")).toBeInTheDocument();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.getAllByRole("article")).toHaveLength(10);
+  expect(screen.getByRole("button", { name: "Previous questions" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Next questions" }));
+  expect(screen.getByRole("article", { name: "Question 11" })).toHaveTextContent("Prompt 11");
+  expect(screen.getAllByRole("article")).toHaveLength(2);
+  expect(screen.getByRole("button", { name: "Next questions" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Apply import" }));
+  expect(onApply.mock.calls[0][0].questions).toHaveLength(12);
+});
+
+it("retains bilingual assessment prompts and false answers in Arabic cards", async () => {
+  render(<NextIntlClientProvider locale="ar" messages={ar}><ExcelImportDialog isOpen module="assessment" context={fixtureContext} disabled={false} onClose={vi.fn()} onApply={vi.fn()} /></NextIntlClientProvider>);
+  fireEvent.change(screen.getByLabelText("اختر ملف Excel"), { target: { files: [await workbookFile(await fixtureWorkbook("assessment"))] } });
+  const card = await screen.findByRole("article", { name: "السؤال 1" });
+  expect(within(card).getByText("هل ٢ زوجي؟")).toBeInTheDocument();
+  expect(within(card).getByText("Is 2 even?")).toBeInTheDocument();
+  expect(within(card).getByText(ar.academics.excelImport.labels.false)).toBeInTheDocument();
 });
