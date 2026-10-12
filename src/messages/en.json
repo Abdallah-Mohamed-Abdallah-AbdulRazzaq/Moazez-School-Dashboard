@@ -14408,6 +14408,24 @@
   },
   "academic_content": {
     "reference_details": {
+      "scope": "Academic scope",
+      "weight": "Weight",
+      "delivery": "Grading method",
+      "grading_lock": "Grading",
+      "locked": "Locked",
+      "unlocked": "Unlocked",
+      "scope_types": {
+        "school": "Whole school",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom"
+      },
+      "delivery_modes": {
+        "SCORE_ONLY": "Scores only",
+        "QUESTION_BASED": "Question-based"
+      },
+
       "assessment_hint": "Draft, published, and approved assessments can be linked. Linking an assessment does not publish it.",
       "classroom": "Class",
       "statuses": {

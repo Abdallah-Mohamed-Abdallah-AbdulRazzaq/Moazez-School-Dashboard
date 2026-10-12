@@ -11,7 +11,6 @@ import {
 import { listHomeworkAssignments } from "@/features/academics/homework/services/homeworkService";
 import type { HomeworkAssignmentUiModel } from "@/features/academics/homework/services/homeworkApi.types";
 import { fetchAssessments } from "@/features/grades/overview/services/gradesOverviewService";
-import type { Assessment } from "@/features/grades/shared/types";
 import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
 import { listEntries } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type { BackendTimetableEntryDto } from "@/features/academics/timetable/services/timetableApiTypes";
@@ -24,12 +23,16 @@ import {
   academicReferenceMatcher,
   assessmentReferenceScope,
 } from "./academicContentReferenceScope";
+import {
+  withAssessmentReferenceNames,
+  type AcademicContentAssessmentReference,
+} from "./academicContentAssessmentReference";
 
 export interface AcademicContentDetailOptions {
   curricula: Curriculum[];
   lessonPlans: LessonPlan[];
   homeworkAssignments: HomeworkAssignmentUiModel[];
-  assessments: Assessment[];
+  assessments: AcademicContentAssessmentReference[];
   timetableEntries: BackendTimetableEntryDto[];
 }
 
@@ -143,9 +146,9 @@ export async function loadAcademicContentDetailOptions(
         subjectId: homework.subjectId,
       }),
     ),
-    assessments: assessments.filter((assessment) =>
-      matchesTarget(assessmentReferenceScope(assessment)),
-    ),
+    assessments: assessments
+      .filter((assessment) => matchesTarget(assessmentReferenceScope(assessment)))
+      .map((assessment) => withAssessmentReferenceNames(assessment, targetOptions)),
     timetableEntries: timetableEntries.filter((entry) =>
       matchesTarget({
         scopeType: "CLASSROOM",

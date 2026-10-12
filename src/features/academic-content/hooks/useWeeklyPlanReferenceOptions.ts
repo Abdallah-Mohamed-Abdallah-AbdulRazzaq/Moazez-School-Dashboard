@@ -2,7 +2,7 @@
 
 import { useLocale } from "next-intl";
 import type { HomeworkAssignmentUiModel } from "@/features/academics/homework/services/homeworkApi.types";
-import type { Assessment } from "@/features/grades/shared/types";
+import type { AcademicContentAssessmentReference, AssessmentReferenceNames } from "../services/academicContentAssessmentReference";
 import { useAcademicContentTranslations } from "./useAcademicContentTranslations";
 
 function referenceDescription(fields: Array<[string, string | number | null | undefined]>) {
@@ -14,7 +14,7 @@ function referenceDescription(fields: Array<[string, string | number | null | un
 
 export function useWeeklyPlanReferenceOptions(options: {
   homeworkAssignments: HomeworkAssignmentUiModel[];
-  assessments: Assessment[];
+  assessments: AcademicContentAssessmentReference[];
 }) {
   const locale = useLocale();
   const t = useAcademicContentTranslations("reference_details");
@@ -23,6 +23,9 @@ export function useWeeklyPlanReferenceOptions(options: {
   });
   const dateLabel = (date: string) =>
     dateFormatter.format(new Date(date.length === 10 ? `${date}T00:00:00` : date));
+  const nameLabel = (reference?: AssessmentReferenceNames) => reference
+    ? (locale === "ar" ? reference.nameAr : reference.nameEn) || reference.name
+    : undefined;
 
   const homeworkAssignments = options.homeworkAssignments
     .filter(({ status }) => status === "draft" || status === "published")
@@ -43,11 +46,18 @@ export function useWeeklyPlanReferenceOptions(options: {
       value: assessment.id,
       label: locale === "ar" ? assessment.titleAr || assessment.title : assessment.title,
       description: referenceDescription([
+        [t("subject"), nameLabel(assessment.subject)],
+        [t("scope"), [t(`scope_types.${assessment.scopeType}`),
+          (assessment.scopeNames ?? []).map(nameLabel).filter(Boolean).join(" / "),
+        ].filter(Boolean).join(": ")],
         [t("type"), t(`assessment_types.${assessment.type}`)],
         [t("date"), assessment.date ? dateLabel(assessment.date) : null],
         [t("status"), t(`statuses.${assessment.approvalStatus}`)],
         [t("marks"), assessment.maxScore],
         [t("duration"), assessment.expectedTimeMinutes],
+        [t("weight"), `${assessment.weight}%`],
+        [t("delivery"), t(`delivery_modes.${assessment.deliveryMode}`)],
+        [t("grading_lock"), t(assessment.isLocked ? "locked" : "unlocked")],
       ]),
     }));
 

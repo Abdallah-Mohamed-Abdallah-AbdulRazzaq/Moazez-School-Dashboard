@@ -5,6 +5,8 @@ import type { HomeworkAssignmentUiModel } from "@/features/academics/homework/se
 import type { Assessment } from "@/features/grades/shared/types";
 import { ReferenceChecklist } from "../../components/editor/details/AcademicReferenceFields";
 import { useWeeklyPlanReferenceOptions } from "../useWeeklyPlanReferenceOptions";
+import { withAssessmentReferenceNames } from "../../services/academicContentAssessmentReference";
+import { referenceTargetOptions } from "../../services/__tests__/academicContentReferenceScope.fixture";
 
 const homework: HomeworkAssignmentUiModel = {
   id: "homework-1", title: "Fractions", mode: "homework", status: "published",
@@ -14,10 +16,14 @@ const homework: HomeworkAssignmentUiModel = {
 };
 const assessment: Assessment = {
   id: "assessment-1", termId: "term-1", subjectId: "subject-1",
-  scopeType: "classroom", scopeId: "classroom-1", title: "Fractions",
+  scopeType: "classroom", scopeId: "class-1", title: "Fractions",
   titleAr: "الكسور", type: "QUIZ", deliveryMode: "SCORE_ONLY",
   date: "2026-10-16", weight: 10, maxScore: 20, expectedTimeMinutes: 30,
   isLocked: false, approvalStatus: "draft",
+};
+const assessmentContext = {
+  ...referenceTargetOptions,
+  subjects: [{ id: "subject-1", name: "Mathematics", nameEn: "Mathematics", nameAr: "الرياضيات", code: "MATH", color: null, isActive: true }],
 };
 
 function ReferenceOptions({ sparse = false }: { sparse?: boolean }) {
@@ -26,7 +32,7 @@ function ReferenceOptions({ sparse = false }: { sparse?: boolean }) {
     homeworkAssignments: [sparse ? { ...homework, subjectName: undefined,
       classroomName: undefined, teacherName: undefined, dueAt: undefined,
       isGraded: false } : homework],
-    assessments: [assessment],
+    assessments: [withAssessmentReferenceNames(assessment, assessmentContext)],
   });
   return <ReferenceChecklist label="References" values={selected}
     options={[...options.homeworkAssignments, ...options.assessments]}
@@ -64,7 +70,7 @@ describe("weekly plan reference details", () => {
       "Subject: Mathematics · Class: 4A · Teacher: Ahmed · Due: Oct 15, 2026 · Status: Published · Maximum marks: 0",
     );
     expect(assessmentCheckbox).toHaveAccessibleDescription(
-      "Type: Quiz · Date: Oct 16, 2026 · Status: Draft · Maximum marks: 20 · Duration (minutes): 30",
+      "Subject: Mathematics · Academic scope: Classroom: Stage 1 / Grade 1 / Section 1 / Class 1 · Type: Quiz · Date: Oct 16, 2026 · Status: Draft · Maximum marks: 20 · Duration (minutes): 30 · Weight: 10% · Grading method: Scores only · Grading: Unlocked",
     );
     fireEvent.click(assessmentCheckbox);
     expect(assessmentCheckbox).toBeChecked();
@@ -75,5 +81,19 @@ describe("weekly plan reference details", () => {
     render(<ReferenceOptions sparse />);
     expect(screen.getAllByRole("checkbox", { name: "Fractions" })[0]).toHaveAccessibleDescription("Status: Published");
     expect(screen.queryByText(/homework-1|subject-1|classroom-1/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["school", "school-1", "Whole school"],
+    ["stage", "stage-1", "Stage: Stage 1"],
+    ["grade", "grade-1", "Grade: Stage 1 / Grade 1"],
+    ["section", "section-1", "Section: Stage 1 / Grade 1 / Section 1"],
+    ["classroom", "class-1", "Classroom: Stage 1 / Grade 1 / Section 1 / Class 1"],
+  ] as const)("shows the named academic scope for a %s assessment", (scopeType, scopeId, expectedScope) => {
+    const { result } = renderHook(() => useWeeklyPlanReferenceOptions({
+      homeworkAssignments: [],
+      assessments: [withAssessmentReferenceNames({ ...assessment, scopeType, scopeId }, assessmentContext)],
+    }));
+    expect(result.current.assessments[0].description).toContain(`Academic scope: ${expectedScope}`);
   });
 });

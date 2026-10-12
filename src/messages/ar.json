@@ -14399,6 +14399,24 @@
   },
   "academic_content": {
     "reference_details": {
+      "scope": "النطاق الأكاديمي",
+      "weight": "الوزن",
+      "delivery": "طريقة التقييم",
+      "grading_lock": "الدرجات",
+      "locked": "مقفلة",
+      "unlocked": "غير مقفلة",
+      "scope_types": {
+        "school": "المدرسة بالكامل",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل"
+      },
+      "delivery_modes": {
+        "SCORE_ONLY": "درجات فقط",
+        "QUESTION_BASED": "قائم على الأسئلة"
+      },
+
       "assessment_hint": "يمكن ربط التقييمات المسودة والمنشورة والمعتمدة. ربط التقييم لا يؤدي إلى نشره.",
       "classroom": "الفصل",
       "statuses": {

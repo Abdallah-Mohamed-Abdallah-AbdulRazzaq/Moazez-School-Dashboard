@@ -94,7 +94,7 @@ export function ReferenceChecklist({
       {displayedOptions.length === 0 ? (
         <p className="text-sm text-gray-500">{t("no_references")}</p>
       ) : (
-        <div className="max-h-48 space-y-2 overflow-y-auto">
+        <div className="max-h-80 space-y-2 overflow-y-auto">
           {displayedOptions.map((option) => {
             const checked = selectedValues.has(option.value);
             return (
