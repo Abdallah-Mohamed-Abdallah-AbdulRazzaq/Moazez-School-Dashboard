@@ -28,7 +28,7 @@ const content = {
   tags: [],
   details: {
     weekStartDate: "2026-10-05",
-    weekEndDate: "2026-10-09",
+    weekEndDate: "2026-10-11",
     objectives: [],
     topics: [],
     expectedHomework: null,
@@ -51,7 +51,8 @@ const targets: TeacherPreparationTargetDisplay[] = [
 describe("weekly plan detail chrome", () => {
   it("shows saved contract context and preserves the weekly plans query", () => {
     render(
-      <WeeklyPlanHeader content={content} locale="en" targets={targets} />,
+      <WeeklyPlanHeader content={content} locale="en" targets={targets}
+        termBounds={{ startDate: "2026-10-05", endDate: "2026-10-17" }} />,
     );
 
     expect(
@@ -66,6 +67,7 @@ describe("weekly plan detail chrome", () => {
     expect(screen.getByText("Science")).toBeVisible();
     expect(screen.getByText("Grade 5 - B")).toBeVisible();
     expect(screen.getByText("Students")).toBeVisible();
+    expect(screen.getByText(/Week 1 · Oct 5/)).toHaveTextContent(/11$/);
   });
 
   it("shows the contract fallback when week dates are unavailable", () => {

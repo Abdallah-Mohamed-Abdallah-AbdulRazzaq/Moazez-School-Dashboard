@@ -3,7 +3,7 @@
 import { useLocale } from "next-intl";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
-import { calculateTermWeeks } from "../../model/termWeeks";
+import { calculateTermWeeks, formatTermWeekRange } from "../../model/termWeeks";
 import type { WeeklyPlanTermBounds } from "../../model/weeklyPlanDetail";
 
 interface TermWeekSelectProps {
@@ -13,20 +13,6 @@ interface TermWeekSelectProps {
   disabled?: boolean;
   allLabel?: string;
   onChange: (range: WeeklyPlanTermBounds) => void;
-}
-
-function weekDateRange(range: WeeklyPlanTermBounds, locale: string): string {
-  const formatter = new Intl.DateTimeFormat(locale, {
-    month: "short",
-    day: "numeric",
-    year: range.startDate.slice(0, 4) !== range.endDate.slice(0, 4) ? "numeric" : undefined,
-    timeZone: "UTC",
-  });
-  const start = range.startDate ? new Date(`${range.startDate}T00:00:00Z`) : null;
-  const end = range.endDate ? new Date(`${range.endDate}T00:00:00Z`) : null;
-  return start && end && start <= end
-    ? formatter.formatRange(start, end)
-    : `${start ? formatter.format(start) : "…"} – ${end ? formatter.format(end) : "…"}`;
 }
 
 export default function TermWeekSelect(props: TermWeekSelectProps) {
@@ -39,12 +25,12 @@ export default function TermWeekSelect(props: TermWeekSelectProps) {
   const hasCustomRange = !selectedWeek && Boolean(props.startDate || props.endDate);
   const options: SelectOption[] = weeks.map((week) => ({
     value: week.startDate,
-    label: `${t("week_number", { number: week.number })} · ${weekDateRange(week, locale)}`,
+    label: `${t("week_number", { number: week.number })} · ${formatTermWeekRange(week, locale)}`,
   }));
   if (props.allLabel) options.unshift({ value: "", label: props.allLabel });
   if (hasCustomRange) options.push({
     value: "custom",
-    label: `${t("custom_period")} · ${weekDateRange(props, locale)}`,
+    label: `${t("custom_period")} · ${formatTermWeekRange(props, locale)}`,
     disabled: true,
   });
 

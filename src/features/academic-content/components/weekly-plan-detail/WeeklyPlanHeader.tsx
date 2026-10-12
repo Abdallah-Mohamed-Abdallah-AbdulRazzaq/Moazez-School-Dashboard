@@ -15,6 +15,8 @@ import type { AcademicContentDetail } from "../../types/contracts";
 import AcademicContentStatusBadge from "../library/AcademicContentStatusBadge";
 import { academicContentOverviewHref } from "../overview/overviewRoutes";
 import PublicationStatusBadge from "../publication/PublicationStatusBadge";
+import TermWeekLabel from "../weekly-plans/TermWeekLabel";
+import type { WeeklyPlanTermBounds } from "../../model/weeklyPlanDetail";
 
 type WeeklyPlanContent = Extract<
   AcademicContentDetail,
@@ -26,6 +28,7 @@ interface WeeklyPlanHeaderProps {
   locale: string;
   targets: readonly TeacherPreparationTargetDisplay[];
   lifecycleActions?: ReactNode;
+  termBounds?: WeeklyPlanTermBounds;
 }
 
 function uniqueLabels(labels: Array<string | null>): string[] {
@@ -34,16 +37,7 @@ function uniqueLabels(labels: Array<string | null>): string[] {
   ];
 }
 
-function formatDateOnly(
-  value: string | undefined,
-  formatter: Intl.DateTimeFormat,
-): string | null {
-  if (!value) return null;
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : formatter.format(date);
-}
-
-function SummaryCell({ icon, label }: { icon: ReactNode; label: string }) {
+function SummaryCell({ icon, label }: { icon: ReactNode; label: ReactNode }) {
   return (
     <div className="flex min-w-0 items-center gap-3 border-e border-gray-200 px-4 py-3 last:border-e-0">
       <span className="shrink-0 text-primary">{icon}</span>
@@ -59,17 +53,21 @@ export default function WeeklyPlanHeader({
   locale,
   targets,
   lifecycleActions,
+  termBounds,
 }: WeeklyPlanHeaderProps) {
   const t = useAcademicContentTranslations("weekly_plan_detail.header");
   const commonT = useAcademicContentTranslations();
   const details = content.details;
   const subjects = uniqueLabels(targets.map(({ subject }) => subject));
   const scopes = uniqueLabels(targets.map(({ scope }) => scope));
-  const formatter = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
-  const weekStart = formatDateOnly(details?.weekStartDate, formatter);
-  const weekEnd = formatDateOnly(details?.weekEndDate, formatter);
   const weekLabel =
-    weekStart && weekEnd ? `${weekStart} – ${weekEnd}` : t("week_not_set");
+    details?.weekStartDate && details.weekEndDate ? (
+      <TermWeekLabel
+        range={{ startDate: details.weekStartDate, endDate: details.weekEndDate }}
+        termBounds={termBounds}
+        locale={locale}
+      />
+    ) : t("week_not_set");
   const backHref = academicContentOverviewHref({
     locale,
     routeSuffix: "/weekly-plans",

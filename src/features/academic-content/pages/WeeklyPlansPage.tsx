@@ -68,6 +68,9 @@ export default function WeeklyPlansPage() {
       />
       <WeeklyPlanResults
         items={weeklyPlans.items}
+        termBounds={selectedTerm?.id === termId
+          ? { startDate: selectedTerm.startDate, endDate: selectedTerm.endDate }
+          : undefined}
         page={weeklyPlans.filters.page}
         limit={weeklyPlans.filters.limit}
         total={weeklyPlans.total}

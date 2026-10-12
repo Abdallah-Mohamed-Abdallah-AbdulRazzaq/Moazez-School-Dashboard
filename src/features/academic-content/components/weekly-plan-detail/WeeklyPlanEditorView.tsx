@@ -263,6 +263,7 @@ export default function WeeklyPlanEditorView({
       ) : null}
       <WeeklyPlanHeader
         content={content}
+        termBounds={termBounds}
         locale={locale}
         targets={targets}
         lifecycleActions={
