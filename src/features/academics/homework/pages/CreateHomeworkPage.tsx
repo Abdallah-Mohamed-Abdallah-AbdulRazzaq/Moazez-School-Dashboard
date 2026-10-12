@@ -670,7 +670,8 @@ export default function CreateHomeworkPage() {
               <ChevronDown size={20} aria-hidden="true" className="shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
             </summary>
             <div className="border-t border-gray-100 p-5 sm:p-6">
-          <fieldset disabled={isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className={batchEnabled ? "grid gap-5 md:grid-cols-2 xl:grid-cols-1 xl:[&>div]:col-span-1" : "grid gap-5 md:grid-cols-2"}>
+          {/* Unlayered form styles must not expand inputs beyond their grid columns. */}
+          <fieldset disabled={isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className={`grid min-w-0 gap-5 [&>div]:min-w-0 [&_input]:box-border! [&_input]:min-w-0! [&_input]:max-w-full! ${batchEnabled ? "md:grid-cols-2 xl:grid-cols-1 xl:[&>div]:col-span-1" : "md:grid-cols-2"}`}>
             <div className="md:col-span-2">
               <p className="mt-1 text-sm text-gray-600">
                 {batchEnabled ? tBatch("detailsHelp") : t("sections.assignmentDescription")}
