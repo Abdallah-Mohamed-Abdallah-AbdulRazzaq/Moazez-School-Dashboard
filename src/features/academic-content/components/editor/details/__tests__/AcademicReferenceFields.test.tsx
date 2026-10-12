@@ -29,6 +29,7 @@ describe("AcademicReferenceFields", () => {
     expect(screen.getAllByText("Unavailable reference")).toHaveLength(2);
     expect(screen.queryByText("curriculum-uuid")).not.toBeInTheDocument();
     expect(screen.queryByText("homework-uuid")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("explains when reference options depend on saved academic targets", () => {

@@ -18,6 +18,7 @@ import {
 } from "./academicContentAssessmentReference";
 
 export interface WeeklyPlanDetailOptions {
+  referenceContext?: Pick<AcademicContentDetail, "academicYearId" | "termId">;
   homeworkAssignments: HomeworkAssignmentUiModel[];
   assessments: AcademicContentAssessmentReference[];
   errors: {
@@ -68,6 +69,7 @@ export async function loadWeeklyPlanDetailOptions(
   };
 
   return {
+    referenceContext: { academicYearId: content.academicYearId, termId: content.termId },
     homeworkAssignments:
       homeworkResponse.status === "fulfilled"
         ? homeworkResponse.value.items.filter((homework) =>

@@ -84,6 +84,8 @@ describe("loadWeeklyPlanDetailOptions", () => {
   it("loads compatible weekly plan homework and assessment references", async () => {
     const options = await loadWeeklyPlanDetailOptions(content);
 
+    expect(options.referenceContext).toEqual({ academicYearId: "year-1", termId: "term-1" });
+
     expect(mocks.listHomeworkAssignments).toHaveBeenCalledWith({
       academicYearId: "year-1",
       termId: "term-1",

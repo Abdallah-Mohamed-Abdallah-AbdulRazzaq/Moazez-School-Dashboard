@@ -9,12 +9,14 @@ import { withAssessmentReferenceNames } from "../../services/academicContentAsse
 import { referenceTargetOptions } from "../../services/__tests__/academicContentReferenceScope.fixture";
 
 const homework: HomeworkAssignmentUiModel = {
+  academicYearId: "year-1", termId: "term-1",
   id: "homework-1", title: "Fractions", mode: "homework", status: "published",
   targetMode: "classroom", totalMarks: 0, isGraded: true, questionCount: 2,
   attachmentCount: 0, subjectName: "Mathematics", classroomName: "4A",
   teacherName: "Ahmed", dueAt: "2026-10-15T12:00:00Z",
 };
 const assessment: Assessment = {
+  academicYearId: "year-1",
   id: "assessment-1", termId: "term-1", subjectId: "subject-1",
   scopeType: "classroom", scopeId: "class-1", title: "Fractions",
   titleAr: "الكسور", type: "QUIZ", deliveryMode: "SCORE_ONLY",
@@ -26,7 +28,7 @@ const assessmentContext = {
   subjects: [{ id: "subject-1", name: "Mathematics", nameEn: "Mathematics", nameAr: "الرياضيات", code: "MATH", color: null, isActive: true }],
 };
 
-function ReferenceOptions({ sparse = false }: { sparse?: boolean }) {
+function ReferenceOptions({ sparse = false, disabled = false }: { sparse?: boolean; disabled?: boolean }) {
   const [selected, setSelected] = useState<string[]>([]);
   const options = useWeeklyPlanReferenceOptions({
     homeworkAssignments: [sparse ? { ...homework, subjectName: undefined,
@@ -36,10 +38,35 @@ function ReferenceOptions({ sparse = false }: { sparse?: boolean }) {
   });
   return <ReferenceChecklist label="References" values={selected}
     options={[...options.homeworkAssignments, ...options.assessments]}
-    disabled={false} onChange={setSelected} />;
+    disabled={disabled} onChange={setSelected} />;
 }
 
 describe("weekly plan reference details", () => {
+  it.each([false, true])("offers new-tab links without changing selection when read-only=%s", (disabled) => {
+    render(<ReferenceOptions disabled={disabled} />);
+    const [homeworkLink, assessmentLink] = screen.getAllByRole("link", { name: "Open Fractions in a new tab" });
+    expect(homeworkLink).toHaveAttribute("href", "/en/academics/homework/homework-1?year=year-1&term=term-1");
+    expect(assessmentLink).toHaveAttribute("href", "/en/grades/assessments?year=year-1&term=term-1&scopeType=classroom&scopeId=class-1&subjectId=subject-1&assessmentId=assessment-1#assessment-assessment-1");
+    for (const link of [homeworkLink, assessmentLink]) {
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      fireEvent.click(link);
+    }
+    screen.getAllByRole("checkbox").forEach((checkbox) => expect(checkbox).not.toBeChecked());
+  });
+
+  it("uses the content context for references without their own year and term", () => {
+    const { result } = renderHook(() => useWeeklyPlanReferenceOptions({
+      referenceContext: { academicYearId: "content-year", termId: "content-term" },
+      homeworkAssignments: [{ ...homework, academicYearId: undefined, termId: undefined }],
+      assessments: [{ ...assessment, academicYearId: undefined }],
+    }));
+    expect(result.current.homeworkAssignments[0].href).toBe("/en/academics/homework/homework-1?year=content-year&term=content-term");
+    const assessmentUrl = new URL(result.current.assessments[0].href, "https://dashboard.example");
+    expect(assessmentUrl.searchParams.get("year")).toBe("content-year");
+    expect(assessmentUrl.searchParams.get("term")).toBe("term-1");
+  });
+
   it("offers draft and published homework and includes approved assessments", () => {
     const homeworkStatuses: HomeworkAssignmentUiModel["status"][] = [
       "draft", "published", "closed", "cancelled", "archived",
@@ -95,5 +122,8 @@ describe("weekly plan reference details", () => {
       assessments: [withAssessmentReferenceNames({ ...assessment, scopeType, scopeId }, assessmentContext)],
     }));
     expect(result.current.assessments[0].description).toContain(`Academic scope: ${expectedScope}`);
+    const assessmentUrl = new URL(result.current.assessments[0].href, "https://dashboard.example");
+    expect(assessmentUrl.searchParams.get("scopeType")).toBe(scopeType);
+    expect(assessmentUrl.searchParams.get("scopeId")).toBe(scopeType === "school" ? "" : scopeId);
   });
 });

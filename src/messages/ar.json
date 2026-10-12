@@ -14399,6 +14399,8 @@
   },
   "academic_content": {
     "reference_details": {
+      "open": "فتح",
+      "open_reference": "فتح {title} في تبويب جديد",
       "scope": "النطاق الأكاديمي",
       "weight": "الوزن",
       "delivery": "طريقة التقييم",

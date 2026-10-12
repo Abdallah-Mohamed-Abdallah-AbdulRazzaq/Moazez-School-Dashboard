@@ -29,6 +29,7 @@ import {
 } from "./academicContentAssessmentReference";
 
 export interface AcademicContentDetailOptions {
+  referenceContext?: Pick<AcademicContentDetail, "academicYearId" | "termId">;
   curricula: Curriculum[];
   lessonPlans: LessonPlan[];
   homeworkAssignments: HomeworkAssignmentUiModel[];
@@ -137,6 +138,7 @@ export async function loadAcademicContentDetailOptions(
   );
 
   return {
+    referenceContext: { academicYearId: content.academicYearId, termId: content.termId },
     curricula,
     lessonPlans,
     homeworkAssignments: homeworkResult.items.filter((homework) =>

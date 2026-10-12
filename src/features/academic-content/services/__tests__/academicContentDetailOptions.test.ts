@@ -131,6 +131,8 @@ describe("academicContentDetailOptions", () => {
   it("composes only authoritative existing references for the content context", async () => {
     const options = await loadAcademicContentDetailOptions(content);
 
+    expect(options.referenceContext).toEqual({ academicYearId: "year-1", termId: "term-1" });
+
     expect(mocks.listCurricula).toHaveBeenCalledWith({
       academicYearId: "year-1",
       termId: "term-1",

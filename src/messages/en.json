@@ -14408,6 +14408,8 @@
   },
   "academic_content": {
     "reference_details": {
+      "open": "Open",
+      "open_reference": "Open {title} in a new tab",
       "scope": "Academic scope",
       "weight": "Weight",
       "delivery": "Grading method",
