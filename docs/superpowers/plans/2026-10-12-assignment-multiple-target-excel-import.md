@@ -301,3 +301,8 @@ Integrate with the existing hook invocation, not an additional call with the sam
 
 - Scoped the details grid's child widths and input border-box sizing to prevent number fields from expanding into neighbouring columns. Important sizing utilities protect this form against unlayered content-box overrides; the shared Input component and save behavior are unchanged.
 - Ten existing assignment Create/import workflow tests passed across three files. Typecheck, scoped lint, production build, and diff checks passed. Browser geometry checks found no overlap in editable or reopened saved details in English/Arabic at 375/768/1024/1440 pixels, including a simulated unlayered content-box stylesheet. Full tests remain unrun.
+
+### Dropdown sizing follow-up
+
+- Extended the scoped width protections to shared Select triggers in assignment details and batch targeting. Grid children can shrink without long labels expanding their columns. Portal menus and selection/save behavior remain unchanged; no shared UI component was modified.
+- Fifteen existing tests passed across the four affected assignment Create/import and batch-panel test files. Scoped lint, typecheck, production build, and diff checks passed. The synthetic Chrome harness verified all visible manual and batch dropdown triggers stayed within their containers in English/Arabic at 375/768/1024/1440 pixels, including an unlayered content-box override. Allocation and target selections, two draft saves, and editor links remained functional; no page overflow or runtime errors were observed. Clean Code Guard and documentation checks completed. Full tests remain unrun by user preference.
