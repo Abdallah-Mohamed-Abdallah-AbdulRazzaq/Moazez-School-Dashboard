@@ -1,5 +1,5 @@
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
-import type { CreateHomeworkAssignmentRequest } from "./homeworkApi.types";
+import type { CreateHomeworkAssignmentRequest, HomeworkAssignmentUiModel } from "./homeworkApi.types";
 import { createHomeworkAssignment, createHomeworkQuestion } from "./homeworkService";
 
 export class HomeworkImportQuestionSaveError extends Error {
@@ -9,11 +9,11 @@ export class HomeworkImportQuestionSaveError extends Error {
   }
 }
 
-export async function createHomeworkFromImport(request: { assignment: CreateHomeworkAssignmentRequest; questions: AssignmentQuestion[] }): Promise<{ id: string }> {
+export async function createHomeworkFromImport(request: { assignment: CreateHomeworkAssignmentRequest; questions: AssignmentQuestion[] }): Promise<HomeworkAssignmentUiModel> {
   const createdAssignment = await createHomeworkAssignment(request.assignment);
   for (const [questionIndex, question] of request.questions.entries()) {
     try { await createHomeworkQuestion(createdAssignment.id, question); }
     catch (cause) { throw new HomeworkImportQuestionSaveError(createdAssignment.id, questionIndex, cause); }
   }
-  return { id: createdAssignment.id };
+  return createdAssignment;
 }

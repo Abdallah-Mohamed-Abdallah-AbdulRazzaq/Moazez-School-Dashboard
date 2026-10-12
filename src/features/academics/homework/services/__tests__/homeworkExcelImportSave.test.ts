@@ -11,8 +11,8 @@ const post = vi.mocked(apiPost);
 beforeEach(() => post.mockReset());
 
 it("creates one parent and saves ordered questions through the real mapper", async () => {
-  post.mockResolvedValueOnce({ id: parentId }).mockResolvedValueOnce({ question: { questionId: "q-1", homeworkId: parentId, type: "TRUE_FALSE", prompt: "Question", points: 2, sortOrder: 1, options: [] } });
-  expect(await createHomeworkFromImport({ assignment, questions: [question] })).toEqual({ id: parentId });
+  post.mockResolvedValueOnce({ id: parentId, teacherUserId: "server-teacher", teacher: { fullName: "Server Teacher" } }).mockResolvedValueOnce({ question: { questionId: "q-1", homeworkId: parentId, type: "TRUE_FALSE", prompt: "Question", points: 2, sortOrder: 1, options: [] } });
+  expect(await createHomeworkFromImport({ assignment, questions: [question] })).toMatchObject({ id: parentId, teacherUserId: "server-teacher", teacherName: "Server Teacher" });
   expect(post).toHaveBeenNthCalledWith(2, `/homework/assignments/${parentId}/questions`, expect.objectContaining({ type: "TRUE_FALSE", prompt: "Question", sortOrder: 1, options: [{ text: "True", isCorrect: false, sortOrder: 0 }, { text: "False", isCorrect: true, sortOrder: 1 }] }));
 });
 it("retains a partial parent and stops on a second-question failure", async () => {
