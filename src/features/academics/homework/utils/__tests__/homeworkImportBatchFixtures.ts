@@ -30,3 +30,13 @@ export function batchContext(): HomeworkBatchContext {
     enrollments: classrooms.map((classroomId, index) => ({ id: uuid(80 + index), enrollmentId: uuid(80 + index), studentId: uuid(70 + index), academicYearId: ids.year, academicYear: "2099", grade: "Grade", section: "Section", classroomId, enrollmentDate: "2099-01-01", status: "active" })),
   };
 }
+
+export function batchHttpResponse(path: string, context: HomeworkBatchContext) {
+  if (path === "/academics/subjects") return context.subjects;
+  if (path === "/academics/allocations") return { items: context.allocations.map(allocation => ({ id: allocation.id, term: { id: allocation.termId }, classroom: { id: allocation.classroomId, sectionId: allocation.sectionId }, subject: { id: allocation.subjectId }, teacher: allocation.teacherId ? { id: allocation.teacherId, fullName: allocation.teacherName } : null })) };
+  if (path.startsWith("/students-guardians/enrollments")) return context.enrollments;
+  if (path.startsWith("/students-guardians/students")) return { items: context.enrollments.map(enrollment => ({ id: enrollment.studentId, full_name_en: "Student", student_id: "S1" })) };
+  if (path.startsWith("/settings/roles")) return { items: [], pagination: { page: 1, limit: 100, total: 0 } };
+  if (path.endsWith("/all")) return { entries: [] };
+  throw new Error(`Unexpected GET ${path}`);
+}

@@ -10,12 +10,12 @@ export type HomeworkBatchSelection =
   | { type: "school" };
 export type HomeworkBatchSkip = "missingClass" | "missingAllocation" | "missingTeacher"
   | "ambiguousAllocation" | "noStudents" | "invalidStructure";
-interface HomeworkBatchRowBase {
+type HomeworkBatchRowBase = {
   classroomId: string;
   classroomName: string;
   hierarchy: string;
   studentCount: number;
-}
+};
 export type HomeworkBatchRow = HomeworkBatchRowBase & (
   | { eligible: true; allocationId: string; teacherUserId: string; teacherName: string }
   | { eligible: false; skipReason: HomeworkBatchSkip; teacherName?: string }
