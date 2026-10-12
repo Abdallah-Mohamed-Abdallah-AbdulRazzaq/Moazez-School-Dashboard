@@ -15616,6 +15616,10 @@
       "term": "Term",
       "context_unavailable": "Unavailable",
       "discard_changes": "Discard unsaved academic content changes?",
+      "leave_tab_title": "Unsaved changes",
+      "leave_tab_description": "You have unsaved changes. Leaving this tab may discard your edits. Stay on this tab to save them before leaving.",
+      "leave_tab_confirm": "Leave without saving",
+      "leave_tab_cancel": "Stay on this tab",
       "sections_label": "Editor sections",
       "indicators": {
         "unsaved": "Unsaved changes",
