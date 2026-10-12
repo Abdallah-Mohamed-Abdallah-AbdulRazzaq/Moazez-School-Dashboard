@@ -15,6 +15,7 @@ import AcademicContentPublicationPanel from "../publication/AcademicContentPubli
 import { useAcademicContentWorkflow } from "../../hooks/useAcademicContentWorkflow";
 import { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
 import { useTeacherPreparationDetailDraft } from "../../hooks/useTeacherPreparationDetailDraft";
+import { useAcademicContentPanelNavigation } from "../../hooks/useAcademicContentPanelNavigation";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { isAcademicContentMutableStatus } from "../../model/academicContentPolicy";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
@@ -90,7 +91,6 @@ export default function TeacherPreparationEditorView({
   const academicYearName = academicYearNameOverride ?? (locale === "ar" ? academicYear?.nameAr : academicYear?.nameEn) ?? academicYear?.name ?? editorT("context_unavailable");
   const termName = termNameOverride ?? (locale === "ar" ? term?.nameAr : term?.nameEn) ?? term?.name ?? editorT("context_unavailable");
   const canPublish = canPublishOverride ?? hasPermission("academics.academic_content.publish");
-  const [activePanel, setActivePanel] = useState<TeacherPreparationPanel>("overview");
   const [detailOptions, setDetailOptions] = useState<AcademicContentDetailOptions | null>(null);
   const [targetOptions, setTargetOptions] = useState<AcademicTargetOptions | null>(null);
   const [teachers, setTeachers] = useState<TeacherDirectoryListItem[]>([]);
@@ -106,6 +106,12 @@ export default function TeacherPreparationEditorView({
     onDirty: () => editor.markSectionDirty("details", true),
     onSave: editor.savePreparationDetails,
   });
+  const { activePanel, requestPanelChange, navigationDialog } =
+    useAcademicContentPanelNavigation<TeacherPreparationPanel>(
+      "overview",
+      editor,
+      controller.discard,
+    );
 
   useEffect(() => {
     let active = true;
@@ -200,12 +206,13 @@ export default function TeacherPreparationEditorView({
         </div>
       ) : null}
       <TeacherPreparationHeader content={content} locale={locale} academicYearName={academicYearName} termName={termName} targets={resolvedTargets} canSubmit={canSubmit} showSubmit={showSubmit} isSubmitting={workflow.isSubmitting} submitLabel={submitLabel} submissionHint={submissionHint} showSaveDetails={!disabled} canSaveDetails={editor.sections.details.dirty && !editor.sections.details.saving} isSavingDetails={editor.sections.details.saving} onSaveDetails={() => void controller.save()} onSubmit={() => void workflow.submit().then((transition) => { if (transition) { editor.applyContentTransition(transition); void Promise.all([editor.refreshAggregate(), editor.refreshReadiness(), workflow.reload()]); } })} lifecycleActions={<LifecycleActions content={content} canManage={canManage} onChanged={onLifecycleChanged} onDeleted={onDeleted} />} />
-      <TeacherPreparationSectionNav variant="mobile" activePanel={activePanel} indicators={indicators} showPublication={publicationAvailable} onChange={setActivePanel} />
+      <TeacherPreparationSectionNav variant="mobile" activePanel={activePanel} indicators={indicators} showPublication={publicationAvailable} onChange={requestPanelChange} />
       <div className="grid min-w-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
-        <div className="hidden lg:block"><TeacherPreparationSectionNav variant="desktop" activePanel={activePanel} indicators={indicators} showPublication={publicationAvailable} onChange={setActivePanel} /></div>
+        <div className="hidden lg:block"><TeacherPreparationSectionNav variant="desktop" activePanel={activePanel} indicators={indicators} showPublication={publicationAvailable} onChange={requestPanelChange} /></div>
         <div className="min-w-0">{panelContent}</div>
         <div className="lg:col-start-2 xl:col-start-auto"><TeacherPreparationContextRail readiness={editor.readiness} references={references} referenceError={optionsError} history={workflow.history} historyError={workflow.error?.message ?? null} teachers={teachers} onRefreshReadiness={editor.refreshReadiness} onRetryHistory={() => void workflow.reload()} /></div>
       </div>
+      {navigationDialog}
     </main>
   );
 }

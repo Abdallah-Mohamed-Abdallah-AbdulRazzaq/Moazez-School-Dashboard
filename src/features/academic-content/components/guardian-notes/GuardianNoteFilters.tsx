@@ -183,6 +183,7 @@ export default function GuardianNoteFilters({
       triggerAriaLabel={label}
       value={value}
       options={selectOptions}
+      searchable={field === "teacherUserId"}
       disabled={
         (browseOptions.isLoadingTargets &&
           field !== "priority" &&

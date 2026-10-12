@@ -228,6 +228,7 @@ export default function GeneralResourceFilters(props: Props) {
                   triggerAriaLabel={label}
                   value={value}
                   options={withAll(fieldOptions, all)}
+                  searchable={field === "teacherUserId"}
                   disabled={
                     (props.browseOptions.isLoadingTargets &&
                       !["audience", "status", "teacherUserId"].includes(

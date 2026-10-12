@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { useLocale } from "next-intl";
 import {
@@ -9,6 +8,7 @@ import {
 } from "../../hooks/useAcademicContentEditor";
 import { useAcademicContentFilePolicy } from "../../hooks/useAcademicContentFilePolicy";
 import { useAcademicContentTargetDisplay } from "../../hooks/useAcademicContentTargetDisplay";
+import { useAcademicContentPanelNavigation } from "../../hooks/useAcademicContentPanelNavigation";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
 import type { AcademicContentBase } from "../../types/contracts";
@@ -70,8 +70,11 @@ export default function GeneralResourceEditorView({
   const locale = useLocale();
   const t = useAcademicContentTranslations("general_resource_detail");
   const editorT = useAcademicContentTranslations("editor");
-  const [activePanel, setActivePanel] =
-    useState<GeneralResourcePanel>("overview");
+  const { activePanel, requestPanelChange, navigationDialog } =
+    useAcademicContentPanelNavigation<GeneralResourcePanel>(
+      "overview",
+      editor,
+    );
   const filePolicyState = useAcademicContentFilePolicy();
   const disabled = editor.isReadOnly || !canManage;
   const { targets, error: targetError } = useAcademicContentTargetDisplay(
@@ -192,7 +195,7 @@ export default function GeneralResourceEditorView({
         activePanel={resolvedPanel}
         showPublication={publicationAvailable}
         indicators={indicators}
-        onChange={setActivePanel}
+        onChange={requestPanelChange}
       />
       <div className="grid min-w-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
         <div className="hidden lg:block">
@@ -201,7 +204,7 @@ export default function GeneralResourceEditorView({
             activePanel={resolvedPanel}
             showPublication={publicationAvailable}
             indicators={indicators}
-            onChange={setActivePanel}
+            onChange={requestPanelChange}
           />
         </div>
         <div className="min-w-0">{panels[resolvedPanel]}</div>
@@ -216,6 +219,7 @@ export default function GeneralResourceEditorView({
           />
         </div>
       </div>
+      {navigationDialog}
     </main>
   );
 }

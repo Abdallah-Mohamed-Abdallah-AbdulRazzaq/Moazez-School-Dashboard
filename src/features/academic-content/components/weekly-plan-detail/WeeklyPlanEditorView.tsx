@@ -11,6 +11,7 @@ import AcademicContentPublicationPanel from "../publication/AcademicContentPubli
 import { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
 import { useWeeklyPlanDetailDraft } from "../../hooks/useWeeklyPlanDetailDraft";
 import { useAcademicContentTargetDisplay } from "../../hooks/useAcademicContentTargetDisplay";
+import { useAcademicContentPanelNavigation } from "../../hooks/useAcademicContentPanelNavigation";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
 import {
@@ -58,7 +59,6 @@ export default function WeeklyPlanEditorView({
   const locale = useLocale();
   const t = useAcademicContentTranslations("weekly_plan_detail");
   const editorT = useAcademicContentTranslations("editor");
-  const [activePanel, setActivePanel] = useState<WeeklyPlanPanel>("details");
   const [detailOptions, setDetailOptions] = useState<WeeklyPlanDetailOptions>(
     EMPTY_WEEKLY_PLAN_DETAIL_OPTIONS,
   );
@@ -71,6 +71,12 @@ export default function WeeklyPlanEditorView({
     onDirty: () => editor.markSectionDirty("details", true),
     onSave: editor.saveWeeklyPlanDetails,
   });
+  const { activePanel, requestPanelChange, navigationDialog } =
+    useAcademicContentPanelNavigation<WeeklyPlanPanel>(
+      "details",
+      editor,
+      controller.discard,
+    );
 
   useEffect(() => {
     let active = true;
@@ -280,7 +286,7 @@ export default function WeeklyPlanEditorView({
         activePanel={resolvedPanel}
         showPublication={publicationAvailable}
         indicators={indicators}
-        onChange={setActivePanel}
+        onChange={requestPanelChange}
       />
       <div className="grid min-w-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
         <div className="hidden lg:block">
@@ -289,7 +295,7 @@ export default function WeeklyPlanEditorView({
             activePanel={resolvedPanel}
             showPublication={publicationAvailable}
             indicators={indicators}
-            onChange={setActivePanel}
+            onChange={requestPanelChange}
           />
         </div>
         <div className="min-w-0">{panels[resolvedPanel]}</div>
@@ -303,6 +309,7 @@ export default function WeeklyPlanEditorView({
           />
         </div>
       </div>
+      {navigationDialog}
     </main>
   );
 }

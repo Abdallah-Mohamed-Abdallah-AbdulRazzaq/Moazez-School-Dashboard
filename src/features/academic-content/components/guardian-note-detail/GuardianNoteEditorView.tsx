@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { useLocale } from "next-intl";
 import AcademicTargetsSection from "../editor/AcademicTargetsSection";
@@ -10,6 +9,7 @@ import RevisionHistoryPanel from "../editor/RevisionHistoryPanel";
 import AcademicContentPublicationPanel from "../publication/AcademicContentPublicationPanel";
 import { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
 import { useAcademicContentTargetDisplay } from "../../hooks/useAcademicContentTargetDisplay";
+import { useAcademicContentPanelNavigation } from "../../hooks/useAcademicContentPanelNavigation";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
 import type { GuardianNotePanel } from "../../model/guardianNoteDetail";
@@ -46,8 +46,11 @@ export default function GuardianNoteEditorView({
   const locale = useLocale();
   const t = useAcademicContentTranslations("guardian_note_detail");
   const editorT = useAcademicContentTranslations("editor");
-  const [activePanel, setActivePanel] =
-    useState<GuardianNotePanel>("details");
+  const { activePanel, requestPanelChange, navigationDialog } =
+    useAcademicContentPanelNavigation<GuardianNotePanel>(
+      "details",
+      editor,
+    );
   const disabled = editor.isReadOnly || !canManage;
   const { targets, error: targetError } = useAcademicContentTargetDisplay(
     content,
@@ -169,7 +172,7 @@ export default function GuardianNoteEditorView({
         activePanel={resolvedPanel}
         showPublication={publicationAvailable}
         indicators={indicators}
-        onChange={setActivePanel}
+        onChange={requestPanelChange}
       />
       <div className="grid min-w-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
         <div className="hidden lg:block">
@@ -178,7 +181,7 @@ export default function GuardianNoteEditorView({
             activePanel={resolvedPanel}
             showPublication={publicationAvailable}
             indicators={indicators}
-            onChange={setActivePanel}
+            onChange={requestPanelChange}
           />
         </div>
         <div className="min-w-0">{panels[resolvedPanel]}</div>
@@ -192,6 +195,7 @@ export default function GuardianNoteEditorView({
           />
         </div>
       </div>
+      {navigationDialog}
     </main>
   );
 }

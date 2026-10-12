@@ -180,4 +180,13 @@ describe("WeeklyPlanEditorView", () => {
     );
     expect(state.saveWeeklyPlanDetails).not.toHaveBeenCalled();
   });
+
+  it("explains assessment eligibility and publication in the assessment tab", async () => {
+    render(<WeeklyPlanEditorView editor={editor()} canManage
+      onLifecycleChanged={async () => undefined} onDeleted={() => undefined} />);
+    fireEvent.click(screen.getAllByRole("button", { name: "Assessments" })[0]);
+    expect(await screen.findByText(
+      "Draft, published, and approved assessments can be linked. Linking an assessment does not publish it.",
+    )).toBeVisible();
+  });
 });

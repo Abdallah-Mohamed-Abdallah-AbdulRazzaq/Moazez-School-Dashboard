@@ -8,6 +8,7 @@ import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
 import { useAcademicContentDetailOptions } from "../../hooks/useAcademicContentDetailOptions";
 import { useAcademicContentTargetDisplay } from "../../hooks/useAcademicContentTargetDisplay";
+import { useAcademicContentPanelNavigation } from "../../hooks/useAcademicContentPanelNavigation";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import {
   firstPreviewableSubjectResourceAsset,
@@ -93,8 +94,11 @@ export default function SubjectResourceEditorView(
   const { editor } = props;
   const locale = useLocale();
   const t = useAcademicContentTranslations("subject_resource_detail");
-  const [activePanel, setActivePanel] =
-    useState<SubjectResourcePanel>("preview");
+  const { activePanel, requestPanelChange, navigationDialog } =
+    useAcademicContentPanelNavigation<SubjectResourcePanel>(
+      "preview",
+      editor,
+    );
   const [preferredAssetId, setPreferredAssetId] = useState<string | null>(
     () =>
       firstPreviewableSubjectResourceAsset(editor.content.assets)?.assetId ??
@@ -217,8 +221,8 @@ export default function SubjectResourceEditorView(
         locale={locale}
         selectedAsset={selectedAsset}
         canManage={!disabled}
-        onEdit={() => setActivePanel("details")}
-        onShare={() => setActivePanel("targets")}
+        onEdit={() => requestPanelChange("details")}
+        onShare={() => requestPanelChange("targets")}
         onDownload={requestDownload}
         isDownloading={isDownloading}
         lifecycleActions={
@@ -240,7 +244,7 @@ export default function SubjectResourceEditorView(
         activePanel={resolvedPanel}
         showPublication={publicationAvailable}
         indicators={sectionIndicators(editor)}
-        onChange={setActivePanel}
+        onChange={requestPanelChange}
       />
       <div className="grid min-w-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
         <div className="hidden lg:block">
@@ -249,7 +253,7 @@ export default function SubjectResourceEditorView(
             activePanel={resolvedPanel}
             showPublication={publicationAvailable}
             indicators={sectionIndicators(editor)}
-            onChange={setActivePanel}
+            onChange={requestPanelChange}
           />
         </div>
         <div className="min-w-0">{panels[resolvedPanel]}</div>
@@ -264,6 +268,7 @@ export default function SubjectResourceEditorView(
           />
         </div>
       </div>
+      {navigationDialog}
     </main>
   );
 }

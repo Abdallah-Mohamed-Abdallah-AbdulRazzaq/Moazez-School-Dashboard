@@ -140,6 +140,28 @@ function editorState(
 }
 
 describe("AcademicContentEditorPage", () => {
+  it.each([0, 1])("guards unsaved form edits through responsive tab %s", async (tabIndex) => {
+    render(
+      <AcademicContentEditorView
+        editor={{ ...editorState("DRAFT", true), hasUnsavedChanges: true }}
+        canManage
+        academicYearName="Academic year 2026/2027"
+        termName="First term"
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Unsaved resource title" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "Resources" })[tabIndex]);
+    await waitFor(() => expect(screen.getByRole("dialog", { name: "Unsaved changes" })).toBeVisible());
+    fireEvent.click(screen.getByRole("button", { name: "Stay on this tab" }));
+    expect(screen.getByLabelText("Title")).toHaveValue("Unsaved resource title");
+    fireEvent.click(screen.getAllByRole("button", { name: "Resources" })[tabIndex]);
+    fireEvent.click(screen.getByRole("button", { name: "Leave without saving" }));
+    expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Resources" })[tabIndex]).toHaveAttribute("aria-current", "page");
+  });
+
   it("routes general resources to their dedicated workspace", () => {
     render(
       <AcademicContentEditorView

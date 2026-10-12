@@ -1,12 +1,17 @@
 "use client";
 
 import { useId } from "react";
+import { ExternalLink } from "lucide-react";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
+import Checkbox from "@/components/ui/checkbox/Checkbox";
+import { buttonClassName } from "@/components/ui/button/Button";
 import { useAcademicContentTranslations } from "../../../hooks/useAcademicContentTranslations";
 
 export interface AcademicReferenceOption {
   value: string;
   label: string;
+  description?: string;
+  href?: string;
 }
 
 export function OptionalReferenceSelect({
@@ -69,9 +74,10 @@ export function ReferenceChecklist({
 }) {
   const t = useAcademicContentTranslations("details");
   const helperTextId = useId();
+  const referenceT = useAcademicContentTranslations("reference_details");
   const selectedValues = new Set(values);
   const availableValues = new Set(options.map((option) => option.value));
-  const displayedOptions = [
+  const displayedOptions: AcademicReferenceOption[] = [
     ...options,
     ...[...new Set(values)]
       .filter((value) => !availableValues.has(value))
@@ -92,13 +98,15 @@ export function ReferenceChecklist({
       {displayedOptions.length === 0 ? (
         <p className="text-sm text-gray-500">{t("no_references")}</p>
       ) : (
-        <div className="max-h-48 space-y-2 overflow-y-auto">
+        <div className="max-h-80 space-y-2 overflow-y-auto">
           {displayedOptions.map((option) => {
             const checked = selectedValues.has(option.value);
             return (
-              <label key={option.value} className="flex items-start gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
+              <div key={option.value} className="flex items-start gap-2">
+                <Checkbox
+                  className="min-w-0 flex-1"
+                  label={option.label}
+                  description={option.description}
                   checked={checked}
                   disabled={disabled || (!checked && values.length >= maximumItems)}
                   onChange={() =>
@@ -109,8 +117,21 @@ export function ReferenceChecklist({
                     )
                   }
                 />
-                <span>{option.label}</span>
-              </label>
+                {option.href ? (
+                  <a
+                    href={option.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={referenceT("open_reference", { title: option.label })}
+                    className={buttonClassName({
+                      variant: "ghost", size: "sm", className: "mt-2 shrink-0",
+                    })}
+                  >
+                    <ExternalLink aria-hidden="true" className="size-3.5" />
+                    {referenceT("open")}
+                  </a>
+                ) : null}
+              </div>
             );
           })}
         </div>

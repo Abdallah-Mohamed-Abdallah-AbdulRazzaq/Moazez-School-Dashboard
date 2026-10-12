@@ -15,6 +15,7 @@ import { useAcademicContentDetailOptions } from "../../hooks/useAcademicContentD
 import { useAcademicContentTargetDisplay } from "../../hooks/useAcademicContentTargetDisplay";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
+import { academicTargetScopeChainName } from "../../model/academicContentDisplay";
 import { EMPTY_ACADEMIC_CONTENT_DETAIL_OPTIONS } from "../../services/academicContentDetailOptions";
 import { useAcademicContentDownload } from "../../hooks/useAcademicContentDownload";
 import AcademicContentDownloadFeedback from "../editor/AcademicContentDownloadFeedback";
@@ -193,8 +194,16 @@ export default function OnlineSessionEditorView({
           ) : null}
           <OnlineSessionInformation
             content={content}
-            targets={targetDisplay.targets}
+            targets={targetDisplay.targets.map((target, index) => ({
+              ...target,
+              scope: academicTargetScopeChainName(
+                content.targets[index],
+                targetDisplay.options,
+                locale,
+              ) ?? target.scope,
+            }))}
             targetError={targetDisplay.error}
+            isLoadingTargets={targetDisplay.isLoading}
             timetableLabel={timetableLabel}
           />
           <AcademicContentDownloadFeedback state={downloadState} />
