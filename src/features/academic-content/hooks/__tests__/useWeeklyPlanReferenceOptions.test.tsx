@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { HomeworkAssignmentUiModel } from "@/features/academics/homework/services/homeworkApi.types";
 import type { Assessment } from "@/features/grades/shared/types";
@@ -34,6 +34,29 @@ function ReferenceOptions({ sparse = false }: { sparse?: boolean }) {
 }
 
 describe("weekly plan reference details", () => {
+  it("offers only draft and published homework and assessments", () => {
+    const homeworkStatuses: HomeworkAssignmentUiModel["status"][] = [
+      "draft", "published", "closed", "cancelled", "archived",
+    ];
+    const assessmentStatuses: Assessment["approvalStatus"][] = [
+      "draft", "published", "approved",
+    ];
+    const { result } = renderHook(() => useWeeklyPlanReferenceOptions({
+      homeworkAssignments: homeworkStatuses.map((status) => ({
+        ...homework, id: `homework-${status}`, status,
+      })),
+      assessments: assessmentStatuses.map((approvalStatus) => ({
+        ...assessment, id: `assessment-${approvalStatus}`, approvalStatus,
+      })),
+    }));
+    expect(result.current.homeworkAssignments.map(({ value }) => value)).toEqual([
+      "homework-draft", "homework-published",
+    ]);
+    expect(result.current.assessments.map(({ value }) => value)).toEqual([
+      "assessment-draft", "assessment-published",
+    ]);
+  });
+
   it("distinguishes homework and assessments with the same title while keeping selection usable", () => {
     render(<ReferenceOptions />);
     const [homeworkCheckbox, assessmentCheckbox] = screen.getAllByRole("checkbox", { name: "Fractions" });
