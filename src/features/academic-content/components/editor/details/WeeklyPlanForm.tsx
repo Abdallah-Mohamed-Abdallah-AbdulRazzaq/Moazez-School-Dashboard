@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Input from "@/components/ui/input/Input";
+import TermWeekSelect from "../../weekly-plans/TermWeekSelect";
 import TextArea from "@/components/ui/input/TextArea";
 import type { AcademicContentEditorSectionState } from "../../../hooks/useAcademicContentEditor";
 import type {
@@ -92,8 +92,17 @@ export default function WeeklyPlanForm({
       onSave={() => void save()}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label={t("fields.week_start")} aria-label={t("fields.week_start")} type="date" value={form.weekStartDate} min={termStartDate} max={termEndDate} required disabled={disabled} onChange={(event) => update("weekStartDate", event.target.value)} />
-        <Input label={t("fields.week_end")} aria-label={t("fields.week_end")} type="date" value={form.weekEndDate} min={termStartDate} max={termEndDate} required disabled={disabled} onChange={(event) => update("weekEndDate", event.target.value)} />
+        <TermWeekSelect
+          startDate={form.weekStartDate}
+          endDate={form.weekEndDate}
+          termBounds={termStartDate && termEndDate ? { startDate: termStartDate, endDate: termEndDate } : undefined}
+          disabled={disabled}
+          onChange={({ startDate, endDate }) => {
+            setForm((current) => ({ ...current, weekStartDate: startDate, weekEndDate: endDate }));
+            setValidationError(null);
+            onDirty();
+          }}
+        />
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
         <OrderedTextList label={t("fields.objectives")} values={form.objectives} disabled={disabled} onChange={(value) => update("objectives", value)} />

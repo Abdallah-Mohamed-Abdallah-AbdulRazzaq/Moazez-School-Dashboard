@@ -22,11 +22,14 @@ import {
 } from "../../model/academicContentListFilters";
 import AcademicContentAppliedFilters from "../filters/AcademicContentAppliedFilters";
 import TagFilterInput from "../filters/TagFilterInput";
+import TermWeekSelect from "./TermWeekSelect";
+import type { WeeklyPlanTermBounds } from "../../model/weeklyPlanDetail";
 
 interface WeeklyPlanFiltersProps {
   filters: Filters;
   search: string;
   browseOptions: AcademicContentBrowseOptionsState;
+  termBounds?: WeeklyPlanTermBounds;
   onSearchChange: (search: string) => void;
   onFiltersChange: (filters: WeeklyPlanFilterUpdate) => void;
   onClear: () => void;
@@ -50,6 +53,7 @@ export default function WeeklyPlanFilters({
   filters,
   search,
   browseOptions,
+  termBounds,
   onSearchChange,
   onFiltersChange,
   onClear,
@@ -57,6 +61,7 @@ export default function WeeklyPlanFilters({
   const [showFilters, setShowFilters] = useState(true);
   const locale = useLocale();
   const t = useAcademicContentTranslations("weekly_plans");
+  const weekT = useAcademicContentTranslations("term_weeks");
   const statusT = useAcademicContentTranslations("statuses");
   const { targetOptions, teachers } = browseOptions;
   const structure = targetOptions?.structure;
@@ -312,21 +317,13 @@ export default function WeeklyPlanFilters({
               options: withAll(options.audiences, t("all_audiences")),
               field: "audience",
             })}
-            <Input
-              type="date"
-              label={t("filters.date_from")}
-              value={filters.weeklyDateFrom}
-              onChange={(event) =>
-                onFiltersChange({ weeklyDateFrom: event.target.value })
-              }
-            />
-            <Input
-              type="date"
-              label={t("filters.date_to")}
-              value={filters.weeklyDateTo}
-              min={filters.weeklyDateFrom || undefined}
-              onChange={(event) =>
-                onFiltersChange({ weeklyDateTo: event.target.value })
+            <TermWeekSelect
+              termBounds={termBounds}
+              startDate={filters.weeklyDateFrom}
+              endDate={filters.weeklyDateTo}
+              allLabel={weekT("all_weeks")}
+              onChange={({ startDate, endDate }) =>
+                onFiltersChange({ weeklyDateFrom: startDate, weeklyDateTo: endDate })
               }
             />
             <TagFilterInput

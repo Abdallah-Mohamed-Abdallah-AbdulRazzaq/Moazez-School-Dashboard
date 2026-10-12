@@ -19,11 +19,14 @@ import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTr
 import type { academicContentUiError } from "../../services/academicContentErrors";
 import type { AcademicContentLibraryItem } from "../../types/contracts";
 import AcademicContentStatusBadge from "../library/AcademicContentStatusBadge";
+import TermWeekLabel from "./TermWeekLabel";
+import type { WeeklyPlanTermBounds } from "../../model/weeklyPlanDetail";
 
 type WeeklyPlanRow = AcademicContentLibraryItem & Record<string, unknown>;
 
 interface WeeklyPlanResultsProps {
   items: AcademicContentLibraryItem[];
+  termBounds?: WeeklyPlanTermBounds;
   page: number;
   limit: number;
   total: number;
@@ -127,13 +130,13 @@ export default function WeeklyPlanResults(props: WeeklyPlanResultsProps) {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(new Date(instant));
-  const formatDay = (date: string) =>
-    new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(
-      new Date(`${date}T00:00:00.000Z`),
-    );
   const week = (plan: AcademicContentLibraryItem) =>
     plan.summary?.type === "WEEKLY_PLAN"
-      ? `${formatDay(plan.summary.weekStartDate)} – ${formatDay(plan.summary.weekEndDate)}`
+      ? <TermWeekLabel
+          range={{ startDate: plan.summary.weekStartDate, endDate: plan.summary.weekEndDate }}
+          termBounds={props.termBounds}
+          locale={locale}
+        />
       : t("week_unavailable");
 
   if (props.error) {

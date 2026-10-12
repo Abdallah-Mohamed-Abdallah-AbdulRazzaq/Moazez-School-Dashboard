@@ -31,6 +31,7 @@ export interface WeeklyPlanDetailDraftController {
     field: Field,
     fieldValue: AcademicContentWeeklyPlanDetail[Field],
   ) => void;
+  updateWeek: (range: WeeklyPlanTermBounds) => void;
   save: () => Promise<boolean>;
   resetValidation: () => void;
   discard: () => void;
@@ -68,6 +69,16 @@ export function useWeeklyPlanDetailDraft({
     [onDirty],
   );
 
+  const updateWeek = useCallback((range: WeeklyPlanTermBounds) => {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      weekStartDate: range.startDate,
+      weekEndDate: range.endDate,
+    }));
+    setValidationError(null);
+    onDirty();
+  }, [onDirty]);
+
   const save = useCallback(async () => {
     const nextValidationError = validateWeeklyPlanDetail(draft, termBounds);
     setValidationError(nextValidationError);
@@ -82,5 +93,5 @@ export function useWeeklyPlanDetailDraft({
     setValidationError(null);
   };
 
-  return { draft, validationError, update, save, resetValidation, discard };
+  return { draft, validationError, update, updateWeek, save, resetValidation, discard };
 }
