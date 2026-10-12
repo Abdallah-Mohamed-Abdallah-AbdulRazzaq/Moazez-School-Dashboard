@@ -13,7 +13,6 @@ const mocks = vi.hoisted(() => ({
   fetchTimetableConfigs: vi.fn(),
   listEntries: vi.fn(),
   fetchStructureTree: vi.fn(),
-  fetchSubjects: vi.fn(),
 }));
 
 vi.mock("@/features/academics/curriculum/services/curriculumService", () => ({
@@ -45,7 +44,7 @@ vi.mock(
   () => ({ fetchStructureTree: mocks.fetchStructureTree }),
 );
 vi.mock("@/features/academics/subjects/services/subjectsService", () => ({
-  fetchSubjects: mocks.fetchSubjects,
+  fetchSubjects: vi.fn(async () => []),
   fetchSubjectAllocations: vi.fn(async () => []),
 }));
 vi.mock(
@@ -90,9 +89,6 @@ const content: AcademicContentDetail = {
 
 describe("academicContentDetailOptions", () => {
   beforeEach(() => {
-    mocks.fetchSubjects.mockResolvedValue([
-      { id: "subject-1", name: "Mathematics", nameEn: "Mathematics", nameAr: "الرياضيات", code: "MATH", color: null, isActive: true },
-    ]);
     mocks.fetchStructureTree.mockResolvedValue(
       referenceTargetOptions.structure,
     );
@@ -131,8 +127,6 @@ describe("academicContentDetailOptions", () => {
   it("composes only authoritative existing references for the content context", async () => {
     const options = await loadAcademicContentDetailOptions(content);
 
-    expect(options.referenceContext).toEqual({ academicYearId: "year-1", termId: "term-1" });
-
     expect(mocks.listCurricula).toHaveBeenCalledWith({
       academicYearId: "year-1",
       termId: "term-1",
@@ -145,10 +139,6 @@ describe("academicContentDetailOptions", () => {
     });
     expect(options.curricula).toEqual([{ id: "curriculum-1", units: [] }]);
     expect(options.lessonPlans).toEqual([{ id: "plan-1", items: [] }]);
-    expect(options.assessments[0].subject?.nameEn).toBe("Mathematics");
-    expect(options.assessments[0].scopeNames?.map(({ nameEn }) => nameEn)).toEqual([
-      "Stage 1", "Grade 1", "Section 1", "Class 1",
-    ]);
     expect(options.timetableEntries.map((entry) => entry.id)).toEqual([
       "entry-1",
     ]);

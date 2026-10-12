@@ -1,8 +1,6 @@
 ﻿"use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { ClipboardCheck, FileQuestion, ListChecks, Lock, Pencil, Send, ShieldCheck, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import type { Assessment } from "../types";
@@ -63,14 +61,6 @@ export default function GradesAssessmentsSection({
 }: GradesAssessmentsSectionProps) {
   const t = useTranslations("academics.grades");
   const locale = useLocale();
-  const linkedAssessmentId = useSearchParams().get("assessmentId");
-
-  useEffect(() => {
-    if (!linkedAssessmentId) return;
-    const card = document.getElementById(`assessment-${linkedAssessmentId}`);
-    card?.scrollIntoView({ block: "center" });
-    card?.focus({ preventScroll: true });
-  }, [assessments, linkedAssessmentId]);
 
   const renderWorkflowAction = (assessment: Assessment) => {
     if (isReadOnly || assessment.isLocked) return null;
@@ -140,9 +130,7 @@ export default function GradesAssessmentsSection({
             });
 
             return (
-            <div key={assessment.id} id={`assessment-${assessment.id}`} tabIndex={-1}
-              className={`scroll-mt-24 rounded-lg border px-3 py-3 text-sm ${assessment.id === linkedAssessmentId ? "ring-2 ring-primary ring-offset-2" : ""}`}
-              style={{ borderColor: "var(--border-color)" }}>
+            <div key={assessment.id} className="rounded-lg border px-3 py-3 text-sm" style={{ borderColor: "var(--border-color)" }}>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-medium" style={{ color: "var(--text-primary)" }}>

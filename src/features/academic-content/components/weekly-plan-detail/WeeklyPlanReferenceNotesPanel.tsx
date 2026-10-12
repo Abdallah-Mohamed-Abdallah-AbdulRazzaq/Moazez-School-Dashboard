@@ -7,8 +7,6 @@ import type { WeeklyPlanDetailDraftController } from "../../hooks/useWeeklyPlanD
 import type { AcademicContentEditorSectionState } from "../../hooks/useAcademicContentEditor";
 import type { WeeklyPlanDetailOptions } from "../../services/weeklyPlanDetailOptions";
 import { ReferenceChecklist } from "../editor/details/AcademicReferenceFields";
-import { useWeeklyPlanReferenceOptions } from "../../hooks/useWeeklyPlanReferenceOptions";
-import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 
 interface WeeklyPlanReferenceNotesPanelProps {
   kind: "homework" | "assessments";
@@ -26,16 +24,20 @@ interface WeeklyPlanReferenceNotesPanelProps {
 export default function WeeklyPlanReferenceNotesPanel(
   props: WeeklyPlanReferenceNotesPanelProps,
 ) {
-  const t = useAcademicContentTranslations("reference_details");
   const isHomework = props.kind === "homework";
   const notesField = isHomework ? "expectedHomework" : "upcomingAssessments";
   const referencesField = isHomework
     ? "homeworkAssignmentIds"
     : "gradeAssessmentIds";
-  const referenceOptions = useWeeklyPlanReferenceOptions(props.options);
   const options = isHomework
-    ? referenceOptions.homeworkAssignments
-    : referenceOptions.assessments;
+    ? props.options.homeworkAssignments.map(({ id, title }) => ({
+        value: id,
+        label: title,
+      }))
+    : props.options.assessments.map(({ id, title }) => ({
+        value: id,
+        label: title,
+      }));
   const loadError = isHomework
     ? props.options.errors.homeworkAssignments
     : props.options.errors.assessments;
@@ -61,7 +63,6 @@ export default function WeeklyPlanReferenceNotesPanel(
           label={props.referencesLabel}
           values={props.controller.draft[referencesField]}
           options={options}
-          helperText={isHomework ? undefined : t("assessment_hint")}
           disabled={props.disabled}
           onChange={(ids) => props.controller.update(referencesField, ids)}
         />

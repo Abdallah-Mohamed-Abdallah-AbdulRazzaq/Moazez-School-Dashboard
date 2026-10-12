@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   listHomeworkAssignments: vi.fn(),
   fetchAssessments: vi.fn(),
   fetchStructureTree: vi.fn(),
-  fetchSubjects: vi.fn(),
 }));
 
 vi.mock("@/features/academics/homework/services/homeworkService", () => ({
@@ -23,9 +22,6 @@ vi.mock(
   "@/features/academics/academic-structure-tree/services/structureService",
   () => ({ fetchStructureTree: mocks.fetchStructureTree }),
 );
-vi.mock("@/features/academics/subjects/services/subjectsService", () => ({
-  fetchSubjects: mocks.fetchSubjects,
-}));
 
 const content = {
   id: "content-1",
@@ -53,9 +49,6 @@ const content = {
 
 describe("loadWeeklyPlanDetailOptions", () => {
   beforeEach(() => {
-    mocks.fetchSubjects.mockReset().mockResolvedValue([
-      { id: "subject-1", name: "Mathematics", nameEn: "Mathematics", nameAr: "الرياضيات", code: "MATH", color: null, isActive: true },
-    ]);
     mocks.fetchStructureTree
       .mockReset()
       .mockResolvedValue(referenceTargetOptions.structure);
@@ -84,8 +77,6 @@ describe("loadWeeklyPlanDetailOptions", () => {
   it("loads compatible weekly plan homework and assessment references", async () => {
     const options = await loadWeeklyPlanDetailOptions(content);
 
-    expect(options.referenceContext).toEqual({ academicYearId: "year-1", termId: "term-1" });
-
     expect(mocks.listHomeworkAssignments).toHaveBeenCalledWith({
       academicYearId: "year-1",
       termId: "term-1",
@@ -99,10 +90,6 @@ describe("loadWeeklyPlanDetailOptions", () => {
       "homework-1",
     ]);
     expect(options.assessments.map(({ id }) => id)).toEqual(["assessment-1"]);
-    expect(options.assessments[0].subject?.nameEn).toBe("Mathematics");
-    expect(options.assessments[0].scopeNames?.map(({ nameEn }) => nameEn)).toEqual([
-      "Stage 1", "Grade 1", "Section 1", "Class 1",
-    ]);
   });
 
   it("isolates homework failure from assessment options", async () => {
@@ -182,18 +169,5 @@ describe("loadWeeklyPlanDetailOptions", () => {
     expect(options.assessments).toEqual([]);
     expect(options.errors.homeworkAssignments).not.toBeNull();
     expect(options.errors.assessments).not.toBeNull();
-  });
-
-  it("keeps compatible references available and reports missing subject metadata when the subject lookup fails", async () => {
-    mocks.fetchSubjects.mockRejectedValue(new Error("Subjects unavailable"));
-    const options = await loadWeeklyPlanDetailOptions(content);
-    expect(options.homeworkAssignments.map(({ id }) => id)).toEqual(["homework-1"]);
-    expect(options.assessments.map(({ id }) => id)).toEqual(["assessment-1"]);
-    expect(options.assessments[0].subject).toBeUndefined();
-    expect(options.assessments[0].scopeNames?.map(({ nameEn }) => nameEn)).toEqual([
-      "Stage 1", "Grade 1", "Section 1", "Class 1",
-    ]);
-    expect(options.errors.assessments).not.toBeNull();
-    expect(options.errors.homeworkAssignments).toBeNull();
   });
 });

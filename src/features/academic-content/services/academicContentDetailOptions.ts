@@ -11,6 +11,7 @@ import {
 import { listHomeworkAssignments } from "@/features/academics/homework/services/homeworkService";
 import type { HomeworkAssignmentUiModel } from "@/features/academics/homework/services/homeworkApi.types";
 import { fetchAssessments } from "@/features/grades/overview/services/gradesOverviewService";
+import type { Assessment } from "@/features/grades/shared/types";
 import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
 import { listEntries } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type { BackendTimetableEntryDto } from "@/features/academics/timetable/services/timetableApiTypes";
@@ -23,17 +24,12 @@ import {
   academicReferenceMatcher,
   assessmentReferenceScope,
 } from "./academicContentReferenceScope";
-import {
-  withAssessmentReferenceNames,
-  type AcademicContentAssessmentReference,
-} from "./academicContentAssessmentReference";
 
 export interface AcademicContentDetailOptions {
-  referenceContext?: Pick<AcademicContentDetail, "academicYearId" | "termId">;
   curricula: Curriculum[];
   lessonPlans: LessonPlan[];
   homeworkAssignments: HomeworkAssignmentUiModel[];
-  assessments: AcademicContentAssessmentReference[];
+  assessments: Assessment[];
   timetableEntries: BackendTimetableEntryDto[];
 }
 
@@ -138,7 +134,6 @@ export async function loadAcademicContentDetailOptions(
   );
 
   return {
-    referenceContext: { academicYearId: content.academicYearId, termId: content.termId },
     curricula,
     lessonPlans,
     homeworkAssignments: homeworkResult.items.filter((homework) =>
@@ -148,9 +143,9 @@ export async function loadAcademicContentDetailOptions(
         subjectId: homework.subjectId,
       }),
     ),
-    assessments: assessments
-      .filter((assessment) => matchesTarget(assessmentReferenceScope(assessment)))
-      .map((assessment) => withAssessmentReferenceNames(assessment, targetOptions)),
+    assessments: assessments.filter((assessment) =>
+      matchesTarget(assessmentReferenceScope(assessment)),
+    ),
     timetableEntries: timetableEntries.filter((entry) =>
       matchesTarget({
         scopeType: "CLASSROOM",
