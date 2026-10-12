@@ -20,7 +20,6 @@ beforeEach(() => {
   vi.mocked(apiGet).mockImplementation(async path => batchHttpResponse(path, context));
   vi.mocked(apiPost).mockImplementation(async path => path === "/homework/assignments" ? { id: `parent-${++parentNumber}` } : { question: { questionId: "q", homeworkId: path.split("/")[3], type: "TRUE_FALSE", prompt: "Is 2 even?", sortOrder: 1, points: 2, options: [] } });
   vi.spyOn(window, "open").mockReturnValue(null);
-  vi.spyOn(window, "focus").mockImplementation(() => {});
 });
 
 async function renderPanel() {
@@ -38,9 +37,8 @@ async function scope(label: string) {
   fireEvent.click(await screen.findByRole("button", { name: label, exact: true }));
 }
 
-it.each(["null return", "browser exception", "focus restriction"])("preserves selected classes across search and records complete drafts despite %s", async restriction => {
+it.each(["null return", "browser exception"])("preserves selected classes across search and records complete drafts despite %s", async restriction => {
   if (restriction === "browser exception") vi.mocked(window.open).mockImplementation(() => { throw new DOMException("Popup restricted"); });
-  if (restriction === "focus restriction") vi.mocked(window.focus).mockImplementation(() => { throw new DOMException("Focus restricted"); });
   const onStateChange = await renderPanel();
   fireEvent.click(screen.getByRole("checkbox", { name: "Room 1" }));
   fireEvent.change(screen.getByLabelText("Search classes"), { target: { value: "Room 2" } });
@@ -50,7 +48,6 @@ it.each(["null return", "browser exception", "focus restriction"])("preserves se
   fireEvent.click(screen.getByRole("button", { name: "Create 2 drafts" }));
   await screen.findByText("2 of 2 assignments created");
   expect(window.open).toHaveBeenCalledTimes(2);
-  expect(window.focus).toHaveBeenCalledTimes(restriction === "browser exception" ? 0 : 2);
   expect(window.open).toHaveBeenNthCalledWith(1, expect.stringContaining(`/parent-1?year=${batchIds.year}&term=${batchIds.term}`), "_blank", "noopener,noreferrer");
   expect(screen.getAllByRole("link", { name: /^Open assignment/ })).toHaveLength(2);
   await waitFor(() => expect(onStateChange).toHaveBeenLastCalledWith({ hasStarted: true, isSaving: false, allCreated: true }));

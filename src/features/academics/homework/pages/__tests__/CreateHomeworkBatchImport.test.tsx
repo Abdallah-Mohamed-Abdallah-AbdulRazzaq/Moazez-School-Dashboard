@@ -26,7 +26,6 @@ beforeEach(() => {
   vi.mocked(apiGet).mockImplementation(async path => batchHttpResponse(path, context));
   vi.mocked(apiPost).mockImplementation(async path => path === "/homework/assignments" ? { id: `parent-${++parentNumber}` } : { question: { questionId: "q", homeworkId: path.split("/")[3], type: "TRUE_FALSE", prompt: "Is 2 even?", sortOrder: 1, points: 2, options: [] } });
   vi.spyOn(window, "open").mockReturnValue(null);
-  vi.spyOn(window, "focus").mockImplementation(() => {});
 });
 function pageElement() {
   return <NextIntlClientProvider locale="en" messages={en} timeZone="UTC"><UnsavedChangesProvider><NavigationGuardProvider><ToastProvider><CreateHomeworkPage /></ToastProvider></NavigationGuardProvider></UnsavedChangesProvider></NextIntlClientProvider>;
@@ -67,7 +66,6 @@ it("creates a grade batch with distinct allocations, locks the workbook and keep
   for (const [, payload] of parents) expect(payload).toMatchObject({ targetMode: "classroom", title: "Practice" });
   expect(vi.mocked(apiPost).mock.calls.filter(([path]) => path.endsWith("/questions")).map(([path]) => path)).toEqual(["/homework/assignments/parent-1/questions", "/homework/assignments/parent-1/questions", "/homework/assignments/parent-2/questions", "/homework/assignments/parent-2/questions"]);
   expect(window.open).toHaveBeenCalledTimes(2); expect(boundary.replace).not.toHaveBeenCalled();
-  expect(window.focus).toHaveBeenCalledTimes(2);
   expect(screen.getByRole("button", { name: "Remove import" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Import Excel" })).toBeDisabled();
   expect(screen.getByRole("checkbox", { name: "Assign to multiple classes" })).toBeDisabled();
@@ -102,7 +100,6 @@ it("retains a partially saved draft while continuing and opens only a later comp
   expect(screen.getByText("Partially saved")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Open assignment for Room 1 (new tab)" })).toHaveAttribute("href", expect.stringContaining("/parent-1?"));
   expect(window.open).toHaveBeenCalledTimes(1);
-  expect(window.focus).toHaveBeenCalledTimes(1);
   expect(window.open).toHaveBeenCalledWith(expect.stringContaining("/parent-2?"), "_blank", "noopener,noreferrer");
   expect(boundary.replace).not.toHaveBeenCalled();
   const back = await screen.findByRole("button", { name: "Back to assignments" });

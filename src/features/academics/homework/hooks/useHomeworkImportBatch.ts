@@ -23,11 +23,7 @@ export function homeworkBatchEditorUrl(locale: string, plan: HomeworkBatchPlan, 
 
 function openCreatedAssignment(locale: string, plan: HomeworkBatchPlan, outcome: HomeworkBatchResult) {
   if (outcome.status !== "created") return;
-  try {
-    window.open(homeworkBatchEditorUrl(locale, plan, outcome.assignment.id), "_blank", "noopener,noreferrer");
-    // Browsers decide tab activation; request the batch page stay active without delayed focus stealing.
-    window.focus();
-  }
+  try { window.open(homeworkBatchEditorUrl(locale, plan, outcome.assignment.id), "_blank", "noopener,noreferrer"); }
   catch { /* Browser restrictions do not change a saved assignment; the results retain its link. */ }
 }
 
