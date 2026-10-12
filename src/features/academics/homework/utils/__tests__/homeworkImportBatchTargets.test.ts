@@ -2,8 +2,49 @@ import { expect, it } from "vitest";
 import { homeworkBatchPlan, homeworkBatchPayload } from "../homeworkImportBatchTargets";
 import type { HomeworkBatchSelection } from "../homeworkImportBatch.types";
 import { batchContext, batchIds, batchMetadata } from "./homeworkImportBatchFixtures";
+import { teacherClassroomIds, teacherSubjectIds, teacherTargetOptions } from "../homeworkImportTeacherTargets";
 
 const request = () => ({ academicYearId: batchIds.year, termId: batchIds.term, subjectId: batchIds.subject, context: batchContext(), locale: "en" });
+
+it("derives teacher choices by user ID and snapshots only matching explicit class allocations", () => {
+  const input = request();
+  input.context.allocations[1].teacherName = input.context.allocations[0].teacherName;
+  input.context.allocations.push({ ...input.context.allocations[0] }, { ...input.context.allocations[0], id: "other-term", termId: "other-term", classroomId: batchIds.classD }, { ...input.context.allocations[0], id: "other-subject", subjectId: batchIds.otherSubject, classroomId: batchIds.classC }, { ...input.context.allocations[0], id: "section-only", classroomId: undefined });
+  expect(teacherTargetOptions(input.context, batchIds.term).map(option => option.value)).toHaveLength(4);
+  expect(teacherClassroomIds(input.context, batchIds.term, batchIds.subject, batchIds.teacherA)).toEqual([batchIds.classA]);
+  expect(teacherSubjectIds(input.context, batchIds.term, batchIds.teacherA)).toEqual([batchIds.subject, batchIds.otherSubject]);
+  const selection = { type: "teacher" as const, teacherUserId: batchIds.teacherA, classroomIds: [batchIds.classA], excludedClassroomIds: [] };
+  input.context.allocations[1].teacherId = batchIds.teacherA;
+  const plan = homeworkBatchPlan({ ...input, selection });
+  expect(plan.rows.map(row => row.classroomId)).toEqual([batchIds.classA]);
+  const row = plan.rows[0];
+  if (!row.eligible) throw new Error("Expected eligible teacher class");
+  expect(homeworkBatchPayload({ plan, target: row, metadata: batchMetadata })).toEqual({ academicYearId: batchIds.year, termId: batchIds.term, teacherSubjectAllocationId: batchIds.allocationA, targetMode: "classroom", title: "Practice", dueAt: batchMetadata.dueAt, description: undefined, mode: "homework", publishAt: undefined, estimatedMinutes: undefined, totalMarks: 2, isGraded: true });
+});
+
+it.each(["missingAllocation", "ambiguousAllocation", "noStudents", "missingClass", "invalidStructure"] as const)("keeps ineligible teacher candidates visible for %s", reason => {
+  const input = request();
+  if (reason === "missingAllocation") input.context.allocations[0].termId = "another-term";
+  if (reason === "ambiguousAllocation") input.context.allocations.push({ ...input.context.allocations[0], id: "duplicate-owner" });
+  if (reason === "noStudents") input.context.enrollments[0].status = "withdrawn";
+  if (reason === "missingClass") input.context.structure.classrooms = input.context.structure.classrooms.slice(1);
+  if (reason === "invalidStructure") input.context.structure.sections = input.context.structure.sections.slice(1);
+  const plan = homeworkBatchPlan({ ...input, selection: { type: "teacher", teacherUserId: batchIds.teacherA, classroomIds: [batchIds.classA], excludedClassroomIds: [] } });
+  expect(plan.rows).toEqual([expect.objectContaining({ eligible: false, skipReason: reason })]);
+});
+
+it("keeps teacher targets isolated and preserves exclusions when ownership changes", () => {
+  const input = request();
+  const selection = { type: "teacher" as const, teacherUserId: batchIds.teacherA, classroomIds: [batchIds.classA, batchIds.classB], excludedClassroomIds: [] as string[] };
+  const original = homeworkBatchPlan({ ...input, selection });
+  expect(original.rows.find(row => row.classroomId === batchIds.classA)).toMatchObject({ eligible: true, teacherUserId: batchIds.teacherA });
+  expect(original.rows.find(row => row.classroomId === batchIds.classB)).toMatchObject({ eligible: false, skipReason: "missingAllocation" });
+  input.context.allocations[0].teacherId = batchIds.teacherB;
+  expect(homeworkBatchPlan({ ...input, selection }).signature).not.toBe(original.signature);
+  expect(homeworkBatchPlan({ ...input, selection }).rows.every(row => !row.eligible)).toBe(true);
+  selection.excludedClassroomIds = [batchIds.classB];
+  expect(homeworkBatchPlan({ ...input, selection }).rows.map(row => row.classroomId)).toEqual([batchIds.classA]);
+});
 
 it.each([
   [{ type: "classes", classroomIds: [batchIds.classB, batchIds.classA, batchIds.classA] }, [batchIds.classA, batchIds.classB]],

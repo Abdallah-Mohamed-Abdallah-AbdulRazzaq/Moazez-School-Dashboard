@@ -20,7 +20,7 @@ function classroomParents(classroom: Classroom, structure: StructureTree) {
   const stage = structure.stages.find(candidate => candidate.id === grade?.stageId);
   return { section, grade, stage };
 }
-function groupClassroomIds(selection: Exclude<HomeworkBatchSelection, { type: "classes" }>, structure: StructureTree): string[] {
+function groupClassroomIds(selection: Exclude<HomeworkBatchSelection, { type: "classes" | "teacher" }>, structure: StructureTree): string[] {
   if (selection.type === "school") return structure.classrooms.map(classroom => classroom.id);
   const groups = { section: structure.sections, grade: structure.grades, stage: structure.stages };
   if (!groups[selection.type].some(group => group.id === selection.id)) return [];
@@ -51,6 +51,8 @@ function classroomPlanRow(classroomId: string, request: BatchPlanRequest): Homew
   if (allocations.length > 1) return { ...base, eligible: false, skipReason: "ambiguousAllocation" };
   const allocation = allocations[0];
   if (!allocation.teacherId) return { ...base, eligible: false, skipReason: "missingTeacher" };
+  if (request.selection.type === "teacher" && allocation.teacherId !== request.selection.teacherUserId)
+    return { ...base, eligible: false, skipReason: "missingAllocation" };
   if (!base.studentCount) return { ...base, eligible: false, skipReason: "noStudents", teacherName: allocation.teacherName };
   return { ...base, eligible: true, allocationId: allocation.id, teacherUserId: allocation.teacherId, teacherName: allocation.teacherName ?? "" };
 }
@@ -61,7 +63,9 @@ function planSignature(plan: Omit<HomeworkBatchPlan, "signature">): string {
 }
 export function homeworkBatchPlan(request: BatchPlanRequest): HomeworkBatchPlan {
   const validContext = Boolean(request.academicYearId && request.termId && request.context.subjects.some(subject => subject.id === request.subjectId));
-  const ids = request.selection.type === "classes" ? request.selection.classroomIds : groupClassroomIds(request.selection, request.context.structure);
+  const selection = request.selection;
+  const ids = selection.type === "teacher" ? selection.classroomIds.filter(id => !selection.excludedClassroomIds.includes(id))
+    : selection.type === "classes" ? selection.classroomIds : groupClassroomIds(selection, request.context.structure);
   const rows = validContext ? [...new Set(ids)].map(classroomId => classroomPlanRow(classroomId, request)) : [];
   rows.sort((left, right) => `${left.hierarchy} ${left.classroomName}`.localeCompare(`${right.hierarchy} ${right.classroomName}`, request.locale));
   const plan = { academicYearId: request.academicYearId, termId: request.termId, subjectId: request.subjectId, rows };

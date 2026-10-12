@@ -6,6 +6,7 @@ import type { HomeworkAssignmentUiModel } from "../services/homeworkApi.types";
 
 export type HomeworkBatchSelection =
   | { type: "classes"; classroomIds: string[] }
+  | { type: "teacher"; teacherUserId: string; classroomIds: string[]; excludedClassroomIds: string[] }
   | { type: "section" | "grade" | "stage"; id: string }
   | { type: "school" };
 export type HomeworkBatchSkip = "missingClass" | "missingAllocation" | "missingTeacher"
