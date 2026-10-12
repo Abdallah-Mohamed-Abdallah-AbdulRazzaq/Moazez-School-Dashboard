@@ -33,6 +33,7 @@ export interface WeeklyPlanDetailDraftController {
   ) => void;
   save: () => Promise<boolean>;
   resetValidation: () => void;
+  discard: () => void;
 }
 
 export function useWeeklyPlanDetailDraft({
@@ -75,6 +76,11 @@ export function useWeeklyPlanDetailDraft({
   }, [draft, onSave, termBounds]);
 
   const resetValidation = useCallback(() => setValidationError(null), []);
+  const discard = () => {
+    setDraft(initial);
+    setSyncedVersion(contentVersion);
+    setValidationError(null);
+  };
 
-  return { draft, validationError, update, save, resetValidation };
+  return { draft, validationError, update, save, resetValidation, discard };
 }

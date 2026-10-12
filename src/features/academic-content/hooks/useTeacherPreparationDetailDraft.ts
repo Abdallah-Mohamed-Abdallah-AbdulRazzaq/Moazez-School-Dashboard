@@ -43,6 +43,7 @@ export interface TeacherPreparationDetailDraftController {
   applyTemplate: (template: AcademicContentPreparationTemplateDetail) => void;
   save: () => Promise<boolean>;
   resetValidation: () => void;
+  discard: () => void;
 }
 
 function hasEmptyOrderedEntry(detail: AcademicContentPreparationDetail): boolean {
@@ -101,6 +102,11 @@ export function useTeacherPreparationDetailDraft({
   }, [draft, onSave]);
 
   const resetValidation = useCallback(() => setValidationError(null), []);
+  const discard = () => {
+    setDraft(initial);
+    setSyncedVersion(contentVersion);
+    setValidationError(null);
+  };
 
   return {
     draft,
@@ -109,5 +115,6 @@ export function useTeacherPreparationDetailDraft({
     applyTemplate,
     save,
     resetValidation,
+    discard,
   };
 }

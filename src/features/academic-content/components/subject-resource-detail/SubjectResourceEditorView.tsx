@@ -97,7 +97,7 @@ export default function SubjectResourceEditorView(
   const { activePanel, requestPanelChange, navigationDialog } =
     useAcademicContentPanelNavigation<SubjectResourcePanel>(
       "preview",
-      editor.hasUnsavedChanges,
+      editor,
     );
   const [preferredAssetId, setPreferredAssetId] = useState<string | null>(
     () =>

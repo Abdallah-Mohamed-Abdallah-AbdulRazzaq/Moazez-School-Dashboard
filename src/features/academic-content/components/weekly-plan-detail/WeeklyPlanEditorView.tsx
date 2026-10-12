@@ -59,11 +59,6 @@ export default function WeeklyPlanEditorView({
   const locale = useLocale();
   const t = useAcademicContentTranslations("weekly_plan_detail");
   const editorT = useAcademicContentTranslations("editor");
-  const { activePanel, requestPanelChange, navigationDialog } =
-    useAcademicContentPanelNavigation<WeeklyPlanPanel>(
-      "details",
-      editor.hasUnsavedChanges,
-    );
   const [detailOptions, setDetailOptions] = useState<WeeklyPlanDetailOptions>(
     EMPTY_WEEKLY_PLAN_DETAIL_OPTIONS,
   );
@@ -76,6 +71,12 @@ export default function WeeklyPlanEditorView({
     onDirty: () => editor.markSectionDirty("details", true),
     onSave: editor.saveWeeklyPlanDetails,
   });
+  const { activePanel, requestPanelChange, navigationDialog } =
+    useAcademicContentPanelNavigation<WeeklyPlanPanel>(
+      "details",
+      editor,
+      controller.discard,
+    );
 
   useEffect(() => {
     let active = true;
