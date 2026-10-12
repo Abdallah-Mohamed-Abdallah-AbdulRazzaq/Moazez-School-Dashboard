@@ -17,6 +17,7 @@ export interface DragDropUploadAreaProps {
   accept?: string;
   maxSizeBytes?: number;
   onFilesSelected: (files: File[]) => void;
+  onError?: (message: string) => void;
   isUploading?: boolean;
   helperText?: string;
   buttonLabel?: string;
@@ -32,6 +33,7 @@ export default function DragDropUploadArea({
   accept = "*",
   maxSizeBytes,
   onFilesSelected,
+  onError,
   isUploading = false,
   helperText,
   buttonLabel,
@@ -123,6 +125,7 @@ export default function DragDropUploadArea({
 
     if (firstError) {
       setValidationError(firstError);
+      onError?.(firstError);
       setTimeout(() => setValidationError(""), 5000);
     }
 
@@ -225,6 +228,7 @@ export default function DragDropUploadArea({
           disabled={disabled || isUploading}
           className="hidden"
           aria-hidden="true"
+          aria-label={buttonLabel || title}
         />
 
         <div className="flex flex-col items-center justify-center gap-4 text-center">

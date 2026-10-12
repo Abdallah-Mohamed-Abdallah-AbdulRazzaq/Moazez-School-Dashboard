@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -10,7 +10,14 @@ import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
 import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
-import { createAssessment } from "../services/gradesAssessmentsService";
+import { createAssessment, createAssessmentWithQuestions, AssessmentQuestionsCreationError } from "../services/gradesAssessmentsService";
+import ExcelImportActions from "@/features/academics/shared/excel-import/ExcelImportActions";
+import { ImportIssues } from "@/features/academics/shared/excel-import/ExcelImportPreview";
+import { useImportNavigation } from "@/features/academics/shared/excel-import/useImportNavigation";
+import { uncertainImportCreation } from "@/features/academics/shared/excel-import/importSaveErrors";
+import type { AssessmentImport, ImportedDraft, ImportIssue } from "@/features/academics/shared/excel-import/types";
+import { validateAssessmentImportDraft } from "../utils/assessmentExcelImport";
+import { PARTIAL_QUESTION_CREATION_RECOVERY } from "../utils/assessmentQuestionRecovery";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import { getEligibleAssessmentSubjects } from "../utils/assessmentSubjects";
 import type { AssessmentDeliveryMode, AssessmentType, CreateAssessmentPayload, ExamScopeType, ScopeEntityOption } from "../../shared/types";
@@ -55,16 +62,19 @@ export default function CreateAssessmentPage() {
   const t = useTranslations("academics.grades");
   const tDialog = useTranslations("academics.grades.dialogs.createAssessment");
   const tCommon = useTranslations("common");
+  const tImport = useTranslations("academics.excelImport");
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
   const { hasPermission } = usePermissions();
   const canManageAssessments = hasPermission("grades.assessments.manage");
+  const canManageQuestions = hasPermission("grades.questions.manage");
   const {
     academicYearId,
     termId,
     selectedTerm,
+    termStatus,
     isInitializing,
   } = useGradesYearTermLayoutContext();
 
@@ -81,6 +91,28 @@ export default function CreateAssessmentPage() {
   const [allSubjects, setAllSubjects] = useState<Array<{ id: string; nameAr: string; nameEn: string }>>([]);
   const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
   const [draft, setDraft] = useState<CreateAssessmentPayload | null>(null);
+  const [pendingImport, setPendingImport] = useState<AssessmentImport | null>(null);
+  const [importIssues, setImportIssues] = useState<ImportIssue[]>([]);
+  const [partialImport, setPartialImport] = useState<AssessmentQuestionsCreationError | null>(null);
+  const submissionLock = useRef(false);
+  const creationContext = useRef({ year: "", term: "" });
+  const { clearDirty, guardedNavigate } = useImportNavigation({ key: "assessment-excel-import", questionCount: pendingImport?.questions.length ?? 0 });
+  const importContext = { now: new Date(), termStart: selectedTerm?.startDate ?? "", termEnd: selectedTerm?.endDate ?? "" };
+  const canImport = canManageAssessments && canManageQuestions && termStatus !== "closed" && Boolean(selectedTerm);
+
+  const applyImport = (imported: ImportedDraft) => {
+    if (imported.module !== "assessment" || !canImport || partialImport) return;
+    setPendingImport(imported);
+    setImportIssues([]);
+    const { title, titleAr, type, date, weight, maxScore, expectedTimeMinutes, deliveryMode } = imported.metadata;
+    setDraft((current) => current ? { ...current, title, titleAr, type, date, weight, maxScore, expectedTimeMinutes, deliveryMode } : current);
+  };
+  const openImportedDraft = (id: string, failure?: AssessmentQuestionsCreationError) => {
+    clearDirty();
+    const params = new URLSearchParams(creationContext.current);
+    if (failure) { params.set("recovery", PARTIAL_QUESTION_CREATION_RECOVERY); params.set("failedQuestionNumber", String(failure.failedQuestionIndex + 1)); }
+    router.push(`/${locale}/grades/assessments/${id}/questions?${params}`);
+  };
 
   const availableScopeEntities = useMemo(
     () => (draft ? scopeEntitiesByType[draft.scopeType] || [] : []),
@@ -197,9 +229,26 @@ export default function CreateAssessmentPage() {
   };
 
   const handleSubmit = async () => {
-    if (!draft || !canManageAssessments) return;
+    if (!draft || !canManageAssessments || submissionLock.current || partialImport) return;
+    if (pendingImport) {
+      const checked = validateAssessmentImportDraft({ ...pendingImport, metadata: draft }, { ...importContext, now: new Date() });
+      setImportIssues(checked.kind === "invalid" ? checked.issues : []);
+      if (checked.kind === "invalid") return;
+      if (!canImport || !academicYearId || draft.termId !== termId || !subjects.some((subject) => subject.id === draft.subjectId) || !availableScopeEntities.some((scope) => scope.id === draft.scopeId)) {
+        showError(tImport("errors.context"));
+        return;
+      }
+    }
+    submissionLock.current = true;
+    creationContext.current = { year: academicYearId, term: termId };
     try {
       setIsSubmitting(true);
+      if (pendingImport) {
+        const created = await createAssessmentWithQuestions(academicYearId, { assessment: draft, questions: pendingImport.questions });
+        showSuccess(t("messages.assessmentCreated"));
+        openImportedDraft(created.id);
+        return;
+      }
       if (draft.deliveryMode === "SCORE_ONLY") {
         await createAssessment(academicYearId, draft);
         showSuccess(t("messages.assessmentCreated"));
@@ -225,8 +274,10 @@ export default function CreateAssessmentPage() {
       }
       router.push(`/${locale}/grades/assessments/new/questions?${params.toString()}`);
     } catch (error) {
-      showError(t(`errors.${mapGradesApiError(error)}`));
+      if (pendingImport && error instanceof AssessmentQuestionsCreationError) setPartialImport(error);
+      else showError(pendingImport && uncertainImportCreation(error) ? tImport("messages.unknownCreation") : t(`errors.${mapGradesApiError(error)}`));
     } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
     }
   };
@@ -251,7 +302,13 @@ export default function CreateAssessmentPage() {
             <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{tDialog("description")}</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <ExcelImportActions module="assessment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: draft }} disabled={!canImport || isSubmitting || Boolean(partialImport)} onApply={applyImport} onRemove={() => { setPendingImport(null); setImportIssues([]); }} />
+          {importIssues.length > 0 && <ImportIssues issues={importIssues} />}
+          {partialImport && <div role="alert" className="mb-4 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm">{tImport("messages.partialSave", { saved: partialImport.failedQuestionIndex, total: pendingImport?.questions.length ?? 0 })}</p>
+            <Button variant="secondary" onClick={() => openImportedDraft(partialImport.assessmentId, partialImport)}>{tImport("actions.openDraft")}</Button>
+          </div>}
+          <fieldset disabled={isSubmitting || Boolean(partialImport)} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Select
               label={tDialog("scopeType")}
               value={draft.scopeType}
@@ -302,6 +359,7 @@ export default function CreateAssessmentPage() {
             />
             <Select
               label={tDialog("testMode")}
+              disabled={Boolean(pendingImport)}
               value={draft.deliveryMode}
               onChange={(deliveryMode) => setDraft((current) => (current ? { ...current, deliveryMode: deliveryMode as AssessmentDeliveryMode } : current))}
               options={[
@@ -335,7 +393,8 @@ export default function CreateAssessmentPage() {
             <Input
               label={tDialog("weight")}
               type="number"
-              min="1"
+              min="0.01"
+              step="0.01"
               max="100"
               value={String(draft.weight)}
               onChange={(event) => setDraft((current) => (current ? { ...current, weight: Number(event.target.value) } : current))}
@@ -345,7 +404,9 @@ export default function CreateAssessmentPage() {
             <Input
               label={tDialog("maxScore")}
               type="number"
-              min="1"
+              min="0.01"
+              max="99999.99"
+              step="0.01"
               value={String(draft.maxScore)}
               onChange={(event) => setDraft((current) => (current ? { ...current, maxScore: Number(event.target.value) } : current))}
               required
@@ -361,14 +422,14 @@ export default function CreateAssessmentPage() {
                 expectedTimeMinutes: event.target.value ? Number(event.target.value) : undefined,
               } : current)}
             />
-          </div>
+          </fieldset>
 
           <div className="mt-6 flex items-center justify-end gap-3">
-            <Button variant="secondary" onClick={handleBack} disabled={isSubmitting}>
+            <Button variant="secondary" onClick={() => guardedNavigate(handleBack)} disabled={isSubmitting}>
               {tCommon("cancel")}
             </Button>
-            <Button variant="primary" onClick={() => void handleSubmit()} loading={isSubmitting}>
-              {draft.deliveryMode === "QUESTION_BASED" ? tDialog("continueToBuilder") : tDialog("save")}
+            <Button variant="primary" onClick={() => void handleSubmit()} loading={isSubmitting} disabled={Boolean(partialImport) || Boolean(pendingImport && !canImport)}>
+              {pendingImport ? tImport("actions.createDraft") : draft.deliveryMode === "QUESTION_BASED" ? tDialog("continueToBuilder") : tDialog("save")}
             </Button>
           </div>
         </div>

@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import CreateHomeworkPage from "../CreateHomeworkPage";
 import { createHomeworkAssignment } from "../../services/homeworkService";
 import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
+import { UnsavedChangesProvider } from "@/providers/UnsavedChangesProvider";
+import { NavigationGuardProvider } from "@/providers/NavigationGuardProvider";
+
+function renderHomeworkPage() {
+  return render(<UnsavedChangesProvider><NavigationGuardProvider><CreateHomeworkPage /></NavigationGuardProvider></UnsavedChangesProvider>);
+}
 
 const showError = vi.fn();
 const showSuccess = vi.fn();
@@ -17,6 +23,7 @@ vi.mock("next-intl", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace }),
   useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/en/academics/homework/new",
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
@@ -127,7 +134,7 @@ describe("CreateHomeworkPage assignment contract", () => {
   });
 
   it("blocks invalid input and submits a normalized valid boundary request", async () => {
-    render(<CreateHomeworkPage />);
+    renderHomeworkPage();
 
     const allocation = await screen.findByLabelText("fields.teacherSubjectAllocation");
     fireEvent.change(allocation, { target: { value: "allocation-1" } });
@@ -162,7 +169,7 @@ describe("CreateHomeworkPage assignment contract", () => {
   });
 
   it("uses a date-time control for the homework deadline", async () => {
-    render(<CreateHomeworkPage />);
+    renderHomeworkPage();
 
     expect(
       await screen.findByTestId("homework-due-date-time-picker"),
@@ -170,7 +177,7 @@ describe("CreateHomeworkPage assignment contract", () => {
   });
 
   it("explains that a timetable must be published before its slot can be linked", async () => {
-    render(<CreateHomeworkPage />);
+    renderHomeworkPage();
 
     expect(
       await screen.findByText("helpers.timetablePublicationRequired"),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
@@ -8,6 +8,10 @@ import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import Select from "@/components/ui/input/Select";
+import Checkbox from "@/components/ui/checkbox/Checkbox";
+import { ClipboardList, ChevronDown, FileSpreadsheet } from "lucide-react";
+import HomeworkImportBatchPanel from "../components/HomeworkImportBatchPanel";
+import type { HomeworkBatchPageState } from "../utils/homeworkImportBatch.types";
 import TimetableSlotSelect from "@/features/academics/lesson-plans/components/TimetableSlotSelect";
 import { dashboardDaysForScope } from "@/features/academics/lesson-plans/services/lessonPlanTimetable";
 import { getDashboardTimetable } from "@/features/academics/timetable/services/timetableApiAdapter";
@@ -38,6 +42,13 @@ import type {
   StudentEnrollment,
 } from "@/features/students-guardians/students/types";
 import { createHomeworkAssignment } from "@/features/academics/homework/services/homeworkService";
+import { createHomeworkFromImport, HomeworkImportQuestionSaveError } from "../services/homeworkExcelImportSave";
+import { validateHomeworkImportDraft } from "../utils/homeworkExcelImport";
+import ExcelImportActions from "@/features/academics/shared/excel-import/ExcelImportActions";
+import { ImportIssues } from "@/features/academics/shared/excel-import/ExcelImportPreview";
+import { useImportNavigation } from "@/features/academics/shared/excel-import/useImportNavigation";
+import { uncertainImportCreation } from "@/features/academics/shared/excel-import/importSaveErrors";
+import type { HomeworkImport, ImportedDraft, ImportIssue } from "@/features/academics/shared/excel-import/types";
 import type { CreateHomeworkAssignmentRequest } from "@/features/academics/homework/services/homeworkApi.types";
 import {
   getHomeworkApiValidationErrors,
@@ -227,15 +238,34 @@ export default function CreateHomeworkPage() {
   const t = useTranslations("academics.homework.create");
   const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const tValidation = useTranslations("validation");
+  const tImport = useTranslations("academics.excelImport");
+  const tBatch = useTranslations("academics.homework.importBatch");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
   const { hasPermission } = usePermissions();
-  const { academicYearId, termId, selectedTerm, isInitializing } =
+  const { academicYearId, termId, selectedTerm, termStatus, isInitializing } =
     useAcademicYearTermLayoutContext();
   const canManage = hasPermission("homework.assignments.manage");
+  const canView = hasPermission("homework.assignments.view");
+  const [batchEnabled, setBatchEnabled] = useState(false);
+  const [batchState, setBatchState] = useState<HomeworkBatchPageState>({ hasStarted: false, isSaving: false, allCreated: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentErrors, setAssignmentErrors] = useState<ValidationErrors>({});
+  const [pendingImport, setPendingImport] = useState<HomeworkImport | null>(null);
+  const [importIssues, setImportIssues] = useState<ImportIssue[]>([]);
+  const [partialImport, setPartialImport] = useState<HomeworkImportQuestionSaveError | null>(null);
+  const submissionLock = useRef(false);
+  const creationContext = useRef({ year: "", term: "" });
+  const { clearDirty, guardedNavigate } = useImportNavigation({ key: "homework-excel-import", questionCount: batchEnabled && batchState.allCreated ? 0 : pendingImport?.questions.length ?? 0 });
+  const updateBatchState = useCallback((state: HomeworkBatchPageState) => {
+    if (state.allCreated) clearDirty();
+    setBatchState(state);
+  }, [clearDirty]);
+  const resetBatchImport = () => {
+    setPendingImport(null); setImportIssues([]); setBatchEnabled(false);
+    setBatchState({ hasStarted: false, isSaving: false, allCreated: false });
+  };
   const [isLoadingAllocations, setIsLoadingAllocations] = useState(false);
   const [isLoadingEligibleStudents, setIsLoadingEligibleStudents] =
     useState(false);
@@ -280,6 +310,23 @@ export default function CreateHomeworkPage() {
       ),
     [allocationOptions, draft.teacherSubjectAllocationId],
   );
+  const importContext = { now: new Date(), termStart: selectedTerm?.startDate ?? "", termEnd: selectedTerm?.endDate ?? "", publishAt: draft.publishAt };
+  const canImport = canManage && termStatus !== "closed" && Boolean(selectedTerm);
+  const applyImport = (imported: ImportedDraft) => {
+    if (imported.module !== "assignment" || !canImport || partialImport || batchState.hasStarted || batchState.isSaving) return;
+    setPendingImport(imported);
+    setImportIssues([]);
+    setAssignmentErrors({});
+    const { title, description, mode, dueAt, isGraded, totalMarks, estimatedMinutes } = imported.metadata;
+    setDraft((current) => ({ ...current, title, description, mode, dueAt, isGraded, totalMarks, estimatedMinutes }));
+  };
+  const openImportedDraft = (id: string) => {
+    clearDirty();
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("year", creationContext.current.year);
+    params.set("term", creationContext.current.term);
+    router.replace(`/${locale}/academics/homework/${id}?${params}`);
+  };
 
   const timetableScope = useMemo(
     () => ({
@@ -480,6 +527,16 @@ export default function CreateHomeworkPage() {
   );
 
   const handleSubmit = async () => {
+    if (batchEnabled) return;
+    if (!canManage || submissionLock.current || partialImport) return;
+    if (pendingImport) {
+      const checked = validateHomeworkImportDraft({ ...pendingImport, metadata: effectiveDraft }, { ...importContext, now: new Date() });
+      setImportIssues(checked.kind === "invalid" ? checked.issues : []);
+      if (checked.kind === "invalid") return;
+      const selectedIds = effectiveDraft.studentIds ?? [];
+      const validStudents = effectiveDraft.targetMode !== "selected_students" || (selectedIds.length > 0 && selectedIds.length <= 500 && new Set(selectedIds).size === selectedIds.length && selectedIds.every((id) => eligibleStudents.some((student) => student.id === id)));
+      if (!canImport || !selectedAllocation || !validStudents) { showError(tImport("errors.context")); return; }
+    }
     if (!effectiveDraft.academicYearId || !effectiveDraft.termId) {
       showError(t("errors.contextRequired"));
       return;
@@ -528,6 +585,8 @@ export default function CreateHomeworkPage() {
       return;
     }
 
+    submissionLock.current = true;
+    creationContext.current = { year: academicYearId, term: termId };
     setIsSubmitting(true);
     try {
       const payload: CreateHomeworkAssignmentRequest = {
@@ -542,8 +601,9 @@ export default function CreateHomeworkPage() {
           ? effectiveDraft.scheduleDate
           : undefined,
       };
-      const created = await createHomeworkAssignment(payload);
+      const created = pendingImport ? await createHomeworkFromImport({ assignment: payload, questions: pendingImport.questions }) : await createHomeworkAssignment(payload);
       showSuccess(t("messages.created"));
+      if (pendingImport) { openImportedDraft(created.id); return; }
       const params = new URLSearchParams(searchParams.toString());
       if (academicYearId) params.set("year", academicYearId);
       if (termId) params.set("term", termId);
@@ -551,17 +611,19 @@ export default function CreateHomeworkPage() {
         `/${locale}/academics/homework/${created.id}?${params.toString()}`,
       );
     } catch (error) {
+      if (pendingImport && error instanceof HomeworkImportQuestionSaveError) { setPartialImport(error); return; }
       const apiValidationErrors = getHomeworkApiValidationErrors(error, tValidation);
       if (Object.keys(apiValidationErrors).length > 0) {
         setAssignmentErrors(apiValidationErrors);
       }
-      showError(t("errors.createFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      showError(pendingImport && uncertainImportCreation(error) ? tImport("messages.unknownCreation") : t("errors.createFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
     }
   };
 
-  if (isInitializing) {
+  if (isInitializing && !batchState.hasStarted && !batchState.isSaving) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <MainLoader />
@@ -579,22 +641,40 @@ export default function CreateHomeworkPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
-      <div className="mx-auto w-full max-w-4xl p-6">
-        <div className="rounded-lg border border-border bg-white p-6">
-          <div className="mb-6">
-            <h1 className="text-xl font-semibold text-gray-900">
+      <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+        <div className="space-y-6">
+          <div className="flex items-start gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary"><ClipboardList size={26} aria-hidden="true" /></span>
+            <div><h1 className="text-2xl font-semibold text-gray-900">
               {t("title")}
             </h1>
-            <p className="mt-1 text-sm text-gray-600">{t("description")}</p>
+            <p className="mt-2 text-sm leading-6 text-gray-600">{t("description")}</p></div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-3">
+          <p className="flex items-center gap-2 text-sm font-semibold text-gray-800"><FileSpreadsheet size={18} className="text-primary" aria-hidden="true" />{tBatch("importContent")}</p>
+          <div className="[&>div]:my-0 [&>div]:rounded-xl [&>div]:border-primary-100 [&>div]:bg-primary-50/40 [&>div]:p-5 [&_button]:min-h-11 [&_button]:text-sm">
+          <ExcelImportActions module="assignment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: effectiveDraft }} disabled={!canImport || isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} onApply={applyImport} onRemove={resetBatchImport} />
+          </div>
+          {pendingImport && <Checkbox label={tBatch("toggle")} description={!canView ? tBatch("permission") : tBatch("toggleHelp")} checked={batchEnabled} onChange={event => setBatchEnabled(event.target.checked)} disabled={!canView || !canImport || isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className="bg-white" />}
+          </div>
+          {importIssues.length > 0 && <ImportIssues issues={importIssues} />}
+          {partialImport && <div role="alert" className="mb-4 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm">{tImport("messages.partialSave", { saved: partialImport.failedQuestionIndex, total: pendingImport?.questions.length ?? 0 })}</p>
+            <Button variant="secondary" onClick={() => openImportedDraft(partialImport.homeworkId)}>{tImport("actions.openDraft")}</Button>
+          </div>}
+          <div className={batchEnabled && !batchState.hasStarted ? "grid items-start gap-6 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]" : "grid gap-6"}>
+          <details open={!batchState.hasStarted} className="group min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-base font-semibold text-gray-900 sm:p-6 [&::-webkit-details-marker]:hidden">
+              <span>{tBatch("assignmentDetails")}{batchState.hasStarted && <span className="mt-1 block text-sm font-normal text-gray-600">{draft.title}</span>}</span>
+              <ChevronDown size={20} aria-hidden="true" className="shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-gray-100 p-5 sm:p-6">
+          {/* Unlayered form styles must not expand controls beyond their grid columns. */}
+          <fieldset disabled={isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className={`grid min-w-0 gap-5 [&>div]:min-w-0 [&_input]:box-border! [&_input]:min-w-0! [&_input]:max-w-full! [&_[aria-haspopup=listbox]]:box-border! [&_[aria-haspopup=listbox]]:min-w-0! [&_[aria-haspopup=listbox]]:max-w-full! ${batchEnabled ? "md:grid-cols-2 xl:grid-cols-1 xl:[&>div]:col-span-1" : "md:grid-cols-2"}`}>
             <div className="md:col-span-2">
-              <h2 className="text-sm font-semibold text-gray-900">
-                {t("sections.assignment")}
-              </h2>
               <p className="mt-1 text-sm text-gray-600">
-                {t("sections.assignmentDescription")}
+                {batchEnabled ? tBatch("detailsHelp") : t("sections.assignmentDescription")}
               </p>
             </div>
             <Input
@@ -610,7 +690,7 @@ export default function CreateHomeworkPage() {
                 }))
               }
             />
-            <Select
+            {!batchEnabled && <Select
               label={t("fields.teacherSubjectAllocation")}
               required
               searchable
@@ -640,8 +720,8 @@ export default function CreateHomeworkPage() {
                 !effectiveDraft.termId
               }
               helperText={t("helpers.teacherSubjectAllocation")}
-            />
-            <Select
+            />}
+            {!batchEnabled && <Select
               label={t("fields.targetMode")}
               value={draft.targetMode}
               onChange={(targetMode) =>
@@ -661,7 +741,7 @@ export default function CreateHomeworkPage() {
                   label: t("targetModes.selectedStudents"),
                 },
               ]}
-            />
+            />}
             <Select
               label={t("fields.mode")}
               value={draft.mode}
@@ -680,7 +760,7 @@ export default function CreateHomeworkPage() {
                 {t("sections.schedule")}
               </h2>
               <p className="mt-1 text-sm text-gray-600">
-                {t("sections.scheduleDescription")}
+                {batchEnabled ? tBatch("dueHelp") : t("sections.scheduleDescription")}
               </p>
             </div>
             <DateTimePicker
@@ -695,7 +775,7 @@ export default function CreateHomeworkPage() {
               }
               minDateTime={new Date()}
             />
-            <DatePicker
+            {!batchEnabled && <DatePicker
               label={t("fields.scheduleDate")}
               value={parseLocalDateOnly(selectedTimetableDate)}
               onChange={(date) => {
@@ -727,14 +807,14 @@ export default function CreateHomeworkPage() {
               shouldDisableDate={(date) =>
                 !availableTimetableDays?.includes(date.getDay())
               }
-            />
-            <div
+            />}
+            {!batchEnabled && <div
               className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800"
               role="note"
             >
               {t("helpers.timetablePublicationRequired")}
-            </div>
-            {selectedAllocation && selectedTimetableDate && (
+            </div>}
+            {!batchEnabled && selectedAllocation && selectedTimetableDate && (
               <TimetableSlotSelect
                 {...timetableScope}
                 plannedDate={selectedTimetableDate}
@@ -799,9 +879,9 @@ export default function CreateHomeworkPage() {
                 }))
               }
             />
-          </div>
+          </fieldset>
 
-          <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          {!batchEnabled && <fieldset disabled={isSubmitting || Boolean(partialImport)} className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">
@@ -911,24 +991,29 @@ export default function CreateHomeworkPage() {
                 </p>
               </div>
             )}
+          </fieldset>}
+            </div>
+          </details>
+
+          {batchEnabled && pendingImport && <HomeworkImportBatchPanel importedDraft={pendingImport} metadata={effectiveDraft} publishAt={draft.publishAt} academicYearId={academicYearId || ""} termId={termId || ""} termStart={selectedTerm?.startDate ?? ""} termEnd={selectedTerm?.endDate ?? ""} writable={canImport && canView && Boolean(academicYearId && termId)} initialSubjectId={selectedAllocation?.allocation.subjectId} initialClassroomId={selectedAllocation?.allocation.classroomId} onStateChange={updateBatchState} onReset={resetBatchImport} />}
           </div>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-5">
             <Button
               variant="secondary"
-              onClick={() => {
+              onClick={() => guardedNavigate(() => {
                 const params = searchParams.toString();
                 router.push(
                   `/${locale}/academics/homework${params ? `?${params}` : ""}`,
                 );
-              }}
-              disabled={isSubmitting}
+              })}
+              disabled={isSubmitting || batchState.isSaving}
             >
-              {t("actions.cancel")}
+              {batchState.hasStarted && !batchState.isSaving ? tBatch("backToAssignments") : t("actions.cancel")}
             </Button>
-            <Button onClick={() => void handleSubmit()} loading={isSubmitting}>
+            {!batchEnabled && <Button onClick={() => void handleSubmit()} loading={isSubmitting} disabled={Boolean(partialImport) || Boolean(pendingImport && !canImport)}>
               {t("actions.createDraft")}
-            </Button>
+            </Button>}
           </div>
         </div>
       </div>
