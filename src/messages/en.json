@@ -4451,6 +4451,7 @@
       "labels": {
         "parsing": "Reading and validating workbook…",
         "limits": ".xlsx only, up to 5 MB and 500 questions. Maximum 50 choices per question.",
+        "dropWorkbook": "Drop your Excel workbook here or choose a file",
         "questions": "Questions",
         "choices": "Choices",
         "details": "Details",

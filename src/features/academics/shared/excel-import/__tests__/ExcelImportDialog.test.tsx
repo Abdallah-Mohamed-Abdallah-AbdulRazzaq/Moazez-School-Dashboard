@@ -38,3 +38,17 @@ it("supports Arabic preview and cancellation without applying", async () => {
   expect(onClose).toHaveBeenCalledOnce();
   expect(onApply).not.toHaveBeenCalled();
 });
+
+it.each(["unsupported", "oversized"])("rejects an %s replacement dropped on the shared upload area and clears the previous preview", async reason => {
+  const onApply = vi.fn();
+  render(<NextIntlClientProvider locale="en" messages={en}><ExcelImportDialog isOpen module="assignment" context={fixtureContext} disabled={false} onClose={vi.fn()} onApply={onApply} /></NextIntlClientProvider>);
+  const uploadArea = screen.getByRole("button", { name: "Drop your Excel workbook here or choose a file" });
+  fireEvent.drop(uploadArea, { dataTransfer: { files: [await assignmentWorkbookFile()] } });
+  await screen.findByText("Is 2 even?");
+  const file = reason === "unsupported" ? new File(["text"], "notes.txt", { type: "text/plain" }) : new File([new Uint8Array(5 * 1024 * 1024 + 1)], "large.xlsx");
+  fireEvent.drop(uploadArea, { dataTransfer: { files: [file] } });
+  expect(screen.getByText(reason === "unsupported" ? "Unsupported file type" : "File is too large")).toBeInTheDocument();
+  expect(screen.queryByText("Is 2 even?")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Apply import" })).toBeDisabled();
+  expect(onApply).not.toHaveBeenCalled();
+});

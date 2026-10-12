@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
-import FileUploadButton from "@/components/ui/file-upload/FileUploadButton";
+import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import { homeworkImportFromWorkbook, validateHomeworkImportDraft } from "@/features/academics/homework/utils/homeworkExcelImport";
 import { assessmentImportFromWorkbook, validateAssessmentImportDraft } from "@/features/grades/assessments/utils/assessmentExcelImport";
 import { importIssue, readImportWorkbook } from "./workbookReader";
@@ -55,7 +55,7 @@ export default function ExcelImportDialog(props: ExcelImportDialogProps) {
     <Button disabled={props.disabled || isParsing || validation?.kind !== "valid"} onClick={() => { if (validation?.kind === "valid") props.onApply(validation.draft); }}>{t("actions.apply")}</Button>
   </>}>
     <div className="space-y-4">
-      <FileUploadButton accept=".xlsx" multiple={false} maxSizeBytes={MAX_IMPORT_BYTES} disabled={props.disabled || isParsing} buttonLabel={t("actions.chooseFile")} onFilesSelected={selectWorkbook} helperText={t("labels.limits")} formatSizeError={(name, megabytes) => t("errors.fileTooLarge", { name, megabytes })} onError={() => setValidation(null)} />
+      <DragDropUploadArea title={t("labels.dropWorkbook")} accept=".xlsx" multiple={false} maxSizeBytes={MAX_IMPORT_BYTES} disabled={props.disabled || isParsing} buttonLabel={t("actions.chooseFile")} onFilesSelected={selectWorkbook} helperText={t("labels.limits")} onError={() => setValidation(null)} />
       {isParsing && <p role="status" aria-live="polite">{t("labels.parsing")}</p>}
       {validation?.kind === "invalid" && <ImportIssues issues={validation.issues} />}
       {validation?.kind === "valid" && <ExcelImportPreview draft={validation.draft} warnings={validation.warnings} />}

@@ -1,5 +1,7 @@
 # Assignment and Assessment Excel Import Implementation Plan
 
+Upload UI follow-up (2026-10-12): the historical FileUploadButton steps below are superseded by the existing shared DragDropUploadArea in ExcelImportDialog. The dialog still reads one workbook locally with the same `.xlsx`/5 MiB limits and explicit apply step. No server upload was added.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. In this repository, the available inline execution skill is `executing-plans`; use its installed SKILL.md. Do not dispatch subagents without the user's execution choice or other applicable explicit authorization.
 
 **Goal:** Create one editable assignment or question-based assessment from a module-specific Excel template, using existing frontend services and the verified backend contract.
@@ -502,3 +504,10 @@ The route was verified at `src/app/[lang]/(dashboard)/grades/assessments/[assess
 - Type consistency: public functions and UI props are defined above before their consumers. The file reader returns raw rows; module adapters return the two discriminated draft models; existing mappers retain responsibility for wire serialization.
 - Scope: both modules share this one import feature and one PR. No backend implementation, score-only template, media import, automatic publication, storage persistence, or unrelated builder refactor.
 - Testing boundaries: actual ExcelJS, import UI, adapters, validators, and service mappers; mocks only at HTTP, browser/framework context, clock, and download/navigation boundaries. Parameterize equivalent cases; preserve existing production regression tests.
+
+## Shared upload area follow-up — 2026-10-12
+
+- ExcelImportDialog now reuses the existing DragDropUploadArea with translated instructions, one-file selection, `.xlsx` acceptance, and the existing 5 MiB limit. Parsing disables the picker and still uses the original local workbook reader, module adapters, preview, and explicit apply behavior.
+- The shared area exposes an optional rejection callback so an invalid replacement clears the prior Excel preview and disables Apply. Its input receives a label from the existing button/title props. Existing callers without the callback retain their behavior.
+- Verification passed: 22 focused tests across five files covering the real dialog, rejected drops, assignment import/batch Create, assessment import Create, and the shared attachment uploader. Scoped lint, typecheck, production build, and whitespace checks passed. Full tests remain unrun by user preference. Clean Code Guard, Test Guard, and documentation checks completed.
+- Synthetic Chrome checks passed for English/Arabic at 375/768/1024/1440: actual Create page file-input selection, import application, and two eligible draft saves retained two editor links with no runtime errors or page/dropdown overflow. Arabic mobile/desktop upload dialogs were visually inspected. Valid and rejected drag/drop behavior was exercised in component tests. Browser saves used fixture HTTP/auth/context/router/window boundaries; no live backend saves or tab activation verification was performed.
