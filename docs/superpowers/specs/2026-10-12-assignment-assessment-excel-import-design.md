@@ -2,7 +2,7 @@
 
 Date: 2026-10-12
 
-Status: conversational design approved; written specification awaiting user review.
+Status: written specification approved by the user on 2026-10-12 after backend contract verification.
 
 ## Goal and accepted decisions
 
