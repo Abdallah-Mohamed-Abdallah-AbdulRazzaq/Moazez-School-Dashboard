@@ -73,7 +73,7 @@ export default function GeneralResourceEditorView({
   const { activePanel, requestPanelChange, navigationDialog } =
     useAcademicContentPanelNavigation<GeneralResourcePanel>(
       "overview",
-      editor.hasUnsavedChanges,
+      editor,
     );
   const filePolicyState = useAcademicContentFilePolicy();
   const disabled = editor.isReadOnly || !canManage;

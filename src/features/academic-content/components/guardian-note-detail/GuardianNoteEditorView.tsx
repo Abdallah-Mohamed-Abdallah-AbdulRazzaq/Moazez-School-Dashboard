@@ -49,7 +49,7 @@ export default function GuardianNoteEditorView({
   const { activePanel, requestPanelChange, navigationDialog } =
     useAcademicContentPanelNavigation<GuardianNotePanel>(
       "details",
-      editor.hasUnsavedChanges,
+      editor,
     );
   const disabled = editor.isReadOnly || !canManage;
   const { targets, error: targetError } = useAcademicContentTargetDisplay(

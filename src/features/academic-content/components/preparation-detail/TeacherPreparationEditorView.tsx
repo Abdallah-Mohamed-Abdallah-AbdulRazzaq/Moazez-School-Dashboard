@@ -91,11 +91,6 @@ export default function TeacherPreparationEditorView({
   const academicYearName = academicYearNameOverride ?? (locale === "ar" ? academicYear?.nameAr : academicYear?.nameEn) ?? academicYear?.name ?? editorT("context_unavailable");
   const termName = termNameOverride ?? (locale === "ar" ? term?.nameAr : term?.nameEn) ?? term?.name ?? editorT("context_unavailable");
   const canPublish = canPublishOverride ?? hasPermission("academics.academic_content.publish");
-  const { activePanel, requestPanelChange, navigationDialog } =
-    useAcademicContentPanelNavigation<TeacherPreparationPanel>(
-      "overview",
-      editor.hasUnsavedChanges,
-    );
   const [detailOptions, setDetailOptions] = useState<AcademicContentDetailOptions | null>(null);
   const [targetOptions, setTargetOptions] = useState<AcademicTargetOptions | null>(null);
   const [teachers, setTeachers] = useState<TeacherDirectoryListItem[]>([]);
@@ -111,6 +106,12 @@ export default function TeacherPreparationEditorView({
     onDirty: () => editor.markSectionDirty("details", true),
     onSave: editor.savePreparationDetails,
   });
+  const { activePanel, requestPanelChange, navigationDialog } =
+    useAcademicContentPanelNavigation<TeacherPreparationPanel>(
+      "overview",
+      editor,
+      controller.discard,
+    );
 
   useEffect(() => {
     let active = true;

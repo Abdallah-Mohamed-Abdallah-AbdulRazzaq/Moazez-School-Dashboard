@@ -6,6 +6,21 @@ import { useWeeklyPlanDetailDraft } from "../useWeeklyPlanDetailDraft";
 const cleanSection = { dirty: false, saving: false, error: null };
 
 describe("useWeeklyPlanDetailDraft", () => {
+  it("discards the shared draft so confirmed navigation cannot retain unsaved edits", () => {
+    const initial = { ...emptyWeeklyPlanDetail("2026-09-01"), topics: ["Saved topic"] };
+    const { result } = renderHook(() => useWeeklyPlanDetailDraft({
+      initial,
+      contentVersion: "content-1:v1",
+      sectionState: { ...cleanSection, dirty: true },
+      onDirty: () => undefined,
+      onSave: async () => true,
+    }));
+    act(() => result.current.update("topics", ["Unsaved topic"]));
+    expect(result.current.draft.topics).toEqual(["Unsaved topic"]);
+    act(() => result.current.discard());
+    expect(result.current.draft).toEqual(initial);
+  });
+
   it("preserves every untouched field in a complete save", async () => {
     const onSave = vi.fn().mockResolvedValue(true);
     const initial = {

@@ -59,7 +59,7 @@ export default function GenericAcademicContentEditorView(
   const { activePanel: activeSection, requestPanelChange, navigationDialog } =
     useAcademicContentPanelNavigation<AcademicContentEditorPanel>(
       "metadata",
-      editor.hasUnsavedChanges,
+      editor,
     );
   const t = useAcademicContentTranslations();
   const editingDisabled = editor.isReadOnly || !props.canManage;

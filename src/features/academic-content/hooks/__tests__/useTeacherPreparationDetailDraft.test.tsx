@@ -11,6 +11,21 @@ const cleanSection: AcademicContentEditorSectionState = {
 };
 
 describe("useTeacherPreparationDetailDraft", () => {
+  it("discards the shared draft so confirmed navigation cannot retain unsaved edits", () => {
+    const initial = { ...emptyTeacherPreparationDetail(), objectives: ["Saved objective"] };
+    const { result } = renderHook(() => useTeacherPreparationDetailDraft({
+      initial,
+      contentVersion: "content-1:v1",
+      sectionState: { ...cleanSection, dirty: true },
+      onDirty: () => undefined,
+      onSave: async () => true,
+    }));
+    act(() => result.current.update("objectives", ["Unsaved objective"]));
+    expect(result.current.draft.objectives).toEqual(["Unsaved objective"]);
+    act(() => result.current.discard());
+    expect(result.current.draft).toEqual(initial);
+  });
+
   it("applies a template to the shared draft and marks it dirty once", () => {
     const onDirty = vi.fn();
     const initial = {

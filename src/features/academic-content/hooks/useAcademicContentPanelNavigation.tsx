@@ -3,22 +3,41 @@
 import { useState } from "react";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useAcademicContentTranslations } from "./useAcademicContentTranslations";
+import { academicContentPanelSections } from "../model/academicContentPanelSections";
+import type { AcademicContentDetail } from "../types/contracts";
+import type { useAcademicContentEditor } from "./useAcademicContentEditor";
+
+type PanelEditor = Pick<
+  ReturnType<typeof useAcademicContentEditor>,
+  "sections" | "markSectionDirty"
+> & { content: Pick<AcademicContentDetail, "type"> };
 
 export function useAcademicContentPanelNavigation<Panel extends string>(
   initialPanel: Panel,
-  hasUnsavedChanges: boolean,
+  editor: PanelEditor,
+  discardDetailDraft?: () => void,
 ) {
   const [activePanel, setActivePanel] = useState(initialPanel);
   const [pendingPanel, setPendingPanel] = useState<Panel | null>(null);
   const t = useAcademicContentTranslations("editor");
+  const panelSections = academicContentPanelSections(
+    activePanel,
+    editor.content.type,
+    initialPanel,
+  );
+  const dirtySections = panelSections.filter(
+    (section) => editor.sections[section].dirty,
+  );
 
   const requestPanelChange = (nextPanel: Panel) => {
     if (nextPanel === activePanel) return;
-    if (hasUnsavedChanges) setPendingPanel(nextPanel);
+    if (dirtySections.length > 0) setPendingPanel(nextPanel);
     else setActivePanel(nextPanel);
   };
   const confirmPanelChange = () => {
     if (pendingPanel === null) return;
+    if (dirtySections.includes("details")) discardDetailDraft?.();
+    dirtySections.forEach((section) => editor.markSectionDirty(section, false));
     setActivePanel(pendingPanel);
     setPendingPanel(null);
   };
