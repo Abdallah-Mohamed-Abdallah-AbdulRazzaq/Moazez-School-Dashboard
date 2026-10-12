@@ -8,6 +8,9 @@ import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import Select from "@/components/ui/input/Select";
+import Checkbox from "@/components/ui/checkbox/Checkbox";
+import HomeworkImportBatchPanel from "../components/HomeworkImportBatchPanel";
+import type { HomeworkBatchPageState } from "../utils/homeworkImportBatch.types";
 import TimetableSlotSelect from "@/features/academics/lesson-plans/components/TimetableSlotSelect";
 import { dashboardDaysForScope } from "@/features/academics/lesson-plans/services/lessonPlanTimetable";
 import { getDashboardTimetable } from "@/features/academics/timetable/services/timetableApiAdapter";
@@ -235,6 +238,7 @@ export default function CreateHomeworkPage() {
   const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const tValidation = useTranslations("validation");
   const tImport = useTranslations("academics.excelImport");
+  const tBatch = useTranslations("academics.homework.importBatch");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
@@ -242,6 +246,9 @@ export default function CreateHomeworkPage() {
   const { academicYearId, termId, selectedTerm, termStatus, isInitializing } =
     useAcademicYearTermLayoutContext();
   const canManage = hasPermission("homework.assignments.manage");
+  const canView = hasPermission("homework.assignments.view");
+  const [batchEnabled, setBatchEnabled] = useState(false);
+  const [batchState, setBatchState] = useState<HomeworkBatchPageState>({ hasStarted: false, isSaving: false, allCreated: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentErrors, setAssignmentErrors] = useState<ValidationErrors>({});
   const [pendingImport, setPendingImport] = useState<HomeworkImport | null>(null);
@@ -249,7 +256,15 @@ export default function CreateHomeworkPage() {
   const [partialImport, setPartialImport] = useState<HomeworkImportQuestionSaveError | null>(null);
   const submissionLock = useRef(false);
   const creationContext = useRef({ year: "", term: "" });
-  const { clearDirty, guardedNavigate } = useImportNavigation({ key: "homework-excel-import", questionCount: pendingImport?.questions.length ?? 0 });
+  const { clearDirty, guardedNavigate } = useImportNavigation({ key: "homework-excel-import", questionCount: batchEnabled && batchState.allCreated ? 0 : pendingImport?.questions.length ?? 0 });
+  const updateBatchState = useCallback((state: HomeworkBatchPageState) => {
+    if (state.allCreated) clearDirty();
+    setBatchState(state);
+  }, [clearDirty]);
+  const resetBatchImport = () => {
+    setPendingImport(null); setImportIssues([]); setBatchEnabled(false);
+    setBatchState({ hasStarted: false, isSaving: false, allCreated: false });
+  };
   const [isLoadingAllocations, setIsLoadingAllocations] = useState(false);
   const [isLoadingEligibleStudents, setIsLoadingEligibleStudents] =
     useState(false);
@@ -297,7 +312,7 @@ export default function CreateHomeworkPage() {
   const importContext = { now: new Date(), termStart: selectedTerm?.startDate ?? "", termEnd: selectedTerm?.endDate ?? "", publishAt: draft.publishAt };
   const canImport = canManage && termStatus !== "closed" && Boolean(selectedTerm);
   const applyImport = (imported: ImportedDraft) => {
-    if (imported.module !== "assignment" || !canImport || partialImport) return;
+    if (imported.module !== "assignment" || !canImport || partialImport || batchState.hasStarted || batchState.isSaving) return;
     setPendingImport(imported);
     setImportIssues([]);
     setAssignmentErrors({});
@@ -511,6 +526,7 @@ export default function CreateHomeworkPage() {
   );
 
   const handleSubmit = async () => {
+    if (batchEnabled) return;
     if (!canManage || submissionLock.current || partialImport) return;
     if (pendingImport) {
       const checked = validateHomeworkImportDraft({ ...pendingImport, metadata: effectiveDraft }, { ...importContext, now: new Date() });
@@ -606,7 +622,7 @@ export default function CreateHomeworkPage() {
     }
   };
 
-  if (isInitializing) {
+  if (isInitializing && !batchState.hasStarted && !batchState.isSaving) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <MainLoader />
@@ -624,8 +640,8 @@ export default function CreateHomeworkPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
-      <div className="mx-auto w-full max-w-4xl p-6">
-        <div className="rounded-lg border border-border bg-white p-6">
+      <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
+        <div className="rounded-lg border border-border bg-white p-4 sm:p-6">
           <div className="mb-6">
             <h1 className="text-xl font-semibold text-gray-900">
               {t("title")}
@@ -633,13 +649,14 @@ export default function CreateHomeworkPage() {
             <p className="mt-1 text-sm text-gray-600">{t("description")}</p>
           </div>
 
-          <ExcelImportActions module="assignment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: effectiveDraft }} disabled={!canImport || isSubmitting || Boolean(partialImport)} onApply={applyImport} onRemove={() => { setPendingImport(null); setImportIssues([]); }} />
+          <ExcelImportActions module="assignment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: effectiveDraft }} disabled={!canImport || isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} onApply={applyImport} onRemove={resetBatchImport} />
+          {pendingImport && <Checkbox label={tBatch("toggle")} description={!canView ? tBatch("permission") : undefined} checked={batchEnabled} onChange={event => setBatchEnabled(event.target.checked)} disabled={!canView || !canImport || isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className="mb-4" />}
           {importIssues.length > 0 && <ImportIssues issues={importIssues} />}
           {partialImport && <div role="alert" className="mb-4 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm">{tImport("messages.partialSave", { saved: partialImport.failedQuestionIndex, total: pendingImport?.questions.length ?? 0 })}</p>
             <Button variant="secondary" onClick={() => openImportedDraft(partialImport.homeworkId)}>{tImport("actions.openDraft")}</Button>
           </div>}
-          <fieldset disabled={isSubmitting || Boolean(partialImport)} className="grid gap-4 md:grid-cols-2">
+          <fieldset disabled={isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <h2 className="text-sm font-semibold text-gray-900">
                 {t("sections.assignment")}
@@ -661,7 +678,7 @@ export default function CreateHomeworkPage() {
                 }))
               }
             />
-            <Select
+            {!batchEnabled && <Select
               label={t("fields.teacherSubjectAllocation")}
               required
               searchable
@@ -691,8 +708,8 @@ export default function CreateHomeworkPage() {
                 !effectiveDraft.termId
               }
               helperText={t("helpers.teacherSubjectAllocation")}
-            />
-            <Select
+            />}
+            {!batchEnabled && <Select
               label={t("fields.targetMode")}
               value={draft.targetMode}
               onChange={(targetMode) =>
@@ -712,7 +729,7 @@ export default function CreateHomeworkPage() {
                   label: t("targetModes.selectedStudents"),
                 },
               ]}
-            />
+            />}
             <Select
               label={t("fields.mode")}
               value={draft.mode}
@@ -746,7 +763,7 @@ export default function CreateHomeworkPage() {
               }
               minDateTime={new Date()}
             />
-            <DatePicker
+            {!batchEnabled && <DatePicker
               label={t("fields.scheduleDate")}
               value={parseLocalDateOnly(selectedTimetableDate)}
               onChange={(date) => {
@@ -778,14 +795,14 @@ export default function CreateHomeworkPage() {
               shouldDisableDate={(date) =>
                 !availableTimetableDays?.includes(date.getDay())
               }
-            />
-            <div
+            />}
+            {!batchEnabled && <div
               className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800"
               role="note"
             >
               {t("helpers.timetablePublicationRequired")}
-            </div>
-            {selectedAllocation && selectedTimetableDate && (
+            </div>}
+            {!batchEnabled && selectedAllocation && selectedTimetableDate && (
               <TimetableSlotSelect
                 {...timetableScope}
                 plannedDate={selectedTimetableDate}
@@ -852,7 +869,7 @@ export default function CreateHomeworkPage() {
             />
           </fieldset>
 
-          <fieldset disabled={isSubmitting || Boolean(partialImport)} className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          {!batchEnabled && <fieldset disabled={isSubmitting || Boolean(partialImport)} className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">
@@ -962,7 +979,9 @@ export default function CreateHomeworkPage() {
                 </p>
               </div>
             )}
-          </fieldset>
+          </fieldset>}
+
+          {batchEnabled && pendingImport && <HomeworkImportBatchPanel importedDraft={pendingImport} metadata={effectiveDraft} publishAt={draft.publishAt} academicYearId={academicYearId || ""} termId={termId || ""} termStart={selectedTerm?.startDate ?? ""} termEnd={selectedTerm?.endDate ?? ""} writable={canImport && canView && Boolean(academicYearId && termId)} initialSubjectId={selectedAllocation?.allocation.subjectId} initialClassroomId={selectedAllocation?.allocation.classroomId} onStateChange={updateBatchState} onReset={resetBatchImport} />}
 
           <div className="mt-6 flex justify-end gap-3">
             <Button
@@ -973,13 +992,13 @@ export default function CreateHomeworkPage() {
                   `/${locale}/academics/homework${params ? `?${params}` : ""}`,
                 );
               })}
-              disabled={isSubmitting}
+              disabled={isSubmitting || batchState.isSaving}
             >
               {t("actions.cancel")}
             </Button>
-            <Button onClick={() => void handleSubmit()} loading={isSubmitting} disabled={Boolean(partialImport) || Boolean(pendingImport && !canImport)}>
+            {!batchEnabled && <Button onClick={() => void handleSubmit()} loading={isSubmitting} disabled={Boolean(partialImport) || Boolean(pendingImport && !canImport)}>
               {t("actions.createDraft")}
-            </Button>
+            </Button>}
           </div>
         </div>
       </div>
