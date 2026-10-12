@@ -14407,6 +14407,55 @@
     "invalid": "Enter a valid phone number."
   },
   "academic_content": {
+    "reference_details": {
+      "open": "Open",
+      "open_reference": "Open {title} in a new tab",
+      "scope": "Academic scope",
+      "weight": "Weight",
+      "delivery": "Grading method",
+      "grading_lock": "Grading",
+      "locked": "Locked",
+      "unlocked": "Unlocked",
+      "scope_types": {
+        "school": "Whole school",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom"
+      },
+      "delivery_modes": {
+        "SCORE_ONLY": "Scores only",
+        "QUESTION_BASED": "Question-based"
+      },
+
+      "assessment_hint": "Draft, published, and approved assessments can be linked. Linking an assessment does not publish it.",
+      "classroom": "Class",
+      "statuses": {
+        "closed": "Closed",
+        "draft": "Draft",
+        "published": "Published",
+        "approved": "Approved",
+        "cancelled": "Cancelled",
+        "archived": "Archived"
+      },
+      "status": "Status",
+      "date": "Date",
+      "type": "Type",
+      "subject": "Subject",
+      "marks": "Maximum marks",
+      "teacher": "Teacher",
+      "duration": "Duration (minutes)",
+      "assessment_types": {
+        "ASSIGNMENT": "Assignment",
+        "MIDTERM": "Midterm",
+        "MONTH_EXAM": "Monthly exam",
+        "FINAL": "Final exam",
+        "PRACTICAL": "Practical",
+        "QUIZ": "Quiz",
+        "TERM_EXAM": "Term exam"
+      },
+      "due_date": "Due"
+    },
     "downloads": {
       "preparing_button": "Preparing download…",
       "preparing": "Preparing download: {name}",

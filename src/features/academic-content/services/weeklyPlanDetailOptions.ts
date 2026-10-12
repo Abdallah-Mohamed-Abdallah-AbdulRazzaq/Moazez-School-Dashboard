@@ -1,7 +1,7 @@
 import { listHomeworkAssignments } from "@/features/academics/homework/services/homeworkService";
 import type { HomeworkAssignmentUiModel } from "@/features/academics/homework/services/homeworkApi.types";
 import { fetchAssessments } from "@/features/grades/overview/services/gradesOverviewService";
-import type { Assessment } from "@/features/grades/shared/types";
+import { fetchSubjects } from "@/features/academics/subjects/services/subjectsService";
 import type { AcademicContentDetail } from "../types/contracts";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
@@ -12,10 +12,15 @@ import {
   academicContentUiError,
   type AcademicContentUiError,
 } from "./academicContentErrors";
+import {
+  withAssessmentReferenceNames,
+  type AcademicContentAssessmentReference,
+} from "./academicContentAssessmentReference";
 
 export interface WeeklyPlanDetailOptions {
+  referenceContext?: Pick<AcademicContentDetail, "academicYearId" | "termId">;
   homeworkAssignments: HomeworkAssignmentUiModel[];
-  assessments: Assessment[];
+  assessments: AcademicContentAssessmentReference[];
   errors: {
     homeworkAssignments: AcademicContentUiError | null;
     assessments: AcademicContentUiError | null;
@@ -31,7 +36,7 @@ export const EMPTY_WEEKLY_PLAN_DETAIL_OPTIONS: WeeklyPlanDetailOptions = {
 export async function loadWeeklyPlanDetailOptions(
   content: AcademicContentDetail,
 ): Promise<WeeklyPlanDetailOptions> {
-  const [targetResponse, homeworkResponse, assessmentResponse] =
+  const [targetResponse, homeworkResponse, assessmentResponse, subjectResponse] =
     await Promise.allSettled([
       fetchStructureTree(content.academicYearId, content.termId),
       listHomeworkAssignments({
@@ -43,6 +48,7 @@ export async function loadWeeklyPlanDetailOptions(
       fetchAssessments(content.academicYearId, content.termId, {
         includeDrafts: true,
       }),
+      fetchSubjects(),
     ]);
 
   if (targetResponse.status === "rejected") {
@@ -57,8 +63,13 @@ export async function loadWeeklyPlanDetailOptions(
     content.targets,
     targetResponse.value,
   );
+  const assessmentContext = {
+    structure: targetResponse.value,
+    subjects: subjectResponse.status === "fulfilled" ? subjectResponse.value : [],
+  };
 
   return {
+    referenceContext: { academicYearId: content.academicYearId, termId: content.termId },
     homeworkAssignments:
       homeworkResponse.status === "fulfilled"
         ? homeworkResponse.value.items.filter((homework) =>
@@ -71,9 +82,9 @@ export async function loadWeeklyPlanDetailOptions(
         : [],
     assessments:
       assessmentResponse.status === "fulfilled"
-        ? assessmentResponse.value.filter((assessment) =>
-            matchesTarget(assessmentReferenceScope(assessment)),
-          )
+        ? assessmentResponse.value
+            .filter((assessment) => matchesTarget(assessmentReferenceScope(assessment)))
+            .map((assessment) => withAssessmentReferenceNames(assessment, assessmentContext))
         : [],
     errors: {
       homeworkAssignments:
@@ -83,7 +94,9 @@ export async function loadWeeklyPlanDetailOptions(
       assessments:
         assessmentResponse.status === "rejected"
           ? academicContentUiError(assessmentResponse.reason)
-          : null,
+          : subjectResponse.status === "rejected"
+            ? academicContentUiError(subjectResponse.reason)
+            : null,
     },
   };
 }
