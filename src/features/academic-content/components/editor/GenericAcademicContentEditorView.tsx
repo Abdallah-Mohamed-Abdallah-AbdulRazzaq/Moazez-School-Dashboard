@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import type { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
+import { useAcademicContentPanelNavigation } from "../../hooks/useAcademicContentPanelNavigation";
 import { useAcademicContentTranslations } from "../../hooks/useAcademicContentTranslations";
 import { isPublicationSurfaceAvailable } from "../../model/academicContentPublicationPolicy";
 import type {
@@ -56,8 +56,11 @@ export default function GenericAcademicContentEditorView(
 ) {
   const { editor } = props;
   const { content } = editor;
-  const [activeSection, setActiveSection] =
-    useState<AcademicContentEditorPanel>("metadata");
+  const { activePanel: activeSection, requestPanelChange, navigationDialog } =
+    useAcademicContentPanelNavigation<AcademicContentEditorPanel>(
+      "metadata",
+      editor.hasUnsavedChanges,
+    );
   const t = useAcademicContentTranslations();
   const editingDisabled = editor.isReadOnly || !props.canManage;
   const publicationAvailable = isPublicationSurfaceAvailable(
@@ -146,7 +149,7 @@ export default function GenericAcademicContentEditorView(
         activeSection={resolvedActiveSection}
         sections={editorSections}
         indicators={indicators}
-        onChange={setActiveSection}
+        onChange={requestPanelChange}
       />
       <div className="grid min-w-0 gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
         <aside>
@@ -155,7 +158,7 @@ export default function GenericAcademicContentEditorView(
             activeSection={resolvedActiveSection}
             sections={editorSections}
             indicators={indicators}
-            onChange={setActiveSection}
+            onChange={requestPanelChange}
           />
         </aside>
         <div className="min-w-0">
@@ -239,6 +242,7 @@ export default function GenericAcademicContentEditorView(
           )}
         </div>
       </div>
+      {navigationDialog}
     </main>
   );
 }
