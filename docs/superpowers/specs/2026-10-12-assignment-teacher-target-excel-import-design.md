@@ -2,7 +2,7 @@
 
 Date: 2026-10-12
 
-Status: conversational design approved; written spec awaiting owner review. Implementation has not started.
+Status: conversational design and written spec approved. Implementation complete; verification is recorded in `docs/superpowers/plans/2026-10-12-assignment-teacher-target-excel-import.md`.
 
 ## Scope and approved behavior
 

@@ -32,7 +32,7 @@
 
 `classroomIds` is the snapshot of matching candidate IDs, including ineligible candidates for skip explanations. Exclusions remove deliberate deselections from the plan. Eligibility still determines which rows are checked/created. Derive teacher/subject options from current-term allocations, never names as identity.
 
-- [ ] Add planner regressions for teacher/subject/term isolation, duplicate/ambiguous allocations, section-only records, empty/missing classes, exclusions, changed ownership, and new allocation IDs outside the snapshot. Include explicit allowed payload fields.
+- [x] Add planner regressions for teacher/subject/term isolation, duplicate/ambiguous allocations, section-only records, empty/missing classes, exclusions, changed ownership, and new allocation IDs outside the snapshot. Include explicit allowed payload fields.
 
 ```ts
 const selection = { type: "teacher" as const, teacherUserId: batchIds.teacherA,
@@ -41,15 +41,15 @@ const plan = homeworkBatchPlan({ ...request(), selection });
 expect(plan.rows.find(row => row.classroomId === batchIds.classB)?.eligible).toBe(false);
 ```
 
-- [ ] Run `npx vitest run src/features/academics/homework/utils/__tests__/homeworkImportBatchTargets.test.ts`; confirm new teacher behavior fails before implementation.
-- [ ] Extend planner IDs to teacher snapshots minus exclusions, preserving existing group scopes. Before returning an eligible row, require the unique allocation's teacher ID to equal the selected teacher. Use existing `missingAllocation` skip message for a stale/foreign teacher allocation; do not substitute ownership.
+- [x] Run `npx vitest run src/features/academics/homework/utils/__tests__/homeworkImportBatchTargets.test.ts`; confirm new teacher behavior fails before implementation.
+- [x] Extend planner IDs to teacher snapshots minus exclusions, preserving existing group scopes. Before returning an eligible row, require the unique allocation's teacher ID to equal the selected teacher. Use existing `missingAllocation` skip message for a stale/foreign teacher allocation; do not substitute ownership.
 
 ```ts
 if (request.selection.type === "teacher" && allocation.teacherId !== request.selection.teacherUserId)
   return { ...base, eligible: false, skipReason: "missingAllocation" };
 ```
 
-- [ ] Rerun planner tests; review with both guards and commit the independently tested planner/helper changes.
+- [x] Rerun planner tests; review with both guards and commit the independently tested planner/helper changes.
 
 ## Task 2: Teacher selection UI and state
 
@@ -57,9 +57,9 @@ if (request.selection.type === "teacher" && allocation.teacherId !== request.sel
 
 **Interfaces:** Teacher component consumes current hook context, subject, selection, and setters. Expose academicYearId/termId for default plan calculation. Helper `teacherClassroomIds(context, termId, subjectId, teacherUserId): string[]` derives unique explicit class IDs. Use `homeworkBatchPlan` for checkbox eligibility, maintaining the planner as source of truth.
 
-- [ ] Add component flow assertions: select Teacher's classes, choose teacher, retain valid subject, default selected classes, search/deselect/clear/reselect, no writes after ownership refresh, and selection lock during/after creation. Use current real workbook/context fixture and mock HTTP/window boundaries.
-- [ ] Run the batch-panel test file to confirm new scope/control behavior fails before implementation.
-- [ ] Add teacher scope, a shared searchable Select for teacher and subject, shared Input/Checkbox/Button selection controls, and empty states. Reset candidate snapshot/exclusions only on explicit teacher/subject changes. Preserve valid current subject; otherwise set it empty. A clear teacher choice must produce an empty candidate snapshot.
+- [x] Add component flow assertions: select Teacher's classes, choose teacher, retain valid subject, default selected classes, search/deselect/clear/reselect, no writes after ownership refresh, and selection lock during/after creation. Use current real workbook/context fixture and mock HTTP/window boundaries.
+- [x] Run the batch-panel test file to confirm new scope/control behavior fails before implementation.
+- [x] Add teacher scope, a shared searchable Select for teacher and subject, shared Input/Checkbox/Button selection controls, and empty states. Reset candidate snapshot/exclusions only on explicit teacher/subject changes. Preserve valid current subject; otherwise set it empty. A clear teacher choice must produce an empty candidate snapshot.
 
 ```ts
 batch.setSelection({ type: "teacher", teacherUserId,
@@ -67,13 +67,22 @@ batch.setSelection({ type: "teacher", teacherUserId,
   excludedClassroomIds: [] });
 ```
 
-- [ ] Reuse existing preflight signature and frozen-plan flow; add no effect that auto-selects on context refresh. Add translated Teacher, choose-teacher, empty-teachers/subjects/classes, selection controls, and teacher-help copy. Keep other scopes' controls unchanged.
-- [ ] Run affected panel/Create/planner focused tests, typecheck, and lint; inspect guards and commit working feature.
+- [x] Reuse existing preflight signature and frozen-plan flow; add no effect that auto-selects on context refresh. Add translated Teacher, choose-teacher, empty-teachers/subjects/classes, selection controls, and teacher-help copy. Keep other scopes' controls unchanged.
+- [x] Run affected panel/Create/planner focused tests, typecheck, and lint; inspect guards and commit working feature.
 
 ## Task 3: Verify and deliver
 
 **Files:** Implementation/spec records and existing draft PR description; external synthetic browser harness if needed.
 
-- [ ] Run focused tests for the planner, panel, and three assignment Create/import test files. Run `npm run lint`, `npm run typecheck`, and `npm run build`. No full suite.
-- [ ] Exercise actual Create page with fixture HTTP/auth/router boundaries and a real workbook; choose teacher scope and deselect a class. Check English/Arabic at 375/768/1024/1440 for dropdown widths, checkbox state, selection counts, and results. Record any live-backend/browser limits honestly.
-- [ ] Verify changed files and whitespace; record measured results without placeholders. Commit normally, push existing feature branch, update/attach PR #85, and provide handoff with actual SHA/manifest/checks. No merge or deployment.
+- [x] Run focused tests for the planner, panel, and three assignment Create/import test files. Run `npm run lint`, `npm run typecheck`, and `npm run build`. No full suite.
+- [x] Exercise actual Create page with fixture HTTP/auth/router boundaries and a real workbook; choose teacher scope and deselect a class. Check English/Arabic at 375/768/1024/1440 for dropdown widths, checkbox state, selection counts, and results. Record any live-backend/browser limits honestly.
+- [x] Verify changed files and whitespace; record measured results without placeholders. Commit normally, push existing feature branch, update/attach PR #85, and provide handoff with actual SHA/manifest/checks. No merge or deployment.
+
+## Execution record — 2026-10-12
+
+- Teacher snapshots, ownership checks, candidate option helpers, exclusions, controls, and messages implemented. The new teacher mode shares the existing eligibility, preflight, request mapper, and save coordinator. No new API read or write contract, dependency, assessment behavior, or tab focus request was added.
+- The first teacher planner regression failed before implementation; the first component regression failed before the new scope was added. Final focused verification covered **41 unique tests across five files**: 21 target-planner tests, 10 batch-panel tests, and 10 tests across three assignment Create/import files. The panel was rerun after adding subject-change/empty-state coverage. All passed. Full tests remain unrun by user preference.
+- Full-project lint, typecheck, production build, and whitespace checks passed. The final additional test changes also passed scoped lint. Clean Code Guard, Test Guard, and Docs Guard checks completed.
+- The synthetic Chrome harness exercised the actual Create page and real five-question workbook with HTTP/auth/context/router/window fixtures. It selected the teacher scope, chose a teacher with two classes, excluded the second class, created one draft, and retained one editor link at each of eight English/Arabic viewport combinations (375/768/1024/1440). No runtime errors, page overflow, number-field overlap, or dropdown container overflow were observed, including the unlayered content-box simulation. Arabic mobile and English desktop screenshots were inspected.
+- Browser QA used synthetic data; authenticated live backend saves and browser tab activation were not verified. The original backend contract audit is retained as historical evidence; this extension adds no backend fields or endpoints.
+- Delivery uses normal commits on the existing branch and draft PR #85. The external owner handoff records the final pushed SHA, complete file manifest, and check results. No merge or deployment is performed.

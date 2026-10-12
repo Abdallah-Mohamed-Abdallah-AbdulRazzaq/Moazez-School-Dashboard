@@ -97,5 +97,5 @@ export function useHomeworkImportBatch(props: HomeworkImportBatchPanelProps) {
     return refreshed;
   }
 
-  return { context, loading, notice, issues, subjectId, setSubjectId, selection, setSelection, plan, eligibleCount, outcomes, started, saving, allCreated, start, retry: () => setReload(current => current + 1) };
+  return { academicYearId: props.academicYearId, termId: props.termId, context, loading, notice, issues, subjectId, setSubjectId, selection, setSelection, plan, eligibleCount, outcomes, started, saving, allCreated, start, retry: () => setReload(current => current + 1) };
 }

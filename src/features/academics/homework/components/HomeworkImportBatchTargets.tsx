@@ -8,8 +8,9 @@ import Select from "@/components/ui/input/Select";
 import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { useHomeworkImportBatch } from "../hooks/useHomeworkImportBatch";
 import type { HomeworkBatchSelection } from "../utils/homeworkImportBatch.types";
+import HomeworkImportTeacherTargets from "./HomeworkImportTeacherTargets";
 
-type BatchTargetsState = Pick<ReturnType<typeof useHomeworkImportBatch>, "context" | "subjectId" | "setSubjectId" | "selection" | "setSelection" | "saving" | "loading">;
+type BatchTargetsState = Pick<ReturnType<typeof useHomeworkImportBatch>, "context" | "academicYearId" | "termId" | "subjectId" | "setSubjectId" | "selection" | "setSelection" | "saving" | "loading">;
 type NamedGroup = { id: string; name?: string; nameEn?: string; nameAr?: string; gradeId?: string; stageId?: string };
 
 function localizedLabel(locale: string, entry: NamedGroup) {
@@ -37,7 +38,7 @@ export default function HomeworkImportBatchTargets({ batch, writable }: { batch:
   const structure = batch.context?.structure;
   const groups = selection.type === "section" ? structure?.sections : selection.type === "grade" ? structure?.grades : selection.type === "stage" ? structure?.stages : [];
   const choices = classroomChoices(locale, structure).filter(room => `${room.name} ${room.hierarchy}`.toLowerCase().includes(search.trim().toLowerCase()));
-  const scopeSelections: Record<string, HomeworkBatchSelection> = { classes: { type: "classes", classroomIds: [] }, section: { type: "section", id: "" }, grade: { type: "grade", id: "" }, stage: { type: "stage", id: "" }, school: { type: "school" } };
+  const scopeSelections: Record<string, HomeworkBatchSelection> = { classes: { type: "classes", classroomIds: [] }, teacher: { type: "teacher", teacherUserId: "", classroomIds: [], excludedClassroomIds: [] }, section: { type: "section", id: "" }, grade: { type: "grade", id: "" }, stage: { type: "stage", id: "" }, school: { type: "school" } };
   const toggleClass = (id: string) => {
     if (selection.type !== "classes") return;
     const ids = selection.classroomIds;
@@ -45,10 +46,11 @@ export default function HomeworkImportBatchTargets({ batch, writable }: { batch:
   };
   return <fieldset disabled={batch.saving || batch.loading || !writable} className="min-w-0 space-y-4 rounded-xl border border-gray-100 bg-gray-50/70 p-4 [&_[aria-haspopup=listbox]]:box-border! [&_[aria-haspopup=listbox]]:min-w-0! [&_[aria-haspopup=listbox]]:max-w-full!">
     <div className="grid gap-4 md:grid-cols-2 [&>div]:min-w-0">
-      <Select label={t("subject")} placeholder={t("chooseSubject")} searchable searchPlaceholder={t("searchGroups")} value={batch.subjectId} onChange={batch.setSubjectId} options={(batch.context?.subjects ?? []).map(subject => ({ value: subject.id, label: localizedLabel(locale, subject) }))} />
+      {selection.type !== "teacher" && <Select label={t("subject")} placeholder={t("chooseSubject")} searchable searchPlaceholder={t("searchGroups")} value={batch.subjectId} onChange={batch.setSubjectId} options={(batch.context?.subjects ?? []).map(subject => ({ value: subject.id, label: localizedLabel(locale, subject) }))} />}
       <Select label={t("scope")} value={selection.type} onChange={type => batch.setSelection(scopeSelections[type])} options={Object.keys(scopeSelections).map(type => ({ value: type, label: t(`scopes.${type}`) }))} />
     </div>
-    {structure && selection.type !== "classes" && selection.type !== "school" && <Select label={t(`scopes.${selection.type}`)} placeholder={t("chooseGroup")} searchable searchPlaceholder={t("searchGroups")} value={selection.id} options={(groups ?? []).map(group => ({ value: group.id, label: groupLabel(locale, group, structure) }))} onChange={id => batch.setSelection({ type: selection.type, id })} />}
+    {selection.type === "teacher" && <HomeworkImportTeacherTargets batch={batch} />}
+    {structure && selection.type !== "classes" && selection.type !== "school" && selection.type !== "teacher" && <Select label={t(`scopes.${selection.type}`)} placeholder={t("chooseGroup")} searchable searchPlaceholder={t("searchGroups")} value={selection.id} options={(groups ?? []).map(group => ({ value: group.id, label: groupLabel(locale, group, structure) }))} onChange={id => batch.setSelection({ type: selection.type, id })} />}
     {selection.type === "classes" && <>
       <Input label={t("searchClasses")} value={search} onChange={event => setSearch(event.target.value)} />
       <p className="text-sm">{t("selected", { count: selection.classroomIds.length })}</p>

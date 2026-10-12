@@ -37,6 +37,77 @@ async function scope(label: string) {
   fireEvent.click(await screen.findByRole("button", { name: label, exact: true }));
 }
 
+it("defaults to the teacher's eligible classes and keeps exclusions through search and preflight", async () => {
+  context.allocations[1].teacherId = batchIds.teacherA;
+  context.allocations[1].teacherName = "Teacher 1";
+  await renderPanel(); await scope("Teacher's classes");
+  fireEvent.click(screen.getByRole("button", { name: "Teacher", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Teacher 1", exact: true }));
+  expect(screen.getByRole("checkbox", { name: "Room 1" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Room 2" })).toBeChecked();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Room 2" }));
+  fireEvent.change(screen.getByLabelText("Search classes"), { target: { value: "Room 2" } });
+  expect(screen.getByRole("checkbox", { name: "Room 2" })).not.toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+  expect(screen.getByRole("button", { name: "Create 0 drafts" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Select all eligible classes" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Room 2" }));
+  fireEvent.click(screen.getByRole("button", { name: "Create 1 drafts" }));
+  await screen.findByText("1 of 1 assignments created");
+  const parents = vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments");
+  expect(parents).toHaveLength(1);
+  expect(parents[0][1]).toMatchObject({ teacherSubjectAllocationId: batchIds.allocationA, targetMode: "classroom" });
+});
+
+it("requires renewed teacher review after reassignment and never substitutes another teacher", async () => {
+  await renderPanel(); await scope("Teacher's classes");
+  fireEvent.click(screen.getByRole("button", { name: "Teacher", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Teacher 1", exact: true }));
+  context.allocations[0].teacherId = batchIds.teacherB;
+  fireEvent.click(screen.getByRole("button", { name: "Create 1 drafts" }));
+  await screen.findByText(en.academics.homework.importBatch.changed);
+  expect(apiPost).not.toHaveBeenCalled();
+  expect(screen.getByRole("checkbox", { name: "Room 1" })).toBeDisabled();
+  expect(screen.getByText(en.academics.homework.importBatch.noEligibleTeacherClasses)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Teacher", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Teacher 2", exact: true }));
+  expect(screen.getByRole("checkbox", { name: "Room 1" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Room 2" })).toBeChecked();
+});
+
+it("requires a valid subject again when switching teachers and resets the class selection", async () => {
+  context.subjects.push({ ...context.subjects[0], id: batchIds.otherSubject, name: "Science", nameEn: "Science" });
+  context.allocations[0].subjectId = batchIds.otherSubject;
+  await renderPanel(); await scope("Teacher's classes");
+  fireEvent.click(screen.getByRole("button", { name: "Teacher", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Teacher 1", exact: true }));
+  expect(screen.getByRole("button", { name: "Create 0 drafts" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Subject", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Science", exact: true }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Room 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Teacher", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Teacher 2", exact: true }));
+  expect(screen.getByRole("button", { name: "Create 0 drafts" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Subject", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Math", exact: true }));
+  expect(screen.getByRole("checkbox", { name: "Room 2" })).toBeChecked();
+  expect(screen.queryByRole("checkbox", { name: "Room 1" })).not.toBeInTheDocument();
+  expect(apiPost).not.toHaveBeenCalled();
+});
+
+it.each(["noTeachers", "noTeacherSubjects"] as const)("explains %s and blocks teacher batch creation", async reason => {
+  if (reason === "noTeachers") context.allocations = [];
+  else context.subjects = [];
+  await renderPanel(); await scope("Teacher's classes");
+  if (reason === "noTeacherSubjects") {
+    fireEvent.click(screen.getByRole("button", { name: "Teacher", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Teacher 1", exact: true }));
+  }
+  expect(screen.getByText(en.academics.homework.importBatch[reason])).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Create 0 drafts" })).toBeDisabled();
+  expect(apiPost).not.toHaveBeenCalled();
+});
+
 it.each(["null return", "browser exception"])("preserves selected classes across search and records complete drafts despite %s", async restriction => {
   if (restriction === "browser exception") vi.mocked(window.open).mockImplementation(() => { throw new DOMException("Popup restricted"); });
   const onStateChange = await renderPanel();
