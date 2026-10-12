@@ -4,6 +4,8 @@ Date: 2026-10-12
 
 Status: targeting and save behavior approved in chat on 2026-10-12. Contract, workflow, and UX audit completed after user review; the user authorized continuation on 2026-10-12.
 
+Implementation: complete on the existing feature branch. Final verification and delivery details are recorded in `docs/superpowers/plans/2026-10-12-assignment-multiple-target-excel-import.md` and the final owner handoff. Assessment batching remains outside scope.
+
 ## Scope and approved decisions
 
 Extend the active assignment/homework Excel import so one workbook can create separate assignment drafts for multiple classes. This is a frontend-only extension to the existing import feature on `feat/assignment-assessment-excel-import` and draft PR #85. Assessment behavior is outside this extension.

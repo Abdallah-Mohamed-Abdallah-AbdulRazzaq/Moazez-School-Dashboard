@@ -274,3 +274,16 @@ Integrate with the existing hook invocation, not an additional call with the sam
 - Public types/signatures are defined before consumers. Retaining the server-created assignment response supports truthful result labels without a new endpoint; existing consumers retain `.id`.
 - Approval and execution context are carried forward: the user approved target/save sections, requested contract/workflow/UX verification, and then explicitly said continue; execution remains inline.
 - No full suite, additional backend change, assessment batching, or new workbook targeting contract is implied.
+
+## Execution record — 2026-10-12
+
+- Tasks 1–4 are implemented inline. Target planning and persistence were tested before implementation; panel/page HTTP-boundary scenarios were added after the initial UI implementation and refined during integration. No delegation or scope expansion occurred.
+- The target planner expands all five scopes, lists exclusions, and builds a deterministic review signature. The context reader rejects required lookup failures; the payload builder copies only accepted assignment fields.
+- The ordered save helper retains the server assignment response. The coordinator continues after partial/definite/unconfirmed errors and preserves each known parent ID without retrying parent creation.
+- The panel refreshes preflight before any POST and requires re-review after allocation/eligibility changes. It keeps source metadata, allocations, year/term, and recovery URLs frozen after Start. Browser open failures leave successful outcomes intact with manual links.
+- Page integration defaults batching off, requires manage plus view for the new mode, preserves single/manual flows, locks source/mode/metadata during saving, and preserves active results during layout initialization. The final complete-state callback clears the dirty key before Cancel becomes available; partial results retain the navigation warning.
+- Final focused regression set: **97 tests passed in 15 files**, including shared workbook tests, both original modules’ import tests, existing assignment Create tests, assessment service tests, and the four new batch test files. Edited metadata is revalidated before writing.
+- Full-project lint, typecheck, production build, scoped final lint, and `git diff --check`: **PASS**. No full unit/component or end-to-end suite was run, following the user’s focused-only preference.
+- Synthetic Chrome checks exercised the actual batch panel/components and real service mappers with HTTP/router/window boundaries replaced by fixtures: English and Arabic at 375, 768, 1024, and 1440 pixels; no page overflow or runtime errors; two successful editor links at every size. Preview/results screenshots were visually inspected. This does not claim authenticated live backend saves or native Excel QA.
+- Clean Code Guard and Test Guard passes completed: explicit request whitelist, separate persistence/browser effects, stable submission lock before refresh, retained server ownership labels, stale read protection, complete per-class outcomes, and no internal service mocks in new tests. Documentation references were checked against final source.
+- Delivery continues on the same feature branch and draft PR #85. The final handoff records the pushed SHA and file manifest; no merge or deployment is authorized.
