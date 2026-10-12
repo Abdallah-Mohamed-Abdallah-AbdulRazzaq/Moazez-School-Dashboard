@@ -4,6 +4,8 @@ Date: 2026-10-12
 
 Status: written specification approved by the user on 2026-10-12 after backend contract verification.
 
+Implementation: frontend feature implemented on `feat/assignment-assessment-excel-import`. Actual verification, the user's decision to keep focused tests only, and browser-check limitations are recorded in the implementation plan's execution record and final handoff.
+
 ## Goal and accepted decisions
 
 Add a frontend-only Excel template workflow that creates one assignment or one question-based assessment, including its questions, choices, correct answers, and marks.

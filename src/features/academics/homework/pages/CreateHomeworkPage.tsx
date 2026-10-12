@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
@@ -38,6 +38,13 @@ import type {
   StudentEnrollment,
 } from "@/features/students-guardians/students/types";
 import { createHomeworkAssignment } from "@/features/academics/homework/services/homeworkService";
+import { createHomeworkFromImport, HomeworkImportQuestionSaveError } from "../services/homeworkExcelImportSave";
+import { validateHomeworkImportDraft } from "../utils/homeworkExcelImport";
+import ExcelImportActions from "@/features/academics/shared/excel-import/ExcelImportActions";
+import { ImportIssues } from "@/features/academics/shared/excel-import/ExcelImportPreview";
+import { useImportNavigation } from "@/features/academics/shared/excel-import/useImportNavigation";
+import { uncertainImportCreation } from "@/features/academics/shared/excel-import/importSaveErrors";
+import type { HomeworkImport, ImportedDraft, ImportIssue } from "@/features/academics/shared/excel-import/types";
 import type { CreateHomeworkAssignmentRequest } from "@/features/academics/homework/services/homeworkApi.types";
 import {
   getHomeworkApiValidationErrors,
@@ -227,15 +234,22 @@ export default function CreateHomeworkPage() {
   const t = useTranslations("academics.homework.create");
   const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const tValidation = useTranslations("validation");
+  const tImport = useTranslations("academics.excelImport");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
   const { hasPermission } = usePermissions();
-  const { academicYearId, termId, selectedTerm, isInitializing } =
+  const { academicYearId, termId, selectedTerm, termStatus, isInitializing } =
     useAcademicYearTermLayoutContext();
   const canManage = hasPermission("homework.assignments.manage");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentErrors, setAssignmentErrors] = useState<ValidationErrors>({});
+  const [pendingImport, setPendingImport] = useState<HomeworkImport | null>(null);
+  const [importIssues, setImportIssues] = useState<ImportIssue[]>([]);
+  const [partialImport, setPartialImport] = useState<HomeworkImportQuestionSaveError | null>(null);
+  const submissionLock = useRef(false);
+  const creationContext = useRef({ year: "", term: "" });
+  const { clearDirty, guardedNavigate } = useImportNavigation({ key: "homework-excel-import", questionCount: pendingImport?.questions.length ?? 0 });
   const [isLoadingAllocations, setIsLoadingAllocations] = useState(false);
   const [isLoadingEligibleStudents, setIsLoadingEligibleStudents] =
     useState(false);
@@ -280,6 +294,23 @@ export default function CreateHomeworkPage() {
       ),
     [allocationOptions, draft.teacherSubjectAllocationId],
   );
+  const importContext = { now: new Date(), termStart: selectedTerm?.startDate ?? "", termEnd: selectedTerm?.endDate ?? "", publishAt: draft.publishAt };
+  const canImport = canManage && termStatus !== "closed" && Boolean(selectedTerm);
+  const applyImport = (imported: ImportedDraft) => {
+    if (imported.module !== "assignment" || !canImport || partialImport) return;
+    setPendingImport(imported);
+    setImportIssues([]);
+    setAssignmentErrors({});
+    const { title, description, mode, dueAt, isGraded, totalMarks, estimatedMinutes } = imported.metadata;
+    setDraft((current) => ({ ...current, title, description, mode, dueAt, isGraded, totalMarks, estimatedMinutes }));
+  };
+  const openImportedDraft = (id: string) => {
+    clearDirty();
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("year", creationContext.current.year);
+    params.set("term", creationContext.current.term);
+    router.replace(`/${locale}/academics/homework/${id}?${params}`);
+  };
 
   const timetableScope = useMemo(
     () => ({
@@ -480,6 +511,15 @@ export default function CreateHomeworkPage() {
   );
 
   const handleSubmit = async () => {
+    if (!canManage || submissionLock.current || partialImport) return;
+    if (pendingImport) {
+      const checked = validateHomeworkImportDraft({ ...pendingImport, metadata: effectiveDraft }, { ...importContext, now: new Date() });
+      setImportIssues(checked.kind === "invalid" ? checked.issues : []);
+      if (checked.kind === "invalid") return;
+      const selectedIds = effectiveDraft.studentIds ?? [];
+      const validStudents = effectiveDraft.targetMode !== "selected_students" || (selectedIds.length > 0 && selectedIds.length <= 500 && new Set(selectedIds).size === selectedIds.length && selectedIds.every((id) => eligibleStudents.some((student) => student.id === id)));
+      if (!canImport || !selectedAllocation || !validStudents) { showError(tImport("errors.context")); return; }
+    }
     if (!effectiveDraft.academicYearId || !effectiveDraft.termId) {
       showError(t("errors.contextRequired"));
       return;
@@ -528,6 +568,8 @@ export default function CreateHomeworkPage() {
       return;
     }
 
+    submissionLock.current = true;
+    creationContext.current = { year: academicYearId, term: termId };
     setIsSubmitting(true);
     try {
       const payload: CreateHomeworkAssignmentRequest = {
@@ -542,8 +584,9 @@ export default function CreateHomeworkPage() {
           ? effectiveDraft.scheduleDate
           : undefined,
       };
-      const created = await createHomeworkAssignment(payload);
+      const created = pendingImport ? await createHomeworkFromImport({ assignment: payload, questions: pendingImport.questions }) : await createHomeworkAssignment(payload);
       showSuccess(t("messages.created"));
+      if (pendingImport) { openImportedDraft(created.id); return; }
       const params = new URLSearchParams(searchParams.toString());
       if (academicYearId) params.set("year", academicYearId);
       if (termId) params.set("term", termId);
@@ -551,12 +594,14 @@ export default function CreateHomeworkPage() {
         `/${locale}/academics/homework/${created.id}?${params.toString()}`,
       );
     } catch (error) {
+      if (pendingImport && error instanceof HomeworkImportQuestionSaveError) { setPartialImport(error); return; }
       const apiValidationErrors = getHomeworkApiValidationErrors(error, tValidation);
       if (Object.keys(apiValidationErrors).length > 0) {
         setAssignmentErrors(apiValidationErrors);
       }
-      showError(t("errors.createFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      showError(pendingImport && uncertainImportCreation(error) ? tImport("messages.unknownCreation") : t("errors.createFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
     }
   };
@@ -588,7 +633,13 @@ export default function CreateHomeworkPage() {
             <p className="mt-1 text-sm text-gray-600">{t("description")}</p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <ExcelImportActions module="assignment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: effectiveDraft }} disabled={!canImport || isSubmitting || Boolean(partialImport)} onApply={applyImport} onRemove={() => { setPendingImport(null); setImportIssues([]); }} />
+          {importIssues.length > 0 && <ImportIssues issues={importIssues} />}
+          {partialImport && <div role="alert" className="mb-4 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm">{tImport("messages.partialSave", { saved: partialImport.failedQuestionIndex, total: pendingImport?.questions.length ?? 0 })}</p>
+            <Button variant="secondary" onClick={() => openImportedDraft(partialImport.homeworkId)}>{tImport("actions.openDraft")}</Button>
+          </div>}
+          <fieldset disabled={isSubmitting || Boolean(partialImport)} className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <h2 className="text-sm font-semibold text-gray-900">
                 {t("sections.assignment")}
@@ -799,9 +850,9 @@ export default function CreateHomeworkPage() {
                 }))
               }
             />
-          </div>
+          </fieldset>
 
-          <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <fieldset disabled={isSubmitting || Boolean(partialImport)} className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">
@@ -911,22 +962,22 @@ export default function CreateHomeworkPage() {
                 </p>
               </div>
             )}
-          </div>
+          </fieldset>
 
           <div className="mt-6 flex justify-end gap-3">
             <Button
               variant="secondary"
-              onClick={() => {
+              onClick={() => guardedNavigate(() => {
                 const params = searchParams.toString();
                 router.push(
                   `/${locale}/academics/homework${params ? `?${params}` : ""}`,
                 );
-              }}
+              })}
               disabled={isSubmitting}
             >
               {t("actions.cancel")}
             </Button>
-            <Button onClick={() => void handleSubmit()} loading={isSubmitting}>
+            <Button onClick={() => void handleSubmit()} loading={isSubmitting} disabled={Boolean(partialImport) || Boolean(pendingImport && !canImport)}>
               {t("actions.createDraft")}
             </Button>
           </div>

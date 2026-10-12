@@ -10,6 +10,26 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-12-assignment-assessment-excel-import-design.md` (approved; read it together with this plan).
 
+## Execution record — 2026-10-12
+
+The user selected inline implementation in this chat. The record below tracks the delivered implementation; the original step checklist remains as the proposed execution approach. Implementation commits are consolidated around the complete feature rather than the proposed per-task commits.
+
+| Task | Implementation outcome |
+| --- | --- |
+| 1 — Workbook I/O | ExcelJS 4.4.0, module templates, primitive-cell reader, structure/file/row limits, original row numbers, and real workbook tests implemented. |
+| 2 — Contract adapters | Both module adapters and current-draft revalidation implemented against backend commit `fe6b4b1b99478628c106b60f65370d08c10c3ceb`; five question types, bilingual assessment fields, choice ordering, numeric/text/date bounds, and marks warnings covered. |
+| 3 — Import UI | Shared localized dialog, preview, download/review/remove controls, and English/Arabic messages use existing UI components. Review displays only workbook metadata; Apply preserves dashboard targeting. |
+| 4 — Assignment save | Existing parent/question services save sequentially; partial failure retains the parent ID and failed question index. |
+| 5 — Assignment integration | Pending import, current allocation/student checks, submission lock, original creation context, recovery navigation, and existing dirty-navigation provider integrated. Existing manual-page regression tests retained. |
+| 6 — Assessment integration | Both manage permissions, current subject/scope/term checks, QUESTION_BASED import, submission lock, and existing partial-save recovery integrated. Focused tests exercise bilingual wire data, a second-question failure, Stay/Leave/removal, and duplicate submission. |
+| 7 — Verification | 71 focused tests in 11 files passed. Lint, typecheck, and production build passed. Clean Code Guard, Test Guard, and documentation review applied. |
+
+The full unit/component suite was explicitly declined by the user: **“Keep focused checks only.”** No full suite or end-to-end suite was run.
+
+Browser checks confirmed the Arabic assignment import dialog opens and cancels, and downloaded the actual template. Its workbook sheets/headers were checked with ExcelJS. Browser file selection could not complete because the extension's “Allow access to file URLs” permission is disabled; this permission was not changed. A fresh route redirected to onboarding, so authenticated assessment, mobile, spreadsheet-viewer, and live complete/partial-save visual checks were not run. Real-workbook component and HTTP-boundary integration tests cover parsing, preview, creation, and recovery without creating school data.
+
+`npm ci --ignore-scripts --dry-run` passed after resolving the lockfile. The dependency audit reports 38 findings (2 low, 13 moderate, 19 high, 4 critical), including a moderate ExcelJS dependency path through `uuid`. The reported UUID advisory affects v3/v5/v6 with caller-supplied buffers; the installed ExcelJS source uses v4 without a buffer. The audit finding remains reported. No broad audit fix or unrelated dependency upgrade was attempted. Normal push, draft PR identity, final head SHA, and clean status are recorded in the final handoff; no merge or deployment is authorized.
+
 ## Global Constraints
 
 - One workbook creates one item; this is not a bulk import of multiple items.
