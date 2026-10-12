@@ -14399,6 +14399,7 @@
   },
   "academic_content": {
     "reference_details": {
+      "assessment_hint": "يمكن ربط التقييمات المسودة والمنشورة والمعتمدة. ربط التقييم لا يؤدي إلى نشره.",
       "classroom": "الفصل",
       "statuses": {
         "closed": "مغلق",

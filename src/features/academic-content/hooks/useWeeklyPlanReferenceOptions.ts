@@ -39,7 +39,6 @@ export function useWeeklyPlanReferenceOptions(options: {
       ]),
     }));
   const assessments = options.assessments
-    .filter(({ approvalStatus }) => approvalStatus === "draft" || approvalStatus === "published")
     .map((assessment) => ({
       value: assessment.id,
       label: locale === "ar" ? assessment.titleAr || assessment.title : assessment.title,

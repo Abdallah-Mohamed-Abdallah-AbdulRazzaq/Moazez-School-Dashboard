@@ -106,7 +106,7 @@ export default function WeeklyPlanForm({
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
         <ReferenceChecklist label={t("fields.homework_assignments")} values={form.homeworkAssignmentIds} options={referenceOptions.homeworkAssignments} disabled={disabled} helperText={t("details.target_dependency_hint")} onChange={(value) => update("homeworkAssignmentIds", value)} />
-        <ReferenceChecklist label={t("fields.grade_assessments")} values={form.gradeAssessmentIds} options={referenceOptions.assessments} disabled={disabled} helperText={t("details.target_dependency_hint")} onChange={(value) => update("gradeAssessmentIds", value)} />
+        <ReferenceChecklist label={t("fields.grade_assessments")} values={form.gradeAssessmentIds} options={referenceOptions.assessments} disabled={disabled} helperText={`${t("details.target_dependency_hint")} ${t("reference_details.assessment_hint")}`} onChange={(value) => update("gradeAssessmentIds", value)} />
       </div>
     </DetailFormShell>
   );

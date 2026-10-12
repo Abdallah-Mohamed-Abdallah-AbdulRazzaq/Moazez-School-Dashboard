@@ -14408,6 +14408,7 @@
   },
   "academic_content": {
     "reference_details": {
+      "assessment_hint": "Draft, published, and approved assessments can be linked. Linking an assessment does not publish it.",
       "classroom": "Class",
       "statuses": {
         "closed": "Closed",

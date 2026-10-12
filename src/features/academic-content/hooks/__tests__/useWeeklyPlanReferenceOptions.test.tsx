@@ -34,7 +34,7 @@ function ReferenceOptions({ sparse = false }: { sparse?: boolean }) {
 }
 
 describe("weekly plan reference details", () => {
-  it("offers only draft and published homework and assessments", () => {
+  it("offers draft and published homework and includes approved assessments", () => {
     const homeworkStatuses: HomeworkAssignmentUiModel["status"][] = [
       "draft", "published", "closed", "cancelled", "archived",
     ];
@@ -53,7 +53,7 @@ describe("weekly plan reference details", () => {
       "homework-draft", "homework-published",
     ]);
     expect(result.current.assessments.map(({ value }) => value)).toEqual([
-      "assessment-draft", "assessment-published",
+      "assessment-draft", "assessment-published", "assessment-approved",
     ]);
   });
 
