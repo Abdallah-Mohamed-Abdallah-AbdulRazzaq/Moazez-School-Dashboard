@@ -197,6 +197,7 @@ export default function TeacherPreparationFilters({
       triggerAriaLabel={label}
       value={value}
       options={selectOptions}
+      searchable={field === "teacherUserId"}
       disabled={disabled}
       onChange={(nextValue) =>
         onFiltersChange({ ...resets, [field]: nextValue })

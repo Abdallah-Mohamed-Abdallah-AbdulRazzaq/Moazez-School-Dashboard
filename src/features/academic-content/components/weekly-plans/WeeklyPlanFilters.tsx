@@ -229,6 +229,7 @@ export default function WeeklyPlanFilters({
       triggerAriaLabel={label}
       value={value}
       options={selectOptions}
+      searchable={field === "teacherUserId"}
       disabled={disabled}
       onChange={(nextValue) =>
         onFiltersChange({ ...resets, [field]: nextValue })
