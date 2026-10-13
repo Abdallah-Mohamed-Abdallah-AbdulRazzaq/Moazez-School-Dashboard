@@ -10,11 +10,14 @@ import {
   listHomeworkSubmissions,
   reviewHomeworkSubmission,
   reviewHomeworkSubmissionAnswer,
+  bulkReviewHomeworkSubmissionAnswers,
+  syncHomeworkSubmissionGrade,
 } from "../../services/homeworkService";
 
 const showError = vi.fn();
 const showSuccess = vi.fn();
 const translate = (key: string) => key;
+const hasPermission = vi.fn<(permission: string) => boolean>(() => true);
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
@@ -22,7 +25,7 @@ vi.mock("next-intl", () => ({
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
-  usePermissions: () => ({ hasPermission: () => true }),
+  usePermissions: () => ({ hasPermission }),
 }));
 
 vi.mock("@/components/ui/toast/Toast", () => ({
@@ -129,7 +132,44 @@ function arrange(status = "submitted", hasQuestions = true) {
 }
 
 describe("HomeworkSubmissionReviewPanel backend workflow", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hasPermission.mockImplementation(() => true);
+  });
+
+  it.each(["homework.assignments.manage", "homework.assignments.view"])("hides auto-correction without %s", async deniedPermission => {
+    arrange();
+    hasPermission.mockImplementation(permission => permission !== deniedPermission);
+    render(<HomeworkSubmissionReviewPanel homeworkId="homework-1" totalMarks={10} assignmentStatus="published" isGraded />);
+    await waitFor(() => expect(listHomeworkSubmissions).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: "bulkAction" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "singleAction" })).not.toBeInTheDocument();
+  });
+
+  it("auto-corrects a selected student, completes review and syncs the grade", async () => {
+    arrange();
+    const objectiveQuestion = { ...requiredQuestion, questionType: "MCQ_SINGLE" as const,
+      options: [{ id: "option-1", textAr: "أ", textEn: "A", isCorrect: true, order: 0 }] };
+    vi.mocked(listHomeworkQuestions).mockResolvedValue([objectiveQuestion]);
+    const objectiveAnswer = { ...reviewedAnswer, selectedOptionIds: ["option-1"], score: null, reviewedAt: null };
+    vi.mocked(listHomeworkSubmissionAnswers).mockResolvedValue([objectiveAnswer]);
+    vi.mocked(bulkReviewHomeworkSubmissionAnswers).mockImplementation(async () => {
+      vi.mocked(listHomeworkSubmissionAnswers).mockResolvedValue([{ ...objectiveAnswer, score: 2, reviewedAt: "today" }]);
+      return [];
+    });
+    vi.mocked(reviewHomeworkSubmission).mockImplementation(async () => {
+      vi.mocked(fetchHomeworkSubmission).mockResolvedValue(submission("reviewed"));
+      return submission("reviewed");
+    });
+    vi.mocked(syncHomeworkSubmissionGrade).mockResolvedValue({ homeworkId: "homework-1", linked: true, warnings: [], submissionSync: { synced: true } });
+    render(<HomeworkSubmissionReviewPanel homeworkId="homework-1" totalMarks={10} assignmentStatus="published" isGraded />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "singleAction" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    fireEvent.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(screen.getByText("syncedGrades").parentElement).toHaveTextContent("1"));
+    expect(screen.getByText("completedReviews").parentElement).toHaveTextContent("1");
+    expect(screen.getByText("correctedAnswers").parentElement).toHaveTextContent("1");
+  });
 
   it("loads all submissions before a reviewer applies a status filter", async () => {
     arrange();

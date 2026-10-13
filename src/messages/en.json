@@ -6082,6 +6082,51 @@
         }
       },
       "review": {
+        "autoCorrection": {
+          "title": "Auto-correct homework",
+          "singleAction": "Auto-correct student",
+          "bulkAction": "Auto-correct homework",
+          "scope": "Students to correct",
+          "scopes": {
+            "all": "All eligible homework submissions",
+            "filtered": "Eligible submissions matching current filters"
+          },
+          "explanation": "Grades single choice, multiple choice and true/false with full or zero points. Existing objective scores are recalculated; teacher feedback is preserved. Blank answer records receive zero. Missing answers and unreviewed written questions need manual handling. Fully corrected submissions are reviewed and grades synced when a link and permissions are available.",
+          "unsavedEdits": "Save or discard your edits before auto-correction.",
+          "eligibleCount": "{count} eligible students",
+          "loadingTargets": "Loading eligible students…",
+          "progress": "{processed} of {total} students processed",
+          "correctedAnswers": "Objective answers corrected",
+          "completedReviews": "Reviews completed",
+          "syncedGrades": "Grades synced",
+          "manualPending": "Questions needing manual review",
+          "missingAnswers": "Missing answer records",
+          "invalidDefinitions": "Invalid question or answer data",
+          "pendingStudents": "Students still needing correction",
+          "skippedStudents": "Students skipped",
+          "failures": "Failed students",
+          "syncReasons": {
+            "ungraded": "Ungraded homework: review completed without grade sync.",
+            "permission": "Review completed; grade sync requires gradebook viewing and management permissions.",
+            "unlinked": "Review completed; link this homework in the Grade sync panel, then sync the reviewed submissions.",
+            "locked": "Review completed; the linked assessment is locked. Sync after it is unlocked."
+          },
+          "retryFailed": "Retry failed students",
+          "keepPageOpen": "Keep this page open until correction finishes.",
+          "loadFailed": "Could not start correction: {message}",
+          "refreshFailed": "Correction results were retained, but refreshing the page data failed. Reload the results before continuing.",
+          "reload": "Reload results",
+          "confirm": "Auto-correct",
+          "close": "Close",
+          "noTargets": "No eligible submitted or late students in this scope.",
+          "studentFailure": "Student {student} — {stage}: {message}",
+          "stages": {
+            "answers": "Answer correction",
+            "review": "Complete review",
+            "sync": "Grade sync"
+          },
+          "unknownStudent": "Student details unavailable"
+        },
         "actions": {
           "refresh": "Refresh",
           "search": "Search",
