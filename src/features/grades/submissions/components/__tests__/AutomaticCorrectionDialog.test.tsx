@@ -35,6 +35,9 @@ describe("AutomaticCorrectionDialog", () => {
         onConfirm={vi.fn()}
         onRetryFailed={vi.fn()}
         onClose={vi.fn()}
+        policy={null}
+        onPolicyChange={vi.fn()}
+        onFinalize={vi.fn()}
       />,
     );
 

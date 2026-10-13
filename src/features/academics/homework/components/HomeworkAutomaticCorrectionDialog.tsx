@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { getHomeworkErrorMessage } from "../services/homeworkErrors";
 import { useHomeworkAutomaticCorrection, type HomeworkAutomaticCorrectionOptions } from "../hooks/useHomeworkAutomaticCorrection";
 import HomeworkAutomaticCorrectionSummary from "./HomeworkAutomaticCorrectionSummary";
+import HomeworkCorrectionScoringPolicy from "./HomeworkCorrectionScoringPolicy";
 
 interface HomeworkAutomaticCorrectionControlsProps extends HomeworkAutomaticCorrectionOptions {
   selectedSubmissionId: string | null;
@@ -82,6 +83,8 @@ export default function HomeworkAutomaticCorrectionDialog(props: HomeworkAutomat
   const errorT = useTranslations("academics.homework.errorMessages");
   const correction = useHomeworkAutomaticCorrection(props);
   const failed = correction.outcomes.some(outcome => outcome.outcome === "failed");
+  const readyForReview = correction.outcomes.filter(outcome => outcome.outcome === "review_pending").length;
+  const hasOpenReviews = correction.outcomes.some(outcome => !outcome.reviewCompleted && outcome.outcome !== "skipped");
   return <>
     <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary" size="sm" disabled={props.blocked || correction.isRunning || !props.canCorrectSelected}
@@ -94,11 +97,13 @@ export default function HomeworkAutomaticCorrectionDialog(props: HomeworkAutomat
       icon={<Sparkles className="h-6 w-6" aria-hidden="true" />} closeOnEscape={!correction.isRunning}
       closeOnOverlayClick={false} showCloseButton={!correction.isRunning}
       footer={<div className="flex w-full flex-wrap items-center justify-between gap-3">
-        <Button variant="secondary" disabled={correction.isRunning} onClick={correction.close}>{t("close")}</Button>
+        <Button variant="secondary" disabled={correction.isRunning} onClick={correction.close}>{t(hasOpenReviews ? "reviewFirst" : "close")}</Button>
         <div className="flex flex-wrap gap-2">
           {correction.refreshFailed && <Button variant="secondary" disabled={correction.isRunning} onClick={() => void correction.refresh()}>{t("reload")}</Button>}
           {failed && <Button disabled={props.blocked} loading={correction.isRunning} onClick={correction.retryFailed}>{t("retryFailed")}</Button>}
-          {!correction.outcomes.length && <Button disabled={correction.isLoadingTargets || !correction.targets.length || props.blocked}
+          {readyForReview > 0 && <Button disabled={props.blocked || correction.refreshFailed} loading={correction.isRunning}
+            onClick={correction.finalizeCorrection}>{t("finalize", { count: readyForReview })}</Button>}
+          {!correction.outcomes.length && <Button disabled={correction.isLoadingTargets || !correction.targets.length || props.blocked || !correction.scoringPolicy}
             leftIcon={<Sparkles className="h-4 w-4" aria-hidden="true" />} loading={correction.isRunning}
             onClick={() => void correction.runCorrection()}>{t("confirm")}</Button>}
         </div>
@@ -106,6 +111,8 @@ export default function HomeworkAutomaticCorrectionDialog(props: HomeworkAutomat
       <div className="space-y-5 pb-4">
         {!correction.singleSubmissionId && !correction.outcomes.length && <CorrectionScope correction={correction} />}
         {!correction.outcomes.length && !correction.isRunning && <CorrectionPreview correction={correction} />}
+        {!correction.outcomes.length && <HomeworkCorrectionScoringPolicy policy={correction.scoringPolicy}
+          disabled={correction.isRunning} onSelect={correction.selectScoringPolicy} />}
         {!correction.outcomes.length && <CorrectionRules />}
         {correction.isRunning && <p className="rounded-lg bg-primary/5 p-3 text-sm text-gray-700">{t("keepPageOpen")}</p>}
         {correction.progress && <div className="space-y-2 rounded-xl border border-gray-200 p-4">
@@ -115,6 +122,10 @@ export default function HomeworkAutomaticCorrectionDialog(props: HomeworkAutomat
         {correction.error != null && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{t("loadFailed", { message: getHomeworkErrorMessage(correction.error, errorT) })}</p>}
         {correction.refreshFailed && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{t("refreshFailed")}</p>}
         {!!correction.outcomes.length && <HomeworkAutomaticCorrectionSummary outcomes={correction.outcomes} />}
+        {!!correction.outcomes.length && correction.scoringPolicy && <p className="text-sm text-gray-600">
+          {t("selectedPolicy", { policy: t(`policies.${correction.scoringPolicy}.title`) })}
+        </p>}
+        {readyForReview > 0 && <p className="rounded-lg bg-primary/5 p-3 text-sm text-gray-700">{t("reviewChoiceHint")}</p>}
         {correction.outcomes.filter(outcome => outcome.outcome === "failed").map(outcome => <p key={outcome.submissionId} role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {t("studentFailure", { student: outcome.studentName ?? t("unknownStudent"), stage: t(`stages.${outcome.failedStage}`), message: getHomeworkErrorMessage(outcome.error, errorT) })}
         </p>)}

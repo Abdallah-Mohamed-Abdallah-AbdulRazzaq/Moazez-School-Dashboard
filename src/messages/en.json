@@ -5596,6 +5596,8 @@
         "expected_answer": "Expected answer",
         "expected_answer_placeholder": "Enter the expected answer",
         "question_type": "Question Type",
+        "required_question": "Required question",
+        "required_question_description": "Students must answer this question before submitting. Clear this checkbox to make it optional.",
         "points": "Points",
         "expected_time_minutes": "Expected time (minutes)",
         "no_questions": "No questions yet.",
@@ -6101,11 +6103,24 @@
           "checkAll": "Check all submissions",
           "emptyHelp": "Drafts and already reviewed submissions are excluded.",
           "overwriteWarning": "Existing objective scores will be recalculated. Teacher feedback is preserved.",
+          "scoringPolicy": "Multiple-selection scoring policy",
+          "choosePolicy": "Choose one policy before auto-correction. It applies to all multiple-selection questions in this run.",
+          "selectedPolicy": "Scoring policy: {policy}",
+          "policies": {
+            "partial_without_penalty": {
+              "title": "Partial Credit without Penalty",
+              "description": "Split points equally across correct options. Each correct selection earns one share; wrong selections do not deduct points. Scores are rounded to two decimals."
+            },
+            "partial_with_penalty": {
+              "title": "Partial Credit with Penalty",
+              "description": "Split points equally across correct options. Each correct selection earns one share; each wrong selection deducts one share. Minimum zero, rounded to two decimals."
+            }
+          },
           "rulesTitle": "How correction works",
           "rules": {
-            "scoring": "Single choice and true/false earn full or zero points. Multiple-choice points are split across correct options, with the same share deducted for each wrong selection. Scores stay at or above zero and round to two decimals.",
+            "scoring": "Single choice and true/false earn full or zero points. Multiple-selection questions use the policy you choose: Partial Credit without Penalty or Partial Credit with Penalty.",
             "manual": "Blank answer records earn zero. Missing answers and unreviewed written questions stay pending for manual review.",
-            "completion": "When all questions are corrected, the review is completed and grades sync when the link and permissions are available."
+            "completion": "Auto-correction saves scores and leaves reviews open. Review the answers first or choose Finalize review. Grades sync after finalization when the link and permissions are available."
           },
           "singleAction": "Auto-correct student",
           "bulkAction": "Auto-correct homework",
@@ -6114,7 +6129,7 @@
             "all": "All eligible homework submissions",
             "filtered": "Eligible submissions matching current filters"
           },
-          "explanation": "Single choice and true/false earn full or zero points. Multiple-choice points are split equally across the correct options; each selected correct option earns its share, with a deduction of the same share for each incorrect selection and a minimum score of zero. Fractional scores are rounded to two decimal places. Existing objective scores are recalculated; teacher feedback is preserved. Blank answer records receive zero. Missing answers and unreviewed written questions need manual handling. Fully corrected submissions are reviewed and grades synced when a link and permissions are available.",
+          "explanation": "Single choice and true/false earn full or zero points. Choose Partial Credit without Penalty or Partial Credit with Penalty for multiple-selection questions before correcting. Existing objective scores are recalculated; teacher feedback is preserved. Blank answer records receive zero. Missing answers and unreviewed written questions need manual handling. Scores are saved with reviews left open. Review the answers first or finalize fully corrected submissions. Grades sync after finalization when a link and permissions are available.",
           "unsavedEdits": "Save or discard your edits before auto-correction.",
           "eligibleCount": "{count} eligible students",
           "loadingTargets": "Loading eligible students…",
@@ -6126,6 +6141,10 @@
           "missingAnswers": "Missing answer records",
           "invalidDefinitions": "Invalid question or answer data",
           "pendingStudents": "Students still needing correction",
+          "readyForReview": "Students ready for review",
+          "reviewFirst": "Review first",
+          "finalize": "Finalize review ({count})",
+          "reviewChoiceHint": "Scores are saved. Reviews remain open and grades have not synced. Review the answers first, or finalize the fully corrected submissions now.",
           "skippedStudents": "Students skipped",
           "failures": "Failed students",
           "syncReasons": {
@@ -7830,6 +7849,7 @@
         "correctionStatus": "Correction status",
         "reviewedAt": "Reviewed at",
         "answerCorrect": "Correct",
+        "answerPartiallyCorrect": "Partially correct",
         "answerIncorrect": "Incorrect",
         "messages": {
           "synced": "The submission grade was synced to the gradebook."
@@ -7837,8 +7857,27 @@
         "autoCorrection": {
           "open": "Auto-correct",
           "detailAction": "Auto-correct objective questions",
+          "studentFailure": "Submission {submission}: {message}",
+          "scoringPolicy": "Multiple-selection scoring policy",
+          "choosePolicy": "Choose one policy before auto-correction. It applies to all multiple-selection questions in this run.",
+          "selectedPolicy": "Scoring policy: {policy}",
+          "policies": {
+            "partial_without_penalty": {
+              "title": "Partial Credit without Penalty",
+              "description": "Split points equally across correct options. Each correct selection earns one share; wrong selections do not deduct points. Scores are rounded to two decimals."
+            },
+            "partial_with_penalty": {
+              "title": "Partial Credit with Penalty",
+              "description": "Split points equally across correct options. Each correct selection earns one share; each wrong selection deducts one share. Minimum zero, rounded to two decimals."
+            }
+          },
+          "reviewFirst": "Review first",
+          "finalize": "Finalize review ({count})",
+          "refreshFailed": "Correction results were retained, but refreshing the page data failed. Reload the results before continuing.",
+          "reload": "Reload results",
+          "reviewChoiceHint": "Scores are saved and reviews remain open. Review the answers first or finalize the {count} fully corrected submissions. Grades sync after finalization.",
           "title": "Auto-correct submissions",
-          "scoringRule": "Multiple-choice points are split equally among correct options. Each selected correct option earns its share; each incorrect selection deducts the same share, with a minimum score of zero. Scores are rounded to two decimal places.",
+          "scoringRule": "Choose partial credit without penalty or partial credit with penalty before correction. Scores are saved without finalizing the review.",
           "cancel": "Close",
           "scope": {
             "all": "All submitted students",

@@ -14,6 +14,7 @@ export default function HomeworkAutomaticCorrectionSummary({ outcomes }: { outco
     missingAnswers: unresolved.filter(question => question.reason === "missing_answer_record").length,
     invalidDefinitions: unresolved.filter(question => question.reason === "invalid_definition").length,
     pendingStudents: outcomes.filter(outcome => outcome.outcome === "manual_pending").length,
+    readyForReview: outcomes.filter(outcome => outcome.outcome === "review_pending").length,
     skippedStudents: outcomes.filter(outcome => outcome.outcome === "skipped").length,
     failures: outcomes.filter(outcome => outcome.outcome === "failed").length,
   };

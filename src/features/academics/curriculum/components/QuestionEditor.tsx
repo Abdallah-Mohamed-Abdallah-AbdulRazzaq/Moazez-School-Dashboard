@@ -20,6 +20,7 @@ import { AlertCircle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import Checkbox from "@/components/ui/checkbox/Checkbox";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import { AssignmentQuestion, QuestionOption } from "@/features/academics/curriculum/services/curriculumService";
 import { useQuestionFormState } from "@/features/academics/curriculum/hooks/useQuestionFormState";
@@ -27,9 +28,11 @@ import QuestionOptionRow from "./QuestionOptionRow";
 import QuestionTypeSpecificFields from "./QuestionTypeSpecificFields";
 import type { QuestionType } from "../types/types";
 
+export type QuestionEditorQuestion = AssignmentQuestion & { required?: boolean };
+
 interface QuestionEditorProps {
-  question: AssignmentQuestion;
-  onChange: (updates: Partial<AssignmentQuestion>) => void;
+  question: QuestionEditorQuestion;
+  onChange: (updates: Partial<QuestionEditorQuestion>) => void;
   isReadOnly: boolean;
   validationErrors?: {
     textAr?: string;
@@ -48,6 +51,7 @@ interface QuestionEditorProps {
   requireBothLocalizedTexts?: boolean;
   showHomeworkFields?: boolean;
   detailsInputMode?: "bilingual" | "single";
+  requirementField?: "isRequired" | "required";
 }
 
 interface OptionErrors {
@@ -64,6 +68,7 @@ export default function QuestionEditor({
   requireBothLocalizedTexts = true,
   showHomeworkFields = false,
   detailsInputMode = "bilingual",
+  requirementField = showHomeworkFields ? "isRequired" : undefined,
 }: QuestionEditorProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
@@ -255,6 +260,16 @@ export default function QuestionEditor({
             )}
           </div>
         </div>
+
+        {requirementField && (
+          <Checkbox
+            label={t("required_question")}
+            description={t("required_question_description")}
+            checked={question[requirementField] ?? true}
+            disabled={isReadOnly}
+            onChange={(event) => onChange({ [requirementField]: event.target.checked })}
+          />
+        )}
 
         {showHomeworkFields && (
           <div>

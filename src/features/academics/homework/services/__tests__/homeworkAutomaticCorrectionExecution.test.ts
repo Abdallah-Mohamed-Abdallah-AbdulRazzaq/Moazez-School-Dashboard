@@ -26,6 +26,39 @@ beforeEach(() => {
 });
 
 describe("homework correction API execution", () => {
+  it("saves and finalizes fractional scores totaling the exact homework maximum", async () => {
+    const questions = [0.1, 0.2].map((points, index) => ({ ...question, id: `q${index}`, points }));
+    vi.mocked(apiGet).mockImplementation(async path => {
+      if (path.endsWith("/answers")) return { items: questions.map(question => ({
+        answerId: `answer-${question.id}`, questionId: question.id, selectedOptionIds: ["correct"],
+        awardedPoints: reviewed ? question.points : null, reviewedAt: reviewed ? "today" : null,
+      })) } as never;
+      if (path.endsWith("/grade-sync")) return { linked: true } as never;
+      return { submission: { id: "s", status } } as never;
+    });
+    const fractionalContext = { ...context, totalMarks: 0.3, questions };
+    expect(await executeHomeworkAutomaticCorrection({ ...fractionalContext, reviewMode: "review_first" }, "s"))
+      .toMatchObject({ outcome: "review_pending", reviewCompleted: false });
+    expect(await executeHomeworkAutomaticCorrection({ ...fractionalContext, reviewMode: "finalize" }, "s", "review"))
+      .toMatchObject({ outcome: "complete", reviewCompleted: true, gradeSynced: true });
+  });
+  it("saves scores for review first and finalizes later without rewriting them", async () => {
+    const corrected = await executeHomeworkAutomaticCorrection({ ...context, reviewMode: "review_first" }, "s");
+    expect(corrected).toMatchObject({ outcome: "review_pending", reviewCompleted: false, gradeSynced: false });
+    expect(awardedPoints).toBe(2); expect(status).toBe("submitted");
+    expect(apiPatch).not.toHaveBeenCalled(); expect(apiPost).not.toHaveBeenCalled();
+
+    const finalized = await executeHomeworkAutomaticCorrection({ ...context, reviewMode: "finalize" }, "s", "review");
+    expect(finalized).toMatchObject({ outcome: "complete", reviewCompleted: true, gradeSynced: true });
+    expect(apiPut).toHaveBeenCalledOnce();
+  });
+  it("rechecks saved scores before honoring a later finalization request", async () => {
+    await executeHomeworkAutomaticCorrection({ ...context, reviewMode: "review_first" }, "s");
+    awardedPoints = 0;
+    const finalized = await executeHomeworkAutomaticCorrection({ ...context, reviewMode: "finalize" }, "s", "review");
+    expect(finalized).toMatchObject({ outcome: "manual_pending", reviewCompleted: false, gradeSynced: false });
+    expect(apiPatch).not.toHaveBeenCalled(); expect(apiPost).not.toHaveBeenCalled();
+  });
   it("writes objective scores, preserves feedback and note, finishes review and syncs", async () => {
     const outcome = await executeHomeworkAutomaticCorrection(context, "s");
     expect(outcome).toMatchObject({ outcome: "complete", reviewCompleted: true, gradeSynced: true });

@@ -1,35 +1,39 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { ImportedDraft } from "./types";
 
 const QUESTIONS_PER_PAGE = 10;
 
-function QuestionChoices({ question, module }: { question: AssignmentQuestion; module: ImportedDraft["module"] }) {
+function previewText(locale: string, arabic: string | undefined, english: string | undefined) {
+  return locale === "ar" ? arabic?.trim() || english?.trim() : english?.trim() || arabic?.trim();
+}
+
+function QuestionChoices({ question }: { question: AssignmentQuestion }) {
+  const locale = useLocale();
   const t = useTranslations("academics.excelImport");
   if (!question.options?.length) return null;
   return <ul aria-label={t("labels.choices")} className="space-y-2">
     {question.options.map(option => <li key={option.id} className={`min-w-0 rounded-xl border p-3 ${option.isCorrect ? "border-primary/30 bg-primary/5" : "border-gray-200 bg-gray-50"}`}>
-      {module === "assessment" && <p dir="auto">{option.textAr}</p>}
-      <p dir="auto">{option.textEn}</p>
+      <p dir="auto">{previewText(locale, option.textAr, option.textEn)}</p>
       {option.isCorrect && <span className="mt-2 inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{t("labels.correct")}</span>}
     </li>)}
   </ul>;
 }
 
-function QuestionContents({ question, module }: { question: AssignmentQuestion; module: ImportedDraft["module"] }) {
+function QuestionContents({ question }: { question: AssignmentQuestion }) {
+  const locale = useLocale();
   const t = useTranslations("academics.excelImport");
-  const answers = [question.expectedAnswer, question.sampleAnswerAr, question.sampleAnswerEn].filter(Boolean);
+  const answers = [question.expectedAnswer, previewText(locale, question.sampleAnswerAr, question.sampleAnswerEn)].filter(Boolean);
   return <div className="space-y-4 whitespace-pre-wrap text-sm leading-6 [overflow-wrap:anywhere]">
     <div className="space-y-2 font-medium text-gray-900">
-      {module === "assessment" && <p dir="auto">{question.questionTextAr}</p>}
-      <p dir="auto">{question.questionTextEn}</p>
+      <p dir="auto">{previewText(locale, question.questionTextAr, question.questionTextEn)}</p>
     </div>
     {question.instructions && <p dir="auto" className="rounded-lg bg-gray-50 p-3 text-gray-600">{question.instructions}</p>}
-    <QuestionChoices question={question} module={module} />
+    <QuestionChoices question={question} />
     {(question.correctAnswer !== undefined || answers.length > 0) && <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
       <p className="text-xs font-semibold text-primary">{t("labels.answer")}</p>
       {question.correctAnswer !== undefined && <p>{t(question.correctAnswer ? "labels.true" : "labels.false")}</p>}
@@ -51,7 +55,7 @@ function QuestionCard({ question, module }: { question: AssignmentQuestion; modu
       </div>
       <p className="text-sm font-semibold text-primary">{t("fields.points")}: {question.points}</p>
     </div>
-    <div className="p-4 sm:p-5"><QuestionContents question={question} module={module} /></div>
+    <div className="p-4 sm:p-5"><QuestionContents question={question} /></div>
   </article>;
 }
 

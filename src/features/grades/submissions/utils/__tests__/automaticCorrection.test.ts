@@ -110,6 +110,27 @@ function choiceDefinition(
 
 describe("buildAutomaticCorrectionPlan", () => {
   it.each([
+    { correctAnswer: false, selected: "false", trueText: "صح", falseText: "خطأ", expected: 4 },
+    { correctAnswer: true, selected: "true", trueText: "صحيح", falseText: "خاطئ", expected: 4 },
+    { correctAnswer: false, selected: "true", trueText: "صح", falseText: "خطأ", expected: 0 },
+    { correctAnswer: false, selected: "false", trueText: " TRUE ", falseText: " False ", expected: 4 },
+  ])("corrects true/false labels without English text ($trueText, $selected)", ({ correctAnswer, selected, trueText, falseText, expected }) => {
+    const question = definition("TRUE_FALSE", { correctAnswer, options: [
+      { id: "true", textEn: "", textAr: trueText, order: 1, isCorrect: correctAnswer },
+      { id: "false", textEn: "", textAr: falseText, order: 2, isCorrect: !correctAnswer },
+    ] });
+    expect(buildAutomaticCorrectionPlan(submission("true_false", answer([selected])), { [questionId]: question }).reviews)
+      .toEqual([{ answerId, questionId, awardedPoints: expected }]);
+  });
+  it.each([
+    { policy: "partial_without_penalty" as const, expected: 2 },
+    { policy: "partial_with_penalty" as const, expected: 0 },
+  ])("scores one correct and one wrong option with $policy", ({ policy, expected }) => {
+    const plan = buildAutomaticCorrectionPlan(submission("mcq_multi", answer(["a", "wrong"])),
+      { [questionId]: choiceDefinition("MCQ_MULTI") }, policy);
+    expect(plan.reviews).toEqual([{ answerId, questionId, awardedPoints: expected }]);
+  });
+  it.each([
     ["MCQ_SINGLE", ["a"], 4],
     ["MCQ_SINGLE", ["wrong"], 0],
     ["MCQ_MULTI", ["b", "a"], 4],

@@ -1,3 +1,4 @@
+import { trueFalseOptionValue } from "@/lib/grading/trueFalseOptionValue";
 import type {
   Assignment,
   AssignmentAttachment,
@@ -179,7 +180,7 @@ export function mapBackendHomeworkQuestionToBuilder(
     order: dto.sortOrder,
     options: dto.options.map(mapBackendHomeworkOptionToBuilder),
     correctAnswer: dto.type.toLowerCase() === "true_false"
-      ? dto.options.find(({ sortOrder }) => sortOrder === 0)?.isCorrect
+      ? dto.options.find(option => trueFalseOptionValue(option.text) === true)?.isCorrect
       : undefined,
     instructions: dto.instructions ?? undefined,
     expectedAnswer: dto.expectedAnswer ?? undefined,

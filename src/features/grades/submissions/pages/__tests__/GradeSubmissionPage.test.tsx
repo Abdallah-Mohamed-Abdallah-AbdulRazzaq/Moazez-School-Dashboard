@@ -157,6 +157,25 @@ function submissionRequestCount() {
     url === `/grades/submissions/${submissionId}`).length;
 }
 
+function mockObjectiveCorrection() {
+  const detail = objectiveSubmissionDetail();
+  mockSubmissionRequests(detail, assessmentQuestions("mcq_single"));
+  api.apiPut.mockImplementation(async () => {
+    detail.questions[0].answer!.awardedPoints = 3;
+    detail.questions[0].answer!.correctionStatus = "corrected";
+    detail.progress.pendingCorrectionCount = 0;
+    return {};
+  });
+  return detail;
+}
+
+async function startCorrection(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "autoCorrection.detailAction" }));
+  expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ }));
+  await user.click(screen.getByRole("button", { name: "confirm" }));
+}
+
 async function editEnglishReview(user: ReturnType<typeof userEvent.setup>, value: string) {
   const comment = await screen.findByRole("textbox", { name: "reviewCommentEn" });
   await user.clear(comment);
@@ -170,31 +189,90 @@ beforeEach(() => {
   permissions.add("grades.submissions.review");
   permissions.add("grades.questions.view");
   mockSubmissionRequests(submissionDetail());
-  api.apiPost.mockResolvedValue({});
+  api.apiPost.mockResolvedValue({ status: "corrected", synced: true });
   api.apiPatch.mockResolvedValue({});
   api.apiPut.mockResolvedValue({});
 });
 
 describe("GradeSubmissionPage review actions", () => {
-  it("auto-corrects, finalizes, and syncs a complete objective submission", async () => {
+  it("blocks duplicate correction and policy changes until score saving finishes", async () => {
     const user = userEvent.setup();
-    mockSubmissionRequests(objectiveSubmissionDetail(), assessmentQuestions("mcq_single"));
-
+    mockObjectiveCorrection();
+    const saveScores = api.apiPut.getMockImplementation()!;
+    let releaseSave!: () => void;
+    const pendingSave = new Promise<void>(resolve => { releaseSave = resolve; });
+    api.apiPut.mockImplementation(async (...args) => { await pendingSave; return saveScores(...args); });
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+    await startCorrection(user);
+    await waitFor(() => expect(api.apiPut).toHaveBeenCalledOnce());
+    const confirm = screen.getByRole("button", { name: "confirm" });
+    const otherPolicy = screen.getByRole("button", { name: /policies.partial_without_penalty.title/ });
+    expect(confirm).toBeDisabled(); expect(otherPolicy).toBeDisabled();
+    await user.click(confirm); await user.click(otherPolicy);
+    expect(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ })).toHaveAttribute("aria-pressed", "true");
+    releaseSave();
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize 1" })).toBeEnabled());
+    expect(api.apiPut).toHaveBeenCalledOnce();
+    expect(api.apiPost).not.toHaveBeenCalled();
+  });
+  it.each([
+    { policy: "partial_without_penalty", expected: 1.5 },
+    { policy: "partial_with_penalty", expected: 0 },
+  ])("saves $policy scores and lets the reviewer return to the answers", async ({ policy, expected }) => {
+    const user = userEvent.setup();
+    const detail = objectiveSubmissionDetail();
+    detail.questions[0].type = "mcq_multi";
+    detail.questions[0].answer!.type = "mcq_multi";
+    detail.questions[0].answer!.selectedOptions.push({ optionId: "wrong", label: "Wrong", labelAr: "خطأ", value: null });
+    const questions = assessmentQuestions("mcq_single");
+    questions.questions[0].type = "mcq_multi";
+    questions.questions[0].options!.push({ id: "other", label: "Other", labelAr: "آخر", isCorrect: true, sortOrder: 3 });
+    mockSubmissionRequests(detail, questions);
+    api.apiPut.mockImplementation(async (_url, payload) => {
+      detail.questions[0].answer!.awardedPoints = payload.reviews[0].awardedPoints;
+      detail.questions[0].answer!.correctionStatus = "corrected";
+      detail.progress.pendingCorrectionCount = 0;
+      return {};
+    });
     render(<GradeSubmissionPage submissionId={submissionId} />);
     await user.click(await screen.findByRole("button", { name: "autoCorrection.detailAction" }));
+    expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: new RegExp(`policies.${policy}.title`) }));
+    await user.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "reviewFirst" })).toBeEnabled());
+    expect(detail.questions[0].answer!.awardedPoints).toBe(expected);
+    expect(api.apiPost).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "reviewFirst" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "autoCorrection.detailAction" }));
+    expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
+  });
+  it("saves objective scores and finalizes only after the reviewer chooses", async () => {
+    const user = userEvent.setup();
+    const detail = mockObjectiveCorrection();
+    api.apiPost.mockImplementation(async url => {
+      if (url.endsWith("/review/finalize")) detail.status = "corrected";
+      return { status: "corrected", synced: true };
+    });
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+    await startCorrection(user);
 
     await waitFor(() => expect(api.apiPut).toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/answers/review`,
       { reviews: [{ answerId, awardedPoints: 3 }] },
     ));
-    expect(api.apiPost).toHaveBeenCalledWith(
+    expect(api.apiPost).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize 1" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "finalize 1" }));
+    await waitFor(() => expect(api.apiPost).toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/review/finalize`,
-    );
+    ));
     expect(api.apiPost).toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/sync-grade-item`,
     );
-    expect(submissionRequestCount()).toBe(2);
-    expect(toast.showSuccess).toHaveBeenCalledWith("autoCorrection.savedFinalizedAndSynced");
+    expect(api.apiPut).toHaveBeenCalledOnce();
   });
 
   it("re-runs auto-correction over an existing objective score", async () => {
@@ -205,7 +283,7 @@ describe("GradeSubmissionPage review actions", () => {
     mockSubmissionRequests(detail, assessmentQuestions("mcq_single"));
 
     render(<GradeSubmissionPage submissionId={submissionId} />);
-    await user.click(await screen.findByRole("button", { name: "autoCorrection.detailAction" }));
+    await startCorrection(user);
 
     await waitFor(() => expect(api.apiPut).toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/answers/review`,
@@ -220,7 +298,7 @@ describe("GradeSubmissionPage review actions", () => {
     expect(await screen.findByText("needsManual 1")).toBeInTheDocument();
     const autoCorrect = screen.getByRole("button", { name: "autoCorrection.detailAction" });
     expect(autoCorrect).toBeEnabled();
-    await user.click(autoCorrect);
+    await startCorrection(user);
     expect(api.apiPost).not.toHaveBeenCalledWith(
       `/grades/submissions/${submissionId}/review/finalize`,
     );
@@ -233,9 +311,9 @@ describe("GradeSubmissionPage review actions", () => {
     ).not.toBeInTheDocument());
   });
 
-  it("reloads saved objective scores when automatic finalization fails", async () => {
+  it("retains saved objective scores when chosen finalization fails", async () => {
     const user = userEvent.setup();
-    mockSubmissionRequests(objectiveSubmissionDetail(), assessmentQuestions("mcq_single"));
+    mockObjectiveCorrection();
     api.apiPost.mockRejectedValueOnce(new ApiError(
       "Finalize failed",
       409,
@@ -243,11 +321,12 @@ describe("GradeSubmissionPage review actions", () => {
     ));
 
     render(<GradeSubmissionPage submissionId={submissionId} />);
-    await user.click(await screen.findByRole("button", { name: "autoCorrection.detailAction" }));
+    await startCorrection(user);
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize 1" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "finalize 1" }));
 
     await waitFor(() => expect(api.apiPut).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("review_pending_answers")).toBeInTheDocument();
-    expect(submissionRequestCount()).toBe(2);
+    expect(await screen.findByText(/studentFailure.*review_pending_answers/)).toBeInTheDocument();
     expect(toast.showSuccess).not.toHaveBeenCalled();
   });
 
@@ -290,6 +369,44 @@ describe("GradeSubmissionPage review actions", () => {
     render(<GradeSubmissionPage submissionId={submissionId} />);
 
     expect(await screen.findByText(expectedLabel)).toHaveClass(expectedClass);
+  });
+
+  it.each([
+    [["two", "four", "five"], "answerPartiallyCorrect"],
+    [["two"], "answerPartiallyCorrect"],
+    [["two", "four"], "answerCorrect"],
+    [["five"], "answerIncorrect"],
+    [["two", "unknown"], "answerPartiallyCorrect"],
+  ] as const)("colors multiple selections independently for %j and shows %s", async (selectedIds, expectedBadge) => {
+    const detail = objectiveSubmissionDetail();
+    detail.questions[0].type = "mcq_multi";
+    detail.questions[0].answer!.type = "mcq_multi";
+    detail.questions[0].answer!.selectedOptions = selectedIds.map((optionId) => ({
+      optionId, label: optionId, labelAr: null, value: null,
+    }));
+    const questions = assessmentQuestions("mcq_multi");
+    questions.questions[0].options = [
+      { id: "two", label: "two", labelAr: "٢", isCorrect: true, sortOrder: 1 },
+      { id: "four", label: "four", labelAr: "٤", isCorrect: true, sortOrder: 2 },
+      { id: "five", label: "five", labelAr: "٥", isCorrect: false, sortOrder: 3 },
+    ];
+    mockSubmissionRequests(detail, questions);
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+
+    expect(await screen.findByText(expectedBadge)).toBeInTheDocument();
+    for (const optionId of selectedIds) {
+      const choice = screen.getByText(optionId);
+      if (optionId === "unknown") {
+        expect(choice).not.toHaveClass("border-red-400");
+        expect(choice).not.toHaveClass("border-emerald-400");
+      } else {
+        expect(choice).toHaveClass(optionId === "five" ? "border-red-400" : "border-emerald-400");
+      }
+    }
+    for (const optionId of ["two", "four", "five"].filter((id) => !selectedIds.some((selected) => selected === id))) {
+      expect(screen.queryByText(optionId)).not.toBeInTheDocument();
+    }
   });
 
   it("does not show answer correctness before submission", async () => {

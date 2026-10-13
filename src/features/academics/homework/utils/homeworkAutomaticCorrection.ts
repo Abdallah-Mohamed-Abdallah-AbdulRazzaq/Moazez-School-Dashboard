@@ -1,6 +1,7 @@
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { HomeworkSubmissionAnswerUiModel } from "../services/homeworkApi.types";
-import { multipleChoiceScore } from "@/lib/grading/multipleChoiceScore";
+import { multipleChoiceScore, type MultipleSelectionScoringPolicy } from "@/lib/grading/multipleChoiceScore";
+import { trueFalseOptionValue } from "@/lib/grading/trueFalseOptionValue";
 
 export type HomeworkCorrectionReason = "manual_question" | "missing_answer_record" | "invalid_definition";
 export interface HomeworkCorrectionPlan {
@@ -24,10 +25,7 @@ function validAssociations(questions: readonly AssignmentQuestion[], answers: re
 }
 
 function booleanOption(option: NonNullable<AssignmentQuestion["options"]>[number]) {
-  const label = (option.textEn || option.textAr).trim().toLowerCase();
-  if (["true", "صحيح", "صح"].includes(label)) return true;
-  if (["false", "خطأ", "خاطئ"].includes(label)) return false;
-  return null;
+  return trueFalseOptionValue(option.textEn || option.textAr);
 }
 
 function validObjectiveKey(question: AssignmentQuestion) {
@@ -43,9 +41,9 @@ function validObjectiveKey(question: AssignmentQuestion) {
     && booleanOption(correct[0]) === question.correctAnswer;
 }
 
-function objectiveScore(question: AssignmentQuestion, answer: HomeworkSubmissionAnswerUiModel): number | null {
+function objectiveScore(question: AssignmentQuestion, answer: HomeworkSubmissionAnswerUiModel, policy: MultipleSelectionScoringPolicy): number | null {
   if (question.questionType === "MCQ_MULTI") {
-    return multipleChoiceScore({ points: question.points, options: question.options ?? [], selectedOptionIds: answer.selectedOptionIds ?? [] });
+    return multipleChoiceScore({ points: question.points, options: question.options ?? [], selectedOptionIds: answer.selectedOptionIds ?? [], policy });
   }
   if (!validObjectiveKey(question)) return null;
   const selectedIds = answer.selectedOptionIds ?? [];
@@ -57,23 +55,24 @@ function objectiveScore(question: AssignmentQuestion, answer: HomeworkSubmission
     ? question.points : 0;
 }
 
-function correctionDecision(question: AssignmentQuestion, answer: HomeworkSubmissionAnswerUiModel | undefined) {
+function correctionDecision(question: AssignmentQuestion, answer: HomeworkSubmissionAnswerUiModel | undefined, policy: MultipleSelectionScoringPolicy) {
   if (!validScore(question.points, question.points)) return "invalid_definition" as const;
   if (!answer) return "missing_answer_record" as const;
   if (OBJECTIVE_TYPES.has(question.questionType)) {
-    return objectiveScore(question, answer) ?? "invalid_definition";
+    return objectiveScore(question, answer, policy) ?? "invalid_definition";
   }
   return answer.reviewedAt && validScore(answer.score, question.points) ? null : "manual_question" as const;
 }
 
 export function buildHomeworkAutomaticCorrectionPlan(
   questions: readonly AssignmentQuestion[], answers: readonly HomeworkSubmissionAnswerUiModel[],
+  policy: MultipleSelectionScoringPolicy = "partial_with_penalty",
 ): HomeworkCorrectionPlan {
   const plan: HomeworkCorrectionPlan = { reviews: [], unresolved: [], correctedCount: 0 };
   const associationsValid = validAssociations(questions, answers);
   const answersByQuestion = new Map(answers.map(answer => [answer.questionId, answer]));
   for (const question of questions) {
-    const decision = associationsValid ? correctionDecision(question, answersByQuestion.get(question.id)) : "invalid_definition";
+    const decision = associationsValid ? correctionDecision(question, answersByQuestion.get(question.id), policy) : "invalid_definition";
     if (typeof decision === "number") {
       plan.reviews.push({ answerId: answersByQuestion.get(question.id)!.id, questionId: question.id, score: decision });
     } else if (decision) plan.unresolved.push({ questionId: question.id, reason: decision });
@@ -84,9 +83,10 @@ export function buildHomeworkAutomaticCorrectionPlan(
 
 export function isHomeworkCorrectionComplete(
   questions: readonly AssignmentQuestion[], answers: readonly HomeworkSubmissionAnswerUiModel[],
+  policy: MultipleSelectionScoringPolicy = "partial_with_penalty",
 ): boolean {
   if (!questions.length) return false;
-  const plan = buildHomeworkAutomaticCorrectionPlan(questions, answers);
+  const plan = buildHomeworkAutomaticCorrectionPlan(questions, answers, policy);
   if (plan.unresolved.length) return false;
   return questions.every(question => {
     const answer = answers.find(answer => answer.questionId === question.id);

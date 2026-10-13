@@ -16,11 +16,7 @@ import AutomaticCorrectionDialog, {
   type AutomaticCorrectionScope,
 } from "../components/AutomaticCorrectionDialog";
 import { PendingCorrectionBadge } from "../components/ManualCorrectionWarning";
-import {
-  runAutomaticCorrectionBatch,
-  type AutomaticCorrectionBatchProgress,
-  type AutomaticCorrectionBatchResult,
-} from "../services/automaticCorrectionBatch";
+import { useAssessmentAutomaticCorrection } from "../hooks/useAssessmentAutomaticCorrection";
 import { listAssessmentSubmissions } from "../services/gradesSubmissionsService";
 import type { GradeSubmissionRow, SubmissionListFilters, SubmissionScopeSelection, SubmissionStatus } from "../types";
 import { EMPTY_SUBMISSION_SCOPE, changeSubmissionGrade, changeSubmissionSection, getSubmissionClassrooms, getSubmissionSections, toSubmissionListFilters } from "../utils/submissionFilters";
@@ -46,29 +42,6 @@ function indexQuestions(questions: AssessmentQuestion[]) {
   return Object.fromEntries(questions.map((question) => [question.id, question]));
 }
 
-interface CorrectionRunRequest {
-  assessmentId: string;
-  academicYearId: string;
-  termId: string;
-  submissionIds: readonly string[];
-  onProgress: (progress: AutomaticCorrectionBatchProgress) => void;
-}
-
-async function executeCorrectionRun(
-  request: CorrectionRunRequest,
-): Promise<AutomaticCorrectionBatchResult> {
-  const questions = await fetchAssessmentQuestions(
-    request.academicYearId,
-    request.termId,
-    request.assessmentId,
-  );
-  return runAutomaticCorrectionBatch({
-    submissionIds: request.submissionIds,
-    definitionsByQuestionId: indexQuestions(questions),
-    onProgress: request.onProgress,
-  });
-}
-
 export default function AssessmentSubmissionsPage({ assessmentId }: { assessmentId: string }) {
   const t = useTranslations("academics.grades.submissions");
   const errorT = useTranslations("academics.grades.errors");
@@ -86,13 +59,9 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
   const [scopeOptions, setScopeOptions] = useState<{ grades: ScopeEntityOption[]; sections: ScopeEntityOption[]; classrooms: ScopeEntityOption[] }>({ grades: [], sections: [], classrooms: [] });
   const [scopeWarning, setScopeWarning] = useState<string | null>(null);
   const [isScopeLoading, setIsScopeLoading] = useState(false);
-  const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
   const [correctionScope, setCorrectionScope] = useState<AutomaticCorrectionScope>("filtered");
   const [correctionTargets, setCorrectionTargets] = useState<string[]>([]);
   const [isCorrectionPreviewLoading, setIsCorrectionPreviewLoading] = useState(false);
-  const [isCorrectionRunning, setIsCorrectionRunning] = useState(false);
-  const [correctionProgress, setCorrectionProgress] = useState<AutomaticCorrectionBatchProgress | null>(null);
-  const [correctionResult, setCorrectionResult] = useState<AutomaticCorrectionBatchResult | null>(null);
   const sections = useMemo(() => getSubmissionSections(scopeOptions.sections, scopeSelection.gradeId), [scopeOptions.sections, scopeSelection.gradeId]);
   const classrooms = useMemo(() => getSubmissionClassrooms(scopeOptions.classrooms, scopeSelection.sectionId), [scopeOptions.classrooms, scopeSelection.sectionId]);
   const assessmentsHref = buildAssessmentsHref({ locale, context: searchParams });
@@ -197,12 +166,24 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
     try {
       const response = await listAssessmentSubmissions(assessmentId, toSubmissionListFilters(scopeSelection, status, debouncedSearch));
       if (!signal.aborted) setRows(response.items.map((row) => ({ ...row })));
+      return true;
     } catch (requestError) {
       if (!signal.aborted) setError(errorT(mapGradesApiError(requestError)));
+      return false;
     } finally {
       if (!signal.aborted) setIsLoading(false);
     }
   }, [assessmentId, debouncedSearch, errorT, scopeSelection, status]);
+
+  const correction = useAssessmentAutomaticCorrection({
+    blocked: !canAutoCorrect || isLoading || isCorrectionPreviewLoading,
+    loadDefinitions: async () => indexQuestions(await fetchAssessmentQuestions(searchParams.get("year") ?? "", searchParams.get("term") ?? "", assessmentId)),
+    onRefresh: async () => {
+      if (!await loadSubmissions(new AbortController().signal)) throw new Error("Submission refresh failed");
+    },
+    onError: requestError => setError(errorT(mapGradesApiError(requestError))),
+  });
+  const { isOpen: isCorrectionOpen, isRunning: isCorrectionRunning } = correction;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -236,39 +217,13 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
     return () => controller.abort();
   }, [assessmentId, correctionScope, debouncedSearch, errorT, isCorrectionOpen, scopeSelection, status]);
 
-  const runCorrection = async (submissionIds: readonly string[]) => {
-    if (submissionIds.length === 0 || isCorrectionRunning) return;
-    setIsCorrectionRunning(true);
-    setCorrectionProgress(null);
-    setError(null);
-    try {
-      const nextResult = await executeCorrectionRun({
-        assessmentId,
-        academicYearId: searchParams.get("year") ?? "",
-        termId: searchParams.get("term") ?? "",
-        submissionIds,
-        onProgress: setCorrectionProgress,
-      });
-      setCorrectionResult(nextResult);
-      await loadSubmissions(new AbortController().signal);
-    } catch (requestError) {
-      setError(errorT(mapGradesApiError(requestError)));
-    } finally {
-      setIsCorrectionRunning(false);
-    }
-  };
-
   const openAutomaticCorrection = () => {
     setCorrectionScope("filtered");
-    setCorrectionProgress(null);
-    setCorrectionResult(null);
-    setIsCorrectionOpen(true);
+    correction.open();
   };
 
   const changeCorrectionScope = (nextScope: AutomaticCorrectionScope) => {
     setCorrectionScope(nextScope);
-    setCorrectionProgress(null);
-    setCorrectionResult(null);
   };
 
   return (
@@ -280,12 +235,13 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
         </div>
         <div className="flex flex-wrap gap-2">
           {canAutoCorrect ? (
-            <Button variant="primary" onClick={openAutomaticCorrection}>
+            <Button variant="primary" disabled={isCorrectionRunning || isLoading} onClick={openAutomaticCorrection}>
               {t("autoCorrection.open")}
             </Button>
           ) : null}
           <Button
             variant="secondary"
+            disabled={isCorrectionRunning}
             leftIcon={locale === "ar"
               ? <ArrowRight className="h-4 w-4" aria-hidden="true" />
               : <ArrowLeft className="h-4 w-4" aria-hidden="true" />}
@@ -295,7 +251,7 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
           </Button>
         </div>
       </div>
-      <div className="grid gap-3 rounded-xl bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-5">
+      <fieldset disabled={isCorrectionRunning} inert={isCorrectionRunning} className="grid gap-3 rounded-xl bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-5">
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -314,10 +270,11 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
         <Select value={scopeSelection.sectionId} onChange={(sectionId) => setScopeSelection((current) => changeSubmissionSection(current, sectionId))} options={[{ value: "", label: t("allSections") }, ...sections.map((item) => ({ value: item.id, label: locale === "ar" ? item.nameAr : item.nameEn }))]} aria-label={t("section")} disabled={isScopeLoading || !scopeSelection.gradeId || !!scopeWarning} />
         <Select value={scopeSelection.classroomId} onChange={(classroomId) => setScopeSelection((current) => ({ ...current, classroomId }))} options={[{ value: "", label: t("allClassrooms") }, ...classrooms.map((item) => ({ value: item.id, label: locale === "ar" ? item.nameAr : item.nameEn }))]} aria-label={t("classroom")} disabled={isScopeLoading || !scopeSelection.sectionId || !!scopeWarning} />
         <Button variant="secondary" onClick={() => { setScopeSelection(EMPTY_SUBMISSION_SCOPE); setStatus(""); setSearch(""); }}>{t("resetFilters")}</Button>
-      </div>
+      </fieldset>
       {scopeWarning ? <div className="border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3 text-sm text-[var(--warning-text)]">{scopeWarning}</div> : null}
       {error ? <div className="border border-[var(--error-border)] bg-[var(--error-bg)] p-4 text-sm text-[var(--error-text)]">{error}</div> : null}
       {!error ? (
+        <fieldset disabled={isCorrectionRunning} inert={isCorrectionRunning} className="min-w-0">
         <DataTable
           columns={columns}
           data={rows}
@@ -328,6 +285,7 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
           emptyDescription={t("subtitle")}
           searchQuery={search}
         />
+        </fieldset>
       ) : null}
       <AutomaticCorrectionDialog
         isOpen={isCorrectionOpen}
@@ -335,14 +293,17 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
         eligibleCount={correctionTargets.length}
         isPreviewLoading={isCorrectionPreviewLoading}
         isRunning={isCorrectionRunning}
-        progress={correctionProgress}
-        result={correctionResult}
+        progress={correction.progress}
+        result={correction.result}
+        policy={correction.policy}
+        onPolicyChange={correction.selectPolicy}
+        onFinalize={correction.finalize}
+        refreshFailed={correction.refreshFailed}
+        onReload={() => void correction.refresh()}
         onScopeChange={changeCorrectionScope}
-        onConfirm={() => void runCorrection(correctionTargets)}
-        onRetryFailed={() => void runCorrection(correctionResult?.failedSubmissionIds ?? [])}
-        onClose={() => {
-          if (!isCorrectionRunning) setIsCorrectionOpen(false);
-        }}
+        onConfirm={() => void correction.run(correctionTargets)}
+        onRetryFailed={correction.retryFailed}
+        onClose={correction.close}
       />
     </div>
   );

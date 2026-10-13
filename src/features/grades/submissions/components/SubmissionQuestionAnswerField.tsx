@@ -132,11 +132,16 @@ function ChoiceAnswerField({
   if (!canEnter) {
     return (
       <div className="space-y-2">
-        {question.answer?.selectedOptions.map((option) => (
-          <div key={option.optionId} className={submittedChoiceClasses(answerCorrectness)}>
-            {locale === "ar" ? option.labelAr || option.label : option.label}
-          </div>
-        ))}
+        {question.answer?.selectedOptions.map((option) => {
+          const optionCorrectness = answerCorrectness !== null && definition?.questionType === "MCQ_MULTI"
+            ? options.find(({ id }) => id === option.optionId)?.isCorrect ?? null
+            : answerCorrectness;
+          return (
+            <div key={option.optionId} className={submittedChoiceClasses(optionCorrectness)}>
+              {locale === "ar" ? option.labelAr || option.label : option.label}
+            </div>
+          );
+        })}
       </div>
     );
   }

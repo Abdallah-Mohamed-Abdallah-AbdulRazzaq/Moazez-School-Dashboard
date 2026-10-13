@@ -9,7 +9,7 @@ import type { ValidationErrors, PointsSummary } from "@/features/academics/curri
 import Button from "@/components/ui/button/Button";
 import QuestionOutlineItem from "@/features/academics/curriculum/components/QuestionOutlineItem";
 import EmptyQuestionState from "@/features/academics/curriculum/components/EmptyQuestionState";
-import QuestionEditor from "@/features/academics/curriculum/components/QuestionEditor";
+import QuestionEditor, { type QuestionEditorQuestion } from "@/features/academics/curriculum/components/QuestionEditor";
 import type { Assessment, ExamScopeType, ScopeEntityOption, ScopeOption } from "../types";
 import AssessmentQuestionSettingsPanel from "./AssessmentQuestionSettingsPanel";
 import { ASSESSMENT_AUTHORING_QUESTION_TYPES } from "../utils/assessmentQuestionAvailability";
@@ -17,7 +17,7 @@ import { ASSESSMENT_AUTHORING_QUESTION_TYPES } from "../utils/assessmentQuestion
 interface AssessmentQuestionMobileLayoutProps {
   questions: AssignmentQuestion[];
   selectedQuestionId: string | null;
-  selectedQuestion: AssignmentQuestion | undefined;
+  selectedQuestion: QuestionEditorQuestion | undefined;
   assessment: Assessment;
   termLabel: string;
   scopeTypes: ExamScopeType[];
@@ -31,7 +31,7 @@ interface AssessmentQuestionMobileLayoutProps {
   isQuestionSaving: boolean;
   onSelectQuestion: (questionId: string) => void;
   onAddQuestion: () => void;
-  onUpdateQuestion: (questionId: string, updates: Partial<AssignmentQuestion>) => void;
+  onUpdateQuestion: (questionId: string, updates: Partial<QuestionEditorQuestion>) => void;
   onDeleteQuestion: (questionId: string) => void;
   onMoveQuestion: (questionId: string, direction: "up" | "down") => void;
   onUpdateAssessment: (updates: Partial<Assessment>) => void;
@@ -117,6 +117,7 @@ export default function AssessmentQuestionMobileLayout({
                   onChange={(updates) => onUpdateQuestion(selectedQuestion.id, updates)}
                   isReadOnly={selectedQuestionReadOnly}
                   allowedQuestionTypes={ASSESSMENT_AUTHORING_QUESTION_TYPES}
+                  requirementField="required"
                   validationErrors={validationErrors.questions?.[selectedQuestion.id]}
                 />
               ) : (
