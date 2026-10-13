@@ -28,6 +28,7 @@ import { teacherAllocationUiError } from "@/features/academics/teacher-allocatio
 import type { TeacherLoadViewModel } from "@/features/academics/teacher-allocation/services/teacherAllocationMappers";
 import TeacherAllocationTechnicalDetails from "./TeacherAllocationTechnicalDetails";
 import TeacherAllocationSkeleton from "./TeacherAllocationSkeleton";
+import TeacherLoadPagination from "./TeacherLoadPagination";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -123,6 +124,8 @@ export default function TeacherLoadView({
   >();
   const [loadErrorDetails, setLoadErrorDetails] = useState<string[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const syncTeacherFilter = useCallback(
     (teacherUserId: string) => {
@@ -158,6 +161,7 @@ export default function TeacherLoadView({
       .then((loads) => {
         if (isCurrentRequest) {
           setTeacherLoads(loads);
+          setCurrentPage(1);
           setExpandedTeacherId(null);
         }
       })
@@ -381,7 +385,7 @@ export default function TeacherLoadView({
         )}
 
         <div className="space-y-3">
-          {teacherLoads.map((load) => {
+          {teacherLoads.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((load) => {
             const isExpanded = expandedTeacherId === load.teacherId;
             const loadPercent = Math.min(
               100,
@@ -501,6 +505,22 @@ export default function TeacherLoadView({
             );
           })}
         </div>
+        {teacherLoads.length > 0 && (
+          <TeacherLoadPagination
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalTeachers={teacherLoads.length}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              setExpandedTeacherId(null);
+            }}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+              setExpandedTeacherId(null);
+            }}
+          />
+        )}
       </div>
 
       <AcademicsGlobalExportModal
