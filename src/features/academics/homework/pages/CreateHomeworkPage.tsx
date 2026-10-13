@@ -924,12 +924,16 @@ export default function CreateHomeworkPage() {
             {draft.targetMode === "selected_students" && (
               <div className="mt-4 space-y-3">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <Input
-                    value={studentSearch}
-                    onChange={(event) => setStudentSearch(event.target.value)}
-                    placeholder={t("targets.searchStudents")}
-                    disabled={eligibleStudents.length === 0}
-                  />
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      aria-label={t("targets.searchStudents")}
+                      className="box-border!"
+                      value={studentSearch}
+                      onChange={(event) => setStudentSearch(event.target.value)}
+                      placeholder={t("targets.searchStudents")}
+                      disabled={eligibleStudents.length === 0}
+                    />
+                  </div>
                   <div className="flex shrink-0 gap-2">
                     <Button
                       variant="secondary"
