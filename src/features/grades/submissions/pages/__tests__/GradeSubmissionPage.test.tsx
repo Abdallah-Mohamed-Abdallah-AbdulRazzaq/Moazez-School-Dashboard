@@ -371,6 +371,44 @@ describe("GradeSubmissionPage review actions", () => {
     expect(await screen.findByText(expectedLabel)).toHaveClass(expectedClass);
   });
 
+  it.each([
+    [["two", "four", "five"], "answerPartiallyCorrect"],
+    [["two"], "answerPartiallyCorrect"],
+    [["two", "four"], "answerCorrect"],
+    [["five"], "answerIncorrect"],
+    [["two", "unknown"], "answerPartiallyCorrect"],
+  ] as const)("colors multiple selections independently for %j and shows %s", async (selectedIds, expectedBadge) => {
+    const detail = objectiveSubmissionDetail();
+    detail.questions[0].type = "mcq_multi";
+    detail.questions[0].answer!.type = "mcq_multi";
+    detail.questions[0].answer!.selectedOptions = selectedIds.map((optionId) => ({
+      optionId, label: optionId, labelAr: null, value: null,
+    }));
+    const questions = assessmentQuestions("mcq_multi");
+    questions.questions[0].options = [
+      { id: "two", label: "two", labelAr: "٢", isCorrect: true, sortOrder: 1 },
+      { id: "four", label: "four", labelAr: "٤", isCorrect: true, sortOrder: 2 },
+      { id: "five", label: "five", labelAr: "٥", isCorrect: false, sortOrder: 3 },
+    ];
+    mockSubmissionRequests(detail, questions);
+
+    render(<GradeSubmissionPage submissionId={submissionId} />);
+
+    expect(await screen.findByText(expectedBadge)).toBeInTheDocument();
+    for (const optionId of selectedIds) {
+      const choice = screen.getByText(optionId);
+      if (optionId === "unknown") {
+        expect(choice).not.toHaveClass("border-red-400");
+        expect(choice).not.toHaveClass("border-emerald-400");
+      } else {
+        expect(choice).toHaveClass(optionId === "five" ? "border-red-400" : "border-emerald-400");
+      }
+    }
+    for (const optionId of ["two", "four", "five"].filter((id) => !selectedIds.some((selected) => selected === id))) {
+      expect(screen.queryByText(optionId)).not.toBeInTheDocument();
+    }
+  });
+
   it("does not show answer correctness before submission", async () => {
     const detail = objectiveSubmissionDetail();
     detail.status = "in_progress";

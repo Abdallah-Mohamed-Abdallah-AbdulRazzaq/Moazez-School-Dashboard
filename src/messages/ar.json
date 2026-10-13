@@ -7846,6 +7846,7 @@
         "correctionStatus": "حالة التصحيح",
         "reviewedAt": "تمت المراجعة في",
         "answerCorrect": "إجابة صحيحة",
+        "answerPartiallyCorrect": "إجابة صحيحة جزئيًا",
         "answerIncorrect": "إجابة غير صحيحة",
         "messages": {
           "synced": "تمت مزامنة درجة التسليم مع سجل الدرجات."

@@ -7845,6 +7845,7 @@
         "correctionStatus": "Correction status",
         "reviewedAt": "Reviewed at",
         "answerCorrect": "Correct",
+        "answerPartiallyCorrect": "Partially correct",
         "answerIncorrect": "Incorrect",
         "messages": {
           "synced": "The submission grade was synced to the gradebook."

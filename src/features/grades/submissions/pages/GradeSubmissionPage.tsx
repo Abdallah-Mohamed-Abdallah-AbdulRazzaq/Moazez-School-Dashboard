@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   CircleGauge,
   ClipboardCheck,
+  CircleMinus,
   type LucideIcon,
   School,
   UserRound,
@@ -447,6 +448,11 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
           const answerCorrectness = submission.status === "in_progress"
             ? null
             : getObjectiveAnswerCorrectness(answer, definition);
+          const answerStatus = answerCorrectness === false && definition?.questionType === "MCQ_MULTI"
+            && answer?.selectedOptions.some(({ optionId }) =>
+              definition.options?.some((option) => option.id === optionId && option.isCorrect))
+            ? "partial"
+            : answerCorrectness === true ? "correct" : "incorrect";
 
           return (
             <section key={question.id} className="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--surface-color)] shadow-sm">
@@ -464,7 +470,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
                     {t(`questionTypes.${questionTypeMessageKey(question.type)}`)}
                   </span>
                   {answerCorrectness !== null
-                    ? <AnswerCorrectnessBadge isCorrect={answerCorrectness} />
+                    ? <AnswerCorrectnessBadge status={answerStatus} />
                     : null}
                   {question.required ? <span className="rounded-full bg-[var(--warning-bg)] px-2.5 py-1 text-xs font-semibold text-[var(--warning-text)]">{t("required")}</span> : null}
                   <span className="rounded-full border border-[var(--border-color)] bg-[var(--surface-color)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)]">{question.points} {t("points")}</span>
@@ -572,17 +578,20 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
   );
 }
 
-function AnswerCorrectnessBadge({ isCorrect }: { isCorrect: boolean }) {
+const ANSWER_STATUS_STYLES = {
+  correct: { icon: CheckCircle2, classes: "border-emerald-300 bg-emerald-100 text-emerald-800", label: "answerCorrect" },
+  partial: { icon: CircleMinus, classes: "border-amber-300 bg-amber-100 text-amber-800", label: "answerPartiallyCorrect" },
+  incorrect: { icon: XCircle, classes: "border-red-300 bg-red-100 text-red-800", label: "answerIncorrect" },
+} as const;
+
+function AnswerCorrectnessBadge({ status }: { status: keyof typeof ANSWER_STATUS_STYLES }) {
   const t = useTranslations("academics.grades.submissions");
-  const Icon = isCorrect ? CheckCircle2 : XCircle;
-  const colorClasses = isCorrect
-    ? "border-emerald-300 bg-emerald-100 text-emerald-800"
-    : "border-red-300 bg-red-100 text-red-800";
+  const { icon: Icon, classes, label } = ANSWER_STATUS_STYLES[status];
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClasses}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${classes}`}>
       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-      {t(isCorrect ? "answerCorrect" : "answerIncorrect")}
+      {t(label)}
     </span>
   );
 }
