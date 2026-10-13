@@ -5966,7 +5966,8 @@
         },
         "actions": {
           "cancel": "إلغاء",
-          "createDraft": "إنشاء مسودة"
+          "createDraft": "إنشاء مسودة",
+          "retry": "إعادة المحاولة"
         },
         "messages": {
           "created": "تم إنشاء مسودة الواجب.",
@@ -5989,6 +5990,7 @@
           "studentsLoadFailed": "فشل تحميل الطلاب المؤهلين.",
           "noEligibleStudents": "لا يوجد طلاب مؤهلون في هذا الفصل لاستهداف الواجب.",
           "selectedStudentsRequired": "اختر طالبًا واحدًا على الأقل.",
+          "selectedStudentsLimit": "اختر 500 طالب كحد أقصى.",
           "createFailed": "فشل إنشاء الواجب: {message}"
         }
       },

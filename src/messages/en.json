@@ -5965,7 +5965,8 @@
         },
         "actions": {
           "cancel": "Cancel",
-          "createDraft": "Create draft"
+          "createDraft": "Create draft",
+          "retry": "Retry"
         },
         "messages": {
           "created": "Homework draft created.",
@@ -5988,6 +5989,7 @@
           "studentsLoadFailed": "Failed to load eligible students.",
           "noEligibleStudents": "This classroom has no eligible students for homework targets.",
           "selectedStudentsRequired": "Select at least one student.",
+          "selectedStudentsLimit": "Select no more than 500 students.",
           "createFailed": "Failed to create homework: {message}"
         }
       },
