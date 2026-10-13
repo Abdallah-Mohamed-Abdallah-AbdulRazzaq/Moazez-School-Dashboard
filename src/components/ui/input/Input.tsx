@@ -92,8 +92,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const generatedId = useId();
     const inputId = id || generatedId;
     const descriptionId = `${inputId}-description`;
+    const isPhoneInput = type === "tel";
     const phoneValue = typeof value === "string" ? value : "";
-    const detectedPhoneCountry = getPhoneCountry(phoneValue);
+    const detectedPhoneCountry = isPhoneInput ? getPhoneCountry(phoneValue) : undefined;
     const phoneInputRef = useRef<HTMLInputElement>(null);
     const [hasBlurredPhoneInput, setHasBlurredPhoneInput] = useState(false);
     const [selectedCountryCode, setSelectedCountryCode] = useState(
@@ -103,7 +104,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       detectedPhoneCountry ||
       phoneCountries.find((country) => country.code === selectedCountryCode) ||
       phoneCountries[0];
-    const phoneCountryOptions: SelectOption[] = phoneCountries.map((country) => ({
+    const phoneCountryOptions: SelectOption[] = isPhoneInput ? phoneCountries.map((country) => ({
       value: country.code,
       label: country.name,
       triggerLabel: country.dialCode,
@@ -124,10 +125,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {country.dialCode}
         </span>
       ),
-    }));
+    })) : [];
 
     const phoneValidationError =
-      phoneValue && !isValidPhoneNumber(phoneValue) ? t("invalid") : undefined;
+      isPhoneInput && phoneValue && !isValidPhoneNumber(phoneValue) ? t("invalid") : undefined;
     const resolvedError =
       error || (hasBlurredPhoneInput ? phoneValidationError : undefined);
 
@@ -175,7 +176,6 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     // Icon padding
     const iconPaddingLeft = leftIcon ? (isRTL ? "pr-10" : "pl-10") : "";
     const iconPaddingRight = rightIcon || resolvedError ? (isRTL ? "pl-10" : "pr-10") : "";
-    const isPhoneInput = type === "tel";
 
     const notifyPhoneChange = (phone: string) => {
       onChange?.({
