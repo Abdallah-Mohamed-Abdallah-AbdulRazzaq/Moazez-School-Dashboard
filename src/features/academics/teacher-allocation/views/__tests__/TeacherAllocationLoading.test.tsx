@@ -16,7 +16,7 @@ const loadingProps: ComponentProps<typeof TeacherAllocationView> = {
   subjects: [],
   subjectAllocations: [],
   teachers: [],
-  teacherRoleId: "teacher-role",
+  hasTeacherDirectoryAccess: true,
   teacherAllocations: [],
   isLoading: true,
   apiError: null,

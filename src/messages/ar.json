@@ -7202,6 +7202,9 @@
         "missingCount": "ناقص",
         "selectTeacher": "اختر معلم",
         "assignedTeacherUnavailable": "المعلم المسند غير متاح",
+        "needsReassignment": "المعلم غير مؤهل حاليًا؛ يلزم إعادة الإسناد",
+        "teacherDirectoryAccessRequired": "عرض التعيينات متاح. اختيار المعلمين يحتاج صلاحية عرض سجلات المعلمين.",
+        "noEligibleTeachers": "لا يوجد معلمون مؤهلون للإسناد حاليًا. يمكنك مراجعة التعيينات المحفوظة وأحمال المعلمين.",
         "searchTeacher": "ابحث عن معلم...",
         "noTeacher": "لا يوجد معلم",
         "currentLoad": "{periods}/أسبوع",
@@ -7279,6 +7282,7 @@
         "noTeachers": "لا يوجد معلمون"
       },
       "validation": {
+        "ineligibleTeacherAssignments": "يوجد {count} إسناد لمعلم غير مؤهل حاليًا. يلزم مراجعة هذه التعيينات وإعادة الإسناد.",
         "title": "نتائج التحقق",
         "summary": {
           "missingAssignments": "التخصيصات الناقصة",

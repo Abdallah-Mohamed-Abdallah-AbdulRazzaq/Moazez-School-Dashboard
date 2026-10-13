@@ -166,7 +166,6 @@ function mockTeacherAllocationBackend() {
     },
   ]);
   mockedFetchTeacherDirectory.mockResolvedValue({
-    roleId: "teacher-role-1",
     teachers: [
       {
         id: "teacher-user-1",
@@ -183,7 +182,7 @@ describe("TeacherAllocationContainer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAcademicContext("open");
-    mockPermissions(["academics.structure.view", "academics.structure.manage"]);
+    mockPermissions(["academics.structure.view", "academics.structure.manage", "teachers.records.view"]);
     mockTeacherAllocationBackend();
   });
 

@@ -27,8 +27,8 @@ import type {
   TeacherAllocationReassignmentPreviewResponse,
   TeacherAllocationValidationResponse,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationApi.types";
+import { fetchTeacherAllocationTeacherDirectory } from "./teacherAllocationDirectoryApiService";
 import {
-  fetchTeacherAllocationTeacherDirectory,
   fetchTeacherAllocationTeachers,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationTeachersApiService";
 import {
@@ -69,6 +69,7 @@ export interface TeacherAllocation {
   subjectId: string;
   teacherId: string | null;
   teacherName?: string;
+  teacherEligibility?: { eligible: true } | { eligible: false; reasonCode: string };
 }
 
 export interface SaveTeacherAllocationChangesInput {

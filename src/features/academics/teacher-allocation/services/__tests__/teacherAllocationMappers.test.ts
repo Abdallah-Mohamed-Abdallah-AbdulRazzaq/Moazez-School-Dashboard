@@ -180,6 +180,13 @@ describe("teacherAllocationMappers", () => {
     });
   });
 
+  it("keeps backend validation issues invalid even when no teachers are missing", () => {
+    expect(mapValidationDtoToUi({
+      ...validationResponse,
+      summary: { ...validationResponse.summary, missingTeacherAssignments: 0 },
+    }).isValid).toBe(false);
+  });
+
   it("maps validation DTOs without inventing overloaded or unqualified teachers", () => {
     expect(mapValidationDtoToUi(validationResponse)).toMatchObject({
       isValid: false,

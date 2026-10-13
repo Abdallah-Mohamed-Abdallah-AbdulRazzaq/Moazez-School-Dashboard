@@ -161,7 +161,7 @@ export function mapValidationDtoToUi(
     .filter((issue): issue is ValidationIssue => Boolean(issue));
 
   return {
-    isValid: dto.summary.missingTeacherAssignments === 0,
+    isValid: issues.length === 0 && dto.summary.missingTeacherAssignments === 0,
     missingCount: dto.summary.missingTeacherAssignments,
     overloadedCount: 0,
     unqualifiedCount: 0,

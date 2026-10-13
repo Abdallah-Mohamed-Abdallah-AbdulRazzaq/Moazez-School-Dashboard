@@ -101,7 +101,6 @@ function renderMatrix(teacherAllocations: TeacherAllocation[] = []) {
               isActive: true,
             },
           ]}
-          teacherRoleId="teacher-role"
           teacherAllocations={teacherAllocations}
           isReadOnly={false}
           onRefresh={vi.fn().mockResolvedValue(undefined)}
@@ -112,22 +111,29 @@ function renderMatrix(teacherAllocations: TeacherAllocation[] = []) {
 }
 
 describe("AllocationMatrixView subject eligibility", () => {
+  it("flags retained ineligible assignees and excludes them from completion", () => {
+    renderMatrix([{ id: "saved-allocation", termId: "term-1", sectionId: "section-3", classroomId: "classroom-3", subjectId: "subject-1", teacherId: "saved-teacher", teacherName: "Saved Teacher", teacherEligibility: { eligible: false, reasonCode: "account_status_ineligible" } }]);
+    expect(screen.getByText("matrix.needsReassignment")).toBeInTheDocument();
+    expect(screen.getByText("summaryCards.validationStatus.needsReview")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "selectTeacher" })[2]).toHaveTextContent("Saved Teacher");
+  });
+
   it("disables teacher selection only for grades where the subject is not registered", () => {
     const { container } = renderMatrix();
 
     const teacherSelects = Array.from(
       container.querySelectorAll<HTMLElement>(
-        '[id^="allocation-cell-"] [role="combobox"]',
+        '[id^="allocation-cell-"] button[aria-haspopup="listbox"]',
       ),
     );
     expect(teacherSelects).toHaveLength(3);
-    expect(teacherSelects[0]).toHaveAttribute("aria-disabled", "true");
-    expect(teacherSelects[1]).toHaveAttribute("aria-disabled", "true");
-    expect(teacherSelects[2]).not.toHaveAttribute("aria-disabled");
+    expect(teacherSelects[0]).toBeDisabled();
+    expect(teacherSelects[1]).toBeDisabled();
+    expect(teacherSelects[2]).not.toBeDisabled();
   });
 
   it("shows the saved allocation's teacher even when the active directory omits them", () => {
     renderMatrix([{ id: "saved-allocation", termId: "term-1", sectionId: "section-3", classroomId: "classroom-3", subjectId: "subject-1", teacherId: "saved-teacher", teacherName: "Saved Teacher" }]);
-    expect(screen.getAllByRole("combobox")[2]).toHaveTextContent("Saved Teacher");
+    expect(screen.getAllByRole("button", { name: "selectTeacher" })[2]).toHaveTextContent("Saved Teacher");
   });
 });

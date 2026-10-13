@@ -21,6 +21,7 @@ interface ValidationPanelProps {
   termId: string;
   gradeId?: string;
   subjectId?: string;
+  ineligibleAssignmentCount?: number;
 }
 
 type ValidationItem = TeacherAllocationValidationResponse["items"][number];
@@ -85,6 +86,7 @@ export default function ValidationPanel({
   termId,
   gradeId,
   subjectId,
+  ineligibleAssignmentCount = 0,
 }: ValidationPanelProps) {
   const t = useTranslations("academics.teacherAllocation.validation");
   const locale = useLocale();
@@ -144,7 +146,9 @@ export default function ValidationPanel({
   }, [validationResponse]);
 
   const summary = validationResponse?.summary;
-  const hasIssues = summary ? hasValidationIssues(summary) : false;
+  const hasIssues = ineligibleAssignmentCount > 0 ||
+    Boolean(validationResponse?.items.some((item) => item.issues.length > 0)) ||
+    (summary ? hasValidationIssues(summary) : false);
   const focusValidationIssue = (
     validationItem: ValidationItem,
     validationIssue: ValidationIssue,
@@ -235,6 +239,12 @@ export default function ValidationPanel({
                   );
                 })}
               </div>
+
+              {ineligibleAssignmentCount > 0 && (
+                <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+                  {t("ineligibleTeacherAssignments", { count: ineligibleAssignmentCount })}
+                </div>
+              )}
 
               {!hasIssues && (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center">

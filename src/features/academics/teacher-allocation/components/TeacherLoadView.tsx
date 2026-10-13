@@ -113,7 +113,7 @@ export default function TeacherLoadView({
   const searchParams = useSearchParams();
   const selectedTeacherUserId = searchParams.get("loadTeacher") || "";
 
-  const [teacherLoads, setTeacherLoads] = useState<TeacherLoadViewModel[]>([]);
+  const [allTeacherLoads, setAllTeacherLoads] = useState<TeacherLoadViewModel[]>([]);
   const [expandedTeacherId, setExpandedTeacherId] = useState<string | null>(
     null,
   );
@@ -156,11 +156,10 @@ export default function TeacherLoadView({
 
     fetchTeacherLoads({
       termId,
-      teacherUserId: selectedTeacherUserId || undefined,
     })
       .then((loads) => {
         if (isCurrentRequest) {
-          setTeacherLoads(loads);
+          setAllTeacherLoads(loads);
           setCurrentPage(1);
           setExpandedTeacherId(null);
         }
@@ -172,7 +171,7 @@ export default function TeacherLoadView({
             error,
             "Failed to load teacher loads.",
           );
-          setTeacherLoads([]);
+          setAllTeacherLoads([]);
           setLoadError(uiError.message);
           setLoadErrorTraceId(uiError.traceId);
           setLoadErrorDetails(uiError.details);
@@ -187,7 +186,25 @@ export default function TeacherLoadView({
     return () => {
       isCurrentRequest = false;
     };
-  }, [selectedTeacherUserId, termId]);
+  }, [termId]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setCurrentPage(1);
+      setExpandedTeacherId(null);
+    });
+  }, [selectedTeacherUserId]);
+
+  const teacherLoads = useMemo(() => allTeacherLoads.filter((load) =>
+    !selectedTeacherUserId || load.teacherId === selectedTeacherUserId
+  ), [allTeacherLoads, selectedTeacherUserId]);
+
+  const filterTeachers = new Map(teachers.map((teacher) => [teacher.id, teacher]));
+  allTeacherLoads.forEach((load) => {
+    if (!filterTeachers.has(load.teacherId)) {
+      filterTeachers.set(load.teacherId, { id: load.teacherId, nameAr: load.teacherName, nameEn: load.teacherName, isActive: false });
+    }
+  });
 
   const kpis = useMemo(() => {
     const totalWeeklyHours = teacherLoads.reduce(
@@ -347,7 +364,7 @@ export default function TeacherLoadView({
                   noResultsText={tCommon("noResults")}
                   options={[
                     { value: "", label: t("filters.allTeachers") },
-                    ...teachers.map((teacher) => ({
+                    ...Array.from(filterTeachers.values()).map((teacher) => ({
                       value: teacher.id,
                       label: localizedTeacherName(teacher, locale),
                       searchText: `${teacher.nameAr} ${teacher.nameEn}`,

@@ -62,7 +62,6 @@ interface AllocationMatrixViewProps {
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
-  teacherRoleId: string;
   teacherAllocations: TeacherAllocation[];
   isReadOnly: boolean;
   onRefresh: () => Promise<void>;
@@ -162,7 +161,6 @@ export default function AllocationMatrixView({
   subjects,
   subjectAllocations,
   teachers,
-  teacherRoleId,
   teacherAllocations,
   isReadOnly,
   onRefresh,
@@ -499,7 +497,7 @@ export default function AllocationMatrixView({
             allocation.sectionId === sectionId &&
             allocation.subjectId === subjectId &&
             allocation.classroomId === classroomId
-              ? { ...allocation, teacherId, classroomId }
+              ? { ...allocation, teacherId, classroomId, teacherName: teachers.find((teacher) => teacher.id === teacherId)?.nameEn, teacherEligibility: teacherId ? { eligible: true as const } : undefined }
               : allocation
           );
         }
@@ -531,7 +529,7 @@ export default function AllocationMatrixView({
       });
       setOperationError(null);
     },
-    [termId]
+    [termId, teachers]
   );
 
   const getMissingCount = useCallback(
@@ -543,7 +541,7 @@ export default function AllocationMatrixView({
           classroomId,
           subjectId: subject.id,
         });
-        return !allocation || !allocation.teacherId;
+        return !allocation?.teacherId || allocation.teacherEligibility?.eligible === false;
       }).length;
     },
     [filteredSubjects, localAllocations, subjectAllocations]
@@ -800,12 +798,12 @@ export default function AllocationMatrixView({
     return matrixRows.reduce((totalAllocatedCells, row) => {
       const allocatedSubjects = matrixColumns.filter((column) => {
         if (!isSubjectRegisteredForGrade(subjectAllocations, row.section.gradeId, column.subject.id)) return false;
-        const teacherId = teacherIdForCell(localAllocations, {
+        const allocation = findClassroomAllocation(localAllocations, {
           sectionId: row.section.id,
           classroomId: row.classroom.id,
           subjectId: column.subject.id,
         });
-        return Boolean(teacherId);
+        return Boolean(allocation?.teacherId) && allocation?.teacherEligibility?.eligible !== false;
       });
       return totalAllocatedCells + allocatedSubjects.length;
     }, 0);
@@ -951,6 +949,7 @@ export default function AllocationMatrixView({
       row.section.gradeId,
       column.subject.id,
     );
+    const needsReassignment = savedAllocation?.teacherId === teacherId && savedAllocation?.teacherEligibility?.eligible === false;
     const isMissing = !teacherId;
     const isChanged = changedCellKeys.has(cellKey);
     const didSaveFail = failedCellKeys.has(cellKey);
@@ -961,7 +960,7 @@ export default function AllocationMatrixView({
         ? "border-sky-400 bg-sky-50"
         : isChanged
           ? "border-amber-300 bg-amber-50"
-          : isMissing
+          : isMissing || needsReassignment
             ? "border-gray-200 bg-gray-50"
             : "border-transparent bg-white";
 
@@ -976,7 +975,6 @@ export default function AllocationMatrixView({
       >
         <TeacherSelect
           teachers={teachers}
-          teacherRoleId={teacherRoleId}
           value={teacherId}
           selectedTeacherName={savedAllocation?.teacherId === teacherId ? savedAllocation?.teacherName : undefined}
           onChange={(newTeacherId) => setAllocation(row.section.id, column.subject.id, newTeacherId, row.classroom.id)}
@@ -984,6 +982,7 @@ export default function AllocationMatrixView({
           teacherLoads={teacherLoads}
           size={matrixDensity === "compact" ? "small" : "medium"}
         />
+        {needsReassignment && <p role="status" className="mt-1 text-xs text-amber-700">{t("matrix.needsReassignment")}</p>}
       </div>
     );
   };
