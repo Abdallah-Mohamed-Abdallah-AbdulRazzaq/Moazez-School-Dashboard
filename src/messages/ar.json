@@ -7135,6 +7135,7 @@
         },
         "missingCount": "ناقص",
         "selectTeacher": "اختر معلم",
+        "assignedTeacherUnavailable": "المعلم المسند غير متاح",
         "searchTeacher": "ابحث عن معلم...",
         "noTeacher": "لا يوجد معلم",
         "currentLoad": "{periods}/أسبوع",

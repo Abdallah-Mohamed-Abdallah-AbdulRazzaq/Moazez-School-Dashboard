@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
 import AllocationMatrixView from "@/features/academics/teacher-allocation/components/AllocationMatrixView";
@@ -8,6 +8,7 @@ import type {
   Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
+import type { TeacherAllocation } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 
 const grades: Grade[] = [
   {
@@ -71,9 +72,8 @@ const subjectAllocations: SubjectAllocation[] = [
   },
 ];
 
-describe("AllocationMatrixView subject eligibility", () => {
-  it("disables teacher selection only for grades where the subject is not registered", () => {
-    const { container } = render(
+function renderMatrix(teacherAllocations: TeacherAllocation[] = []) {
+    return render(
       <ToastProvider>
         <AllocationMatrixView
           termId="term-1"
@@ -102,13 +102,18 @@ describe("AllocationMatrixView subject eligibility", () => {
             },
           ]}
           teacherRoleId="teacher-role"
-          teacherAllocations={[]}
+          teacherAllocations={teacherAllocations}
           isReadOnly={false}
           onRefresh={vi.fn().mockResolvedValue(undefined)}
           onValidate={vi.fn()}
         />
       </ToastProvider>,
     );
+}
+
+describe("AllocationMatrixView subject eligibility", () => {
+  it("disables teacher selection only for grades where the subject is not registered", () => {
+    const { container } = renderMatrix();
 
     const teacherSelects = Array.from(
       container.querySelectorAll<HTMLElement>(
@@ -119,5 +124,10 @@ describe("AllocationMatrixView subject eligibility", () => {
     expect(teacherSelects[0]).toHaveAttribute("aria-disabled", "true");
     expect(teacherSelects[1]).toHaveAttribute("aria-disabled", "true");
     expect(teacherSelects[2]).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("shows the saved allocation's teacher even when the active directory omits them", () => {
+    renderMatrix([{ id: "saved-allocation", termId: "term-1", sectionId: "section-3", classroomId: "classroom-3", subjectId: "subject-1", teacherId: "saved-teacher", teacherName: "Saved Teacher" }]);
+    expect(screen.getAllByRole("combobox")[2]).toHaveTextContent("Saved Teacher");
   });
 });
