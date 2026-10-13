@@ -36,11 +36,11 @@ beforeEach(() => {
 
 describe("homework auto-correction controls", () => {
   it.each([
-    { action: "singleAction", policy: "all_or_nothing", expectedScore: 0 },
-    { action: "bulkAction", policy: "all_or_nothing", expectedScore: 0 },
-    { action: "singleAction", policy: "partial_with_penalty", expectedScore: 2.5 },
-    { action: "bulkAction", policy: "partial_with_penalty", expectedScore: 2.5 },
-  ])("applies $policy through $action, retries and finalization", async ({ action, policy, expectedScore }) => {
+    { action: "singleAction", policy: "partial_without_penalty", expectedScore: 2.5 },
+    { action: "bulkAction", policy: "partial_without_penalty", expectedScore: 2.5 },
+    { action: "singleAction", policy: "partial_with_penalty", expectedScore: 0 },
+    { action: "bulkAction", policy: "partial_with_penalty", expectedScore: 0 },
+  ])("scores one correct and one wrong selection with $policy through $action, retries and finalization", async ({ action, policy, expectedScore }) => {
     let savedScore: number | null = null;
     const originalGet = vi.mocked(apiGet).getMockImplementation()!;
     vi.mocked(apiGet).mockImplementation(async (path, options) => {
@@ -49,7 +49,7 @@ describe("homework auto-correction controls", () => {
         { optionId: "other", text: "B", isCorrect: true, sortOrder: 1 },
         { optionId: "wrong", text: "C", isCorrect: false, sortOrder: 2 },
       ] }] } as never;
-      if (path.endsWith("/answers")) return { items: [{ answerId: "answer", questionId: "q", selectedOptionIds: ["correct"], awardedPoints: savedScore, reviewedAt: savedScore === null ? null : "today" }] } as never;
+      if (path.endsWith("/answers")) return { items: [{ answerId: "answer", questionId: "q", selectedOptionIds: ["correct", "wrong"], awardedPoints: savedScore, reviewedAt: savedScore === null ? null : "today" }] } as never;
       return originalGet(path, options);
     });
     vi.mocked(apiPut).mockRejectedValueOnce(new Error("offline")).mockImplementation(async (_path, payload) => {
@@ -79,7 +79,7 @@ describe("homework auto-correction controls", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(apiPut).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /policies.all_or_nothing.title/ })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /policies.partial_without_penalty.title/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ })).toHaveAttribute("aria-pressed", "false");
     choosePartialCreditPolicy();
     await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());

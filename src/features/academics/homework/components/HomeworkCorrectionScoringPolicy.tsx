@@ -16,7 +16,7 @@ export default function HomeworkCorrectionScoringPolicy({ policy, disabled, onSe
     <h3 className="text-sm font-semibold text-gray-900">{t("scoringPolicy")}</h3>
     <p className="text-xs text-gray-600">{t("choosePolicy")}</p>
     <div className="grid gap-3 sm:grid-cols-2">
-      {(["all_or_nothing", "partial_with_penalty"] as const).map(choice => <Button key={choice}
+      {(["partial_without_penalty", "partial_with_penalty"] as const).map(choice => <Button key={choice}
         variant="secondary" disabled={disabled} aria-pressed={policy === choice} onClick={() => onSelect(choice)}
         className={`h-auto p-4 text-start whitespace-normal focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${policy === choice ? "!border-primary !bg-primary/5 !text-gray-900" : "!bg-white"}`}>
         <span className="block w-full space-y-2">

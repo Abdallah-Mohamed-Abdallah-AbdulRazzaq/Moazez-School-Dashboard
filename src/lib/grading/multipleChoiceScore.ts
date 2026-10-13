@@ -1,4 +1,4 @@
-export type MultipleSelectionScoringPolicy = "all_or_nothing" | "partial_with_penalty";
+export type MultipleSelectionScoringPolicy = "partial_without_penalty" | "partial_with_penalty";
 
 interface MultipleChoiceScoringInput {
   points: number;
@@ -17,9 +17,7 @@ export function multipleChoiceScore({ points, options, selectedOptionIds, policy
 
   const correctSelectedCount = selectedOptionIds.filter(id => correctIds.has(id)).length;
   const incorrectSelectedCount = selectedOptionIds.length - correctSelectedCount;
-  if (policy === "all_or_nothing") {
-    return correctSelectedCount === correctIds.size && incorrectSelectedCount === 0 ? points : 0;
-  }
-  const netCorrectCount = Math.max(0, correctSelectedCount - incorrectSelectedCount);
+  const netCorrectCount = policy === "partial_without_penalty"
+    ? correctSelectedCount : Math.max(0, correctSelectedCount - incorrectSelectedCount);
   return Math.round((points * netCorrectCount / correctIds.size + Number.EPSILON) * 100) / 100;
 }
