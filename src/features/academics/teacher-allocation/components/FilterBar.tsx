@@ -6,20 +6,23 @@ import { useState } from "react";
 import { Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
-import { Classroom, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import { Subject } from "@/features/academics/subjects/services/subjectsService";
 
 interface FilterBarProps {
+  stages: Stage[];
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
   subjects: Subject[];
   selectedGradeId: string;
+  selectedStageId: string;
   selectedSectionId: string;
   selectedClassroomId: string;
   selectedSubjectId: string;
   showOnlyMissing: boolean;
   onGradeChange: (gradeId: string) => void;
+  onStageChange: (stageId: string) => void;
   onSectionChange: (sectionId: string) => void;
   onClassroomChange: (classroomId: string) => void;
   onSubjectChange: (subjectId: string) => void;
@@ -28,16 +31,19 @@ interface FilterBarProps {
 }
 
 export default function FilterBar({
+  stages,
   grades,
   sections,
   classrooms,
   subjects,
   selectedGradeId,
+  selectedStageId,
   selectedSectionId,
   selectedClassroomId,
   selectedSubjectId,
   showOnlyMissing,
   onGradeChange,
+  onStageChange,
   onSectionChange,
   onClassroomChange,
   onSubjectChange,
@@ -51,10 +57,23 @@ export default function FilterBar({
 
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
-  const filteredSections = selectedGradeId
-    ? sections.filter((s) => s.gradeId === selectedGradeId)
-    : sections;
+  const filteredGradeIds = new Set(grades.map((grade) => grade.id));
+  const filteredSections = sections.filter((section) =>
+    selectedGradeId
+      ? section.gradeId === selectedGradeId
+      : filteredGradeIds.has(section.gradeId),
+  );
   const filteredSectionIds = new Set(filteredSections.map((section) => section.id));
+
+  const stageOptions = [
+    { value: "", label: t("filters.allStages") },
+    ...stages.map((stage) => ({
+      value: stage.id,
+      label: locale === "ar"
+        ? (stage.nameAr || stage.nameEn || stage.name)
+        : (stage.nameEn || stage.nameAr || stage.name),
+    })),
+  ];
 
   const gradeOptions = [
     { value: "", label: t("filters.allGrades") },
@@ -80,7 +99,7 @@ export default function FilterBar({
     if (selectedSectionId) {
       return classroom.sectionId === selectedSectionId;
     }
-    return !selectedGradeId || filteredSectionIds.has(classroom.sectionId);
+    return filteredSectionIds.has(classroom.sectionId);
   });
 
   const classroomOptions = [
@@ -132,6 +151,15 @@ export default function FilterBar({
               ) : (
                 // Desktop: Show inline filters
                 <>
+                  <div className="w-48">
+                    <Select
+                      label={t("filters.stage")}
+                      value={selectedStageId}
+                      onChange={onStageChange}
+                      options={stageOptions}
+                      selectSize="sm"
+                    />
+                  </div>
                   <div className="w-48">
                     <Select
                       label={t("filters.grade")}
@@ -238,6 +266,15 @@ export default function FilterBar({
           </div>
 
           <div className="space-y-4">
+            <div>
+              <Select
+                label={t("filters.stage")}
+                value={selectedStageId}
+                onChange={onStageChange}
+                options={stageOptions}
+                selectSize="sm"
+              />
+            </div>
             {/* Grade Filter */}
             <div>
               <Select

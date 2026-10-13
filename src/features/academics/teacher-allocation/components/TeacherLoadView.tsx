@@ -16,17 +16,19 @@ import {
   ChevronUp,
   Clock,
   Download,
-  Loader2,
   School,
   Users,
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import Select from "@/components/ui/input/Select";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import type { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { fetchTeacherLoads } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { teacherAllocationUiError } from "@/features/academics/teacher-allocation/services/teacherAllocationErrors";
 import type { TeacherLoadViewModel } from "@/features/academics/teacher-allocation/services/teacherAllocationMappers";
 import TeacherAllocationTechnicalDetails from "./TeacherAllocationTechnicalDetails";
+import TeacherAllocationSkeleton from "./TeacherAllocationSkeleton";
+import TeacherLoadPagination from "./TeacherLoadPagination";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -103,6 +105,8 @@ export default function TeacherLoadView({
   teachers,
 }: TeacherLoadViewProps) {
   const t = useTranslations("academics.teacherAllocation.load");
+  const tMatrix = useTranslations("academics.teacherAllocation.matrix");
+  const tCommon = useTranslations("common");
   const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const router = useRouter();
@@ -120,6 +124,8 @@ export default function TeacherLoadView({
   >();
   const [loadErrorDetails, setLoadErrorDetails] = useState<string[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const syncTeacherFilter = useCallback(
     (teacherUserId: string) => {
@@ -155,6 +161,7 @@ export default function TeacherLoadView({
       .then((loads) => {
         if (isCurrentRequest) {
           setTeacherLoads(loads);
+          setCurrentPage(1);
           setExpandedTeacherId(null);
         }
       })
@@ -278,10 +285,7 @@ export default function TeacherLoadView({
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-600">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        <span>{t("loadingTeacherLoads")}</span>
-      </div>
+      <TeacherAllocationSkeleton view="load" label={t("loadingTeacherLoads")} />
     );
   }
 
@@ -334,21 +338,22 @@ export default function TeacherLoadView({
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="sm:w-80">
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  {t("filters.teacher")}
-                </label>
-                <select
+                <Select
+                  label={t("filters.teacher")}
                   value={selectedTeacherUserId}
-                  onChange={(event) => syncTeacherFilter(event.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">{t("filters.allTeachers")}</option>
-                  {teachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {localizedTeacherName(teacher, locale)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={syncTeacherFilter}
+                  searchable
+                  searchPlaceholder={tMatrix("searchTeacher")}
+                  noResultsText={tCommon("noResults")}
+                  options={[
+                    { value: "", label: t("filters.allTeachers") },
+                    ...teachers.map((teacher) => ({
+                      value: teacher.id,
+                      label: localizedTeacherName(teacher, locale),
+                      searchText: `${teacher.nameAr} ${teacher.nameEn}`,
+                    })),
+                  ]}
+                />
               </div>
 
               <Button
@@ -380,7 +385,7 @@ export default function TeacherLoadView({
         )}
 
         <div className="space-y-3">
-          {teacherLoads.map((load) => {
+          {teacherLoads.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((load) => {
             const isExpanded = expandedTeacherId === load.teacherId;
             const loadPercent = Math.min(
               100,
@@ -500,6 +505,22 @@ export default function TeacherLoadView({
             );
           })}
         </div>
+        {teacherLoads.length > 0 && (
+          <TeacherLoadPagination
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalTeachers={teacherLoads.length}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              setExpandedTeacherId(null);
+            }}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+              setExpandedTeacherId(null);
+            }}
+          />
+        )}
       </div>
 
       <AcademicsGlobalExportModal

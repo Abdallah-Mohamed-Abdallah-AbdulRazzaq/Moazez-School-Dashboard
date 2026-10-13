@@ -84,10 +84,12 @@ const mockedFetchTeacherAllocations = vi.mocked(fetchTeacherAllocations);
 const mockedUseAcademicYearTermLayoutContext = vi.mocked(useAcademicYearTermLayoutContext);
 const mockedUsePermissions = vi.mocked(usePermissions);
 
-function mockAcademicContext(termStatus: string) {
+function mockAcademicContext(
+  termStatus: string,
+  contextIds = { academicYearId: "year-1", termId: "term-1" },
+) {
   mockedUseAcademicYearTermLayoutContext.mockReturnValue({
-    academicYearId: "year-1",
-    termId: "term-1",
+    ...contextIds,
     termStatus,
     academicYears: [{ id: "year-1", name: "2026", nameAr: "2026", nameEn: "2026" }],
     terms: [
@@ -111,6 +113,7 @@ function mockPermissions(permissions: string[]) {
 
 function mockTeacherAllocationBackend() {
   mockedFetchStructureTree.mockResolvedValue({
+    stages: [{ id: "stage-1", name: "Primary", nameEn: "Primary", nameAr: "ابتدائي", order: 1 }],
     grades: [
       {
         id: "grade-1",
@@ -182,6 +185,17 @@ describe("TeacherAllocationContainer", () => {
     mockAcademicContext("open");
     mockPermissions(["academics.structure.view", "academics.structure.manage"]);
     mockTeacherAllocationBackend();
+  });
+
+  it.each([
+    { academicYearId: "", termId: "term-1" },
+    { academicYearId: "year-1", termId: "" },
+  ])("finishes loading when the academic scope is incomplete: %j", async (contextIds) => {
+    mockAcademicContext("open", contextIds);
+    render(<TeacherAllocationContainer />);
+    expect(await screen.findByText("loaded")).toBeInTheDocument();
+    expect(screen.queryByText("loading")).not.toBeInTheDocument();
+    expect(mockedFetchTeacherAllocations).not.toHaveBeenCalled();
   });
 
   it("does not load allocations when the user lacks view permission", async () => {

@@ -12,9 +12,17 @@ import {
   reassignTeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationApiAdapter";
 import type { TeacherAllocationReassignmentPreviewResponse } from "@/features/academics/teacher-allocation/services/teacherAllocationApi.types";
-import type { Classroom, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { Subject, SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import type { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+
+const navigation = vi.hoisted(() => ({ query: "", push: vi.fn(), replace: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: navigation.push, replace: navigation.replace }),
+  useSearchParams: () => new URLSearchParams(navigation.query),
+  usePathname: () => "/en/academics/teacher-allocation",
+}));
 
 vi.mock("@/features/academics/teacher-allocation/components/TeacherSelect", () => ({
   default: ({
@@ -210,6 +218,10 @@ const mockedReassignTeacherAllocation = vi.mocked(reassignTeacherAllocation);
 
 function renderMatrix(
   options: {
+    stages?: Stage[];
+    grades?: Grade[];
+    sections?: Section[];
+    classrooms?: Classroom[];
     isReadOnly?: boolean;
     subjects?: Subject[];
     subjectAllocations?: SubjectAllocation[];
@@ -221,9 +233,10 @@ function renderMatrix(
   return render(
     <AllocationMatrixView
       termId="term-1"
-      grades={[grade]}
-      sections={[section]}
-      classrooms={[classroom]}
+      stages={options.stages ?? [{ id: "stage-1", name: "Primary", nameEn: "Primary", nameAr: "ابتدائي", order: 1 }]}
+      grades={options.grades ?? [grade]}
+      sections={options.sections ?? [section]}
+      classrooms={options.classrooms ?? [classroom]}
       subjects={options.subjects ?? [subject]}
       subjectAllocations={options.subjectAllocations ?? [subjectAllocation]}
       teachers={[teacher, replacementTeacher]}
@@ -238,6 +251,38 @@ function renderMatrix(
 describe("AllocationMatrixView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigation.query = "";
+  });
+
+  it("limits classroom rows and grade options to the stage in the URL", () => {
+    navigation.query = "stage=stage-1";
+    renderMatrix({
+      stages: [
+        { id: "stage-1", name: "Primary", nameEn: "Primary", nameAr: "ابتدائي", order: 1 },
+        { id: "stage-2", name: "Secondary", nameEn: "Secondary", nameAr: "ثانوي", order: 2 },
+      ],
+      grades: [grade, { ...grade, id: "grade-2", stageId: "stage-2", nameEn: "Grade 2" }],
+      sections: [section, { ...section, id: "section-2", gradeId: "grade-2" }],
+      classrooms: [classroom, { ...classroom, id: "classroom-2", sectionId: "section-2", nameEn: "Classroom B" }],
+    });
+
+    expect(screen.getByText("Classroom A")).toBeInTheDocument();
+    expect(screen.getByText("Primary / Grade 1 / Section A")).toBeInTheDocument();
+    expect(screen.queryByText("Classroom B")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /filters\.grade/i }));
+    expect(screen.getByRole("button", { name: "Grade 1" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Grade 2" })).not.toBeInTheDocument();
+  });
+
+  it("clears dependent filters in one URL update when changing stage", () => {
+    navigation.query = "year=year-1&term=term-1&stage=stage-1&grade=grade-1&section=section-1&classroom=classroom-1&subject=subject-1";
+    renderMatrix();
+
+    fireEvent.click(screen.getByRole("button", { name: /filters\.stage/i }));
+    fireEvent.click(screen.getByRole("button", { name: "filters.allStages" }));
+
+    expect(navigation.push).toHaveBeenCalledTimes(1);
+    expect(navigation.push).toHaveBeenCalledWith("?year=year-1&term=term-1", { scroll: false });
   });
 
   it("disables teacher selection and save in read-only mode", () => {
@@ -254,6 +299,41 @@ describe("AllocationMatrixView", () => {
 
     expect(screen.getByRole("button", { name: "Math" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Science" })).not.toBeInTheDocument();
+  });
+
+  it.each(["grade=grade-1", "section=section-1", "classroom=classroom-1"])(
+    "excludes other grades' subjects when scoped by %s",
+    (query) => {
+      navigation.query = query;
+      renderMatrix({
+        grades: [grade, { ...grade, id: "grade-2" }],
+        sections: [section, { ...section, id: "section-2", gradeId: "grade-2" }],
+        classrooms: [classroom, { ...classroom, id: "classroom-2", sectionId: "section-2" }],
+        subjects: [subject, unallocatedSubject],
+        subjectAllocations: [subjectAllocation, { ...subjectAllocation, id: "allocation-grade-2", gradeId: "grade-2", subjectId: unallocatedSubject.id }],
+      });
+
+      expect(screen.getByText("Math")).toBeInTheDocument();
+      expect(screen.queryByText("Science")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /filters\.subject/i }));
+      expect(screen.getByRole("button", { name: "Math" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Science" })).not.toBeInTheDocument();
+    },
+  );
+
+  it("does not mark a fully assigned classroom missing for another grade's subject", () => {
+    navigation.query = "missing=1";
+    renderMatrix({
+      grades: [grade, { ...grade, id: "grade-2" }],
+      sections: [section, { ...section, id: "section-2", gradeId: "grade-2" }],
+      classrooms: [classroom, { ...classroom, id: "classroom-2", sectionId: "section-2", nameEn: "Classroom B" }],
+      subjects: [subject, unallocatedSubject],
+      subjectAllocations: [subjectAllocation, { ...subjectAllocation, id: "allocation-grade-2", gradeId: "grade-2", subjectId: unallocatedSubject.id }],
+      teacherAllocations: [{ id: "teacher-allocation-1", termId: "term-1", sectionId: "section-1", classroomId: "classroom-1", subjectId: subject.id, teacherId: teacher.id }],
+    });
+
+    expect(screen.queryByText("Classroom A")).not.toBeInTheDocument();
+    expect(screen.getByText("Classroom B")).toBeInTheDocument();
   });
 
   it("switches the matrix between compact and comfortable density", () => {

@@ -11,6 +11,7 @@ import {
   type Classroom,
   type Grade,
   type Section,
+  type Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchSubjects,
@@ -52,6 +53,7 @@ export default function TeacherAllocationContainer() {
   const canManage = hasPermission("academics.structure.manage");
 
   // Context data
+  const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -87,6 +89,7 @@ export default function TeacherAllocationContainer() {
     }
 
     if (!academicYearId || !termId) {
+      setIsLoading(false);
       return;
     }
 
@@ -108,6 +111,7 @@ export default function TeacherAllocationContainer() {
         fetchTeacherAllocations(termId),
       ]);
 
+      setStages(structureData.stages);
       setGrades(structureData.grades);
       setSections(structureData.sections);
       setClassrooms(structureData.classrooms);
@@ -226,6 +230,7 @@ export default function TeacherAllocationContainer() {
       academicYears={academicYears}
       terms={terms}
       canView={canView}
+      stages={stages}
       grades={grades}
       sections={sections}
       classrooms={classrooms}

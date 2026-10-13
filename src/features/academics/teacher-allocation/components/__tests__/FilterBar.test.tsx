@@ -36,6 +36,7 @@ const classroom: Classroom = {
 
 function renderFilterBar() {
   const callbacks = {
+    onStageChange: vi.fn(),
     onGradeChange: vi.fn(),
     onSectionChange: vi.fn(),
     onClassroomChange: vi.fn(),
@@ -46,11 +47,13 @@ function renderFilterBar() {
 
   render(
     <FilterBar
+      stages={[{ id: "stage-1", name: "Primary", nameEn: "Primary", nameAr: "ابتدائي", order: 1 }]}
       grades={[grade]}
       sections={[section]}
       classrooms={[classroom]}
       subjects={[]}
       selectedGradeId=""
+      selectedStageId=""
       selectedSectionId=""
       selectedClassroomId=""
       selectedSubjectId=""

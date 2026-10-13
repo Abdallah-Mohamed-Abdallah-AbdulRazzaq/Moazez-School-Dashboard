@@ -21,6 +21,7 @@ import type {
   Term,
   Grade,
   Section,
+  Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import type {
   Subject,
@@ -32,6 +33,7 @@ import type {
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import AllocationMatrixView from "../components/AllocationMatrixView";
 import TeacherLoadView from "../components/TeacherLoadView";
+import TeacherAllocationSkeleton from "../components/TeacherAllocationSkeleton";
 import ValidationPanel from "../components/ValidationPanel";
 import { AccessDenied, Button } from "@/components/ui";
 import TeacherAllocationTechnicalDetails from "../components/TeacherAllocationTechnicalDetails";
@@ -43,6 +45,7 @@ interface TeacherAllocationViewProps {
   academicYears: AcademicYear[];
   terms: Term[];
   canView: boolean;
+  stages: Stage[];
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
@@ -73,6 +76,7 @@ export default function TeacherAllocationView({
   academicYears,
   terms,
   canView,
+  stages,
   grades,
   sections,
   classrooms,
@@ -98,6 +102,7 @@ export default function TeacherAllocationView({
 }: TeacherAllocationViewProps) {
   const t = useTranslations("academics.teacherAllocation");
   const tEmpty = useTranslations("academics.module_empty_states");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -143,6 +148,10 @@ export default function TeacherAllocationView({
             </Button>
           </div>
         </div>
+      )}
+
+      {isLoading && (
+        <TeacherAllocationSkeleton view={activeTab} label={tCommon("loading")} />
       )}
 
       {!isLoading && (!academicYearId || !termId) && (
@@ -269,6 +278,7 @@ export default function TeacherAllocationView({
                   termId={termId}
                   yearName={yearName}
                   termName={termName}
+                  stages={stages}
                   grades={grades}
                   sections={sections}
                   classrooms={classrooms}

@@ -77,6 +77,7 @@ describe("AllocationMatrixView subject eligibility", () => {
       <ToastProvider>
         <AllocationMatrixView
           termId="term-1"
+          stages={[{ id: "stage-1", name: "Primary", nameEn: "Primary", nameAr: "ابتدائي", order: 1 }]}
           grades={grades}
           sections={sections}
           classrooms={classrooms}
