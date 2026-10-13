@@ -5234,7 +5234,8 @@
           "all_grades": "All Grades",
           "subject": "Subject",
           "all_subjects": "All Subjects",
-          "show_missing": "Show only missing allocations"
+          "show_missing": "Show only missing allocations",
+          "show_all_subjects": "Show all subjects"
         },
         "summary": {
           "subjects": "Subjects",

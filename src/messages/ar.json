@@ -5235,7 +5235,8 @@
           "all_grades": "جميع الصفوف",
           "subject": "المادة",
           "all_subjects": "جميع المواد",
-          "show_missing": "إظهار التوزيعات المفقودة فقط"
+          "show_missing": "إظهار التوزيعات المفقودة فقط",
+          "show_all_subjects": "إظهار جميع المواد"
         },
         "summary": {
           "subjects": "المواد",

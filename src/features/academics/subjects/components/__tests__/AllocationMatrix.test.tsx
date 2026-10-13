@@ -16,12 +16,11 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
+const navigation = vi.hoisted(() => ({ query: "", push: vi.fn(), replace: vi.fn() }));
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-  }),
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: navigation.push, replace: navigation.replace }),
+  useSearchParams: () => new URLSearchParams(navigation.query),
 }));
 
 vi.mock("@/features/academics/shared/components/export/AcademicsGlobalExportModal", () => ({
@@ -79,6 +78,9 @@ const mockedBulkUpsertSubjectAllocations = vi.mocked(
 );
 
 function renderAllocationMatrix(options?: {
+  stages?: Stage[];
+  grades?: Grade[];
+  subjects?: Subject[];
   allocations?: SubjectAllocation[];
   isLoading?: boolean;
   onRefresh?: () => Promise<void>;
@@ -91,9 +93,9 @@ function renderAllocationMatrix(options?: {
 
   render(
     <AllocationMatrix
-      stages={[stage]}
-      grades={[grade]}
-      subjects={[subject]}
+      stages={options?.stages ?? [stage]}
+      grades={options?.grades ?? [grade]}
+      subjects={options?.subjects ?? [subject]}
       allocations={options?.allocations ?? [subjectAllocation]}
       termId="term-1"
       isLoading={options?.isLoading}
@@ -111,6 +113,49 @@ function renderAllocationMatrix(options?: {
 describe("AllocationMatrix", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigation.query = "";
+  });
+
+  it.each(["gradeId=grade-1", "stage=stage-1"])(
+    "shows only assigned subjects for %s",
+    (query) => {
+      navigation.query = query;
+      renderAllocationMatrix({
+        stages: [stage, { ...stage, id: "stage-2", nameEn: "Secondary" }],
+        grades: [grade, { ...grade, id: "grade-2", stageId: "stage-2" }],
+        subjects: [subject, { ...subject, id: "science", nameEn: "Science" }, { ...subject, id: "zero-hours", nameEn: "Art" }],
+        allocations: [subjectAllocation, { ...subjectAllocation, gradeId: "grade-2", subjectId: "science" }, { ...subjectAllocation, subjectId: "zero-hours", weeklyHours: 0 }],
+      });
+
+      expect(screen.getByText("Math")).toBeInTheDocument();
+      expect(screen.queryByText("Science")).not.toBeInTheDocument();
+      expect(screen.queryByText("Art")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "filters.subject" }));
+      expect(screen.getByRole("button", { name: "Math" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Science" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Art" })).not.toBeInTheDocument();
+    },
+  );
+
+  it("enables the full catalog without retaining a subject filter", () => {
+    navigation.query = "gradeId=grade-1&subjectId=subject-1";
+    renderAllocationMatrix();
+    fireEvent.click(screen.getByRole("checkbox", { name: "filters.show_all_subjects" }));
+    expect(navigation.push).toHaveBeenCalledWith("?gradeId=grade-1&allSubjects=1", { scroll: false });
+  });
+
+  it("can assign a new subject from the full catalog and saves only the edited pair", async () => {
+    navigation.query = "gradeId=grade-1&allSubjects=1";
+    mockedBulkUpsertSubjectAllocations.mockResolvedValueOnce(undefined);
+    renderAllocationMatrix({ subjects: [subject, { ...subject, id: "science", nameEn: "Science" }] });
+
+    const inputs = screen.getAllByRole("spinbutton");
+    fireEvent.change(inputs[1], { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: /actions\.save/i }));
+
+    await waitFor(() => expect(mockedBulkUpsertSubjectAllocations).toHaveBeenCalledWith(
+      "term-1", [{ gradeId: "grade-1", subjectId: "science", weeklyHours: 3 }],
+    ));
   });
 
   it("allows weekly hour values up to the backend maximum of 80", () => {

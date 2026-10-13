@@ -300,6 +300,41 @@ describe("AllocationMatrixView", () => {
     expect(screen.queryByRole("button", { name: "Science" })).not.toBeInTheDocument();
   });
 
+  it.each(["grade=grade-1", "section=section-1", "classroom=classroom-1"])(
+    "excludes other grades' subjects when scoped by %s",
+    (query) => {
+      navigation.query = query;
+      renderMatrix({
+        grades: [grade, { ...grade, id: "grade-2" }],
+        sections: [section, { ...section, id: "section-2", gradeId: "grade-2" }],
+        classrooms: [classroom, { ...classroom, id: "classroom-2", sectionId: "section-2" }],
+        subjects: [subject, unallocatedSubject],
+        subjectAllocations: [subjectAllocation, { ...subjectAllocation, id: "allocation-grade-2", gradeId: "grade-2", subjectId: unallocatedSubject.id }],
+      });
+
+      expect(screen.getByText("Math")).toBeInTheDocument();
+      expect(screen.queryByText("Science")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /filters\.subject/i }));
+      expect(screen.getByRole("button", { name: "Math" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Science" })).not.toBeInTheDocument();
+    },
+  );
+
+  it("does not mark a fully assigned classroom missing for another grade's subject", () => {
+    navigation.query = "missing=1";
+    renderMatrix({
+      grades: [grade, { ...grade, id: "grade-2" }],
+      sections: [section, { ...section, id: "section-2", gradeId: "grade-2" }],
+      classrooms: [classroom, { ...classroom, id: "classroom-2", sectionId: "section-2", nameEn: "Classroom B" }],
+      subjects: [subject, unallocatedSubject],
+      subjectAllocations: [subjectAllocation, { ...subjectAllocation, id: "allocation-grade-2", gradeId: "grade-2", subjectId: unallocatedSubject.id }],
+      teacherAllocations: [{ id: "teacher-allocation-1", termId: "term-1", sectionId: "section-1", classroomId: "classroom-1", subjectId: subject.id, teacherId: teacher.id }],
+    });
+
+    expect(screen.queryByText("Classroom A")).not.toBeInTheDocument();
+    expect(screen.getByText("Classroom B")).toBeInTheDocument();
+  });
+
   it("switches the matrix between compact and comfortable density", () => {
     renderMatrix();
 
