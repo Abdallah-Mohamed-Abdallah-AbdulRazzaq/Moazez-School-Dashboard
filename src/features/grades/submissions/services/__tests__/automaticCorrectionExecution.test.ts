@@ -30,10 +30,19 @@ const completePlan: AutomaticCorrectionPlan = {
 beforeEach(() => {
   vi.clearAllMocks();
   api.apiPut.mockResolvedValue({});
-  api.apiPost.mockResolvedValue({});
+  api.apiPost.mockResolvedValue({ status: "corrected", synced: true });
 });
 
 describe("executeAutomaticCorrectionPlan", () => {
+  it("does not sync when the server has not confirmed finalization", async () => {
+    api.apiPost.mockResolvedValue({ status: "submitted" });
+    await expect(executeAutomaticCorrectionPlan(submissionId, completePlan)).rejects.toThrow("Submission finalization was not confirmed");
+    expect(api.apiPost).not.toHaveBeenCalledWith(`/grades/submissions/${submissionId}/sync-grade-item`);
+  });
+  it("does not claim a synced result when the server reports synced false", async () => {
+    api.apiPost.mockResolvedValueOnce({ status: "corrected" }).mockResolvedValueOnce({ synced: false });
+    await expect(executeAutomaticCorrectionPlan(submissionId, completePlan)).rejects.toThrow("Grade synchronization was not confirmed");
+  });
   it("saves objective scores, finalizes, then syncs a complete submission", async () => {
     await expect(executeAutomaticCorrectionPlan(submissionId, completePlan))
       .resolves.toEqual({ finalized: true });
@@ -94,7 +103,7 @@ describe("executeAutomaticCorrectionPlan", () => {
 
   it("keeps the finalized submission when grade synchronization fails", async () => {
     api.apiPost
-      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ status: "corrected" })
       .mockRejectedValueOnce(new Error("Sync failed"));
 
     await expect(executeAutomaticCorrectionPlan(submissionId, completePlan))

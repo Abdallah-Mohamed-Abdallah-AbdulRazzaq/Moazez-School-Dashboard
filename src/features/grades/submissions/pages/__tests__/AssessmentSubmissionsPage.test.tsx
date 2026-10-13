@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AssessmentSubmissionsPage from "../AssessmentSubmissionsPage";
+import type { GradeSubmissionDetail } from "../../types";
 
 const api = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiPatch: vi.fn() }));
 const router = vi.hoisted(() => ({ push: vi.fn() }));
@@ -113,6 +114,54 @@ beforeEach(() => {
 });
 
 describe("AssessmentSubmissionsPage", () => {
+  it.each([
+    { policy: "partial_without_penalty", expected: 2 },
+    { policy: "partial_with_penalty", expected: 0 },
+  ])("saves $policy scores and offers finalization after reloading retained results", async ({ policy, expected }) => {
+    const user = userEvent.setup();
+    const detail: GradeSubmissionDetail = submissionDetail(submittedId);
+    detail.questions[0].type = "mcq_multi";
+    detail.questions[0].answer!.type = "mcq_multi";
+    detail.questions[0].answer!.selectedOptions.push({ optionId: "wrong", label: "Wrong", labelAr: null, value: null });
+    const questions = structuredClone(assessmentQuestions);
+    questions.questions[0].type = "mcq_multi";
+    questions.questions[0].options.push(
+      { id: "other", label: "Other", labelAr: "آخر", isCorrect: true, sortOrder: 2 },
+      { id: "wrong", label: "Wrong", labelAr: "خطأ", isCorrect: false, sortOrder: 3 },
+    );
+    let savedScore: number | null = null;
+    let refreshFailed = false;
+    api.apiGet.mockImplementation(async (url: string) => {
+      if (url === "/grades/bootstrap") return bootstrap;
+      if (url.endsWith("/questions")) return questions;
+      if (url === `/grades/submissions/${submittedId}`) return detail;
+      if (savedScore !== null && !refreshFailed) { refreshFailed = true; throw new Error("Refresh offline"); }
+      return { items: [submissionRow(submittedId, detail.status)] };
+    });
+    api.apiPut.mockImplementation(async (_url, payload) => {
+      savedScore = payload.reviews[0].awardedPoints;
+      detail.questions[0].answer!.awardedPoints = savedScore;
+      detail.questions[0].answer!.correctionStatus = "corrected";
+      detail.progress.pendingCorrectionCount = 0;
+      return {};
+    });
+    api.apiPost.mockImplementation(async url => { if (url.endsWith("/review/finalize")) detail.status = "corrected"; return { status: "corrected", synced: true }; });
+    render(<AssessmentSubmissionsPage assessmentId={uuid} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "autoCorrection.open" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "autoCorrection.open" }));
+    await user.click(screen.getByRole("button", { name: new RegExp(`policies.${policy}.title`) }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "confirm" }));
+    expect(await screen.findByText("refreshFailed")).toBeInTheDocument();
+    expect(savedScore).toBe(expected);
+    expect(api.apiPost).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "finalize 1" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "reload" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize 1" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "finalize 1" }));
+    expect(await screen.findByText("result.finalized 1")).toBeInTheDocument();
+    expect(api.apiPut).toHaveBeenCalledOnce();
+  });
   it("auto-corrects only submitted rows in the current filtered scope", async () => {
     const user = userEvent.setup();
     mockApiWithRows();
@@ -126,6 +175,9 @@ describe("AssessmentSubmissionsPage", () => {
       { params: expect.objectContaining({ search: "Adam" }) },
     ), { timeout: 1_000 });
 
+    expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: "confirm" }));
 
     await waitFor(() => expect(api.apiPut).toHaveBeenCalledWith(
@@ -168,11 +220,14 @@ describe("AssessmentSubmissionsPage", () => {
     render(<AssessmentSubmissionsPage assessmentId={uuid} />);
 
     await user.click(await screen.findByRole("button", { name: "autoCorrection.open" }));
-    await user.click(await screen.findByRole("button", { name: "confirm" }));
-    await user.click(await screen.findByRole("button", { name: "retryFailed" }));
+    await user.click(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "retryFailed" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "retryFailed" }));
 
     await waitFor(() => expect(api.apiPut).toHaveBeenCalledTimes(1));
-    expect(detailRequests).toBe(2);
+    expect(detailRequests).toBe(3);
   });
 
   it("requires both review and question permissions", async () => {

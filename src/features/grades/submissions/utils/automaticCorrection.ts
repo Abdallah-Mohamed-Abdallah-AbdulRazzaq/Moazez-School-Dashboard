@@ -1,7 +1,7 @@
 import type { BackendSubmissionQuestionResponse } from "../../gradebook/types/api.types";
 import type { AssessmentQuestion } from "../../shared/types";
 import type { GradeSubmissionAnswer, GradeSubmissionDetail } from "../types";
-import { multipleChoiceScore } from "@/lib/grading/multipleChoiceScore";
+import { multipleChoiceScore, type MultipleSelectionScoringPolicy } from "@/lib/grading/multipleChoiceScore";
 
 export type AutomaticCorrectionSkipReason =
   | "manual_question"
@@ -39,9 +39,10 @@ const AUTO_CORRECTABLE_TYPES = new Set<AssessmentQuestion["questionType"]>([
 export function buildAutomaticCorrectionPlan(
   submission: GradeSubmissionDetail,
   definitionsByQuestionId: Readonly<Record<string, AssessmentQuestion>>,
+  policy: MultipleSelectionScoringPolicy = "partial_with_penalty",
 ): AutomaticCorrectionPlan {
   const decisions = submission.questions.map((question) =>
-    decideQuestionCorrection(question, definitionsByQuestionId[question.id]));
+    decideQuestionCorrection(question, definitionsByQuestionId[question.id], policy));
 
   const reviews = decisions.flatMap((decision) =>
     decision.kind === "review" ? [decision.review] : []);
@@ -63,6 +64,7 @@ export function hasManualCorrectionWork(plan: AutomaticCorrectionPlan): boolean 
 function decideQuestionCorrection(
   question: BackendSubmissionQuestionResponse,
   definition: AssessmentQuestion | undefined,
+  policy: MultipleSelectionScoringPolicy,
 ): CorrectionDecision {
   if (!definition) return skipQuestion(question.id, "invalid_answer_key");
   if (!AUTO_CORRECTABLE_TYPES.has(definition.questionType)) {
@@ -70,7 +72,7 @@ function decideQuestionCorrection(
   }
   if (!question.answer) return skipQuestion(question.id, "missing_answer_record");
 
-  const awardedPoints = scoreObjectiveAnswer(question.answer, definition);
+  const awardedPoints = scoreObjectiveAnswer(question.answer, definition, policy);
   if (awardedPoints === null) return skipQuestion(question.id, "invalid_answer_key");
 
   return {
@@ -82,10 +84,11 @@ function decideQuestionCorrection(
 function scoreObjectiveAnswer(
   submissionAnswer: GradeSubmissionAnswer,
   definition: AssessmentQuestion,
+  policy: MultipleSelectionScoringPolicy,
 ): number | null {
   if (definition.questionType === "MCQ_MULTI") {
     return multipleChoiceScore({ points: definition.points, options: definition.options ?? [],
-      selectedOptionIds: submissionAnswer.selectedOptions.map(({ optionId }) => optionId) });
+      selectedOptionIds: submissionAnswer.selectedOptions.map(({ optionId }) => optionId), policy });
   }
   const isCorrect = getObjectiveAnswerCorrectness(submissionAnswer, definition);
   if (isCorrect === null) return null;

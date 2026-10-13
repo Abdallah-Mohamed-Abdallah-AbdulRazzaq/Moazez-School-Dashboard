@@ -11,7 +11,7 @@ const api = vi.hoisted(() => ({
 
 vi.mock("@/lib/api", () => api);
 
-import { runAutomaticCorrectionBatch } from "../automaticCorrectionBatch";
+import { mergeAutomaticCorrectionResults, runAutomaticCorrectionBatch } from "../automaticCorrectionBatch";
 
 const questionId = "123e4567-e89b-42d3-a456-426614174010";
 const answerId = "123e4567-e89b-42d3-a456-426614174011";
@@ -107,10 +107,52 @@ function submissionIdFromUrl(url: string): string {
 beforeEach(() => {
   vi.clearAllMocks();
   api.apiPut.mockResolvedValue({});
-  api.apiPost.mockResolvedValue({});
+  api.apiPost.mockResolvedValue({ status: "corrected", synced: true });
 });
 
 describe("runAutomaticCorrectionBatch", () => {
+  it.each([
+    { scoringPolicy: "partial_without_penalty" as const, expected: 2 },
+    { scoringPolicy: "partial_with_penalty" as const, expected: 0 },
+  ])("keeps $scoringPolicy scores open and retries chosen finalization without rewriting scores", async ({ scoringPolicy, expected }) => {
+    const ids = submissionIds.slice(0, 2);
+    const saved = new Map(ids.map(id => [id, submission(id, "mcq_multi", answer({ selectedOptions: ["a", "wrong"].map(optionId => ({ optionId, label: optionId, labelAr: null, value: null })) }))]));
+    const multi = { ...definition("MCQ_MULTI"), options: [
+      { id: "a", textAr: "أ", textEn: "A", isCorrect: true, order: 1 },
+      { id: "b", textAr: "ب", textEn: "B", isCorrect: true, order: 2 },
+      { id: "wrong", textAr: "خطأ", textEn: "Wrong", isCorrect: false, order: 3 },
+    ] };
+    api.apiGet.mockImplementation(async (url: string) => structuredClone(saved.get(submissionIdFromUrl(url))));
+    api.apiPut.mockImplementation(async (url: string, payload: { reviews: { awardedPoints: number }[] }) => {
+      const detail = saved.get(url.split("/")[3])!;
+      detail.questions[0].answer!.awardedPoints = payload.reviews[0].awardedPoints;
+      detail.questions[0].answer!.correctionStatus = "corrected";
+      detail.progress.pendingCorrectionCount = 0;
+      return {};
+    });
+    let syncFailed = false;
+    api.apiPost.mockImplementation(async (url: string) => {
+      const detail = saved.get(url.split("/")[3])!;
+      if (url.endsWith("/review/finalize")) detail.status = "corrected";
+      if (url.endsWith("/sync-grade-item") && !syncFailed) { syncFailed = true; throw new Error("Sync offline"); }
+      return { status: "corrected", synced: true };
+    });
+    const args = { definitionsByQuestionId: { [questionId]: multi }, scoringPolicy, reviewMode: "review_first" as const };
+    const corrected = await runAutomaticCorrectionBatch({ ...args, submissionIds: ids });
+    expect(corrected.results.map(student => student.status)).toEqual(["review_pending", "review_pending"]);
+    expect(saved.get(ids[0])!.questions[0].answer!.awardedPoints).toBe(expected);
+    expect(api.apiPost).not.toHaveBeenCalled();
+    const failed = await runAutomaticCorrectionBatch({ ...args, submissionIds: [ids[0]], finalizeSubmissionIds: [ids[0]] });
+    expect(failed.failedSubmissionIds).toEqual([ids[0]]);
+    const retried = await runAutomaticCorrectionBatch({ ...args, submissionIds: failed.failedSubmissionIds, finalizeSubmissionIds: [ids[0]] });
+    const merged = mergeAutomaticCorrectionResults(mergeAutomaticCorrectionResults(corrected, failed), retried);
+    expect(merged.results.map(student => student.status)).toEqual(["corrected", "review_pending"]);
+    expect(api.apiPut).toHaveBeenCalledTimes(2);
+    expect(api.apiPost.mock.calls.filter(([url]) => url.endsWith("/review/finalize"))).toHaveLength(1);
+    saved.get(ids[1])!.questions[0].answer!.awardedPoints = expected + 1;
+    expect((await runAutomaticCorrectionBatch({ ...args, submissionIds: [ids[1]], finalizeSubmissionIds: [ids[1]] })).results[0].status).toBe("manual_only");
+    expect(api.apiPost).not.toHaveBeenCalledWith(`/grades/submissions/${ids[1]}/review/finalize`);
+  });
   it("limits concurrency, preserves order, continues after failure, and reports progress", async () => {
     let activeRequests = 0;
     let maximumConcurrency = 0;
@@ -202,7 +244,7 @@ describe("runAutomaticCorrectionBatch", () => {
       Promise.resolve(submission(submissionIdFromUrl(url))));
     api.apiPost.mockImplementation((url: string) => {
       if (url.includes(ids[0])) return Promise.reject(new Error("Finalize failed"));
-      return Promise.resolve({});
+      return Promise.resolve({ status: "corrected", synced: true });
     });
 
     const batch = await runAutomaticCorrectionBatch({

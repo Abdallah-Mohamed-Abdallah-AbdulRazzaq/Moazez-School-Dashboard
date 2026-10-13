@@ -27,7 +27,8 @@ import type { AssessmentQuestion } from "../../shared/types";
 import SubmissionQuestionAnswerField from "../components/SubmissionQuestionAnswerField";
 import SubmissionAnswerReviewFields from "../components/SubmissionAnswerReviewFields";
 import ManualCorrectionWarning from "../components/ManualCorrectionWarning";
-import { executeAutomaticCorrectionPlan } from "../services/automaticCorrectionExecution";
+import { useAssessmentAutomaticCorrection } from "../hooks/useAssessmentAutomaticCorrection";
+import AutomaticCorrectionDialog from "../components/AutomaticCorrectionDialog";
 import {
   fetchGradeSubmission,
   finalizeSubmissionReview,
@@ -49,8 +50,6 @@ import {
 import {
   buildAutomaticCorrectionPlan,
   getObjectiveAnswerCorrectness,
-  hasManualCorrectionWork,
-  type AutomaticCorrectionSummary,
 } from "../utils/automaticCorrection";
 import {
   buildDirtyReviewPayloads,
@@ -107,8 +106,6 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
   const [error, setError] = useState<{ message: string; traceId?: string } | null>(null);
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false);
-  const [automaticCorrectionSummary, setAutomaticCorrectionSummary] =
-    useState<AutomaticCorrectionSummary | null>(null);
 
   const loadSubmission = useCallback(async (options: { preserveReviews?: boolean; error?: { message: string; traceId?: string } } = {}) => {
     const previousDrafts = reviewDraftsRef.current;
@@ -228,28 +225,23 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
     : false;
   const canFinalize = Boolean(canReview && !hasDirtyReviews && !hasInvalidDirtyReviews && submission?.progress.pendingCorrectionCount === 0);
 
-  const runAutomaticCorrection = async () => {
-    if (!submission || !automaticCorrectionPlan || !canAutoCorrect) return;
-    if (
-      automaticCorrectionPlan.reviews.length === 0
-      && hasManualCorrectionWork(automaticCorrectionPlan)
-    ) {
-      setAutomaticCorrectionSummary(automaticCorrectionPlan.summary);
-      return;
-    }
-
-    const execution = await runAction(
-      "auto-correct",
-      () => executeAutomaticCorrectionPlan(submission.id, automaticCorrectionPlan),
-    );
-    if (!execution) return;
-    setAutomaticCorrectionSummary(automaticCorrectionPlan.summary);
-    showSuccess(t(
-      execution.finalized
-        ? "autoCorrection.savedFinalizedAndSynced"
-        : "autoCorrection.saved",
-    ));
-  };
+  const correction = useAssessmentAutomaticCorrection({
+    blocked: !canAutoCorrect || hasDirtyReviews || activeAction !== null || isLoading,
+    loadDefinitions: async () => {
+      if (!submission) throw new Error("Submission details are unavailable");
+      const questions = await fetchAssessmentQuestions("", submission.termId, submission.assessmentId);
+      return Object.fromEntries(questions.map(question => [question.id, question]));
+    },
+    onRefresh: async () => {
+      const refreshed = await loadSubmission();
+      if (!refreshed.ok) throw new Error(refreshed.error.message);
+    },
+    onError: requestError => {
+      const descriptor = describeGradesApiError(requestError);
+      setError({ message: errorT(descriptor.key), traceId: descriptor.traceId });
+    },
+  });
+  const automaticCorrectionSummary = correction.result?.totals ?? null;
 
   useEffect(() => {
     if (!hasDirtyReviews) return;
@@ -294,6 +286,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-4 md:p-6">
+      <fieldset disabled={correction.isRunning} inert={correction.isRunning} className="min-w-0 space-y-5">
       <header className="sticky top-16 z-20 overflow-hidden rounded-2xl border border-primary bg-[var(--surface-color)] shadow-sm sm:top-[-24px]">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between md:p-6">
           <div className="min-w-0">
@@ -355,9 +348,9 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
                 {canAutoCorrect ? (
                   <Button
                     variant="secondary"
-                    loading={activeAction === "auto-correct"}
-                    disabled={activeAction !== null}
-                    onClick={() => void runAutomaticCorrection()}
+                    loading={correction.isRunning}
+                    disabled={activeAction !== null || hasDirtyReviews || isLoading}
+                    onClick={correction.open}
                   >
                     {t("autoCorrection.detailAction")}
                   </Button>
@@ -552,6 +545,13 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
         })}
       </div>
 
+      </fieldset>
+      <AutomaticCorrectionDialog isOpen={correction.isOpen} singleSubmission scope="filtered" eligibleCount={1}
+        isPreviewLoading={false} isRunning={correction.isRunning} progress={correction.progress} result={correction.result}
+        policy={correction.policy} onPolicyChange={correction.selectPolicy} onFinalize={correction.finalize}
+        refreshFailed={correction.refreshFailed} onReload={() => void correction.refresh()}
+        onScopeChange={() => {}} onConfirm={() => void correction.run([submission.id])}
+        onRetryFailed={correction.retryFailed} onClose={correction.close} />
       <ConfirmDialog
         isOpen={isSubmitDialogOpen}
         onClose={() => setIsSubmitDialogOpen(false)}

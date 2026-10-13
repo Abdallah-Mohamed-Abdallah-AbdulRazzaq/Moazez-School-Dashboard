@@ -110,6 +110,14 @@ function choiceDefinition(
 
 describe("buildAutomaticCorrectionPlan", () => {
   it.each([
+    { policy: "partial_without_penalty" as const, expected: 2 },
+    { policy: "partial_with_penalty" as const, expected: 0 },
+  ])("scores one correct and one wrong option with $policy", ({ policy, expected }) => {
+    const plan = buildAutomaticCorrectionPlan(submission("mcq_multi", answer(["a", "wrong"])),
+      { [questionId]: choiceDefinition("MCQ_MULTI") }, policy);
+    expect(plan.reviews).toEqual([{ answerId, questionId, awardedPoints: expected }]);
+  });
+  it.each([
     ["MCQ_SINGLE", ["a"], 4],
     ["MCQ_SINGLE", ["wrong"], 0],
     ["MCQ_MULTI", ["b", "a"], 4],
