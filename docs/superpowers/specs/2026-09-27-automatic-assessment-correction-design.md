@@ -41,7 +41,7 @@ Award the full question points only when the student's selected option set conta
 
 ### Multiple choice
 
-Divide question points equally among all correct options. Award the share for each selected correct option without deducting for selected incorrect options. Calculate question points × selected correct count / total correct count and round once to two decimal places. Selecting no correct options earns zero; selecting all correct options earns full points even with additional incorrect options. Order does not matter. Duplicate or unknown option IDs and invalid answer keys remain unresolved.
+Divide question points equally among all correct options. Award the share for each selected correct option, deducting the same share for each selected incorrect option, with a minimum score of zero. Calculate question points × max(0, selected correct count − selected incorrect count) / total correct count and round once to two decimal places. Selecting no correct options earns zero; selecting all correct options without incorrect options earns full points; additional incorrect options deduct their share. Order does not matter. Duplicate or unknown option IDs and invalid answer keys remain unresolved.
 
 ### True/false
 
@@ -162,7 +162,7 @@ Frontend validation must reject attempts to create or update a retired type, inc
 ### Unit tests
 
 - Single-choice correct, incorrect, empty, and malformed-key cases.
-- Multiple-choice proportional credit, order independence, missing correct options, extra incorrect options without deductions, zero correct selections, and two-decimal rounding.
+- Multiple-choice proportional credit, order independence, missing correct options, extra incorrect options with deductions for incorrect selections and a zero floor, zero correct selections, and two-decimal rounding.
 - True/false correct, incorrect, and empty cases.
 - Objective blank with an answer record scores zero.
 - Objective question without an answer record is skipped and remains pending.
@@ -193,7 +193,7 @@ This design is one School Dashboard task, branch, and pull request. It makes no 
 
 - A permitted teacher can auto-correct one submitted student without finalizing or syncing the submission.
 - A permitted teacher can choose all-assessment or current-filter scope for a bulk run.
-- Multiple choice receives proportional credit without deductions; other supported objective types retain full-or-zero scoring.
+- Multiple choice receives proportional credit with deductions for incorrect selections and a zero floor; other supported objective types retain full-or-zero scoring.
 - Existing reviews are never overwritten.
 - Unsupported/manual answers and objective questions lacking answer records remain pending with visible warnings.
 - Partial bulk failures do not erase successful corrections and can be retried by failed submission.

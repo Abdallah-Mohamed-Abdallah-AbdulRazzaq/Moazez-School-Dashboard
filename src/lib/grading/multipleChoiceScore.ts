@@ -13,5 +13,7 @@ export function multipleChoiceScore({ points, options, selectedOptionIds }: Mult
     || selectedOptionIds.some(id => !optionIds.has(id))) return null;
 
   const correctSelectedCount = selectedOptionIds.filter(id => correctIds.has(id)).length;
-  return Math.round((points * correctSelectedCount / correctIds.size + Number.EPSILON) * 100) / 100;
+  const incorrectSelectedCount = selectedOptionIds.length - correctSelectedCount;
+  const netCorrectCount = Math.max(0, correctSelectedCount - incorrectSelectedCount);
+  return Math.round((points * netCorrectCount / correctIds.size + Number.EPSILON) * 100) / 100;
 }

@@ -17,7 +17,7 @@ The homework review panel uses `homework.submissions.view` and `homework.assignm
 ## Grading rules
 
 - Single choice: full question points only for exactly one selected option matching the single correct option; otherwise zero.
-- Multiple choice: divide question points equally among all correct options. Award the share for each selected correct option, without deducting for selected incorrect options. Score = question points × selected correct count / total correct count, rounded once to two decimal places. Selecting no correct options earns zero; selecting all correct options earns full points even with additional incorrect options. Order does not matter. Duplicate or unknown option IDs and malformed definitions remain unresolved.
+- Multiple choice: divide question points equally among all correct options. Award the share for each selected correct option, deducting the same share for each selected incorrect option, with a minimum score of zero. Score = question points × max(0, selected correct count − selected incorrect count) / total correct count, rounded once to two decimal places. Selecting no correct options earns zero; selecting all correct options without incorrect options earns full points; additional incorrect options deduct their share. Order does not matter. Duplicate or unknown option IDs and malformed definitions remain unresolved.
 - True/false: full points for a selected option matching the configured boolean key; otherwise zero. Use the homework question representation and validate its answer key.
 - An existing objective answer record with no selection receives zero.
 - A question without an answer record remains unresolved. No answer record is created and no zero score is guessed because review requires an answer ID.
@@ -77,7 +77,7 @@ Follow `Must Read Before Push.txt`: one task branch from current main, normal co
 ## Acceptance criteria
 
 1. An authorized teacher can auto-correct a submitted or late student and use either bulk scope across all matching pages.
-2. Multiple-choice answers receive proportional credit without deductions, rounded to two decimal places; single choice and true/false retain full-or-zero scoring. Repeat runs recalculate scores without erasing feedback.
+2. Multiple-choice answers receive proportional credit with deductions for incorrect selections and a zero floor, rounded to two decimal places; single choice and true/false retain full-or-zero scoring. Repeat runs recalculate scores without erasing feedback.
 3. Blank existing objective records receive zero; absent answer records remain unresolved. Non-submitting students receive no grade.
 4. Unresolved manual work or invalid data blocks automatic review completion; valid existing manual reviews can permit completion.
 5. A fully resolved submission is reviewed and its grade synced when available. Missing links, permissions, and sync failures have distinct visible outcomes.
