@@ -26,6 +26,23 @@ beforeEach(() => {
 });
 
 describe("homework correction API execution", () => {
+  it("saves scores for review first and finalizes later without rewriting them", async () => {
+    const corrected = await executeHomeworkAutomaticCorrection({ ...context, reviewMode: "review_first" }, "s");
+    expect(corrected).toMatchObject({ outcome: "review_pending", reviewCompleted: false, gradeSynced: false });
+    expect(awardedPoints).toBe(2); expect(status).toBe("submitted");
+    expect(apiPatch).not.toHaveBeenCalled(); expect(apiPost).not.toHaveBeenCalled();
+
+    const finalized = await executeHomeworkAutomaticCorrection({ ...context, reviewMode: "finalize" }, "s", "review");
+    expect(finalized).toMatchObject({ outcome: "complete", reviewCompleted: true, gradeSynced: true });
+    expect(apiPut).toHaveBeenCalledOnce();
+  });
+  it("rechecks saved scores before honoring a later finalization request", async () => {
+    await executeHomeworkAutomaticCorrection({ ...context, reviewMode: "review_first" }, "s");
+    awardedPoints = 0;
+    const finalized = await executeHomeworkAutomaticCorrection({ ...context, reviewMode: "finalize" }, "s", "review");
+    expect(finalized).toMatchObject({ outcome: "manual_pending", reviewCompleted: false, gradeSynced: false });
+    expect(apiPatch).not.toHaveBeenCalled(); expect(apiPost).not.toHaveBeenCalled();
+  });
   it("writes objective scores, preserves feedback and note, finishes review and syncs", async () => {
     const outcome = await executeHomeworkAutomaticCorrection(context, "s");
     expect(outcome).toMatchObject({ outcome: "complete", reviewCompleted: true, gradeSynced: true });

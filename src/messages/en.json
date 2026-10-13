@@ -6103,7 +6103,7 @@
           "rules": {
             "scoring": "Single choice and true/false earn full or zero points. Multiple-choice points are split across correct options, with the same share deducted for each wrong selection. Scores stay at or above zero and round to two decimals.",
             "manual": "Blank answer records earn zero. Missing answers and unreviewed written questions stay pending for manual review.",
-            "completion": "When all questions are corrected, the review is completed and grades sync when the link and permissions are available."
+            "completion": "Auto-correction saves scores and leaves reviews open. Review the answers first or choose Finalize review. Grades sync after finalization when the link and permissions are available."
           },
           "singleAction": "Auto-correct student",
           "bulkAction": "Auto-correct homework",
@@ -6112,7 +6112,7 @@
             "all": "All eligible homework submissions",
             "filtered": "Eligible submissions matching current filters"
           },
-          "explanation": "Single choice and true/false earn full or zero points. Multiple-choice points are split equally across the correct options; each selected correct option earns its share, with a deduction of the same share for each incorrect selection and a minimum score of zero. Fractional scores are rounded to two decimal places. Existing objective scores are recalculated; teacher feedback is preserved. Blank answer records receive zero. Missing answers and unreviewed written questions need manual handling. Fully corrected submissions are reviewed and grades synced when a link and permissions are available.",
+          "explanation": "Single choice and true/false earn full or zero points. Multiple-choice points are split equally across the correct options; each selected correct option earns its share, with a deduction of the same share for each incorrect selection and a minimum score of zero. Fractional scores are rounded to two decimal places. Existing objective scores are recalculated; teacher feedback is preserved. Blank answer records receive zero. Missing answers and unreviewed written questions need manual handling. Scores are saved with reviews left open. Review the answers first or finalize fully corrected submissions. Grades sync after finalization when a link and permissions are available.",
           "unsavedEdits": "Save or discard your edits before auto-correction.",
           "eligibleCount": "{count} eligible students",
           "loadingTargets": "Loading eligible students…",
@@ -6124,6 +6124,10 @@
           "missingAnswers": "Missing answer records",
           "invalidDefinitions": "Invalid question or answer data",
           "pendingStudents": "Students still needing correction",
+          "readyForReview": "Students ready for review",
+          "reviewFirst": "Review first",
+          "finalize": "Finalize review ({count})",
+          "reviewChoiceHint": "Scores are saved. Reviews remain open and grades have not synced. Review the answers first, or finalize the fully corrected submissions now.",
           "skippedStudents": "Students skipped",
           "failures": "Failed students",
           "syncReasons": {

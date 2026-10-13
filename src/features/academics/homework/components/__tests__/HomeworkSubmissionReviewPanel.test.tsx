@@ -146,7 +146,7 @@ describe("HomeworkSubmissionReviewPanel backend workflow", () => {
     expect(screen.queryByRole("button", { name: "singleAction" })).not.toBeInTheDocument();
   });
 
-  it("auto-corrects a selected student, completes review and syncs the grade", async () => {
+  it("auto-corrects a selected student and completes review only after choosing finalize", async () => {
     arrange();
     const objectiveQuestion = { ...requiredQuestion, questionType: "MCQ_SINGLE" as const,
       options: [{ id: "option-1", textAr: "أ", textEn: "A", isCorrect: true, order: 0 }] };
@@ -166,6 +166,9 @@ describe("HomeworkSubmissionReviewPanel backend workflow", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "singleAction" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled());
+    expect(screen.getByText("completedReviews").parentElement).toHaveTextContent("0");
+    fireEvent.click(screen.getByRole("button", { name: "finalize" }));
     await waitFor(() => expect(screen.getByText("syncedGrades").parentElement).toHaveTextContent("1"));
     expect(screen.getByText("completedReviews").parentElement).toHaveTextContent("1");
     expect(screen.getByText("correctedAnswers").parentElement).toHaveTextContent("1");

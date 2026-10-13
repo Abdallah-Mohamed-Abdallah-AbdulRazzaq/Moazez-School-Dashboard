@@ -5,6 +5,7 @@ import { buildHomeworkSubmissionReviewRequest, calculateAnswerScoreRollup, chunk
 import { bulkReviewHomeworkSubmissionAnswers, fetchHomeworkSubmission, getHomeworkGradeSyncStatus, listHomeworkSubmissionAnswers, reviewHomeworkSubmission, syncHomeworkSubmissionGrade } from "./homeworkService";
 
 export type HomeworkCorrectionStage = "answers" | "review" | "sync";
+export type HomeworkCorrectionReviewMode = "review_first" | "finalize";
 export interface HomeworkCorrectionContext {
   homeworkId: string;
   assignmentStatus: HomeworkAssignmentStatus;
@@ -14,6 +15,7 @@ export interface HomeworkCorrectionContext {
   canViewSyncStatus: boolean;
   canSync: boolean;
   questions: readonly AssignmentQuestion[];
+  reviewMode?: HomeworkCorrectionReviewMode;
 }
 export interface HomeworkCorrectionResult {
   submissionId: string;
@@ -21,7 +23,7 @@ export interface HomeworkCorrectionResult {
   plan: HomeworkCorrectionPlan | null;
   reviewCompleted: boolean;
   gradeSynced: boolean;
-  outcome: "complete" | "manual_pending" | "skipped" | "sync_unavailable" | "failed";
+  outcome: "complete" | "review_pending" | "manual_pending" | "skipped" | "sync_unavailable" | "failed";
   syncUnavailableReason?: "ungraded" | "permission" | "unlinked" | "locked";
   failedStage?: HomeworkCorrectionStage;
   error?: unknown;
@@ -94,6 +96,7 @@ export async function executeHomeworkAutomaticCorrection(
     const refreshedPlan = buildHomeworkAutomaticCorrectionPlan(context.questions, refreshedAnswers);
     outcome = { ...outcome, plan: { ...refreshedPlan, correctedCount: plan.correctedCount } };
     if (!isHomeworkCorrectionComplete(context.questions, refreshedAnswers)) return { ...outcome, outcome: "manual_pending" };
+    if (context.reviewMode === "review_first") return { ...outcome, outcome: "review_pending" };
     await finishAutomaticReview(context, submission, refreshedAnswers);
     outcome = { ...outcome, reviewCompleted: true };
     stage = "sync";

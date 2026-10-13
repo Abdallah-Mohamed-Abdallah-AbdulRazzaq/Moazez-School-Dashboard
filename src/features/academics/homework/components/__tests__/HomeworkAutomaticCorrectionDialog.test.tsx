@@ -32,22 +32,43 @@ beforeEach(() => {
 });
 
 describe("homework auto-correction controls", () => {
-  it("confirms correction and displays completed review and synced grade counts", async () => {
+  it.each(["singleAction", "bulkAction"])("saves scores through %s and finalizes only after the reviewer chooses", async action => {
     renderControls();
-    fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    fireEvent.click(screen.getByRole("button", { name: action }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(apiPut).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled());
+    expect(screen.getByText("correctedAnswers").parentElement).toHaveTextContent("1");
+    expect(screen.getByText("completedReviews").parentElement).toHaveTextContent("0");
+    expect(screen.getByText("syncedGrades").parentElement).toHaveTextContent("0");
+    expect(apiPatch).not.toHaveBeenCalled(); expect(apiPost).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "finalize" }));
     await waitFor(() => expect(screen.getByText("syncedGrades").parentElement).toHaveTextContent("1"));
     expect(screen.getByText("completedReviews").parentElement).toHaveTextContent("1");
-    expect(onRefresh).toHaveBeenCalledOnce();
+    expect(apiPut).toHaveBeenCalledOnce();
+    expect(onRefresh).toHaveBeenCalledTimes(2);
     expect(onBusyChange).toHaveBeenLastCalledWith(false);
+  });
+  it("returns to the answers for review without finalizing or syncing saved scores", async () => {
+    renderControls();
+    fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    fireEvent.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "reviewFirst" })).toBeEnabled());
+    expect(screen.getByText("readyForReview").parentElement).toHaveTextContent("1");
+    fireEvent.click(screen.getByRole("button", { name: "reviewFirst" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(reviewed).toBe(true); expect(status).toBe("submitted");
+    expect(apiPatch).not.toHaveBeenCalled(); expect(apiPost).not.toHaveBeenCalled();
   });
   it("shows sync failure and retries only sync after review completion", async () => {
     vi.mocked(apiPost).mockRejectedValueOnce(new Error("offline"));
     renderControls();
     fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "finalize" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "retryFailed" })).toBeEnabled());
     expect(screen.getByText("completedReviews").parentElement).toHaveTextContent("1");
     expect(screen.getByText("syncedGrades").parentElement).toHaveTextContent("0");
@@ -87,7 +108,9 @@ describe("homework auto-correction controls", () => {
     fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
     await waitFor(() => expect(screen.getByText("refreshFailed")).toBeInTheDocument());
-    expect(screen.getByText("syncedGrades").parentElement).toHaveTextContent("1");
+    expect(screen.getByText("correctedAnswers").parentElement).toHaveTextContent("1");
+    expect(screen.getByText("syncedGrades").parentElement).toHaveTextContent("0");
+    expect(screen.getByRole("button", { name: "finalize" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "reload" }));
     await waitFor(() => expect(screen.queryByText("refreshFailed")).not.toBeInTheDocument());
     expect(apiPut).toHaveBeenCalledOnce();

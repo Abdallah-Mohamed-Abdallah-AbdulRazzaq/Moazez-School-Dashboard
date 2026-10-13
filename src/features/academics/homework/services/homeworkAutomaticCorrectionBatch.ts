@@ -1,7 +1,7 @@
 import type { HomeworkAssignmentStatus, HomeworkSubmissionListFilters } from "./homeworkApi.types";
 import { isHomeworkAnswerReviewable } from "../utils/homeworkReview";
 import { listHomeworkSubmissions } from "./homeworkService";
-import { executeHomeworkAutomaticCorrection, type HomeworkCorrectionContext, type HomeworkCorrectionResult, type HomeworkCorrectionStage } from "./homeworkAutomaticCorrectionExecution";
+import { executeHomeworkAutomaticCorrection, type HomeworkCorrectionContext, type HomeworkCorrectionResult, type HomeworkCorrectionReviewMode, type HomeworkCorrectionStage } from "./homeworkAutomaticCorrectionExecution";
 
 export type HomeworkCorrectionScope = "all" | "filtered";
 export interface HomeworkCorrectionProgress { processed: number; total: number }
@@ -30,6 +30,7 @@ export async function runHomeworkAutomaticCorrectionBatch(args: {
   context: HomeworkCorrectionContext;
   submissionIds: readonly string[];
   retryStages?: Readonly<Record<string, HomeworkCorrectionStage>>;
+  reviewModes?: Readonly<Record<string, HomeworkCorrectionReviewMode>>;
   onProgress?: (progress: HomeworkCorrectionProgress) => void;
 }): Promise<HomeworkCorrectionResult[]> {
   const submissionIds = [...new Set(args.submissionIds)];
@@ -40,7 +41,8 @@ export async function runHomeworkAutomaticCorrectionBatch(args: {
     while (cursor < submissionIds.length) {
       const index = cursor++;
       const submissionId = submissionIds[index];
-      outcomes[index] = await executeHomeworkAutomaticCorrection(args.context, submissionId, args.retryStages?.[submissionId]);
+      const context = { ...args.context, reviewMode: args.reviewModes?.[submissionId] ?? args.context.reviewMode };
+      outcomes[index] = await executeHomeworkAutomaticCorrection(context, submissionId, args.retryStages?.[submissionId]);
       args.onProgress?.({ processed: ++processed, total: submissionIds.length });
     }
   }
