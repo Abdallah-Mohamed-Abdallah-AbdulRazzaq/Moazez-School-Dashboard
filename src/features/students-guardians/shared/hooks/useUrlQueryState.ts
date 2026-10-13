@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -81,6 +81,7 @@ export function useUrlQueryState<T extends Record<string, string>>(
   );
 
   const [values, setValuesState] = useState<T>(readValues);
+  const pendingUrlQueries = useRef(new Set<string>());
 
   const applyUrlUpdate = useCallback(
     (
@@ -110,11 +111,12 @@ export function useUrlQueryState<T extends Record<string, string>>(
       });
 
       const nextQuery = nextParams.toString();
-      if (nextQuery === searchParamsString) {
+      if (nextQuery === searchParamsString && pendingUrlQueries.current.size === 0) {
         return;
       }
 
       const href = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      pendingUrlQueries.current.add(nextQuery);
       const mode = resolvedMode ?? "push";
       if (mode === "replace") {
         router.replace(href, { scroll: false });
@@ -205,6 +207,13 @@ export function useUrlQueryState<T extends Record<string, string>>(
   );
 
   useEffect(() => {
+    // A completed local navigation may contain text older than the current input.
+    if (pendingUrlQueries.current.delete(searchParamsString)) {
+      return;
+    }
+
+    pendingUrlQueries.current.clear();
+    scheduleDebouncedUpdate.cancel();
     const nextValues = readValues();
 
     queueMicrotask(() => {
@@ -215,7 +224,7 @@ export function useUrlQueryState<T extends Record<string, string>>(
         return hasChanged ? nextValues : current;
       });
     });
-  }, [defaultValues, readValues]);
+  }, [defaultValues, readValues, scheduleDebouncedUpdate, searchParamsString]);
 
   useEffect(() => {
     if (!normalize) {
