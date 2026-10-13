@@ -99,163 +99,165 @@ export default function AllocationMatrixTable<
 
   return (
     <div
-      className={`overflow-x-auto ${className}`}
+      className={`min-w-0 ${className}`}
       style={{ fontFamily: "inherit" }}
     >
-      <table
-        className="min-w-full border-collapse shadow-sm rounded-lg"
-        style={{ backgroundColor: "var(--background)", fontFamily: "inherit" }}
-      >
-        <thead>
-          <tr>
-            <th
-              className={`sticky ${
-                isRTL ? "right-0" : "left-0"
-              } z-20 px-4 py-3 text-${isRTL ? "right" : "left"} text-xs font-bold uppercase tracking-wider shadow-sm`}
-              style={{
-                minWidth: "200px",
-                backgroundColor: "var(--color-primary-100)",
-                borderBottom: "2px solid var(--color-primary-200)",
-                color: "var(--color-primary-900)",
-              }}
-            >
-              {rowHeaderLabel}
-            </th>
-
-            {columns.map((column) => (
+      <div className="overflow-x-auto">
+        <table
+          className="min-w-full border-collapse shadow-sm rounded-lg"
+          style={{ backgroundColor: "var(--background)", fontFamily: "inherit" }}
+        >
+          <thead>
+            <tr>
               <th
-                key={column.id}
-                className={`px-3 py-3 ${
-                  isRTL ? "text-right" : "text-left"
-                } text-xs font-bold uppercase tracking-wider`}
+                className={`sticky ${
+                  isRTL ? "right-0" : "left-0"
+                } z-20 px-4 py-3 text-${isRTL ? "right" : "left"} text-xs font-bold uppercase tracking-wider shadow-sm`}
                 style={{
-                  minWidth: column.minWidth || "160px",
-                  maxWidth: column.maxWidth || "160px",
+                  minWidth: "200px",
                   backgroundColor: "var(--color-primary-100)",
                   borderBottom: "2px solid var(--color-primary-200)",
                   color: "var(--color-primary-900)",
                 }}
               >
-                {renderColumnHeader ? (
-                  renderColumnHeader(column)
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    <div
-                      className="font-bold truncate text-center"
-                      style={{ color: "var(--color-primary-900)" }}
-                    >
-                      {column.label}
-                    </div>
-                  </div>
-                )}
+                {rowHeaderLabel}
               </th>
-            ))}
 
-            {totalColumnLabel && (
-              <th
-                className={`sticky ${
-                  isRTL ? "left-0" : "right-0"
-                } z-20 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider shadow-sm`}
-                style={{
-                  minWidth: "110px",
-                  backgroundColor: "var(--color-primary-50)",
-                  borderBottom: "2px solid var(--color-primary-200)",
-                  color: "var(--color-primary-900)",
-                }}
-              >
-                {totalColumnLabel}
-              </th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedRows.map((row, rowIndex) => {
-            const visibleRowIndex = showPagination
-              ? (currentPage - 1) * pageSize + rowIndex
-              : rowIndex;
-
-            return (
-              <tr
-                key={row.id}
-                className="transition-colors"
-                style={{
-                  backgroundColor: isEvenRow(visibleRowIndex)
-                    ? "var(--background)"
-                    : "var(--color-gray-50)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "var(--color-primary-50)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = isEvenRow(
-                    visibleRowIndex,
-                  )
-                    ? "var(--background)"
-                    : "var(--color-gray-50)";
-                }}
-              >
-                {/* Row Header Cell - Pinned */}
-                <td
-                  className={`sticky ${
-                    isRTL ? "right-0" : "left-0"
-                  } z-10 ${rowPadding} ${rowTextSize} shadow-sm`}
+              {columns.map((column) => (
+                <th
+                  key={column.id}
+                  className={`px-3 py-3 ${
+                    isRTL ? "text-right" : "text-left"
+                  } text-xs font-bold uppercase tracking-wider`}
                   style={{
-                    backgroundColor: "inherit",
-                    borderBottom: "1px solid var(--color-primary-100)",
+                    minWidth: column.minWidth || "160px",
+                    maxWidth: column.maxWidth || "160px",
+                    backgroundColor: "var(--color-primary-100)",
+                    borderBottom: "2px solid var(--color-primary-200)",
                     color: "var(--color-primary-900)",
                   }}
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <div className="font-semibold">{row.label}</div>
-                    {row.secondaryLabel && (
+                  {renderColumnHeader ? (
+                    renderColumnHeader(column)
+                  ) : (
+                    <div className="flex flex-col gap-1">
                       <div
-                        className="text-xs"
-                        style={{ color: "var(--color-primary-600)" }}
+                        className="font-bold truncate text-center"
+                        style={{ color: "var(--color-primary-900)" }}
                       >
-                        {row.secondaryLabel}
+                        {column.label}
                       </div>
-                    )}
-                  </div>
-                </td>
+                    </div>
+                  )}
+                </th>
+              ))}
 
-                {/* Data Cells */}
-                {columns.map((column) => (
-                  <td
-                    key={column.id}
-                    className="p-0"
-                    style={{
-                      borderBottom: "1px solid var(--color-primary-100)",
-                    }}
-                  >
-                    {renderCell(row, column)}
-                  </td>
-                ))}
+              {totalColumnLabel && (
+                <th
+                  className={`sticky ${
+                    isRTL ? "left-0" : "right-0"
+                  } z-20 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider shadow-sm`}
+                  style={{
+                    minWidth: "110px",
+                    backgroundColor: "var(--color-primary-50)",
+                    borderBottom: "2px solid var(--color-primary-200)",
+                    color: "var(--color-primary-900)",
+                  }}
+                >
+                  {totalColumnLabel}
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedRows.map((row, rowIndex) => {
+              const visibleRowIndex = showPagination
+                ? (currentPage - 1) * pageSize + rowIndex
+                : rowIndex;
 
-                {/* Total Cell - Pinned (if enabled) */}
-                {totalColumnLabel && (
+              return (
+                <tr
+                  key={row.id}
+                  className="transition-colors"
+                  style={{
+                    backgroundColor: isEvenRow(visibleRowIndex)
+                      ? "var(--background)"
+                      : "var(--color-gray-50)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      "var(--color-primary-50)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = isEvenRow(
+                      visibleRowIndex,
+                    )
+                      ? "var(--background)"
+                      : "var(--color-gray-50)";
+                  }}
+                >
+                  {/* Row Header Cell - Pinned */}
                   <td
                     className={`sticky ${
-                      isRTL ? "left-0" : "right-0"
-                  } z-10 ${rowPadding} ${rowTextSize} font-bold text-center shadow-sm`}
+                      isRTL ? "right-0" : "left-0"
+                    } z-10 ${rowPadding} ${rowTextSize} shadow-sm`}
                     style={{
-                      backgroundColor: "var(--color-primary-50)",
-                      borderBottom: "2px solid var(--color-primary-200)",
+                      backgroundColor: "inherit",
+                      borderBottom: "1px solid var(--color-primary-100)",
                       color: "var(--color-primary-900)",
                     }}
                   >
-                    {renderRowTotal
-                      ? renderRowTotal(row)
-                      : getRowTotal
-                        ? getRowTotal(row)
-                        : null}
+                    <div className="flex flex-col gap-0.5">
+                      <div className="font-semibold">{row.label}</div>
+                      {row.secondaryLabel && (
+                        <div
+                          className="text-xs"
+                          style={{ color: "var(--color-primary-600)" }}
+                        >
+                          {row.secondaryLabel}
+                        </div>
+                      )}
+                    </div>
                   </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+
+                  {/* Data Cells */}
+                  {columns.map((column) => (
+                    <td
+                      key={column.id}
+                      className="p-0"
+                      style={{
+                        borderBottom: "1px solid var(--color-primary-100)",
+                      }}
+                    >
+                      {renderCell(row, column)}
+                    </td>
+                  ))}
+
+                  {/* Total Cell - Pinned (if enabled) */}
+                  {totalColumnLabel && (
+                    <td
+                      className={`sticky ${
+                        isRTL ? "left-0" : "right-0"
+                    } z-10 ${rowPadding} ${rowTextSize} font-bold text-center shadow-sm`}
+                      style={{
+                        backgroundColor: "var(--color-primary-50)",
+                        borderBottom: "2px solid var(--color-primary-200)",
+                        color: "var(--color-primary-900)",
+                      }}
+                    >
+                      {renderRowTotal
+                        ? renderRowTotal(row)
+                        : getRowTotal
+                          ? getRowTotal(row)
+                          : null}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {showPagination && rows.length > 0 && (
         <div className="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">

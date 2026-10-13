@@ -111,6 +111,7 @@ function mockPermissions(permissions: string[]) {
 
 function mockTeacherAllocationBackend() {
   mockedFetchStructureTree.mockResolvedValue({
+    stages: [{ id: "stage-1", name: "Primary", nameEn: "Primary", nameAr: "ابتدائي", order: 1 }],
     grades: [
       {
         id: "grade-1",

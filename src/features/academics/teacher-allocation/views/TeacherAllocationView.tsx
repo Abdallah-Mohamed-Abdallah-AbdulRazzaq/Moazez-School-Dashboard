@@ -21,6 +21,7 @@ import type {
   Term,
   Grade,
   Section,
+  Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import type {
   Subject,
@@ -43,6 +44,7 @@ interface TeacherAllocationViewProps {
   academicYears: AcademicYear[];
   terms: Term[];
   canView: boolean;
+  stages: Stage[];
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
@@ -73,6 +75,7 @@ export default function TeacherAllocationView({
   academicYears,
   terms,
   canView,
+  stages,
   grades,
   sections,
   classrooms,
@@ -269,6 +272,7 @@ export default function TeacherAllocationView({
                   termId={termId}
                   yearName={yearName}
                   termName={termName}
+                  stages={stages}
                   grades={grades}
                   sections={sections}
                   classrooms={classrooms}

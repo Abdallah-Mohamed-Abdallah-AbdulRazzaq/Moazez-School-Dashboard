@@ -21,6 +21,7 @@ import {
   Classroom,
   Grade,
   Section,
+  Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   Subject,
@@ -54,6 +55,7 @@ interface AllocationMatrixViewProps {
   termId: string;
   yearName?: string;
   termName?: string;
+  stages: Stage[];
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
@@ -153,6 +155,7 @@ export default function AllocationMatrixView({
   termId,
   yearName,
   termName,
+  stages,
   grades,
   sections,
   classrooms,
@@ -174,6 +177,7 @@ export default function AllocationMatrixView({
   const isRTL = locale === "ar";
   const queryState = useMemo(
     () => ({
+      selectedStageId: searchParams.get("stage") || "",
       selectedGradeId: searchParams.get("grade") || "",
       selectedSectionId: searchParams.get("section") || "",
       selectedClassroomId: searchParams.get("classroom") || "",
@@ -184,6 +188,7 @@ export default function AllocationMatrixView({
     [searchParams]
   );
   const {
+    selectedStageId,
     selectedGradeId,
     selectedSectionId,
     selectedClassroomId,
@@ -234,6 +239,7 @@ export default function AllocationMatrixView({
   const syncQueryParams = useCallback(
     (
       nextState: Partial<{
+        selectedStageId: string;
         selectedGradeId: string;
         selectedSectionId: string;
         selectedClassroomId: string;
@@ -245,6 +251,8 @@ export default function AllocationMatrixView({
     ) => {
       const params = new URLSearchParams(searchParams.toString());
       const mergedState = {
+        selectedStageId:
+          nextState.selectedStageId ?? queryState.selectedStageId,
         selectedGradeId:
           nextState.selectedGradeId ?? queryState.selectedGradeId,
         selectedSectionId:
@@ -260,6 +268,7 @@ export default function AllocationMatrixView({
       };
 
       const entries: Array<[string, string]> = [
+        ["stage", mergedState.selectedStageId],
         ["grade", mergedState.selectedGradeId],
         ["section", mergedState.selectedSectionId],
         ["classroom", mergedState.selectedClassroomId],
@@ -325,8 +334,17 @@ export default function AllocationMatrixView({
     });
   }, [allocationsEqual, localAllocations, originalAllocations]);
 
+  const filteredGrades = useMemo(
+    () => grades.filter((grade) => !selectedStageId || grade.stageId === selectedStageId),
+    [grades, selectedStageId],
+  );
+  const filteredGradeIds = useMemo(
+    () => new Set(filteredGrades.map((grade) => grade.id)),
+    [filteredGrades],
+  );
+
   const filteredSections = useMemo(() => {
-    let filteredSectionList = sections;
+    let filteredSectionList = sections.filter((section) => filteredGradeIds.has(section.gradeId));
 
     if (selectedGradeId) {
       filteredSectionList = filteredSectionList.filter((section) => section.gradeId === selectedGradeId);
@@ -337,19 +355,23 @@ export default function AllocationMatrixView({
     }
 
     return filteredSectionList;
-  }, [sections, selectedGradeId, selectedSectionId]);
+  }, [filteredGradeIds, sections, selectedGradeId, selectedSectionId]);
 
   useEffect(() => {
     if (grades.length === 0 && sections.length === 0 && classrooms.length === 0) {
       return;
     }
 
-    const normalizedGradeId = grades.some((grade) => grade.id === selectedGradeId)
+    const normalizedStageId = stages.some((stage) => stage.id === selectedStageId)
+      ? selectedStageId
+      : "";
+    const normalizedGradeId = filteredGradeIds.has(selectedGradeId)
       ? selectedGradeId
       : "";
     const normalizedSectionId = sections.some(
       (section) =>
         section.id === selectedSectionId &&
+        filteredGradeIds.has(section.gradeId) &&
         (!normalizedGradeId || section.gradeId === normalizedGradeId)
     )
       ? selectedSectionId
@@ -358,6 +380,7 @@ export default function AllocationMatrixView({
       const classroomSection = sections.find((section) => section.id === classroom.sectionId);
       return (
         classroom.id === selectedClassroomId &&
+        Boolean(classroomSection && filteredGradeIds.has(classroomSection.gradeId)) &&
         (!normalizedSectionId || classroom.sectionId === normalizedSectionId) &&
         (!normalizedGradeId || classroomSection?.gradeId === normalizedGradeId)
       );
@@ -366,6 +389,7 @@ export default function AllocationMatrixView({
       : "";
 
     if (
+      normalizedStageId === selectedStageId &&
       normalizedGradeId === selectedGradeId &&
       normalizedSectionId === selectedSectionId &&
       normalizedClassroomId === selectedClassroomId
@@ -375,6 +399,7 @@ export default function AllocationMatrixView({
 
     syncQueryParams(
       {
+        selectedStageId: normalizedStageId,
         selectedGradeId: normalizedGradeId,
         selectedSectionId: normalizedSectionId,
         selectedClassroomId: normalizedClassroomId,
@@ -383,10 +408,13 @@ export default function AllocationMatrixView({
     );
   }, [
     classrooms,
+    filteredGradeIds,
     grades,
     sections,
     selectedClassroomId,
     selectedGradeId,
+    selectedStageId,
+    stages,
     selectedSectionId,
     syncQueryParams,
   ]);
@@ -397,13 +425,14 @@ export default function AllocationMatrixView({
         .filter(
           (subjectAllocation) =>
             subjectAllocation.weeklyHours > 0 &&
+            filteredGradeIds.has(subjectAllocation.gradeId) &&
             (!selectedGradeId || subjectAllocation.gradeId === selectedGradeId),
         )
         .map((subjectAllocation) => subjectAllocation.subjectId),
     );
 
     return subjects.filter((subject) => weeklySubjectIds.has(subject.id));
-  }, [selectedGradeId, subjectAllocations, subjects]);
+  }, [filteredGradeIds, selectedGradeId, subjectAllocations, subjects]);
 
   const filteredSubjects = useMemo(() => {
     if (!selectedSubjectId) {
@@ -1000,15 +1029,26 @@ export default function AllocationMatrixView({
   return (
     <div className="flex flex-col h-full bg-gray-50">
       <FilterBar
-        grades={grades}
+        stages={stages}
+        grades={filteredGrades}
         sections={sections}
         classrooms={classrooms}
         subjects={allocatedFilterSubjects}
         selectedGradeId={selectedGradeId}
+        selectedStageId={selectedStageId}
         selectedSectionId={selectedSectionId}
         selectedClassroomId={selectedClassroomId}
         selectedSubjectId={selectedSubjectId}
         showOnlyMissing={showOnlyMissing}
+        onStageChange={(stageId) =>
+          syncQueryParams({
+            selectedStageId: stageId,
+            selectedGradeId: "",
+            selectedSectionId: "",
+            selectedClassroomId: "",
+            selectedSubjectId: "",
+          })
+        }
         onGradeChange={(gradeId) =>
           syncQueryParams(
             {

@@ -21,6 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import Select from "@/components/ui/input/Select";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import type { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { fetchTeacherLoads } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
@@ -103,6 +104,8 @@ export default function TeacherLoadView({
   teachers,
 }: TeacherLoadViewProps) {
   const t = useTranslations("academics.teacherAllocation.load");
+  const tMatrix = useTranslations("academics.teacherAllocation.matrix");
+  const tCommon = useTranslations("common");
   const tExport = useTranslations("academics.export");
   const locale = useLocale();
   const router = useRouter();
@@ -334,21 +337,22 @@ export default function TeacherLoadView({
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="sm:w-80">
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  {t("filters.teacher")}
-                </label>
-                <select
+                <Select
+                  label={t("filters.teacher")}
                   value={selectedTeacherUserId}
-                  onChange={(event) => syncTeacherFilter(event.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">{t("filters.allTeachers")}</option>
-                  {teachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {localizedTeacherName(teacher, locale)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={syncTeacherFilter}
+                  searchable
+                  searchPlaceholder={tMatrix("searchTeacher")}
+                  noResultsText={tCommon("noResults")}
+                  options={[
+                    { value: "", label: t("filters.allTeachers") },
+                    ...teachers.map((teacher) => ({
+                      value: teacher.id,
+                      label: localizedTeacherName(teacher, locale),
+                      searchText: `${teacher.nameAr} ${teacher.nameEn}`,
+                    })),
+                  ]}
+                />
               </div>
 
               <Button
