@@ -89,6 +89,7 @@ export default function TeacherAllocationContainer() {
     }
 
     if (!academicYearId || !termId) {
+      setIsLoading(false);
       return;
     }
 

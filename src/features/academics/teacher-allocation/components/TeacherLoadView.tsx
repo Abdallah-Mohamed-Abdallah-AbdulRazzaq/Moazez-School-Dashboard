@@ -16,7 +16,6 @@ import {
   ChevronUp,
   Clock,
   Download,
-  Loader2,
   School,
   Users,
 } from "lucide-react";
@@ -28,6 +27,7 @@ import { fetchTeacherLoads } from "@/features/academics/teacher-allocation/servi
 import { teacherAllocationUiError } from "@/features/academics/teacher-allocation/services/teacherAllocationErrors";
 import type { TeacherLoadViewModel } from "@/features/academics/teacher-allocation/services/teacherAllocationMappers";
 import TeacherAllocationTechnicalDetails from "./TeacherAllocationTechnicalDetails";
+import TeacherAllocationSkeleton from "./TeacherAllocationSkeleton";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -281,10 +281,7 @@ export default function TeacherLoadView({
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-600">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        <span>{t("loadingTeacherLoads")}</span>
-      </div>
+      <TeacherAllocationSkeleton view="load" label={t("loadingTeacherLoads")} />
     );
   }
 

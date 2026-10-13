@@ -33,6 +33,7 @@ import type {
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import AllocationMatrixView from "../components/AllocationMatrixView";
 import TeacherLoadView from "../components/TeacherLoadView";
+import TeacherAllocationSkeleton from "../components/TeacherAllocationSkeleton";
 import ValidationPanel from "../components/ValidationPanel";
 import { AccessDenied, Button } from "@/components/ui";
 import TeacherAllocationTechnicalDetails from "../components/TeacherAllocationTechnicalDetails";
@@ -101,6 +102,7 @@ export default function TeacherAllocationView({
 }: TeacherAllocationViewProps) {
   const t = useTranslations("academics.teacherAllocation");
   const tEmpty = useTranslations("academics.module_empty_states");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -146,6 +148,10 @@ export default function TeacherAllocationView({
             </Button>
           </div>
         </div>
+      )}
+
+      {isLoading && (
+        <TeacherAllocationSkeleton view={activeTab} label={tCommon("loading")} />
       )}
 
       {!isLoading && (!academicYearId || !termId) && (

@@ -80,6 +80,15 @@ describe("TeacherLoadView", () => {
     vi.clearAllMocks();
   });
 
+  it("shows a workload skeleton until the request completes", async () => {
+    mockedFetchTeacherLoads.mockResolvedValueOnce([]);
+    render(<TeacherLoadView termId="term-1" teachers={teachers} />);
+
+    expect(screen.getByRole("status", { name: "Loading teacher loads..." })).toHaveAttribute("aria-busy", "true");
+    expect(await screen.findByText("No teacher loads returned.")).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Loading teacher loads..." })).not.toBeInTheDocument();
+  });
+
   it("loads teacher loads from the backend endpoint service", async () => {
     mockedFetchTeacherLoads.mockResolvedValueOnce([
       {
