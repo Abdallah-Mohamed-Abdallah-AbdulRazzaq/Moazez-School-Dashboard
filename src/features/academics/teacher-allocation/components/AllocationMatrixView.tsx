@@ -677,9 +677,13 @@ export default function AllocationMatrixView({
   };
 
   const matrixRows = useMemo<TargetRow[]>(() => {
-    const getGradeName = (gradeId: string) => {
+    const getGradeContext = (gradeId: string) => {
       const grade = grades.find((gradeCandidate) => gradeCandidate.id === gradeId);
-      return grade ? localizedName(grade, locale) : "-";
+      const stage = stages.find((stageCandidate) => stageCandidate.id === grade?.stageId);
+      return [stage, grade]
+        .filter((record) => record !== undefined)
+        .map((record) => localizedName(record, locale))
+        .join(" / ") || "-";
     };
 
     const rows: TargetRow[] = filteredSections.flatMap((section) => {
@@ -699,14 +703,14 @@ export default function AllocationMatrixView({
             section,
             classroom,
             label: classroomName,
-            secondaryLabel: `${getGradeName(section.gradeId)} / ${sectionName}`,
+            secondaryLabel: `${getGradeContext(section.gradeId)} / ${sectionName}`,
           } satisfies TargetRow;
         });
     });
 
     if (!showOnlyMissing) return rows;
     return rows.filter((row) => getMissingCount(row.section.gradeId, row.section.id, row.classroom.id) > 0);
-  }, [classrooms, filteredSections, getMissingCount, grades, locale, selectedClassroomId, showOnlyMissing]);
+  }, [classrooms, filteredSections, getMissingCount, grades, locale, selectedClassroomId, showOnlyMissing, stages]);
 
   const sectionWarningRows = useMemo<SectionWarningRow[]>(() => {
     if (selectedClassroomId) return [];

@@ -267,6 +267,7 @@ describe("AllocationMatrixView", () => {
     });
 
     expect(screen.getByText("Classroom A")).toBeInTheDocument();
+    expect(screen.getByText("Primary / Grade 1 / Section A")).toBeInTheDocument();
     expect(screen.queryByText("Classroom B")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /filters\.grade/i }));
     expect(screen.getByRole("button", { name: "Grade 1" })).toBeInTheDocument();
