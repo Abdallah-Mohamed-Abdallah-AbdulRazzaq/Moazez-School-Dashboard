@@ -112,6 +112,17 @@ describe("homework review workflow", () => {
     expect(validateProspectiveAnswerScoreRollup(200, null)).toBeUndefined();
   });
 
+  it.each([
+    { scores: [0.1, 0.2], maximum: 0.3, expected: undefined },
+    { scores: [0.07, 0.14, 0.21], maximum: 0.42, expected: undefined },
+    { scores: [0.1, 0.21], maximum: 0.3, expected: "rollupMax" },
+  ])("checks fractional totals at two-decimal precision ($scores, max $maximum)", ({ scores, maximum, expected }) => {
+    const answers = scores.map((score, index) => answer({ id: `answer-${index}`, score }));
+    expect(validateProspectiveAnswerScoreRollup(calculateAnswerScoreRollup(answers), maximum)).toBe(expected);
+    const drafts = new Map(answers.map(answer => [answer.id, { score: answer.score }]));
+    expect(validateProspectiveAnswerScoreRollup(calculateProspectiveAnswerScoreRollup(answers, drafts), maximum)).toBe(expected);
+  });
+
   it("uses isRequired and reviewedAt for required completion", () => {
     const questions = [
       question(),

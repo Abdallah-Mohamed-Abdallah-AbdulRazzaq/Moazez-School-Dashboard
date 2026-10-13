@@ -35,6 +35,29 @@ beforeEach(() => {
 });
 
 describe("homework auto-correction controls", () => {
+  it("blocks duplicate runs and policy changes while scores are being saved", async () => {
+    let releaseSave!: () => void;
+    const pendingSave = new Promise<void>(resolve => { releaseSave = resolve; });
+    vi.mocked(apiPut).mockImplementation(async () => {
+      await pendingSave;
+      reviewed = true;
+      return { items: [] } as never;
+    });
+    renderControls();
+    fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    choosePartialCreditPolicy();
+    fireEvent.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(apiPut).toHaveBeenCalledOnce());
+    const confirm = screen.getByRole("button", { name: "confirm" });
+    const otherPolicy = screen.getByRole("button", { name: /policies.partial_without_penalty.title/ });
+    expect(confirm).toBeDisabled(); expect(otherPolicy).toBeDisabled();
+    fireEvent.click(confirm); fireEvent.click(otherPolicy);
+    expect(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ })).toHaveAttribute("aria-pressed", "true");
+    releaseSave();
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled());
+    expect(apiPut).toHaveBeenCalledOnce();
+    expect(apiPatch).not.toHaveBeenCalled(); expect(apiPost).not.toHaveBeenCalled();
+  });
   it.each([
     { action: "singleAction", policy: "partial_without_penalty", expectedScore: 2.5 },
     { action: "bulkAction", policy: "partial_without_penalty", expectedScore: 2.5 },

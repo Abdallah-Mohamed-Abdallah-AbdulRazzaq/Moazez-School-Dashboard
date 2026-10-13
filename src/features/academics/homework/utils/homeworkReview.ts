@@ -123,7 +123,8 @@ export function validateProspectiveAnswerScoreRollup(
   rollup: number,
   totalMarks?: number | null,
 ): "rollupMax" | undefined {
-  return totalMarks != null && rollup > totalMarks ? "rollupMax" : undefined;
+  return totalMarks != null && Math.round(rollup * 100) > Math.round(totalMarks * 100)
+    ? "rollupMax" : undefined;
 }
 
 export function requiredAnswerReviewsComplete(
