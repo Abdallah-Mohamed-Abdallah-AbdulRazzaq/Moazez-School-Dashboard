@@ -5596,6 +5596,8 @@
         "expected_answer": "Expected answer",
         "expected_answer_placeholder": "Enter the expected answer",
         "question_type": "Question Type",
+        "required_question": "Required question",
+        "required_question_description": "Students must answer this question before submitting. Clear this checkbox to make it optional.",
         "points": "Points",
         "expected_time_minutes": "Expected time (minutes)",
         "no_questions": "No questions yet.",

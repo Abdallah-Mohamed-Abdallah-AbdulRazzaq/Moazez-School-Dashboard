@@ -5597,6 +5597,8 @@
         "expected_answer": "الإجابة المتوقعة",
         "expected_answer_placeholder": "أدخل الإجابة المتوقعة",
         "question_type": "نوع السؤال",
+        "required_question": "سؤال مطلوب",
+        "required_question_description": "يجب على الطالب الإجابة عن هذا السؤال قبل التسليم. أزل علامة الاختيار لجعله اختياريًا.",
         "points": "الدرجات",
         "no_questions": "لا توجد أسئلة بعد.",
         "summary_title": "ملخص الدرجات",
