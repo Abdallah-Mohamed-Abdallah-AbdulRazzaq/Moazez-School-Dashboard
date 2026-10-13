@@ -2,7 +2,7 @@
 
 Date: 2026-10-14
 
-Status: conversational design approved, including a gradual reveal for existing users. Written spec awaiting review. This task creates a plan only; application implementation is not authorized by the planning request.
+Status: written spec approved, with the owner's additional request to show the multi-class choice from the first view. This task creates a plan only; application implementation is not authorized by the planning request.
 
 ## Goal and scope
 
@@ -20,12 +20,12 @@ Add one secondary **Write questions before creation** action near the current im
 
 Reveal the manual outline and editor only after the user chooses the action. Show the local question count and clarify that questions are saved when the homework is created, rather than displaying a per-question server Save button. Support collapsing the editor without losing questions.
 
-When manually authored questions exist, make the existing **Assign to multiple classes** option available, initially off. Existing Excel imports keep their current multi-class option. Only opting into that option reveals multi-target controls and results. Use the current target preview and class-count Create action in batch mode, explaining that separate drafts will be created for each selected eligible class.
+Show **Assign to multiple classes** as an optional, initially unchecked choice on the first view, including before questions have been added. Explain briefly that questions can be written here or imported from Excel. Keep permission/context restrictions and show the existing missing-view-permission explanation when batching is unavailable. Checking the option without questions reveals the optional authoring area and target controls but adds no question and makes no creation requests; batch Create stays unavailable until there is at least one question, and final validation must pass before any write. Existing Excel imports can use the same visible option. Only opting in reveals multi-target controls/results. Use the current target preview and class-count Create action in batch mode, explaining that separate drafts will be created for each selected eligible class.
 
 ## Preserve old routes and behavior
 
 - With no pending questions and no batch mode, Create draft retains the current parent-only create request and editor navigation. Users can add questions afterward exactly as they do today.
-- Expanding an empty optional editor does not block that legacy action. Deleting every local manual question returns to the empty-question state; batch creation is unavailable until at least one valid question exists.
+- Expanding an empty optional editor does not block the legacy action when multiple-class mode is off. Deleting every local manual question returns to the empty-question state; batch creation is unavailable until at least one question exists and final validation passes. If multiple-class mode is still on, do not silently fall back to creating a single parent. Turning it off restores the single-class path and retains local content/metadata.
 - Once the user has local questions, single-class Create saves the parent and those questions using the same ordered-save and known-parent recovery behavior as import. Preserve existing whole-class/selected-student targeting and valid single-class timetable fields.
 - Manual batching uses one subject, whole-class targeting, one draft per eligible class, and the existing allocation ownership rules. Its payload omits student IDs, timetable entry IDs, and schedule dates.
 - The saved assignment editor, its attachment handling, question-editing workflow, and lifecycle actions retain their existing behavior. The new authoring area reuses editor components without changing global defaults for their other consumers.
@@ -35,7 +35,7 @@ When manually authored questions exist, make the existing **Assign to multiple c
 
 Reuse the existing `QuestionEditor` for MCQ_SINGLE, MCQ_MULTI, TRUE_FALSE, SHORT_ANSWER, and ESSAY with the same homework field configuration: single-text content, `requireBothLocalizedTexts=false`, `showHomeworkFields=true`, and the homework `isRequired` field. Use the existing question outline behavior, or a small responsive wrapper around its components, for add, select, edit, reorder, and delete.
 
-The new Create-page question collection lives only in frontend state. Stable local question/option IDs are for editing and keys; they are never posted as server UUIDs. Initialize required/default fields from the current homework editor defaults. Keep edits in the parent draft immediately through the editor's existing change callback so final Create includes the last field edit, even if the user has not changed the selected question first.
+The new Create-page question collection lives only in frontend state. Stable local question/option IDs are for editing and keys; they are never posted as server UUIDs. Reuse the current editor's question type/points/choice structure defaults, but initialize authored prompt and option text to blank so default example text cannot accidentally become homework for multiple classes. Do not change the saved editor's global defaults. Keep edits in the parent draft immediately through the editor's existing change callback so final Create includes the last field edit, even if the user has not changed the selected question first.
 
 The new authoring area accepts up to 500 questions, matching the existing Excel import ceiling; show the limit when Add is unavailable. This limit applies to the new pre-creation collection and does not impose a new limit on the existing saved-question editor. Preserve ordering when deleting or moving questions, then normalize question/choice sortOrder before saving.
 
@@ -94,7 +94,7 @@ Lock all question editing, metadata, target selection, source changes and duplic
 
 ## Acceptance and verification in the implementation plan
 
-Add focused tests proving the default page and legacy parent-only wire request/navigation remain unchanged unless the user opts in. Opening/closing the optional editor makes no writes and changes no targeting. The last edit is included at Create; local IDs/order and false boolean values map correctly; invalid questions cannot create a parent. Single-class manually authored questions, selected students, and partial recovery use the existing contracts.
+Add focused tests proving the visible multi-class choice is initially unchecked and the default page's legacy parent-only wire request/navigation remain unchanged unless the user opts in. Opening/closing the optional editor makes no writes and changes no targeting. Selecting multiple-class mode before questions exist reveals its prerequisites and prevents creation; accepting Excel questions later preserves that intent. The last edit is included at Create; local IDs/order and false boolean values map correctly; invalid questions cannot create a parent. Single-class manually authored questions, selected students, and partial recovery use the existing contracts.
 
 Cover all six scopes with manual source, teacher ownership/exclusions, changed-preflight review, failed lookup retry, locked/frozen state, duplicate clicks, mixed-save recovery, unsaved navigation, accepted/cancelled source replacement, and preservation of complete question sets across responsive authoring UI. Reuse Excel/assessment regression coverage to detect changes to existing import and saved editor behavior, including the recently added preview-language behavior.
 
