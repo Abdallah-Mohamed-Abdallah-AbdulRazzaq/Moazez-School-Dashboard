@@ -7,6 +7,40 @@ import ar from "@/messages/ar.json";
 import ExcelImportDialog from "../ExcelImportDialog";
 import { assignmentWorkbookFile, fixtureContext, fixtureWorkbook, setSheetRow, workbookFile } from "./excelImportFixtures";
 
+it.each(["ar", "en"] as const)("shows only the app's %s question, answer and choice text while applying both translations", async locale => {
+  const messages = locale === "ar" ? ar : en;
+  const onApply = vi.fn();
+  const workbook = await fixtureWorkbook("assessment");
+  setSheetRow(workbook.getWorksheet("Questions")!, 2, { questionType: "MCQ_SINGLE", points: 1, correctAnswer: null, questionTextAr: "سؤال الاختيارات", questionTextEn: "Choice question" });
+  setSheetRow(workbook.getWorksheet("Choices")!, 2, { questionNumber: 1, choiceNumber: 1, choiceTextAr: "اختيار عربي", choiceTextEn: "English choice", isCorrect: true });
+  setSheetRow(workbook.getWorksheet("Choices")!, 3, { questionNumber: 1, choiceNumber: 2, choiceTextAr: "اختيار آخر", choiceTextEn: "Other choice", isCorrect: false });
+  setSheetRow(workbook.getWorksheet("Questions")!, 3, { questionNumber: 2, questionType: "SHORT_ANSWER", points: 1, questionTextAr: "سؤال الإجابة", questionTextEn: "Answer question", sampleAnswerAr: "إجابة نموذجية عربية", sampleAnswerEn: "English model answer" });
+  render(<NextIntlClientProvider locale={locale} messages={messages}><ExcelImportDialog isOpen module="assessment" context={fixtureContext} disabled={false} onClose={vi.fn()} onApply={onApply} /></NextIntlClientProvider>);
+  fireEvent.change(screen.getByLabelText(locale === "ar" ? "اختر ملف Excel" : "Choose Excel file"), { target: { files: [await workbookFile(workbook)] } });
+  await screen.findByText(locale === "ar" ? "سؤال الاختيارات" : "Choice question");
+  for (const [arabic, english] of [["سؤال الاختيارات", "Choice question"], ["سؤال الإجابة", "Answer question"], ["اختيار عربي", "English choice"], ["اختيار آخر", "Other choice"], ["إجابة نموذجية عربية", "English model answer"]]) {
+    expect(screen.getByText(locale === "ar" ? arabic : english)).toBeInTheDocument();
+    expect(screen.queryByText(locale === "ar" ? english : arabic)).not.toBeInTheDocument();
+  }
+  fireEvent.click(screen.getByRole("button", { name: messages.academics.excelImport.actions.apply }));
+  expect(onApply.mock.calls[0][0].questions).toEqual([
+    expect.objectContaining({ questionTextAr: "سؤال الاختيارات", questionTextEn: "Choice question", options: [
+      expect.objectContaining({ textAr: "اختيار عربي", textEn: "English choice" }),
+      expect.objectContaining({ textAr: "اختيار آخر", textEn: "Other choice" }),
+    ] }),
+    expect.objectContaining({ sampleAnswerAr: "إجابة نموذجية عربية", sampleAnswerEn: "English model answer" }),
+  ]);
+});
+
+it.each(["ar", "en"] as const)("shows the available sample answer when the %s translation is empty", async locale => {
+  const workbook = await fixtureWorkbook("assessment");
+  setSheetRow(workbook.getWorksheet("Questions")!, 2, { questionType: "SHORT_ANSWER", correctAnswer: null,
+    sampleAnswerAr: locale === "ar" ? null : "الإجابة المتاحة", sampleAnswerEn: locale === "en" ? null : "Available answer" });
+  render(<NextIntlClientProvider locale={locale} messages={locale === "ar" ? ar : en}><ExcelImportDialog isOpen module="assessment" context={fixtureContext} disabled={false} onClose={vi.fn()} onApply={vi.fn()} /></NextIntlClientProvider>);
+  fireEvent.change(screen.getByLabelText(locale === "ar" ? "اختر ملف Excel" : "Choose Excel file"), { target: { files: [await workbookFile(workbook)] } });
+  expect(await screen.findByText(locale === "ar" ? "Available answer" : "الإجابة المتاحة")).toBeInTheDocument();
+});
+
 it("previews the real workbook and applies only after explicit confirmation", async () => {
   const onApply = vi.fn();
   render(<NextIntlClientProvider locale="en" messages={en}><ExcelImportDialog isOpen module="assignment" context={fixtureContext} disabled={false} onClose={vi.fn()} onApply={onApply} /></NextIntlClientProvider>);
@@ -73,11 +107,11 @@ it("reviews questions as paginated cards without losing questions when applying"
   expect(onApply.mock.calls[0][0].questions).toHaveLength(12);
 });
 
-it("retains bilingual assessment prompts and false answers in Arabic cards", async () => {
+it("shows the Arabic assessment prompt and localized false answer in Arabic cards", async () => {
   render(<NextIntlClientProvider locale="ar" messages={ar}><ExcelImportDialog isOpen module="assessment" context={fixtureContext} disabled={false} onClose={vi.fn()} onApply={vi.fn()} /></NextIntlClientProvider>);
   fireEvent.change(screen.getByLabelText("اختر ملف Excel"), { target: { files: [await workbookFile(await fixtureWorkbook("assessment"))] } });
   const card = await screen.findByRole("article", { name: "السؤال 1" });
   expect(within(card).getByText("هل ٢ زوجي؟")).toBeInTheDocument();
-  expect(within(card).getByText("Is 2 even?")).toBeInTheDocument();
+  expect(within(card).queryByText("Is 2 even?")).not.toBeInTheDocument();
   expect(within(card).getByText(ar.academics.excelImport.labels.false)).toBeInTheDocument();
 });
