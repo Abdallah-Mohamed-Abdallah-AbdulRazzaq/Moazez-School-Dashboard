@@ -28,9 +28,15 @@ describe("homework objective correction", () => {
       .toEqual([{ questionId: "q1", reason: "missing_answer_record" }]);
     expect(isHomeworkCorrectionComplete([{ ...question, isRequired: false }], [])).toBe(false);
   });
-  it.each([["a", "b"], ["b", "a"]])("ignores multiple-choice selection order %j", (...selectedOptionIds) => {
-    const multi = { ...question, questionType: "MCQ_MULTI" as const, options: question.options!.map(option => ({ ...option, isCorrect: true })) };
-    expect(buildHomeworkAutomaticCorrectionPlan([multi], [{ ...answer, selectedOptionIds }]).reviews[0].score).toBe(2);
+  it.each([
+    { selectedOptionIds: ["a", "b"], score: 2 }, { selectedOptionIds: ["b", "a"], score: 2 },
+    { selectedOptionIds: ["a"], score: 0 }, { selectedOptionIds: ["a", "b", "c"], score: 0 },
+  ])("uses exact multiple-choice sets for $selectedOptionIds", ({ selectedOptionIds, score }) => {
+    const multi = { ...question, questionType: "MCQ_MULTI" as const, options: [
+      ...question.options!.map(option => ({ ...option, isCorrect: true })),
+      { id: "c", textEn: "C", textAr: "ج", order: 2, isCorrect: false },
+    ] };
+    expect(buildHomeworkAutomaticCorrectionPlan([multi], [{ ...answer, selectedOptionIds }]).reviews[0].score).toBe(score);
   });
   it.each(["duplicate selection", "unknown selection", "duplicate records", "invalid points", "invalid key"])("does not guess scores for %s", scenario => {
     const questions = [{ ...question, points: scenario === "invalid points" ? NaN : 2,
