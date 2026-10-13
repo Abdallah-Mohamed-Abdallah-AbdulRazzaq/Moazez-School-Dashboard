@@ -32,6 +32,7 @@ interface TeacherSelectProps {
   teachers: Teacher[];
   teacherRoleId: string;
   value: string | null;
+  selectedTeacherName?: string;
   onChange: (teacherId: string | null) => void;
   disabled?: boolean;
   teacherLoads?: Map<string, number>; // teacherId -> weekly hours
@@ -43,6 +44,7 @@ export default function TeacherSelect({
   teachers,
   teacherRoleId,
   value,
+  selectedTeacherName,
   onChange,
   disabled = false,
   teacherLoads,
@@ -56,6 +58,7 @@ export default function TeacherSelect({
   
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [chosenTeacher, setChosenTeacher] = useState<Teacher | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const getTeacherLabel = (teacher: Teacher) => {
@@ -86,6 +89,13 @@ export default function TeacherSelect({
     });
     const selectedTeacher = value
       ? teachers.find((teacher) => teacher.id === value)
+        ?? (chosenTeacher?.id === value ? chosenTeacher : undefined)
+        ?? {
+          id: value,
+          nameAr: selectedTeacherName || t("assignedTeacherUnavailable"),
+          nameEn: selectedTeacherName || t("assignedTeacherUnavailable"),
+          isActive: false,
+        }
       : undefined;
     if (
       selectedTeacher &&
@@ -94,7 +104,7 @@ export default function TeacherSelect({
       loadedTeachers.unshift(selectedTeacher);
     }
     return loadedTeachers;
-  }, [teachers, usersState.users, value]);
+  }, [chosenTeacher, selectedTeacherName, t, teachers, usersState.users, value]);
 
   const getTeacherLoad = (teacherId: string): number => {
     return teacherLoads?.get(teacherId) || 0;
@@ -112,6 +122,7 @@ export default function TeacherSelect({
 
   const handleChange = (event: SelectChangeEvent<string>) => {
     const newValue = event.target.value;
+    setChosenTeacher(teacherOptions.find((teacher) => teacher.id === newValue) ?? null);
     onChange(newValue || null);
   };
 
@@ -145,7 +156,7 @@ export default function TeacherSelect({
         const teacher =
           teacherOptions.find((candidate) => candidate.id === selected) ??
           teachers.find((candidate) => candidate.id === selected);
-        return teacher ? getTeacherLabel(teacher) : "";
+        return teacher ? getTeacherLabel(teacher) : selectedTeacherName || t("assignedTeacherUnavailable");
       }}
       MenuProps={{
         PaperProps: {

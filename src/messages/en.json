@@ -6546,6 +6546,7 @@
         },
         "missingCount": "Missing",
         "selectTeacher": "Select teacher",
+        "assignedTeacherUnavailable": "Assigned teacher unavailable",
         "searchTeacher": "Search teacher...",
         "noTeacher": "No teacher assigned",
         "currentLoad": "{periods}/wk",

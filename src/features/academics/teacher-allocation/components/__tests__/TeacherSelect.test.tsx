@@ -31,6 +31,39 @@ describe("TeacherSelect", () => {
     vi.mocked(apiGet).mockReset();
   });
 
+  it.each([
+    ["Saved Teacher", "Saved Teacher"],
+    [undefined, "assignedTeacherUnavailable"],
+  ])("displays a persisted selection missing from the directory with name %s", (selectedTeacherName, expectedLabel) => {
+    const onChange = vi.fn();
+    render(<TeacherSelect teachers={[]} teacherRoleId="teacher-role" value="saved-teacher"
+      selectedTeacherName={selectedTeacherName} onChange={onChange} />);
+
+    expect(screen.getByRole("combobox")).toHaveTextContent(expectedLabel);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(apiGet).not.toHaveBeenCalled();
+  });
+
+  it("retains the selected lazy-loaded teacher's label after the menu closes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    vi.mocked(apiGet).mockResolvedValue({
+      items: [{ id: "new-teacher", fullName: "New Teacher", email: "teacher@example.com", roleId: "teacher-role", status: "active" }],
+      pagination: { page: 1, limit: 20, total: 1 },
+    });
+    const { rerender } = render(<TeacherSelect teachers={[]} teacherRoleId="teacher-role" value={null} onChange={onChange} />);
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByText("New Teacher"));
+    expect(onChange).toHaveBeenCalledWith("new-teacher");
+    rerender(<TeacherSelect teachers={[]} teacherRoleId="teacher-role" value="new-teacher" onChange={onChange} />);
+
+    await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
+    expect(screen.getByRole("combobox")).toHaveTextContent("New Teacher");
+    rerender(<TeacherSelect teachers={[]} teacherRoleId="teacher-role" value={null} onChange={onChange} />);
+    expect(screen.getByRole("combobox")).toHaveTextContent("selectTeacher");
+  });
+
   it("loads active teachers lazily after the dropdown opens", async () => {
     const user = userEvent.setup();
     vi.mocked(apiGet).mockResolvedValue({

@@ -940,6 +940,11 @@ export default function AllocationMatrixView({
 
   const renderCell = (row: TargetRow, column: MatrixColumn & { subject: Subject }) => {
     const teacherId = getAllocation(row.section.id, column.subject.id, row.classroom.id);
+    const savedAllocation = findClassroomAllocation(originalAllocations, {
+      sectionId: row.section.id,
+      classroomId: row.classroom.id,
+      subjectId: column.subject.id,
+    });
     const cellKey = teacherAllocationCellKey(row.classroom.id, column.subject.id);
     const isSubjectRegistered = isSubjectRegisteredForGrade(
       subjectAllocations,
@@ -973,6 +978,7 @@ export default function AllocationMatrixView({
           teachers={teachers}
           teacherRoleId={teacherRoleId}
           value={teacherId}
+          selectedTeacherName={savedAllocation?.teacherId === teacherId ? savedAllocation?.teacherName : undefined}
           onChange={(newTeacherId) => setAllocation(row.section.id, column.subject.id, newTeacherId, row.classroom.id)}
           disabled={isReadOnly || !isSubjectRegistered}
           teacherLoads={teacherLoads}
