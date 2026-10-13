@@ -2,6 +2,7 @@ import type { BackendSubmissionQuestionResponse } from "../../gradebook/types/ap
 import type { AssessmentQuestion } from "../../shared/types";
 import type { GradeSubmissionAnswer, GradeSubmissionDetail } from "../types";
 import { multipleChoiceScore, type MultipleSelectionScoringPolicy } from "@/lib/grading/multipleChoiceScore";
+import { trueFalseOptionValue } from "@/lib/grading/trueFalseOptionValue";
 
 export type AutomaticCorrectionSkipReason =
   | "manual_question"
@@ -126,7 +127,7 @@ function getTrueFalseAnswerCorrectness(
   if (!selectedOption) return null;
 
   const selectedBoolean = parseBooleanOptionValue(
-    selectedOption.value ?? selectedOption.textEn ?? selectedOption.textAr,
+    selectedOption.value ?? (selectedOption.textEn || selectedOption.textAr),
   );
   return selectedBoolean === null ? null : selectedBoolean === definition.correctAnswer;
 }
@@ -147,9 +148,7 @@ function sameIdSet(left: readonly string[], right: readonly string[]): boolean {
 }
 
 function parseBooleanOptionValue(optionValue: string | undefined): boolean | null {
-  if (optionValue?.toLowerCase() === "true") return true;
-  if (optionValue?.toLowerCase() === "false") return false;
-  return null;
+  return optionValue === undefined ? null : trueFalseOptionValue(optionValue);
 }
 
 function skipQuestion(

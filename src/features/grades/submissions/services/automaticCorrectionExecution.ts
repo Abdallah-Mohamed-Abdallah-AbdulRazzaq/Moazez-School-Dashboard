@@ -7,6 +7,7 @@ import {
   reviewSubmissionAnswers,
   syncSubmissionGradeItem,
 } from "./gradesSubmissionsService";
+import { MAX_BULK_REVIEWS } from "../utils/submissionContract";
 
 export interface AutomaticCorrectionExecutionResult {
   finalized: boolean;
@@ -17,10 +18,10 @@ export async function executeAutomaticCorrectionPlan(
   plan: AutomaticCorrectionPlan,
   reviewMode: "review_first" | "finalize" = "finalize",
 ): Promise<AutomaticCorrectionExecutionResult> {
-  if (plan.reviews.length > 0) {
+  for (let index = 0; index < plan.reviews.length; index += MAX_BULK_REVIEWS) {
     await reviewSubmissionAnswers(
       submissionId,
-      plan.reviews.map(({ answerId, awardedPoints }) => ({ answerId, awardedPoints })),
+      plan.reviews.slice(index, index + MAX_BULK_REVIEWS).map(({ answerId, awardedPoints }) => ({ answerId, awardedPoints })),
     );
   }
 
