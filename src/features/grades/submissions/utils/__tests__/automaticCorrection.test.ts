@@ -113,10 +113,10 @@ describe("buildAutomaticCorrectionPlan", () => {
     ["MCQ_SINGLE", ["a"], 4],
     ["MCQ_SINGLE", ["wrong"], 0],
     ["MCQ_MULTI", ["b", "a"], 4],
-    ["MCQ_MULTI", ["a"], 0],
-    ["MCQ_MULTI", ["a", "b", "wrong"], 0],
+    ["MCQ_MULTI", ["a"], 2],
+    ["MCQ_MULTI", ["a", "b", "wrong"], 2],
   ] as const)(
-    "scores %s selections with full-or-zero points",
+    "scores %s selections using the question type's scoring rule",
     (questionType, selectedOptionIds, expectedPoints) => {
       const correctionPlan = buildAutomaticCorrectionPlan(
         submission(questionType.toLowerCase(), answer([...selectedOptionIds])),
@@ -130,6 +130,33 @@ describe("buildAutomaticCorrectionPlan", () => {
       }]);
     },
   );
+
+  it.each([
+    { selected: ["a", "b"], points: 3, expected: 2 },
+    { selected: ["a", "b", "wrong"], points: 3, expected: 1 },
+    { selected: ["a", "wrong"], points: 3, expected: 0 },
+    { selected: ["a", "wrong", "wrong2"], points: 3, expected: 0 },
+    { selected: ["a", "b", "c", "wrong"], points: 3, expected: 2 },
+    { selected: ["wrong"], points: 3, expected: 0 },
+    { selected: [], points: 3, expected: 0 },
+    { selected: ["c", "a", "b"], points: 3, expected: 3 },
+    { selected: ["a"], points: 1, expected: 0.33 },
+    { selected: ["a", "b"], points: 1, expected: 0.67 },
+    { selected: ["a", "b", "wrong"], points: 1, expected: 0.33 },
+  ])("awards $expected of $points after deducting incorrect selections $selected with a zero floor", ({ selected, points, expected }) => {
+    const multi = choiceDefinition("MCQ_MULTI");
+    multi.points = points;
+    multi.options!.push({ id: "c", textEn: "C", textAr: "ج", isCorrect: true, order: 4 });
+    multi.options!.push({ id: "wrong2", textEn: "Wrong 2", textAr: "خطأ ٢", isCorrect: false, order: 5 });
+    const plan = buildAutomaticCorrectionPlan(submission("mcq_multi", answer(selected)), { [questionId]: multi });
+    expect(plan.reviews[0]?.awardedPoints).toBe(expected);
+  });
+
+  it.each([{ selected: ["a", "a"] }, { selected: ["unknown"] }])("rejects malformed multiple-choice selections $selected instead of awarding points", ({ selected }) => {
+    const plan = buildAutomaticCorrectionPlan(submission("mcq_multi", answer(selected)), { [questionId]: choiceDefinition("MCQ_MULTI") });
+    expect(plan.reviews).toEqual([]);
+    expect(plan.summary.invalidKeyCount).toBe(1);
+  });
 
   it.each([
     ["true", true, 4],

@@ -7,6 +7,22 @@
 
 ---
 
+## Homework auto-correction (October 13, 2026)
+
+The review panel now offers **Auto-correct student** and **Auto-correct homework** to users with submission viewing, assignment viewing, and assignment management permissions. Bulk correction targets either all eligible submissions or eligible submissions matching the applied filters, across every matching page. It includes submitted and late work for published or closed homework and skips students without a submission.
+
+Correction awards full or zero points for single choice and true/false. For multiple choice, question points are split equally among correct options; each selected correct option earns its share minus the same share for each incorrect selection, with a minimum score of zero. Scores are rounded once to two decimal places. Repeat runs recalculate existing objective scores and preserve teacher feedback and submission notes. Existing blank objective answer records receive zero; missing records cannot be reviewed through the existing API and remain pending. Unreviewed written answers and invalid question/answer data also remain pending. Previously reviewed written answers can satisfy completion when their scores are valid.
+
+After saving scores, correction reloads answers and completes the submission review only when every assigned question, including optional questions, has a valid reviewed answer. Graded homework then syncs its grade when the homework is linked to an unlocked assessment and the user has gradebook viewing and management permissions. Ungraded homework finishes review without sync. Missing links, insufficient permissions, locks and sync failures retain the completed review and show a separate outcome. Link an unlinked homework through the existing Grade sync panel, then sync its reviewed submissions.
+
+The correction dialog shows confirmation scope, eligible count, progress, corrected answers, completed reviews, synced grades, pending work, skipped students and failures. Unsaved edits must be saved or discarded first. Conflicting panel controls are disabled during correction; keep the page open until it finishes. Individual failures do not stop other students, and Retry failed students resumes the unfinished stage. A sync failure after review completion retries synchronization without rewriting answers or repeating the final review.
+
+Scope is selected through two cards for current filters or all submissions. The eligible-student preview distinguishes loading, ready and empty states. An empty filtered scope offers **Check all submissions**, which reloads eligibility without starting correction. The overwrite warning stays visible and detailed correction rules can be expanded. Close the dialog through its close controls; outside clicks do not dismiss it. The layout supports Arabic RTL and stacks the scope cards on small screens.
+
+The implementation uses the existing question-read, answer-review, submission-review and grade-sync routes. It adds no backend endpoint and performs no automatic gradebook linking.
+
+---
+
 ## 1. Purpose of This Delta
 
 This document covers only the HW-B delta added by commit `5feab2c3840a3380981f180566006ac8246b30b2`.

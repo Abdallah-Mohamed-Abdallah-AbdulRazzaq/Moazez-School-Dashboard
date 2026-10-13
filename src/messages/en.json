@@ -6082,6 +6082,72 @@
         }
       },
       "review": {
+        "autoCorrection": {
+          "title": "Auto-correct homework",
+          "subtitle": "Choose the submissions to correct, then review the results in one place.",
+          "scopeTitles": {
+            "filtered": "Current filters",
+            "all": "All submissions"
+          },
+          "scopeHints": {
+            "filtered": "Students matching your search and status filters.",
+            "all": "Every eligible student in this homework."
+          },
+          "eligibleStudents": "Students ready for correction",
+          "eligibleHint": "Submitted and late work only.",
+          "emptyTitle": "No students to correct",
+          "checkAll": "Check all submissions",
+          "emptyHelp": "Drafts and already reviewed submissions are excluded.",
+          "overwriteWarning": "Existing objective scores will be recalculated. Teacher feedback is preserved.",
+          "rulesTitle": "How correction works",
+          "rules": {
+            "scoring": "Single choice and true/false earn full or zero points. Multiple-choice points are split across correct options, with the same share deducted for each wrong selection. Scores stay at or above zero and round to two decimals.",
+            "manual": "Blank answer records earn zero. Missing answers and unreviewed written questions stay pending for manual review.",
+            "completion": "When all questions are corrected, the review is completed and grades sync when the link and permissions are available."
+          },
+          "singleAction": "Auto-correct student",
+          "bulkAction": "Auto-correct homework",
+          "scope": "Students to correct",
+          "scopes": {
+            "all": "All eligible homework submissions",
+            "filtered": "Eligible submissions matching current filters"
+          },
+          "explanation": "Single choice and true/false earn full or zero points. Multiple-choice points are split equally across the correct options; each selected correct option earns its share, with a deduction of the same share for each incorrect selection and a minimum score of zero. Fractional scores are rounded to two decimal places. Existing objective scores are recalculated; teacher feedback is preserved. Blank answer records receive zero. Missing answers and unreviewed written questions need manual handling. Fully corrected submissions are reviewed and grades synced when a link and permissions are available.",
+          "unsavedEdits": "Save or discard your edits before auto-correction.",
+          "eligibleCount": "{count} eligible students",
+          "loadingTargets": "Loading eligible students…",
+          "progress": "{processed} of {total} students processed",
+          "correctedAnswers": "Objective answers corrected",
+          "completedReviews": "Reviews completed",
+          "syncedGrades": "Grades synced",
+          "manualPending": "Questions needing manual review",
+          "missingAnswers": "Missing answer records",
+          "invalidDefinitions": "Invalid question or answer data",
+          "pendingStudents": "Students still needing correction",
+          "skippedStudents": "Students skipped",
+          "failures": "Failed students",
+          "syncReasons": {
+            "ungraded": "Ungraded homework: review completed without grade sync.",
+            "permission": "Review completed; grade sync requires gradebook viewing and management permissions.",
+            "unlinked": "Review completed; link this homework in the Grade sync panel, then sync the reviewed submissions.",
+            "locked": "Review completed; the linked assessment is locked. Sync after it is unlocked."
+          },
+          "retryFailed": "Retry failed students",
+          "keepPageOpen": "Keep this page open until correction finishes.",
+          "loadFailed": "Could not start correction: {message}",
+          "refreshFailed": "Correction results were retained, but refreshing the page data failed. Reload the results before continuing.",
+          "reload": "Reload results",
+          "confirm": "Auto-correct",
+          "close": "Close",
+          "noTargets": "No eligible submitted or late students in this scope.",
+          "studentFailure": "Student {student} — {stage}: {message}",
+          "stages": {
+            "answers": "Answer correction",
+            "review": "Complete review",
+            "sync": "Grade sync"
+          },
+          "unknownStudent": "Student details unavailable"
+        },
         "actions": {
           "refresh": "Refresh",
           "search": "Search",
@@ -7765,6 +7831,7 @@
           "open": "Auto-correct",
           "detailAction": "Auto-correct objective questions",
           "title": "Auto-correct submissions",
+          "scoringRule": "Multiple-choice points are split equally among correct options. Each selected correct option earns its share; each incorrect selection deducts the same share, with a minimum score of zero. Scores are rounded to two decimal places.",
           "cancel": "Close",
           "scope": {
             "all": "All submitted students",

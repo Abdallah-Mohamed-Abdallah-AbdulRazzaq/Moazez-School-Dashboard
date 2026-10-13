@@ -1,6 +1,7 @@
 import type { BackendSubmissionQuestionResponse } from "../../gradebook/types/api.types";
 import type { AssessmentQuestion } from "../../shared/types";
 import type { GradeSubmissionAnswer, GradeSubmissionDetail } from "../types";
+import { multipleChoiceScore } from "@/lib/grading/multipleChoiceScore";
 
 export type AutomaticCorrectionSkipReason =
   | "manual_question"
@@ -82,6 +83,10 @@ function scoreObjectiveAnswer(
   submissionAnswer: GradeSubmissionAnswer,
   definition: AssessmentQuestion,
 ): number | null {
+  if (definition.questionType === "MCQ_MULTI") {
+    return multipleChoiceScore({ points: definition.points, options: definition.options ?? [],
+      selectedOptionIds: submissionAnswer.selectedOptions.map(({ optionId }) => optionId) });
+  }
   const isCorrect = getObjectiveAnswerCorrectness(submissionAnswer, definition);
   if (isCorrect === null) return null;
   return isCorrect ? definition.points : 0;

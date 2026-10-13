@@ -59,6 +59,7 @@ import {
   validateHomeworkAnswerDraft,
   validateProspectiveAnswerScoreRollup,
 } from "@/features/academics/homework/utils/homeworkReview";
+import HomeworkAutomaticCorrectionDialog from "./HomeworkAutomaticCorrectionDialog";
 
 const REVIEW_NOTE_MAX_LENGTH = 2000;
 const SEARCH_MAX_LENGTH = 200;
@@ -161,6 +162,7 @@ export default function HomeworkSubmissionReviewPanel({
   const [isSavingSubmissionReview, setIsSavingSubmissionReview] =
     useState(false);
   const [isSyncingSubmission, setIsSyncingSubmission] = useState(false);
+  const [isAutoCorrecting, setIsAutoCorrecting] = useState(false);
   const [pendingSubmissionId, setPendingSubmissionId] = useState<string | null>(
     null,
   );
@@ -795,6 +797,7 @@ export default function HomeworkSubmissionReviewPanel({
 
   const requestSubmissionSelection = useCallback(
     (submissionId: string) => {
+      if (isAutoCorrecting) return;
       if (submissionId === selectedSubmissionId) return;
       if (hasUnsavedChanges) {
         setPendingSubmissionId(submissionId);
@@ -803,7 +806,7 @@ export default function HomeworkSubmissionReviewPanel({
       }
       selectSubmission(submissionId);
     },
-    [hasUnsavedChanges, selectSubmission, selectedSubmissionId],
+    [hasUnsavedChanges, isAutoCorrecting, selectSubmission, selectedSubmissionId],
   );
 
   const discardAndSelectSubmission = useCallback(() => {
@@ -1074,6 +1077,7 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const saveAnswerReview = async (answerId: string) => {
+    if (isAutoCorrecting) return;
     if (!selectedSubmissionId || !canManage || !answerReviewable) return;
     const answer = answers.find((item) => item.id === answerId);
     if (!answer || !isAnswerReviewDirty(answer)) return;
@@ -1132,6 +1136,7 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const saveAllReviews = async () => {
+    if (isAutoCorrecting) return;
     if (
       !selectedSubmissionId ||
       !canManage ||
@@ -1242,6 +1247,7 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const saveSubmissionReview = async () => {
+    if (isAutoCorrecting) return;
     if (
       !selectedSubmissionId ||
       !canSaveSubmissionReview ||
@@ -1269,6 +1275,7 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const syncSelectedSubmission = async () => {
+    if (isAutoCorrecting) return;
     if (!selectedSubmissionId || !canSyncSelectedSubmission) return;
     setIsSyncingSubmission(true);
     try {
@@ -1296,6 +1303,36 @@ export default function HomeworkSubmissionReviewPanel({
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
+      {canManage && hasPermission("homework.assignments.view") && (
+        <HomeworkAutomaticCorrectionDialog
+          context={{ homeworkId, assignmentStatus, isGraded, totalMarks: effectiveTotalMarks,
+            canManage, canViewSyncStatus: canViewGradeSyncStatus, canSync }}
+          filters={{ ...(statusFilter === "all" ? {} : { status: statusFilter }),
+            ...(appliedSearch.trim() ? { search: appliedSearch.trim() } : {}) }}
+          selectedSubmissionId={selectedSubmissionId}
+          canCorrectSelected={answerReviewable}
+          hasUnsavedChanges={hasUnsavedChanges}
+          blocked={hasUnsavedChanges || isLoadingDetail || isLoadingSubmissions || isBulkSaving || isSavingSubmissionReview || isSyncingSubmission || pendingAnswerId !== null}
+          onBusyChange={setIsAutoCorrecting}
+          onRefresh={async () => {
+            const [freshList, freshSubmission, freshAnswers, freshSync] = await Promise.all([
+              listHomeworkSubmissions(homeworkId, { page, limit, ...(statusFilter === "all" ? {} : { status: statusFilter }), ...(appliedSearch.trim() ? { search: appliedSearch.trim() } : {}) }),
+              selectedSubmissionId ? fetchHomeworkSubmission(homeworkId, selectedSubmissionId) : null,
+              selectedSubmissionId ? listHomeworkSubmissionAnswers(homeworkId, selectedSubmissionId) : null,
+              canViewGradeSyncStatus ? getHomeworkGradeSyncStatus(homeworkId) : null,
+            ]);
+            setSubmissions(freshList.items); setPagination(freshList.pagination);
+            setSelectedSubmissionId(current => current && freshList.items.some(submission => submission.id === current) ? current : freshList.items[0]?.id ?? null);
+            if (freshSubmission) updateSelectedSubmission(freshSubmission);
+            if (freshAnswers) {
+              setAnswers(freshAnswers);
+              setDrafts(Object.fromEntries(freshAnswers.map(answer => [answer.id, { score: scoreDraftValue(answer.score), feedback: answer.feedback ?? "" }])));
+            }
+            setGradeSyncStatus(freshSync);
+          }}
+        />
+      )}
+      <fieldset disabled={isAutoCorrecting} inert={isAutoCorrecting} className="min-w-0 space-y-4">
       <div className="grid gap-3 md:grid-cols-4">
         <SummaryCard
           label={t("summary.total")}
@@ -1897,6 +1934,7 @@ export default function HomeworkSubmissionReviewPanel({
           </div>
         )}
       </div>
+      </fieldset>
     </div>
   );
 }
