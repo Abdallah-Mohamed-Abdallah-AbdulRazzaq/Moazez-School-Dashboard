@@ -12,7 +12,6 @@ import {
   Clock,
   GraduationCap,
   Grid3x3,
-  Users,
 } from "lucide-react";
 import { Tabs, Tab } from "@mui/material";
 import type {
@@ -52,7 +51,7 @@ interface TeacherAllocationViewProps {
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
-  teacherRoleId: string;
+  hasTeacherDirectoryAccess: boolean;
   teacherAllocations: TeacherAllocation[];
   isLoading: boolean;
   apiError: string | null;
@@ -83,7 +82,7 @@ export default function TeacherAllocationView({
   subjects,
   subjectAllocations,
   teachers,
-  teacherRoleId,
+  hasTeacherDirectoryAccess,
   teacherAllocations,
   isLoading,
   apiError,
@@ -114,6 +113,15 @@ export default function TeacherAllocationView({
   const hasSubjectWeeklyHours = subjectAllocations.some(
     (subjectAllocation) => subjectAllocation.weeklyHours > 0,
   );
+
+  const loadTeachers = new Map(teachers.map((teacher) => [teacher.id, teacher]));
+  teacherAllocations.filter((allocation) => allocation.termId === termId).forEach((allocation) => {
+    if (!allocation.teacherId || loadTeachers.has(allocation.teacherId)) return;
+    const name = allocation.teacherName || t("matrix.assignedTeacherUnavailable");
+    loadTeachers.set(allocation.teacherId, {
+      id: allocation.teacherId, nameAr: name, nameEn: name, isActive: false,
+    });
+  });
 
   if (!canView) {
     return (
@@ -197,21 +205,6 @@ export default function TeacherAllocationView({
           />
         )}
 
-      {!isLoading &&
-        academicYearId &&
-        termId &&
-        grades.length > 0 &&
-        hasClassrooms &&
-        subjects.length > 0 &&
-        hasSubjectWeeklyHours &&
-        teachers.length === 0 && (
-          <AcademicModuleEmptyState
-            icon={Users}
-            title={tEmpty("no_teachers.title")}
-            description={tEmpty("no_teachers.description")}
-          />
-        )}
-
       {/* Main Content */}
       {!isLoading &&
         academicYearId &&
@@ -219,9 +212,13 @@ export default function TeacherAllocationView({
         grades.length > 0 &&
         hasClassrooms &&
         subjects.length > 0 &&
-        hasSubjectWeeklyHours &&
-        teachers.length > 0 && (
+        hasSubjectWeeklyHours && (
           <div className="flex-1 flex flex-col overflow-hidden">
+            {(!hasTeacherDirectoryAccess || !teachers.some((teacher) => teacher.isActive)) && (
+              <p role="status" className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-800">
+                {t(hasTeacherDirectoryAccess ? "matrix.noEligibleTeachers" : "matrix.teacherDirectoryAccessRequired")}
+              </p>
+            )}
             {/* Tabs */}
             <div className="bg-white border-b border-gray-200">
               <div className="max-w-[1400px] mx-auto px-2">
@@ -285,7 +282,6 @@ export default function TeacherAllocationView({
                   subjects={subjects}
                   subjectAllocations={subjectAllocations}
                   teachers={teachers}
-                  teacherRoleId={teacherRoleId}
                   teacherAllocations={teacherAllocations}
                   isReadOnly={isReadOnly}
                   onRefresh={onRefresh}
@@ -296,7 +292,7 @@ export default function TeacherAllocationView({
               {activeTab === "load" && (
                 <TeacherLoadView
                   termId={termId}
-                  teachers={teachers}
+                  teachers={Array.from(loadTeachers.values())}
                 />
               )}
             </div>
@@ -310,6 +306,11 @@ export default function TeacherAllocationView({
         termId={termId}
         gradeId={validationGradeId}
         subjectId={validationSubjectId}
+        ineligibleAssignmentCount={teacherAllocations.filter((allocation) =>
+          allocation.termId === termId && allocation.teacherEligibility?.eligible === false &&
+          (!validationSubjectId || allocation.subjectId === validationSubjectId) &&
+          (!validationGradeId || sections.some((section) => section.id === allocation.sectionId && section.gradeId === validationGradeId))
+        ).length}
       />
 
     </div>

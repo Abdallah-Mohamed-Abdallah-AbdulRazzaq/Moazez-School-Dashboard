@@ -52,6 +52,17 @@ describe("ValidationPanel", () => {
     vi.clearAllMocks();
   });
 
+  it("flags ineligible retained assignments even when backend coverage is complete", async () => {
+    mockedFetchTeacherAllocationValidation.mockResolvedValueOnce({
+      ...validationResponse,
+      summary: { ...validationResponse.summary, missingTeacherAssignments: 0 },
+      items: [],
+    });
+    render(<ValidationPanel open onClose={vi.fn()} termId="term-1" ineligibleAssignmentCount={5} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("ineligibleTeacherAssignments");
+    expect(screen.queryByText("noIssues")).not.toBeInTheDocument();
+  });
+
   it("loads backend validation with GET-backed filters when opened", async () => {
     mockedFetchTeacherAllocationValidation.mockResolvedValueOnce(validationResponse);
 

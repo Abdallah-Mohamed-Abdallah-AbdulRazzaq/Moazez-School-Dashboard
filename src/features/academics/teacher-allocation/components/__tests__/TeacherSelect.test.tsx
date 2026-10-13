@@ -1,162 +1,91 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiGet } from "@/lib/api";
+import { describe, expect, it, vi } from "vitest";
 import TeacherSelect from "../TeacherSelect";
-
-vi.mock("@/lib/api", () => ({
-  apiGet: vi.fn(),
-}));
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: () => (key: string) => key,
 }));
 
+const teacher = {
+  id: "teacher-user-1",
+  nameAr: "مريم علي",
+  nameEn: "Mariam Ali",
+  isActive: true,
+};
+
 describe("TeacherSelect", () => {
-  const getBoundingClientRect = vi.spyOn(
-    HTMLElement.prototype,
-    "getBoundingClientRect",
+  it.each([
+    ["Saved Teacher", "Saved Teacher"],
+    [undefined, "assignedTeacherUnavailable"],
+  ])(
+    "displays a retained assignee missing from candidates with name %s",
+    async (selectedTeacherName, label) => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(
+        <TeacherSelect
+          teachers={[]}
+          value="saved-teacher"
+          selectedTeacherName={selectedTeacherName}
+          onChange={onChange}
+        />,
+      );
+      expect(
+        screen.getByRole("button", { name: "selectTeacher" }),
+      ).toHaveTextContent(label);
+      await user.click(screen.getByRole("button", { name: "selectTeacher" }));
+      await user.click(screen.getByRole("button", { name: label }));
+      expect(onChange).not.toHaveBeenCalled();
+    },
   );
 
-  beforeAll(() => {
-    getBoundingClientRect.mockReturnValue(
-      DOMRect.fromRect({ x: 1, y: 1, width: 1, height: 1 }),
-    );
-  });
-
-  afterAll(() => getBoundingClientRect.mockRestore());
-
-  beforeEach(() => {
-    vi.mocked(apiGet).mockReset();
-  });
-
-  it("loads active teachers lazily after the dropdown opens", async () => {
-    const user = userEvent.setup();
-    vi.mocked(apiGet).mockResolvedValue({
-      items: [
-        {
-          id: "teacher-1",
-          fullName: "Teacher One",
-          email: "teacher@example.com",
-          loginEmail: "teacher@example.com",
-          roleId: "teacher-role",
-          status: "active",
-        },
-      ],
-      pagination: { page: 1, limit: 20, total: 1 },
-    });
-
-    render(
-      <TeacherSelect
-        teachers={[]}
-        teacherRoleId="teacher-role"
-        value={null}
-        onChange={vi.fn()}
-      />,
-    );
-
-    expect(apiGet).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("combobox"));
-
-    await waitFor(() =>
-      expect(apiGet).toHaveBeenCalledWith(
-        "/settings/users?page=1&limit=20&roleId=teacher-role&status=active",
-      ),
-    );
-    expect(await screen.findByText("Teacher One")).toBeVisible();
-  });
-
-  it("appends the next teacher page when the menu is scrolled to the end", async () => {
-    const user = userEvent.setup();
-    const firstPageTeachers = Array.from({ length: 20 }, (_, index) => ({
-      id: `teacher-${index + 1}`,
-      fullName: `Teacher ${index + 1}`,
-      email: `teacher-${index + 1}@example.com`,
-      loginEmail: `teacher-${index + 1}@example.com`,
-      roleId: "teacher-role",
-      status: "active",
-    }));
-    vi.mocked(apiGet)
-      .mockResolvedValueOnce({
-        items: firstPageTeachers,
-        pagination: { page: 1, limit: 20, total: 21 },
-      })
-      .mockResolvedValueOnce({
-        items: [
-          {
-            id: "teacher-21",
-            fullName: "Teacher 21",
-            email: "teacher-21@example.com",
-            loginEmail: "teacher-21@example.com",
-            roleId: "teacher-role",
-            status: "active",
-          },
-        ],
-        pagination: { page: 2, limit: 20, total: 21 },
-      });
-
-    render(
-      <TeacherSelect
-        teachers={[]}
-        teacherRoleId="teacher-role"
-        value={null}
-        onChange={vi.fn()}
-      />,
-    );
-
-    await user.click(screen.getByRole("combobox"));
-    expect(await screen.findByText("Teacher 20")).toBeVisible();
-
-    const scrollContainer = screen.getByRole("listbox").parentElement;
-    expect(scrollContainer).not.toBeNull();
-    Object.defineProperties(scrollContainer!, {
-      scrollHeight: { configurable: true, value: 320 },
-      scrollTop: { configurable: true, value: 280 },
-      clientHeight: { configurable: true, value: 40 },
-    });
-    fireEvent.scroll(scrollContainer!);
-
-    expect(await screen.findByText("Teacher 21")).toBeVisible();
-  });
-
-  it("allows the selected teacher to be removed", async () => {
+  it("searches both languages and preserves the canonical selected teacher label", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    vi.mocked(apiGet).mockResolvedValue({
-      items: [
-        {
-          id: "teacher-1",
-          fullName: "Teacher One",
-          email: "teacher@example.com",
-          loginEmail: "teacher@example.com",
-          roleId: "teacher-role",
-          status: "active",
-        },
-      ],
-      pagination: { page: 1, limit: 20, total: 1 },
-    });
-
-    render(
+    const teachers = [
+      teacher,
+      { id: "other-teacher", nameAr: "أحمد", nameEn: "Ahmed", isActive: true },
+    ];
+    const { rerender } = render(
+      <TeacherSelect teachers={teachers} value={null} onChange={onChange} />,
+    );
+    await user.click(screen.getByRole("button", { name: "selectTeacher" }));
+    await user.type(screen.getByPlaceholderText("searchTeacher"), "مريم");
+    expect(
+      screen.queryByRole("button", { name: "Ahmed" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Mariam Ali" }));
+    expect(onChange).toHaveBeenCalledWith("teacher-user-1");
+    rerender(
       <TeacherSelect
-        teachers={[
-          {
-            id: "teacher-1",
-            nameAr: "Teacher One",
-            nameEn: "Teacher One",
-            subjects: [],
-            isActive: true,
-          },
-        ]}
-        teacherRoleId="teacher-role"
-        value="teacher-1"
+        teachers={teachers}
+        value="teacher-user-1"
         onChange={onChange}
       />,
     );
+    expect(
+      screen.getByRole("button", { name: "selectTeacher" }),
+    ).toHaveTextContent("Mariam Ali");
+    expect(
+      screen.queryByPlaceholderText("searchTeacher"),
+    ).not.toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole("combobox"));
-    await user.click(await screen.findByText("noTeacher"));
-
+  it("allows a retained assignee to be cleared", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <TeacherSelect
+        teachers={[]}
+        value="saved-teacher"
+        selectedTeacherName="Saved Teacher"
+        onChange={onChange}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "selectTeacher" }));
+    await user.click(screen.getByRole("button", { name: "noTeacher" }));
     expect(onChange).toHaveBeenCalledWith(null);
   });
 });

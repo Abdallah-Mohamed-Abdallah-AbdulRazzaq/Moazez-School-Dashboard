@@ -1,5 +1,6 @@
 // Utility functions for teacher allocation
 
+import type { Teacher, TeacherAllocation } from "../services/teacherAllocationService";
 import type { AcademicYear, Term } from "@/features/academics/academic-structure-tree/services/structureService";
 
 export function findSelectedYear(
@@ -29,4 +30,19 @@ export function buildURLParams(yearId: string, termId: string): string {
   params.set("year", yearId);
   params.set("term", termId);
   return params.toString();
+}
+
+export function annotateTeacherEligibility(
+  allocations: TeacherAllocation[],
+  teachers: Teacher[],
+): TeacherAllocation[] {
+  const eligibleIds = new Set(teachers.filter((teacher) => teacher.isActive).map((teacher) => teacher.id));
+  return allocations.map((allocation) => ({
+    ...allocation,
+    teacherEligibility: allocation.teacherId
+      ? eligibleIds.has(allocation.teacherId)
+        ? { eligible: true }
+        : { eligible: false, reasonCode: "teacher_not_eligible" }
+      : undefined,
+  }));
 }

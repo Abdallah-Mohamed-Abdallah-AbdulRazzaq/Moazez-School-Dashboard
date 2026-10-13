@@ -3,6 +3,8 @@
 
 "use client";
 
+import { annotateTeacherEligibility } from "../utils/teacherAllocationHelpers";
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
@@ -51,6 +53,7 @@ export default function TeacherAllocationContainer() {
   const { hasPermission } = usePermissions();
   const canView = hasPermission("academics.structure.view");
   const canManage = hasPermission("academics.structure.manage");
+  const hasTeacherDirectoryAccess = hasPermission("teachers.records.view");
 
   // Context data
   const [stages, setStages] = useState<Stage[]>([]);
@@ -60,7 +63,6 @@ export default function TeacherAllocationContainer() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [teacherRoleId, setTeacherRoleId] = useState("");
   const [teacherAllocations, setTeacherAllocations] = useState<TeacherAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(canView);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -80,7 +82,7 @@ export default function TeacherAllocationContainer() {
   );
 
   const isTermClosed = termStatus === "closed";
-  const isReadOnly = isTermClosed || !canManage;
+  const isReadOnly = isTermClosed || !canManage || !hasTeacherDirectoryAccess;
 
   const loadTeacherAllocationData = useCallback(async () => {
     if (!canView) {
@@ -107,7 +109,7 @@ export default function TeacherAllocationContainer() {
         fetchStructureTree(academicYearId, termId),
         fetchSubjects(),
         fetchSubjectAllocations(termId),
-        fetchTeacherDirectory(),
+        hasTeacherDirectoryAccess ? fetchTeacherDirectory() : Promise.resolve({ teachers: [] }),
         fetchTeacherAllocations(termId),
       ]);
 
@@ -118,8 +120,9 @@ export default function TeacherAllocationContainer() {
       setSubjects(subjectsData);
       setSubjectAllocations(subjectAllocsData);
       setTeachers(teacherDirectory.teachers);
-      setTeacherRoleId(teacherDirectory.roleId);
-      setTeacherAllocations(teacherAllocsData);
+      setTeacherAllocations(hasTeacherDirectoryAccess
+        ? annotateTeacherEligibility(teacherAllocsData, teacherDirectory.teachers)
+        : teacherAllocsData);
       setValidationSummary(null);
       setTeacherLoads(null);
       clearDirty();
@@ -134,7 +137,7 @@ export default function TeacherAllocationContainer() {
     } finally {
       setIsLoading(false);
     }
-  }, [academicYearId, canView, clearDirty, termId]);
+  }, [academicYearId, canView, clearDirty, hasTeacherDirectoryAccess, termId]);
 
   // Load data when year/term changes
   useEffect(() => {
@@ -177,12 +180,16 @@ export default function TeacherAllocationContainer() {
     setApiError(null);
     setApiErrorTraceId(undefined);
     try {
-      const [subjectAllocsData, teacherAllocsData] = await Promise.all([
+      const [subjectAllocsData, teacherAllocsData, teacherDirectory] = await Promise.all([
         fetchSubjectAllocations(termId),
         fetchTeacherAllocations(termId),
+        hasTeacherDirectoryAccess ? fetchTeacherDirectory() : Promise.resolve({ teachers: [] }),
       ]);
       setSubjectAllocations(subjectAllocsData);
-      setTeacherAllocations(teacherAllocsData);
+      setTeachers(teacherDirectory.teachers);
+      setTeacherAllocations(hasTeacherDirectoryAccess
+        ? annotateTeacherEligibility(teacherAllocsData, teacherDirectory.teachers)
+        : teacherAllocsData);
       setValidationSummary(null);
       setTeacherLoads(null);
       clearDirty();
@@ -237,7 +244,7 @@ export default function TeacherAllocationContainer() {
       subjects={subjects}
       subjectAllocations={subjectAllocations}
       teachers={teachers}
-      teacherRoleId={teacherRoleId}
+      hasTeacherDirectoryAccess={hasTeacherDirectoryAccess}
       teacherAllocations={teacherAllocations}
       isLoading={isLoading}
       apiError={apiError}

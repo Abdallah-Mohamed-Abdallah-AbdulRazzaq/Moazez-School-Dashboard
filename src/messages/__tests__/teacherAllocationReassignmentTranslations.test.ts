@@ -74,5 +74,10 @@ describe("teacher allocation reassignment translations", () => {
     expect(messages.academics.teacherAllocation.actions.saveSuccess).toEqual(
       expect.any(String),
     );
+
+    for (const key of ["needsReassignment", "teacherDirectoryAccessRequired", "noEligibleTeachers"] as const) {
+      expect(messages.academics.teacherAllocation.matrix[key]).toEqual(expect.any(String));
+    }
+    expect(messages.academics.teacherAllocation.validation.ineligibleTeacherAssignments).toContain("{count}");
   });
 });

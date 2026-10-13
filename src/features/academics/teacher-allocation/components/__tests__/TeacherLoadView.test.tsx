@@ -150,7 +150,7 @@ describe("TeacherLoadView", () => {
     fireEvent.click(screen.getByRole("button", { name: "next_page" }));
     expect(screen.getByRole("heading", { name: "Teacher 11" })).toBeInTheDocument();
 
-    navigation.query = "loadTeacher=teacher-user-1";
+    navigation.query = "loadTeacher=teacher-1";
     rerender(<TeacherLoadView termId="term-1" teachers={teachers} />);
 
     expect(await screen.findByRole("heading", { name: "Teacher 1" })).toBeInTheDocument();
@@ -191,7 +191,6 @@ describe("TeacherLoadView", () => {
     await waitFor(() => {
       expect(mockedFetchTeacherLoads).toHaveBeenCalledWith({
         termId: "term-1",
-        teacherUserId: undefined,
       });
     });
     expect(await screen.findByRole("heading", { name: "Teacher One" })).toBeInTheDocument();

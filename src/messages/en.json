@@ -6546,6 +6546,10 @@
         },
         "missingCount": "Missing",
         "selectTeacher": "Select teacher",
+        "assignedTeacherUnavailable": "Assigned teacher unavailable",
+        "needsReassignment": "Teacher is currently ineligible; reassignment required",
+        "teacherDirectoryAccessRequired": "Saved assignments are available. Selecting teachers requires permission to view teacher records.",
+        "noEligibleTeachers": "No eligible teachers are currently available. Saved assignments and teacher loads remain available for review.",
         "searchTeacher": "Search teacher...",
         "noTeacher": "No teacher assigned",
         "currentLoad": "{periods}/wk",
@@ -6623,6 +6627,7 @@
         "noTeachers": "No teachers found"
       },
       "validation": {
+        "ineligibleTeacherAssignments": "{count} assignments have a currently ineligible teacher. Review and reassign these assignments.",
         "title": "Validation Results",
         "summary": {
           "missingAssignments": "Missing Assignments",
