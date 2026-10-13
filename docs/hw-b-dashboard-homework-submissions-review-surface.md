@@ -7,6 +7,20 @@
 
 ---
 
+## Homework auto-correction (October 13, 2026)
+
+The review panel now offers **Auto-correct student** and **Auto-correct homework** to users with submission viewing, assignment viewing, and assignment management permissions. Bulk correction targets either all eligible submissions or eligible submissions matching the applied filters, across every matching page. It includes submitted and late work for published or closed homework and skips students without a submission.
+
+Correction awards full or zero points for single choice, multiple choice (exact selection set), and true/false. Repeat runs recalculate existing objective scores and preserve teacher feedback and submission notes. Existing blank objective answer records receive zero; missing records cannot be reviewed through the existing API and remain pending. Unreviewed written answers and invalid question/answer data also remain pending. Previously reviewed written answers can satisfy completion when their scores are valid.
+
+After saving scores, correction reloads answers and completes the submission review only when every assigned question, including optional questions, has a valid reviewed answer. Graded homework then syncs its grade when the homework is linked to an unlocked assessment and the user has gradebook viewing and management permissions. Ungraded homework finishes review without sync. Missing links, insufficient permissions, locks and sync failures retain the completed review and show a separate outcome. Link an unlinked homework through the existing Grade sync panel, then sync its reviewed submissions.
+
+The correction dialog shows confirmation scope, eligible count, progress, corrected answers, completed reviews, synced grades, pending work, skipped students and failures. Unsaved edits must be saved or discarded first. Conflicting panel controls are disabled during correction; keep the page open until it finishes. Individual failures do not stop other students, and Retry failed students resumes the unfinished stage. A sync failure after review completion retries synchronization without rewriting answers or repeating the final review.
+
+The implementation uses the existing question-read, answer-review, submission-review and grade-sync routes. It adds no backend endpoint and performs no automatic gradebook linking.
+
+---
+
 ## 1. Purpose of This Delta
 
 This document covers only the HW-B delta added by commit `5feab2c3840a3380981f180566006ac8246b30b2`.
