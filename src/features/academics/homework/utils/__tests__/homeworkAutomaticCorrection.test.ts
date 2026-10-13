@@ -19,6 +19,29 @@ const answer: HomeworkSubmissionAnswerUiModel = {
 
 describe("homework objective correction", () => {
   it.each([
+    { selectedOptionIds: ["a", "b"], expected: 5 },
+    { selectedOptionIds: ["b", "a"], expected: 5 },
+    { selectedOptionIds: ["a"], expected: 0 },
+    { selectedOptionIds: ["a", "b", "c"], expected: 0 },
+    { selectedOptionIds: ["c"], expected: 0 },
+    { selectedOptionIds: [], expected: 0 },
+  ])("all-or-nothing gives $expected for multiple selections $selectedOptionIds", ({ selectedOptionIds, expected }) => {
+    const multi = { ...question, questionType: "MCQ_MULTI" as const, points: 5, options: [
+      ...question.options!.map(option => ({ ...option, isCorrect: true })),
+      { id: "c", textEn: "C", textAr: "ج", order: 2, isCorrect: false },
+    ] };
+    const studentAnswer = { ...answer, selectedOptionIds };
+    expect(buildHomeworkAutomaticCorrectionPlan([multi], [studentAnswer], "all_or_nothing")).toEqual({
+      reviews: [{ answerId: answer.id, questionId: question.id, score: expected }], unresolved: [], correctedCount: 1,
+    });
+    expect(isHomeworkCorrectionComplete([multi], [{ ...studentAnswer, score: expected, reviewedAt: "today" }], "all_or_nothing")).toBe(true);
+  });
+  it.each([{ selectedOptionIds: ["a", "a"] }, { selectedOptionIds: ["unknown"] }])("all-or-nothing rejects invalid selections $selectedOptionIds", ({ selectedOptionIds }) => {
+    const multi = { ...question, questionType: "MCQ_MULTI" as const };
+    expect(buildHomeworkAutomaticCorrectionPlan([multi], [{ ...answer, selectedOptionIds }], "all_or_nothing").unresolved)
+      .toEqual([{ questionId: question.id, reason: "invalid_definition" }]);
+  });
+  it.each([
     { trueText: "صح", falseText: "خطأ", trueOrder: 1, falseOrder: 2, correctAnswer: false },
     { trueText: "صح", falseText: "خطأ", trueOrder: 2, falseOrder: 1, correctAnswer: true },
     { trueText: " True ", falseText: "FALSE", trueOrder: 1, falseOrder: 0, correctAnswer: false },

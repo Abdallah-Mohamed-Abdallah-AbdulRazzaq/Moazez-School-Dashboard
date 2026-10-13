@@ -1,4 +1,5 @@
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
+import type { MultipleSelectionScoringPolicy } from "@/lib/grading/multipleChoiceScore";
 import type { HomeworkAssignmentStatus, HomeworkSubmissionAnswerUiModel, HomeworkSubmissionUiModel } from "./homeworkApi.types";
 import { buildHomeworkAutomaticCorrectionPlan, isHomeworkCorrectionComplete, type HomeworkCorrectionPlan } from "../utils/homeworkAutomaticCorrection";
 import { buildHomeworkSubmissionReviewRequest, calculateAnswerScoreRollup, chunkHomeworkAnswerReviews, isHomeworkAnswerReviewable, validateProspectiveAnswerScoreRollup } from "../utils/homeworkReview";
@@ -16,6 +17,7 @@ export interface HomeworkCorrectionContext {
   canSync: boolean;
   questions: readonly AssignmentQuestion[];
   reviewMode?: HomeworkCorrectionReviewMode;
+  scoringPolicy?: MultipleSelectionScoringPolicy;
 }
 export interface HomeworkCorrectionResult {
   submissionId: string;
@@ -87,15 +89,15 @@ export async function executeHomeworkAutomaticCorrection(
     if (!context.questions.length || !isHomeworkAnswerReviewable(context.assignmentStatus, submission.status)) return outcome;
     if (resumeFrom === "sync") throw new Error("Submission is no longer reviewed");
     const answers = await listHomeworkSubmissionAnswers(context.homeworkId, submissionId);
-    const plan = buildHomeworkAutomaticCorrectionPlan(context.questions, answers);
+    const plan = buildHomeworkAutomaticCorrectionPlan(context.questions, answers, context.scoringPolicy);
     outcome = { ...outcome, plan };
     if (stage === "answers") await saveAutomaticScores(context, submissionId, answers, plan);
     stage = "review";
     const refreshedAnswers = await listHomeworkSubmissionAnswers(context.homeworkId, submissionId);
     submission = await fetchHomeworkSubmission(context.homeworkId, submissionId);
-    const refreshedPlan = buildHomeworkAutomaticCorrectionPlan(context.questions, refreshedAnswers);
+    const refreshedPlan = buildHomeworkAutomaticCorrectionPlan(context.questions, refreshedAnswers, context.scoringPolicy);
     outcome = { ...outcome, plan: { ...refreshedPlan, correctedCount: plan.correctedCount } };
-    if (!isHomeworkCorrectionComplete(context.questions, refreshedAnswers)) return { ...outcome, outcome: "manual_pending" };
+    if (!isHomeworkCorrectionComplete(context.questions, refreshedAnswers, context.scoringPolicy)) return { ...outcome, outcome: "manual_pending" };
     if (context.reviewMode === "review_first") return { ...outcome, outcome: "review_pending" };
     await finishAutomaticReview(context, submission, refreshedAnswers);
     outcome = { ...outcome, reviewCompleted: true };

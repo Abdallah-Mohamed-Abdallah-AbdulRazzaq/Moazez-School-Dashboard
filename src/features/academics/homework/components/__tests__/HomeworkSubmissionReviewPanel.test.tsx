@@ -165,6 +165,7 @@ describe("HomeworkSubmissionReviewPanel backend workflow", () => {
     render(<HomeworkSubmissionReviewPanel homeworkId="homework-1" totalMarks={10} assignmentStatus="published" isGraded />);
     await waitFor(() => expect(screen.getByRole("button", { name: "singleAction" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    fireEvent.click(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ }));
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled());
     expect(screen.getByText("completedReviews").parentElement).toHaveTextContent("0");

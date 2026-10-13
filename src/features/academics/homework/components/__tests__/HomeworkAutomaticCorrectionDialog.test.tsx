@@ -16,6 +16,9 @@ function renderControls(overrides = {}) {
     selectedSubmissionId="s" canCorrectSelected hasUnsavedChanges={false} blocked={false}
     filters={{ search: "Ali" }} onRefresh={onRefresh} onBusyChange={onBusyChange} {...overrides} />);
 }
+function choosePartialCreditPolicy() {
+  fireEvent.click(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ }));
+}
 beforeEach(() => {
   vi.resetAllMocks(); reviewed = false; status = "submitted";
   vi.mocked(apiGet).mockImplementation(async path => {
@@ -32,11 +35,53 @@ beforeEach(() => {
 });
 
 describe("homework auto-correction controls", () => {
+  it.each([
+    { action: "singleAction", policy: "all_or_nothing", expectedScore: 0 },
+    { action: "bulkAction", policy: "all_or_nothing", expectedScore: 0 },
+    { action: "singleAction", policy: "partial_with_penalty", expectedScore: 2.5 },
+    { action: "bulkAction", policy: "partial_with_penalty", expectedScore: 2.5 },
+  ])("applies $policy through $action, retries and finalization", async ({ action, policy, expectedScore }) => {
+    let savedScore: number | null = null;
+    const originalGet = vi.mocked(apiGet).getMockImplementation()!;
+    vi.mocked(apiGet).mockImplementation(async (path, options) => {
+      if (path.endsWith("/questions")) return { items: [{ questionId: "q", homeworkId: "hw", type: "multiple_choice", prompt: "Q", points: 5, sortOrder: 0, isRequired: true, createdAt: "today", updatedAt: "today", options: [
+        { optionId: "correct", text: "A", isCorrect: true, sortOrder: 0 },
+        { optionId: "other", text: "B", isCorrect: true, sortOrder: 1 },
+        { optionId: "wrong", text: "C", isCorrect: false, sortOrder: 2 },
+      ] }] } as never;
+      if (path.endsWith("/answers")) return { items: [{ answerId: "answer", questionId: "q", selectedOptionIds: ["correct"], awardedPoints: savedScore, reviewedAt: savedScore === null ? null : "today" }] } as never;
+      return originalGet(path, options);
+    });
+    vi.mocked(apiPut).mockRejectedValueOnce(new Error("offline")).mockImplementation(async (_path, payload) => {
+      savedScore = (payload as { answers: { awardedPoints: number }[] }).answers[0].awardedPoints;
+      return { items: [] } as never;
+    });
+    renderControls({ context: { homeworkId: "hw", assignmentStatus: "published", isGraded: true, totalMarks: 5, canManage: true, canViewSyncStatus: true, canSync: true } });
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`policies.${policy}.title`) }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "confirm" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "retryFailed" })).toBeEnabled());
+    expect(screen.queryByRole("button", { name: /policies.*.title/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "retryFailed" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled());
+    expect(savedScore).toBe(expectedScore);
+    expect(status).toBe("submitted");
+    fireEvent.click(screen.getByRole("button", { name: "finalize" }));
+    await waitFor(() => expect(screen.getByText("completedReviews").parentElement).toHaveTextContent("1"));
+    expect(screen.getByText("syncedGrades").parentElement).toHaveTextContent("1");
+    expect(savedScore).toBe(expectedScore);
+    expect(apiPut).toHaveBeenCalledTimes(2);
+  });
   it.each(["singleAction", "bulkAction"])("saves scores through %s and finalizes only after the reviewer chooses", async action => {
     renderControls();
     fireEvent.click(screen.getByRole("button", { name: action }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(apiPut).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /policies.all_or_nothing.title/ })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ })).toHaveAttribute("aria-pressed", "false");
+    choosePartialCreditPolicy();
     await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled());
@@ -54,6 +99,7 @@ describe("homework auto-correction controls", () => {
   it("returns to the answers for review without finalizing or syncing saved scores", async () => {
     renderControls();
     fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    choosePartialCreditPolicy();
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "reviewFirst" })).toBeEnabled());
     expect(screen.getByText("readyForReview").parentElement).toHaveTextContent("1");
@@ -61,11 +107,15 @@ describe("homework auto-correction controls", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(reviewed).toBe(true); expect(status).toBe("submitted");
     expect(apiPatch).not.toHaveBeenCalled(); expect(apiPost).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /policies.partial_with_penalty.title/ })).toHaveAttribute("aria-pressed", "false");
   });
   it("shows sync failure and retries only sync after review completion", async () => {
     vi.mocked(apiPost).mockRejectedValueOnce(new Error("offline"));
     renderControls();
     fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    choosePartialCreditPolicy();
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "finalize" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "finalize" }));
@@ -86,6 +136,7 @@ describe("homework auto-correction controls", () => {
   it("loads the bulk filtered scope before enabling confirmation", async () => {
     renderControls();
     fireEvent.click(screen.getByRole("button", { name: "bulkAction" }));
+    choosePartialCreditPolicy();
     await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
     expect(apiGet).toHaveBeenCalledWith("/homework/assignments/hw/submissions", { params: { page: 1, limit: 100, search: "Ali" } });
     expect(apiPut).not.toHaveBeenCalled();
@@ -95,6 +146,7 @@ describe("homework auto-correction controls", () => {
     renderControls();
     fireEvent.click(screen.getByRole("button", { name: "bulkAction" }));
     await waitFor(() => expect(screen.getByText("emptyTitle")).toBeInTheDocument());
+    choosePartialCreditPolicy();
     expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "checkAll" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
@@ -106,6 +158,7 @@ describe("homework auto-correction controls", () => {
     onRefresh.mockRejectedValueOnce(new Error("reload offline"));
     renderControls();
     fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    choosePartialCreditPolicy();
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
     await waitFor(() => expect(screen.getByText("refreshFailed")).toBeInTheDocument());
     expect(screen.getByText("correctedAnswers").parentElement).toHaveTextContent("1");
@@ -120,6 +173,7 @@ describe("homework auto-correction controls", () => {
     vi.mocked(apiGet).mockImplementation(async (path, options) => path.endsWith("/answers") ? { items: [] } as never : originalGet(path, options));
     renderControls();
     fireEvent.click(screen.getByRole("button", { name: "singleAction" }));
+    choosePartialCreditPolicy();
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
     await waitFor(() => expect(screen.getByText("missingAnswers").parentElement).toHaveTextContent("1"));
     expect(screen.getByText("pendingStudents").parentElement).toHaveTextContent("1");

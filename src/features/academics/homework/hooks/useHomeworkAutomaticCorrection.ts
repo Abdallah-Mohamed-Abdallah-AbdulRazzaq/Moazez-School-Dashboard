@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { MultipleSelectionScoringPolicy } from "@/lib/grading/multipleChoiceScore";
 import type { HomeworkSubmissionListFilters } from "../services/homeworkApi.types";
 import { listHomeworkQuestions } from "../services/homeworkService";
 import { collectHomeworkCorrectionTargets, runHomeworkAutomaticCorrectionBatch, type HomeworkCorrectionProgress, type HomeworkCorrectionScope } from "../services/homeworkAutomaticCorrectionBatch";
 import type { HomeworkCorrectionContext, HomeworkCorrectionResult, HomeworkCorrectionReviewMode, HomeworkCorrectionStage } from "../services/homeworkAutomaticCorrectionExecution";
 
 export interface HomeworkAutomaticCorrectionOptions {
-  context: Omit<HomeworkCorrectionContext, "questions" | "reviewMode">;
+  context: Omit<HomeworkCorrectionContext, "questions" | "reviewMode" | "scoringPolicy">;
   filters: HomeworkSubmissionListFilters;
   blocked: boolean;
   onBusyChange: (busy: boolean) => void;
@@ -25,6 +26,7 @@ export function useHomeworkAutomaticCorrection(options: HomeworkAutomaticCorrect
   const [outcomes, setOutcomes] = useState<HomeworkCorrectionResult[]>([]);
   const [error, setError] = useState<unknown>(null);
   const [refreshFailed, setRefreshFailed] = useState(false);
+  const [scoringPolicy, setScoringPolicy] = useState<MultipleSelectionScoringPolicy | null>(null);
   const lock = useRef(false);
   const mounted = useRef(true);
   const targetRequest = useRef(0);
@@ -59,6 +61,7 @@ export function useHomeworkAutomaticCorrection(options: HomeworkAutomaticCorrect
     if (lock.current || options.blocked) return;
     scopeFilters.current = { ...options.filters };
     finalizationTargets.current.clear();
+    setScoringPolicy(null);
     setSingleSubmissionId(submissionId ?? null); setOutcomes([]); setProgress(null);
     setError(null); setRefreshFailed(false); setIsOpen(true);
     if (submissionId) { targetRequest.current += 1; setIsLoadingTargets(false); setTargets([submissionId]); }
@@ -71,7 +74,7 @@ export function useHomeworkAutomaticCorrection(options: HomeworkAutomaticCorrect
   };
 
   const runCorrection = async (retryStages?: Record<string, HomeworkCorrectionStage>) => {
-    if (lock.current || options.blocked || isLoadingTargets) return;
+    if (lock.current || options.blocked || isLoadingTargets || !scoringPolicy) return;
     const submissionIds = retryStages ? Object.keys(retryStages) : targets;
     if (!submissionIds.length) return;
     lock.current = true; setIsRunning(true); options.onBusyChange(true);
@@ -79,7 +82,7 @@ export function useHomeworkAutomaticCorrection(options: HomeworkAutomaticCorrect
     try {
       const questions = await listHomeworkQuestions(options.context.homeworkId);
       const completed = await runHomeworkAutomaticCorrectionBatch({
-        context: { ...options.context, questions, reviewMode: "review_first" }, submissionIds, retryStages,
+        context: { ...options.context, questions, reviewMode: "review_first", scoringPolicy }, submissionIds, retryStages,
         reviewModes: Object.fromEntries(submissionIds.map(submissionId => [submissionId,
           finalizationTargets.current.has(submissionId) ? "finalize" : "review_first"])) as Record<string, HomeworkCorrectionReviewMode>,
         onProgress: nextProgress => { if (mounted.current) setProgress(nextProgress); },
@@ -111,6 +114,9 @@ export function useHomeworkAutomaticCorrection(options: HomeworkAutomaticCorrect
     void runCorrection(stages);
   };
   const close = () => { if (!lock.current) { targetRequest.current += 1; setIsOpen(false); } };
+  const selectScoringPolicy = (policy: MultipleSelectionScoringPolicy) => {
+    if (!lock.current && !outcomes.length) setScoringPolicy(policy);
+  };
   return { isOpen, scope, singleSubmissionId, targets, isLoadingTargets, isRunning, progress, outcomes, error, refreshFailed,
-    openCorrection, loadTargets, runCorrection, finalizeCorrection, retryFailed, refresh, close };
+    scoringPolicy, selectScoringPolicy, openCorrection, loadTargets, runCorrection, finalizeCorrection, retryFailed, refresh, close };
 }
