@@ -1,6 +1,7 @@
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { HomeworkSubmissionAnswerUiModel } from "../services/homeworkApi.types";
 import { multipleChoiceScore } from "@/lib/grading/multipleChoiceScore";
+import { trueFalseOptionValue } from "@/lib/grading/trueFalseOptionValue";
 
 export type HomeworkCorrectionReason = "manual_question" | "missing_answer_record" | "invalid_definition";
 export interface HomeworkCorrectionPlan {
@@ -24,10 +25,7 @@ function validAssociations(questions: readonly AssignmentQuestion[], answers: re
 }
 
 function booleanOption(option: NonNullable<AssignmentQuestion["options"]>[number]) {
-  const label = (option.textEn || option.textAr).trim().toLowerCase();
-  if (["true", "صحيح", "صح"].includes(label)) return true;
-  if (["false", "خطأ", "خاطئ"].includes(label)) return false;
-  return null;
+  return trueFalseOptionValue(option.textEn || option.textAr);
 }
 
 function validObjectiveKey(question: AssignmentQuestion) {

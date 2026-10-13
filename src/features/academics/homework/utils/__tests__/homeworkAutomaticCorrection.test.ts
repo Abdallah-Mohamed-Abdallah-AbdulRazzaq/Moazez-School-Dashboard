@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { HomeworkSubmissionAnswerUiModel } from "../../services/homeworkApi.types";
+import { mapBackendHomeworkQuestionToBuilder } from "../../services/homeworkMappers";
 import { buildHomeworkAutomaticCorrectionPlan, isHomeworkCorrectionComplete } from "../homeworkAutomaticCorrection";
 
 const question: AssignmentQuestion = {
@@ -17,6 +18,29 @@ const answer: HomeworkSubmissionAnswerUiModel = {
 };
 
 describe("homework objective correction", () => {
+  it.each([
+    { trueText: "صح", falseText: "خطأ", trueOrder: 1, falseOrder: 2, correctAnswer: false },
+    { trueText: "صح", falseText: "خطأ", trueOrder: 2, falseOrder: 1, correctAnswer: true },
+    { trueText: " True ", falseText: "FALSE", trueOrder: 1, falseOrder: 0, correctAnswer: false },
+    { trueText: "صحيح", falseText: "خاطئ", trueOrder: 4, falseOrder: 8, correctAnswer: true },
+  ])("corrects backend true/false answers by labels regardless of option order ($trueText, $trueOrder, $correctAnswer)", ({ trueText, falseText, trueOrder, falseOrder, correctAnswer }) => {
+    const mapped = mapBackendHomeworkQuestionToBuilder({
+      questionId: "q1", homeworkId: "hw1", type: "true_false",
+      prompt: "Question", points: 1, sortOrder: 3, isRequired: true,
+      options: [
+        { optionId: "false", questionId: "q1", text: falseText, isCorrect: !correctAnswer, sortOrder: falseOrder },
+        { optionId: "true", questionId: "q1", text: trueText, isCorrect: correctAnswer, sortOrder: trueOrder },
+      ], createdAt: "", updatedAt: "",
+    });
+    const studentAnswer = { ...answer, selectedOptionIds: ["false"] };
+    const score = correctAnswer ? 0 : 1;
+
+    expect(mapped.correctAnswer).toBe(correctAnswer);
+    expect(buildHomeworkAutomaticCorrectionPlan([mapped], [studentAnswer])).toEqual({
+      reviews: [{ answerId: answer.id, questionId: "q1", score }], unresolved: [], correctedCount: 1,
+    });
+    expect(isHomeworkCorrectionComplete([mapped], [{ ...studentAnswer, score, reviewedAt: "2026-10-13" }])).toBe(true);
+  });
   it.each([
     [["a"], 2], [["b"], 0], [[], 0], [["a", "b"], 0],
   ])("awards full or zero points for selection %j", (selectedOptionIds, score) => {
