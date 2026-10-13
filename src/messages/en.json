@@ -6091,7 +6091,7 @@
             "all": "All eligible homework submissions",
             "filtered": "Eligible submissions matching current filters"
           },
-          "explanation": "Grades single choice, multiple choice and true/false with full or zero points. Existing objective scores are recalculated; teacher feedback is preserved. Blank answer records receive zero. Missing answers and unreviewed written questions need manual handling. Fully corrected submissions are reviewed and grades synced when a link and permissions are available.",
+          "explanation": "Single choice and true/false earn full or zero points. Multiple-choice points are split equally across the correct options; each selected correct option earns its share, with no deduction for incorrect selections. Fractional scores are rounded to two decimal places. Existing objective scores are recalculated; teacher feedback is preserved. Blank answer records receive zero. Missing answers and unreviewed written questions need manual handling. Fully corrected submissions are reviewed and grades synced when a link and permissions are available.",
           "unsavedEdits": "Save or discard your edits before auto-correction.",
           "eligibleCount": "{count} eligible students",
           "loadingTargets": "Loading eligible students…",
@@ -7810,6 +7810,7 @@
           "open": "Auto-correct",
           "detailAction": "Auto-correct objective questions",
           "title": "Auto-correct submissions",
+          "scoringRule": "Multiple-choice points are split equally among correct options. Each selected correct option earns its share; incorrect selections do not deduct points. Scores are rounded to two decimal places.",
           "cancel": "Close",
           "scope": {
             "all": "All submitted students",

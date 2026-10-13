@@ -1,5 +1,6 @@
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { HomeworkSubmissionAnswerUiModel } from "../services/homeworkApi.types";
+import { multipleChoiceScore } from "@/lib/grading/multipleChoiceScore";
 
 export type HomeworkCorrectionReason = "manual_question" | "missing_answer_record" | "invalid_definition";
 export interface HomeworkCorrectionPlan {
@@ -34,7 +35,6 @@ function validObjectiveKey(question: AssignmentQuestion) {
   const correct = options.filter(option => option.isCorrect);
   if (!options.length || options.some(option => !option.id)
     || new Set(options.map(option => option.id)).size !== options.length) return false;
-  if (question.questionType === "MCQ_MULTI") return correct.length > 0;
   if (correct.length !== 1) return false;
   if (question.questionType !== "TRUE_FALSE") return true;
   const labels = options.map(booleanOption);
@@ -44,6 +44,9 @@ function validObjectiveKey(question: AssignmentQuestion) {
 }
 
 function objectiveScore(question: AssignmentQuestion, answer: HomeworkSubmissionAnswerUiModel): number | null {
+  if (question.questionType === "MCQ_MULTI") {
+    return multipleChoiceScore({ points: question.points, options: question.options ?? [], selectedOptionIds: answer.selectedOptionIds ?? [] });
+  }
   if (!validObjectiveKey(question)) return null;
   const selectedIds = answer.selectedOptionIds ?? [];
   const options = question.options!;

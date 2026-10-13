@@ -30,13 +30,27 @@ describe("homework objective correction", () => {
   });
   it.each([
     { selectedOptionIds: ["a", "b"], score: 2 }, { selectedOptionIds: ["b", "a"], score: 2 },
-    { selectedOptionIds: ["a"], score: 0 }, { selectedOptionIds: ["a", "b", "c"], score: 0 },
-  ])("uses exact multiple-choice sets for $selectedOptionIds", ({ selectedOptionIds, score }) => {
+    { selectedOptionIds: ["a"], score: 1 }, { selectedOptionIds: ["a", "b", "c"], score: 2 },
+    { selectedOptionIds: ["c"], score: 0 }, { selectedOptionIds: [], score: 0 },
+  ])("awards credit for correct choices without deductions for $selectedOptionIds", ({ selectedOptionIds, score }) => {
     const multi = { ...question, questionType: "MCQ_MULTI" as const, options: [
       ...question.options!.map(option => ({ ...option, isCorrect: true })),
       { id: "c", textEn: "C", textAr: "ج", order: 2, isCorrect: false },
     ] };
     expect(buildHomeworkAutomaticCorrectionPlan([multi], [{ ...answer, selectedOptionIds }]).reviews[0].score).toBe(score);
+  });
+  it.each([
+    { points: 3, selectedOptionIds: ["a", "b"], expected: 2 },
+    { points: 1, selectedOptionIds: ["a"], expected: 0.33 },
+    { points: 1, selectedOptionIds: ["a", "b"], expected: 0.67 },
+  ])("rounds partial homework marks to $expected for $selectedOptionIds", ({ points, selectedOptionIds, expected }) => {
+    const multi = { ...question, points, questionType: "MCQ_MULTI" as const, options: [
+      ...question.options!.map(option => ({ ...option, isCorrect: true })),
+      { id: "c", textEn: "C", textAr: "ج", order: 2, isCorrect: true },
+    ] };
+    const plan = buildHomeworkAutomaticCorrectionPlan([multi], [{ ...answer, selectedOptionIds }]);
+    expect(plan.reviews[0].score).toBe(expected);
+    expect(isHomeworkCorrectionComplete([multi], [{ ...answer, selectedOptionIds, score: expected, reviewedAt: "today" }])).toBe(true);
   });
   it.each(["duplicate selection", "unknown selection", "duplicate records", "invalid points", "invalid key"])("does not guess scores for %s", scenario => {
     const questions = [{ ...question, points: scenario === "invalid points" ? NaN : 2,

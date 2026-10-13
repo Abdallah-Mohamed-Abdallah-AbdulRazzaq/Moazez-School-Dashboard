@@ -70,6 +70,7 @@ export default function AutomaticCorrectionDialog({
       )}
     >
       <div className="space-y-4 py-2">
+        <p className="text-sm text-[var(--text-secondary)]">{t("scoringRule")}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {(["filtered", "all"] as const).map((option) => (
             <Button
