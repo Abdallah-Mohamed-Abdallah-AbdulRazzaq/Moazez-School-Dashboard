@@ -69,6 +69,18 @@ describe("homework auto-correction controls", () => {
     expect(apiGet).toHaveBeenCalledWith("/homework/assignments/hw/submissions", { params: { page: 1, limit: 100, search: "Ali" } });
     expect(apiPut).not.toHaveBeenCalled();
   });
+  it("offers all submissions when filters have no eligible students", async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({ items: [], pagination: { page: 1, limit: 100, total: 0 } });
+    renderControls();
+    fireEvent.click(screen.getByRole("button", { name: "bulkAction" }));
+    await waitFor(() => expect(screen.getByText("emptyTitle")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "checkAll" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled());
+    expect(apiGet).toHaveBeenLastCalledWith("/homework/assignments/hw/submissions", { params: { page: 1, limit: 100 } });
+    expect(screen.queryByText("emptyTitle")).not.toBeInTheDocument();
+    expect(apiPut).not.toHaveBeenCalled();
+  });
   it("retains correction results and offers reload after refresh failure", async () => {
     onRefresh.mockRejectedValueOnce(new Error("reload offline"));
     renderControls();

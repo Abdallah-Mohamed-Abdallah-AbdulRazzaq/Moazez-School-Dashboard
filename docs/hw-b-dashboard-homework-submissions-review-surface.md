@@ -17,6 +17,8 @@ After saving scores, correction reloads answers and completes the submission rev
 
 The correction dialog shows confirmation scope, eligible count, progress, corrected answers, completed reviews, synced grades, pending work, skipped students and failures. Unsaved edits must be saved or discarded first. Conflicting panel controls are disabled during correction; keep the page open until it finishes. Individual failures do not stop other students, and Retry failed students resumes the unfinished stage. A sync failure after review completion retries synchronization without rewriting answers or repeating the final review.
 
+Scope is selected through two cards for current filters or all submissions. The eligible-student preview distinguishes loading, ready and empty states. An empty filtered scope offers **Check all submissions**, which reloads eligibility without starting correction. The overwrite warning stays visible and detailed correction rules can be expanded. Close the dialog through its close controls; outside clicks do not dismiss it. The layout supports Arabic RTL and stacks the scope cards on small screens.
+
 The implementation uses the existing question-read, answer-review, submission-review and grade-sync routes. It adds no backend endpoint and performs no automatic gradebook linking.
 
 ---
