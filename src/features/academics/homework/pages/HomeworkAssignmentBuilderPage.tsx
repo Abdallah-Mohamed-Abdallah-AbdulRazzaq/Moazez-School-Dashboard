@@ -82,6 +82,7 @@ import { getHomeworkPublishReadiness } from "@/features/academics/homework/utils
 import HomeworkGradeSyncPanel from "@/features/academics/homework/components/HomeworkGradeSyncPanel";
 import HomeworkSubmissionReviewPanel from "@/features/academics/homework/components/HomeworkSubmissionReviewPanel";
 import HomeworkAssignmentDetailsCard from "@/features/academics/homework/components/HomeworkAssignmentDetailsCard";
+import HomeworkTargetEditor, { type HomeworkTargetDraft } from "../components/HomeworkTargetEditor";
 
 interface HomeworkAssignmentBuilderPageProps {
   homeworkId: string;
@@ -112,6 +113,7 @@ export default function HomeworkAssignmentBuilderPage({
   const tValidation = useTranslations("validation");
   const tHomework = useTranslations("academics.homework.builder");
   const tHomeworkError = useTranslations("academics.homework.errorMessages");
+  const tCreate = useTranslations("academics.homework.create");
   const { termStatus } = useAcademicYearTermLayoutContext();
   const { hasPermission } = usePermissions();
   const canView = hasPermission("homework.assignments.view");
@@ -130,6 +132,10 @@ export default function HomeworkAssignmentBuilderPage({
   const [publishTargets, setPublishTargets] = useState<HomeworkTargetUiModel[]>(
     [],
   );
+  const [targetDraft, setTargetDraft] = useState<HomeworkTargetDraft>({
+    targetMode: "classroom", studentIds: [],
+  });
+  const [savedTargetDraft, setSavedTargetDraft] = useState<HomeworkTargetDraft>(targetDraft);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
     null,
   );
@@ -187,6 +193,12 @@ export default function HomeworkAssignmentBuilderPage({
       );
       setAttachments(nextAttachments);
       setPublishTargets(nextPublishTargets);
+      const nextTargetDraft = {
+        targetMode: nextHomework.targetMode,
+        studentIds: nextPublishTargets.map((target) => target.studentId),
+      };
+      setTargetDraft(nextTargetDraft);
+      setSavedTargetDraft(nextTargetDraft);
       setSelectedQuestionId((current) =>
         current && nextQuestions.some((question) => question.id === current)
           ? current
@@ -295,7 +307,13 @@ export default function HomeworkAssignmentBuilderPage({
     [lastSavedQuestionOrder, questions],
   );
 
+  const isTargetDirty = targetDraft.targetMode !== savedTargetDraft.targetMode || (
+    targetDraft.targetMode === "selected_students" &&
+    JSON.stringify([...targetDraft.studentIds].sort()) !==
+      JSON.stringify([...savedTargetDraft.studentIds].sort())
+  );
   const isDirty =
+    isTargetDirty ||
     isAssignmentDirty ||
     isQuestionDirty ||
     isQuestionOrderDirty ||
@@ -337,6 +355,11 @@ export default function HomeworkAssignmentBuilderPage({
 
   const handleSaveAssignment = async () => {
     if (!assignmentDraft || !homework || isReadOnly || !isDirty) return;
+    if (targetDraft.targetMode === "selected_students" && (targetDraft.studentIds.length === 0 || targetDraft.studentIds.length > 500)) {
+      showError(tCreate(targetDraft.studentIds.length === 0
+        ? "errors.selectedStudentsRequired" : "errors.selectedStudentsLimit"));
+      return;
+    }
 
     const nextAssignmentErrors = validateHomeworkAssignment(
       assignmentDraft,
@@ -380,15 +403,32 @@ export default function HomeworkAssignmentBuilderPage({
         await deleteHomeworkQuestion(homeworkId, questionId);
       }
 
-      if (isAssignmentDirty) {
+      if (isAssignmentDirty || isTargetDirty) {
         const nextHomework = await updateHomeworkAssignment(
           homeworkId,
-          mapBuilderAssignmentToHomeworkUpdate(assignmentDraft),
+          {
+            ...mapBuilderAssignmentToHomeworkUpdate(assignmentDraft),
+            ...(isTargetDirty ? {
+              targetMode: targetDraft.targetMode,
+              studentIds: targetDraft.targetMode === "selected_students"
+                ? targetDraft.studentIds : [],
+            } : {}),
+          },
         );
         const nextAssignment = mapHomeworkUiToBuilderAssignment(nextHomework);
         setHomework(nextHomework);
         setAssignmentDraft(nextAssignment);
         setLastSavedAssignment(nextAssignment);
+        setSavedTargetDraft(targetDraft);
+        setPublishTargets([]);
+        const nextTargets = await listHomeworkTargets(homeworkId);
+        setPublishTargets(nextTargets);
+        const nextTargetDraft = {
+          targetMode: nextHomework.targetMode,
+          studentIds: nextTargets.map((target) => target.studentId),
+        };
+        setTargetDraft(nextTargetDraft);
+        setSavedTargetDraft(nextTargetDraft);
       }
 
       for (const question of dirtyQuestions) {
@@ -527,6 +567,7 @@ export default function HomeworkAssignmentBuilderPage({
       (left, right) => left.order - right.order,
     );
     setAssignmentDraft(lastSavedAssignment);
+    setTargetDraft(savedTargetDraft);
     setQuestions(savedQuestions);
     setQuestionDraft(null);
     setSelectedQuestionId(savedQuestions[0]?.id || null);
@@ -859,6 +900,13 @@ export default function HomeworkAssignmentBuilderPage({
       )}
 
       <HomeworkAssignmentDetailsCard homework={homework} />
+      {homework.status === "draft" && <HomeworkTargetEditor
+        homework={homework}
+        targets={publishTargets}
+        value={targetDraft}
+        onChange={setTargetDraft}
+        disabled={isReadOnly || isAssignmentSaving || isLifecyclePending}
+      />}
     </aside>
   );
 

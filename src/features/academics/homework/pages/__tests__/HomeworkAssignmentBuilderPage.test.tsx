@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import HomeworkAssignmentBuilderPage from "../HomeworkAssignmentBuilderPage";
+import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
+import { fetchAllStudents } from "@/features/students-guardians/students/services/studentsService";
 import {
   fetchHomeworkAssignment,
   listHomeworkAttachments,
@@ -15,6 +17,8 @@ import {
 const showError = vi.fn();
 const showSuccess = vi.fn();
 const translate = (key: string) => key;
+vi.mock("@/features/students-guardians/enrollments/services/enrollmentsApiService", () => ({ fetchEnrollments: vi.fn() }));
+vi.mock("@/features/students-guardians/students/services/studentsService", () => ({ fetchAllStudents: vi.fn() }));
 let recoveryMode = false;
 
 vi.mock("next-intl", () => ({
@@ -161,6 +165,8 @@ function homework() {
     mode: "homework",
     status: "draft" as const,
     targetMode: "classroom",
+    academicYearId: "year-1",
+    classroomId: "classroom-1",
     dueAt: new Date(Date.now() + 86_400_000).toISOString(),
     publishAt: null,
     totalMarks: null,
@@ -186,6 +192,14 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     recoveryMode = false;
+    vi.mocked(fetchEnrollments).mockResolvedValue([
+      { id: "enrollment-1", studentId: "student-1", academicYearId: "year-1", classroomId: "classroom-1", status: "active" },
+      { id: "enrollment-2", studentId: "student-2", academicYearId: "year-1", classroomId: "classroom-1", status: "active" },
+    ]);
+    vi.mocked(fetchAllStudents).mockResolvedValue([
+      { id: "student-1", name: "Student One", full_name_en: "Student One", student_id: "001" },
+      { id: "student-2", name: "Student Two", full_name_en: "Student Two", student_id: "002" },
+    ] as Awaited<ReturnType<typeof fetchAllStudents>>);
     vi.mocked(fetchHomeworkAssignment).mockResolvedValue(homework());
     vi.mocked(listHomeworkQuestions).mockResolvedValue([]);
     vi.mocked(listHomeworkAttachments).mockResolvedValue([]);
@@ -198,6 +212,49 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
       },
     ]);
     vi.mocked(updateHomeworkAssignment).mockResolvedValue(homework());
+  });
+
+  it("adds a student to the same draft while preserving existing selections", async () => {
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
+    vi.mocked(updateHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    const existing = await screen.findByRole("checkbox", { name: "Student One" });
+    const added = await screen.findByRole("checkbox", { name: "Student Two" });
+    expect(existing).toBeChecked();
+    expect(added).not.toBeChecked();
+    fireEvent.click(added);
+    vi.mocked(listHomeworkTargets).mockResolvedValue([
+      { targetId: "target-1", studentId: "student-1", studentName: "Student One", status: "assigned" },
+      { targetId: "target-2", studentId: "student-2", studentName: "Student Two", status: "assigned" },
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+    await waitFor(() => expect(showSuccess).toHaveBeenCalledWith("messages.homeworkSaved"));
+    expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.objectContaining({ targetMode: "selected_students", studentIds: ["student-1", "student-2"] }));
+    expect(screen.getByRole("checkbox", { name: "Student One" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Student Two" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
+  });
+
+  it("blocks saving an empty selected-student list", async () => {
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Student One" }));
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+    expect(showError).toHaveBeenCalledWith("errors.selectedStudentsRequired");
+    expect(updateHomeworkAssignment).not.toHaveBeenCalled();
+  });
+
+  it("switches a selected-student draft back to the whole classroom", async () => {
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    await screen.findByRole("checkbox", { name: "Student One" });
+    fireEvent.click(screen.getByRole("button", { name: /fields.targetMode/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "targetModes.classroom" }));
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+    await waitFor(() => expect(showSuccess).toHaveBeenCalledWith("messages.homeworkSaved"));
+    expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.objectContaining({ targetMode: "classroom", studentIds: [] }));
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
   });
 
   it("blocks invalid edits and preserves nullable marks in a normalized update", async () => {
