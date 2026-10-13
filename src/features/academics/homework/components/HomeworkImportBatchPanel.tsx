@@ -13,9 +13,11 @@ import HomeworkImportBatchResults from "./HomeworkImportBatchResults";
 import HomeworkImportBatchTargets from "./HomeworkImportBatchTargets";
 import HomeworkImportBatchTable from "./HomeworkImportBatchTable";
 import HomeworkImportBatchSummary from "./HomeworkImportBatchSummary";
+import HomeworkDraftIssues from "./HomeworkDraftIssues";
 
 export default function HomeworkImportBatchPanel(props: HomeworkImportBatchPanelProps) {
   const t = useTranslations("academics.homework.importBatch");
+  const tManual = useTranslations("academics.homework.manual");
   const batch = useHomeworkImportBatch(props);
   const [search, setSearch] = useState("");
   const previewRows = batch.plan?.rows ?? [];
@@ -28,10 +30,11 @@ export default function HomeworkImportBatchPanel(props: HomeworkImportBatchPanel
   return <section aria-label={t(batch.started ? "resultsTitle" : "title")} className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
     <div className="flex items-start gap-3 border-b border-gray-100 px-5 py-5 sm:px-6">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary"><Layers3 size={22} aria-hidden="true" /></span>
-      <div className="min-w-0"><h2 className="text-lg font-semibold text-gray-900">{t(batch.started ? "resultsTitle" : "title")}</h2><p className="mt-1 break-words text-sm text-gray-600">{props.metadata.title}</p></div>
+      <div className="min-w-0"><h2 className="text-lg font-semibold text-gray-900">{t(batch.started ? "resultsTitle" : "title")}</h2><p className="mt-1 break-words text-sm text-gray-600">{props.questionDraft.metadata.title}</p></div>
     </div>
     <div className="space-y-5 p-5 sm:p-6">
-    <p className="flex items-center gap-2 text-sm text-gray-600"><FileSpreadsheet size={18} aria-hidden="true" className="shrink-0" />{t("content", { count: props.importedDraft.questions.length })}</p>
+    <p className="flex items-center gap-2 text-sm text-gray-600"><FileSpreadsheet size={18} aria-hidden="true" className="shrink-0" />{props.origin === "excel" ? t("content", { count: props.questionDraft.questions.length }) : tManual("content", { count: props.questionDraft.questions.length })}</p>
+    {!props.questionDraft.questions.length && <p className="rounded-xl bg-primary-50 p-3 text-sm text-primary">{tManual("batchPrerequisite")}</p>}
     {!batch.started && <>
       <p className="text-sm text-gray-600">{t("description")}</p>
       <HomeworkImportBatchTargets batch={batch} writable={props.writable} />
@@ -39,14 +42,14 @@ export default function HomeworkImportBatchPanel(props: HomeworkImportBatchPanel
       <HomeworkImportBatchSummary eligible={batch.eligibleCount} skipped={previewRows.filter(row => !row.eligible).length} />
       <Input label={t("searchPreview")} value={search} onChange={event => setSearch(event.target.value)} />
       <HomeworkImportBatchTable columns={columns} rows={previewRows.filter(row => `${row.classroomName} ${row.hierarchy} ${row.teacherName ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()))} rowKey={row => row.classroomId} emptyTitle={t("chooseTargets")} />
-      <div className="space-y-3 rounded-xl bg-gray-50 p-4"><p className="text-sm leading-6 text-gray-600">{t("tabsHelp")}</p><Button className="w-full sm:w-auto" onClick={() => void batch.start()} loading={batch.saving} disabled={batch.loading || !props.writable || !batch.eligibleCount || batch.notice === "loadError"}>{t("create", { count: batch.eligibleCount })}</Button></div>
+      <div className="space-y-3 rounded-xl bg-gray-50 p-4"><p className="text-sm leading-6 text-gray-600">{t("tabsHelp")}</p><Button className="w-full sm:w-auto" onClick={() => void batch.start()} loading={batch.saving} disabled={batch.loading || !props.writable || !batch.eligibleCount || !props.questionDraft.questions.length || batch.notice === "loadError"}>{t("create", { count: batch.eligibleCount })}</Button></div>
     </>}
     {batch.loading && <p role="status">{t("loading")}</p>}
     {batch.notice && <div role="alert" className="rounded-lg bg-amber-50 p-3 text-sm">{t(batch.notice)}{batch.notice === "loadError" && <Button variant="secondary" disabled={batch.saving} onClick={batch.retry}>{t("retry")}</Button>}</div>}
-    {batch.issues.length > 0 && <ImportIssues issues={batch.issues} />}
+    {batch.validation.kind === "invalid" && (batch.validation.origin === "excel" ? <ImportIssues issues={batch.validation.issues} /> : <HomeworkDraftIssues issues={batch.validation.issues} questions={props.questionDraft.questions} />)}
     {batch.started && batch.plan && <>
       <HomeworkImportBatchResults plan={batch.plan} outcomes={batch.outcomes} />
-      {!batch.saving && <div className="flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="max-w-xl text-sm leading-6 text-gray-600">{t("resetHelp")}</p><Button variant="secondary" className="shrink-0" leftIcon={<Plus size={18} />} onClick={props.onReset}>{t("reset")}</Button></div>}
+      {!batch.saving && <div className="flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="max-w-xl text-sm leading-6 text-gray-600">{props.origin === "excel" ? t("resetHelp") : tManual("resetHelp")}</p><Button variant="secondary" className="shrink-0" leftIcon={<Plus size={18} />} onClick={props.onReset}>{props.origin === "excel" ? t("reset") : tManual("reset")}</Button></div>}
     </>}
     </div>
   </section>;

@@ -17,3 +17,6 @@ export async function createHomeworkFromImport(request: { assignment: CreateHome
   }
   return createdAssignment;
 }
+
+export { createHomeworkFromImport as createHomeworkWithQuestions };
+export { HomeworkImportQuestionSaveError as HomeworkQuestionSaveError };

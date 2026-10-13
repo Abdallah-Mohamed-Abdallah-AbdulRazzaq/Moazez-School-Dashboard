@@ -1,5 +1,7 @@
 # Manual Homework Multiple Target Implementation Plan
 
+**Execution status (2026-10-14):** The owner authorized inline implementation. Tasks 1–5's application changes are implemented; focused verification passed (161 tests in 16 files), lint passed, and source type checking passed with explicit installed Next.js declarations. Task 6's production build and actual-browser layout review remain unverified because of disk space; the owner approved finishing with these limits documented. Detailed steps below retain the original execution recipe. The measured delivery record is [verification](2026-10-14-manual-homework-multiple-target-verification.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task after explicit implementation authorization. Inline execution is the user's existing preference. Steps use checkbox syntax for tracking. Do not dispatch agents or start implementation as part of this planning request.
 
 **Goal:** Let users author homework questions locally and create separate class drafts using the existing six scopes, while keeping the familiar single-class flow as the default.
@@ -13,7 +15,7 @@
 ## Global constraints
 
 - Frontend-only and assignments-only. No backend, assessment, automatic-correction or deployment changes.
-- Planning-only delivery; none of the application/test changes below have been implemented or executed.
+- The original delivery was planning only. Later explicit inline authorization permitted the application/test implementation recorded above.
 - Baseline `3993d13e90b4046a21800738b3b71f2a393134d1`, branch `feat/manual-homework-multi-class-plan`, managed worktree attached to this chat.
 - Keep existing first-view fields/defaults, Excel actions, and the single-class **Create draft** path. Add secondary authoring and a visible, unchecked **Assign to multiple classes** choice; no mandatory wizard/tour or default batching.
 - Opting into batching before questions exist reveals prerequisites, adds no automatic question and sends no POST. Do not silently fall back to single creation while batch mode is selected.
@@ -25,7 +27,7 @@
 
 ## File and interface map
 
-New files below are proposed implementation files, not existing APIs:
+The following files were proposed during planning and now exist in the implementation:
 
 | File | Responsibility |
 | --- | --- |
@@ -365,4 +367,4 @@ Run planner/save/saved-builder/preview-language files from Task 5 as focused che
 
 The six tasks cover the approved spec and the owner's additional visibility request: a visible but off-by-default multi-class choice, no forced migration for old users, local questions without worksheet fabrication, core constraints, all scopes, source replacement, unchanged Excel/saved-editor behavior, preflight/frozen saves, recovery and focused verification. Proposed interfaces are declared before use; existing sources were inspected in the planning worktree. No application code or tests were changed or run during planning.
 
-The plan is ready for later inline execution using executing-plans after the user explicitly requests implementation. This plan does not authorize starting application work merely because its spec was approved.
+The owner subsequently requested inline execution. Implementation is delivered in the same branch and draft PR; production-build and browser verification remain limited as recorded above. Execution reused `QuestionOutlineItem` with optional caller-supplied validation errors, preserving its default validator for existing consumers. A public-hook regression file also verifies local capacity and type transitions. The metadata alias in the Excel types now points to the source-neutral draft metadata contract.

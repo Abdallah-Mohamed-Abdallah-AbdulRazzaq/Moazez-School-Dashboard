@@ -1,25 +1,25 @@
 import { uncertainImportCreation } from "@/features/academics/shared/excel-import/importSaveErrors";
-import type { HomeworkImport } from "@/features/academics/shared/excel-import/types";
+import type { HomeworkQuestionDraft } from "../utils/homeworkQuestionDraft.types";
 import type { HomeworkBatchEligibleRow, HomeworkBatchPlan, HomeworkBatchResult } from "../utils/homeworkImportBatch.types";
 import { homeworkBatchPayload } from "../utils/homeworkImportBatchTargets";
-import { createHomeworkFromImport, HomeworkImportQuestionSaveError } from "./homeworkExcelImportSave";
+import { createHomeworkWithQuestions, HomeworkQuestionSaveError } from "./homeworkExcelImportSave";
 
 interface BatchSaveRequest {
   plan: HomeworkBatchPlan;
-  draft: HomeworkImport;
+  draft: HomeworkQuestionDraft;
   publishAt?: string | null;
   onResult: (outcome: HomeworkBatchResult) => void;
 }
 
 async function saveClassDraft(request: BatchSaveRequest, target: HomeworkBatchEligibleRow): Promise<HomeworkBatchResult> {
   try {
-    const assignment = await createHomeworkFromImport({
+    const assignment = await createHomeworkWithQuestions({
       assignment: homeworkBatchPayload({ plan: request.plan, target, metadata: request.draft.metadata, publishAt: request.publishAt }),
       questions: request.draft.questions,
     });
     return { target, status: "created", assignment };
   } catch (error) {
-    if (error instanceof HomeworkImportQuestionSaveError) return {
+    if (error instanceof HomeworkQuestionSaveError) return {
       target, status: "partial", homeworkId: error.homeworkId, failedQuestionIndex: error.failedQuestionIndex, error,
     };
     return { target, status: uncertainImportCreation(error) ? "unconfirmed" : "failed", error };

@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
-import type { HomeworkImport, HomeworkImportMetadata, ImportIssue } from "@/features/academics/shared/excel-import/types";
 import { loadHomeworkBatchContext } from "../services/homeworkImportBatchContext";
 import { saveHomeworkImportBatch } from "../services/homeworkImportBatchSave";
-import { validateHomeworkImportDraft } from "../utils/homeworkExcelImport";
+import { prepareHomeworkDraftQuestions } from "../utils/homeworkQuestionDraftValidation";
+import type { HomeworkDraftValidationContext, HomeworkQuestionDraft } from "../utils/homeworkQuestionDraft.types";
 import { homeworkBatchPlan } from "../utils/homeworkImportBatchTargets";
-import type { HomeworkBatchContext, HomeworkBatchPageState, HomeworkBatchPlan, HomeworkBatchResult, HomeworkBatchSelection } from "../utils/homeworkImportBatch.types";
+import type { HomeworkBatchContext, HomeworkBatchDraftValidation, HomeworkBatchPageState, HomeworkBatchPlan, HomeworkBatchResult, HomeworkBatchSelection } from "../utils/homeworkImportBatch.types";
 
 export interface HomeworkImportBatchPanelProps {
-  importedDraft: HomeworkImport; metadata: HomeworkImportMetadata; publishAt?: string | null;
+  questionDraft: HomeworkQuestionDraft; origin: "none" | "manual" | "excel";
+  validateDraft: (draft: HomeworkQuestionDraft, context: HomeworkDraftValidationContext) => HomeworkBatchDraftValidation;
+  publishAt?: string | null;
   academicYearId: string; termId: string; termStart: string; termEnd: string; writable: boolean;
   initialSubjectId?: string; initialClassroomId?: string;
   onStateChange: (state: HomeworkBatchPageState) => void; onReset: () => void;
@@ -33,7 +35,8 @@ export function useHomeworkImportBatch(props: HomeworkImportBatchPanelProps) {
   const [context, setContext] = useState<HomeworkBatchContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<"loadError" | "changed" | null>(null);
-  const [issues, setIssues] = useState<ImportIssue[]>([]);
+  const [draftValidation, setDraftValidation] = useState<{ draft: string; validation: HomeworkBatchDraftValidation } | null>(null);
+  const validation: HomeworkBatchDraftValidation = draftValidation?.draft === JSON.stringify(props.questionDraft) ? draftValidation.validation : { kind: "valid" };
   const [subjectId, setSubjectId] = useState(props.initialSubjectId ?? "");
   const [selection, setSelection] = useState<HomeworkBatchSelection>({ type: "classes", classroomIds: props.initialClassroomId ? [props.initialClassroomId] : [] });
   const [outcomes, setOutcomes] = useState<HomeworkBatchResult[]>([]);
@@ -62,40 +65,44 @@ export function useHomeworkImportBatch(props: HomeworkImportBatchPanelProps) {
   useEffect(() => { onStateChange({ hasStarted: started, isSaving: saving, allCreated }); }, [onStateChange, started, saving, allCreated]);
 
   const start = async () => {
-    if (lock.current || started || loading || !props.writable || !plan || !eligibleCount) return;
+    if (lock.current || started || loading || !props.writable || !plan || !eligibleCount || !props.questionDraft.questions.length) return;
     lock.current = true; setSaving(true); setNotice(null);
-    const draft = structuredClone({ ...props.importedDraft, metadata: props.metadata });
+    const draft = structuredClone(props.questionDraft);
     const publishAt = props.publishAt;
     try {
-      const validated = validateHomeworkImportDraft(draft, { now: new Date(), termStart: props.termStart, termEnd: props.termEnd, publishAt });
-      if (validated.kind === "invalid") { setIssues(validated.issues); return; }
-      setIssues([]);
-      const refreshed = await refreshedPlan();
+      const validated = props.validateDraft(draft, { now: new Date(), termStart: props.termStart, termEnd: props.termEnd, publishAt });
+      setDraftValidation({ draft: JSON.stringify(draft), validation: validated });
+      if (validated.kind === "invalid") return;
+      const refreshed = await refreshedPlan(draft);
       if (!refreshed) return;
       await saveReviewedPlan(refreshed, draft, publishAt);
     } finally { lock.current = false; setSaving(false); }
   };
 
-  async function saveReviewedPlan(reviewed: HomeworkBatchPlan, draft: HomeworkImport, publishAt?: string | null) {
+  async function saveReviewedPlan(reviewed: HomeworkBatchPlan, draft: HomeworkQuestionDraft, publishAt?: string | null) {
     setFrozenPlan(reviewed);
     setOutcomes(reviewed.rows.map(target => ({ target, status: target.eligible ? "queued" : "skipped" })));
-    await saveHomeworkImportBatch({ plan: reviewed, draft, publishAt, onResult: outcome => {
+    await saveHomeworkImportBatch({ plan: reviewed, draft: { ...draft, questions: prepareHomeworkDraftQuestions(draft.questions) }, publishAt, onResult: outcome => {
       setOutcomes(current => current.map(previous => previous.target.classroomId === outcome.target.classroomId ? outcome : previous));
       openCreatedAssignment(locale, reviewed, outcome);
     } });
   }
 
-  async function refreshedPlan() {
+  async function refreshedPlan(draft: HomeworkQuestionDraft) {
     let refreshedContext: HomeworkBatchContext;
     try { refreshedContext = await loadHomeworkBatchContext({ academicYearId: props.academicYearId, termId: props.termId }); }
     catch { setNotice("loadError"); setContext(null); return null; }
     const current = latestProps.current;
-    if (!current.writable || current.academicYearId !== props.academicYearId || current.termId !== props.termId) return null;
+    if (!current.writable || current.academicYearId !== props.academicYearId || current.termId !== props.termId
+      || current.termStart !== props.termStart || current.termEnd !== props.termEnd || current.publishAt !== props.publishAt
+      || JSON.stringify(current.questionDraft) !== JSON.stringify(draft)) return null;
+    const checked = current.validateDraft(draft, { now: new Date(), termStart: current.termStart, termEnd: current.termEnd, publishAt: current.publishAt });
+    if (checked.kind === "invalid") { setDraftValidation({ draft: JSON.stringify(draft), validation: checked }); return null; }
     setContext(refreshedContext);
     const refreshed = homeworkBatchPlan({ academicYearId: props.academicYearId, termId: props.termId, subjectId, selection, context: refreshedContext, locale });
     if (refreshed.signature !== plan?.signature) { setNotice("changed"); return null; }
     return refreshed;
   }
 
-  return { academicYearId: props.academicYearId, termId: props.termId, context, loading, notice, issues, subjectId, setSubjectId, selection, setSelection, plan, eligibleCount, outcomes, started, saving, allCreated, start, retry: () => setReload(current => current + 1) };
+  return { academicYearId: props.academicYearId, termId: props.termId, context, loading, notice, validation, subjectId, setSubjectId, selection, setSelection, plan, eligibleCount, outcomes, started, saving, allCreated, start, retry: () => setReload(current => current + 1) };
 }

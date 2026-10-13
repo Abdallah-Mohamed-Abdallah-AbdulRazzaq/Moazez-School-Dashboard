@@ -21,7 +21,7 @@ async function importedDraft() {
   return imported.draft;
 }
 
-it("continues through complete, partial, rejected and unknown outcomes without retrying parents", async () => {
+it.each(["excel", "manual"])("continues through complete, partial, rejected and unknown %s outcomes without retrying parents", async origin => {
   const context = batchContext();
   context.structure.classrooms.push({ ...context.structure.classrooms[3], id: "10000000-0000-4000-8000-000000000044", nameEn: "Room 5" });
   context.allocations.push({ ...context.allocations[3], id: "10000000-0000-4000-8000-000000000054", classroomId: context.structure.classrooms[4].id });
@@ -45,7 +45,9 @@ it("continues through complete, partial, rejected and unknown outcomes without r
     }
     return { question: { questionId: "question", homeworkId: path.split("/")[3], type: "TRUE_FALSE", prompt: "Is 2 even?", points: 2, sortOrder: 1, options: [] } };
   });
-  const results = await saveHomeworkImportBatch({ plan, draft: await importedDraft(), onResult: outcome => outcomes.push(outcome) });
+  const imported = await importedDraft();
+  const draft = origin === "manual" ? { metadata: imported.metadata, questions: imported.questions } : imported;
+  const results = await saveHomeworkImportBatch({ plan, draft, onResult: outcome => outcomes.push(outcome) });
   expect(results.map(result => result.status)).toEqual(["created", "partial", "failed", "unconfirmed", "created"]);
   expect(results[0]).toMatchObject({ assignment: { id: "parent-1", teacherName: "Current Server Teacher", classroomName: "Saved Room 1" } });
   expect(results[1]).toMatchObject({ homeworkId: "parent-2", failedQuestionIndex: 1 });

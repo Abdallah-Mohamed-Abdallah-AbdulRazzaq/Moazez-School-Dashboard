@@ -4,6 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { CheckCircle, AlertCircle, ChevronUp, ChevronDown } from "lucide-react";
 import { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import { validateQuestion } from "@/features/academics/curriculum/utils/validation";
+import type { QuestionValidationError } from "../types/types";
 
 interface QuestionOutlineItemProps {
   question: AssignmentQuestion;
@@ -17,6 +18,7 @@ interface QuestionOutlineItemProps {
   canMoveDown: boolean;
   isReadOnly: boolean;
   isLegacyReadOnly?: boolean;
+  validationErrors?: QuestionValidationError;
 }
 
 export default function QuestionOutlineItem({
@@ -31,6 +33,7 @@ export default function QuestionOutlineItem({
   canMoveDown,
   isReadOnly,
   isLegacyReadOnly = false,
+  validationErrors,
 }: QuestionOutlineItemProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
@@ -43,7 +46,7 @@ export default function QuestionOutlineItem({
     question.mediaFileName;
 
   const isValid = () => {
-    return Object.keys(validateQuestion(question, tValidation)).length === 0;
+    return Object.keys(validationErrors ?? validateQuestion(question, tValidation)).length === 0;
   };
 
   const valid = isValid();

@@ -5784,6 +5784,40 @@
       }
     },
     "homework": {
+      "manual": {
+        "entry": "Write questions before creation",
+        "title": "Homework questions (optional)",
+        "optionalHelp": "You can also create the draft first and add questions as usual.",
+        "localHelp": "Questions are saved when you create the homework.",
+        "content": "{count} questions ready for creation",
+        "empty": "Add your first question, or import an Excel template.",
+        "add": "Add question",
+        "hide": "Hide questions",
+        "show": "Show questions",
+        "batchPrerequisite": "Write or import at least one question before creating drafts for multiple classes.",
+        "replaceTitle": "Replace current questions?",
+        "replaceDescription": "This replaces the questions you have prepared. Your current questions remain until you confirm.",
+        "replace": "Replace questions",
+        "cancel": "Keep current questions",
+        "questionNumber": "Question {number}",
+        "details": "Assignment details",
+        "reset": "New homework",
+        "resetHelp": "Start a new homework to clear these questions and results. Created drafts stay in the assignment list.",
+        "marksMismatch": "Question points total {total}; the homework maximum is {maximum}.",
+        "unavailable": "Select an open term to prepare questions and use multiple classes.",
+        "partialSave": "{saved} of {total} questions were saved. Open the created draft to review and complete it before creating another.",
+        "unknownCreation": "The server response was lost. Check the assignment list before creating another draft.",
+        "errors": {
+          "marksRange": "Total marks cannot exceed 99999.99.",
+          "minutesRange": "Estimated minutes cannot exceed 2147483647.",
+          "mode": "Choose a supported homework type.",
+          "questionCount": "Prepare between 1 and 500 questions.",
+          "pointsRange": "Points must be between 0 and 99999.99 with at most two decimal places.",
+          "trueFalseAnswer": "Choose True or False as the correct answer.",
+          "answerType": "This answer field does not apply to this question type.",
+          "trueFalseOptions": "Use the True or False answer instead of multiple-choice options."
+        }
+      },
       "importBatch": {
         "title": "Review class targets",
         "toggle": "Assign to multiple classes",

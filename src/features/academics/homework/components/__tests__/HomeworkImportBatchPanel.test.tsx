@@ -10,6 +10,8 @@ import { batchContext, batchIds, batchHttpResponse } from "../../utils/__tests__
 import { assignmentWorkbookFile, fixtureContext } from "@/features/academics/shared/excel-import/__tests__/excelImportFixtures";
 import { readImportWorkbook } from "@/features/academics/shared/excel-import/workbookReader";
 import { homeworkImportFromWorkbook } from "../../utils/homeworkExcelImport";
+import { validateHomeworkImportDraft } from "../../utils/homeworkExcelImport";
+import { validateHomeworkQuestionDraft } from "../../utils/homeworkQuestionDraftValidation";
 
 let context = batchContext();
 let parentNumber = 0;
@@ -22,13 +24,21 @@ beforeEach(() => {
   vi.spyOn(window, "open").mockReturnValue(null);
 });
 
-async function renderPanel() {
+async function renderPanel(origin: "excel" | "manual" | "none" = "excel") {
   const workbook = await readImportWorkbook(await assignmentWorkbookFile(), "assignment");
   if (workbook.kind !== "valid") throw new Error("Invalid workbook");
   const imported = homeworkImportFromWorkbook(workbook.draft, fixtureContext);
   if (imported.kind !== "valid") throw new Error("Invalid import");
   const onStateChange = vi.fn();
-  render(<NextIntlClientProvider locale="en" messages={en} timeZone="UTC"><HomeworkImportBatchPanel importedDraft={imported.draft} metadata={imported.draft.metadata} academicYearId={batchIds.year} termId={batchIds.term} termStart={fixtureContext.termStart} termEnd={fixtureContext.termEnd} writable initialSubjectId={batchIds.subject} onStateChange={onStateChange} onReset={() => {}} /></NextIntlClientProvider>);
+  const questionDraft = { metadata: imported.draft.metadata, questions: origin === "none" ? [] : imported.draft.questions };
+  render(<NextIntlClientProvider locale="en" messages={en} timeZone="UTC"><HomeworkImportBatchPanel questionDraft={questionDraft} origin={origin} validateDraft={(draft, validationContext) => {
+    if (origin === "excel") {
+      const checked = validateHomeworkImportDraft({ ...imported.draft, ...draft }, validationContext);
+      return checked.kind === "valid" ? { kind: "valid" } : { kind: "invalid", origin: "excel", issues: checked.issues };
+    }
+    const checked = validateHomeworkQuestionDraft(draft, validationContext);
+    return checked.kind === "valid" ? { kind: "valid" } : { kind: "invalid", origin: "manual", issues: checked.issues };
+  }} academicYearId={batchIds.year} termId={batchIds.term} termStart={fixtureContext.termStart} termEnd={fixtureContext.termEnd} writable initialSubjectId={batchIds.subject} onStateChange={onStateChange} onReset={() => {}} /></NextIntlClientProvider>);
   await waitFor(() => expect(screen.getByRole("button", { name: /^Target level/ })).toBeEnabled());
   return onStateChange;
 }
@@ -36,6 +46,35 @@ async function scope(label: string) {
   fireEvent.click(screen.getByRole("button", { name: /^Target level/ }));
   fireEvent.click(await screen.findByRole("button", { name: label, exact: true }));
 }
+
+it("keeps empty multi-class creation disabled even when a class is eligible", async () => {
+  await renderPanel("none");
+  fireEvent.click(screen.getByRole("checkbox", { name: "Room 1" }));
+  expect(screen.getByRole("button", { name: "Create 1 drafts" })).toBeDisabled();
+  expect(apiPost).not.toHaveBeenCalled();
+});
+
+it.each([
+  ["Selected classes", null, [batchIds.allocationA]],
+  ["Teacher's classes", "Teacher 1", [batchIds.allocationA]],
+  ["Section", "Stage 1 / Grade 1 / Section 1", [batchIds.allocationA]],
+  ["Grade", "Stage 1 / Grade 1", [batchIds.allocationA, batchIds.allocationB]],
+  ["Stage", "Stage 1", [batchIds.allocationA, batchIds.allocationB]],
+  ["Whole school", null, [batchIds.allocationA, batchIds.allocationB]],
+] as const)("creates manual questions for %s without workbook provenance", async (level, group, allocations) => {
+  await renderPanel("manual"); await scope(level);
+  if (level === "Selected classes") fireEvent.click(screen.getByRole("checkbox", { name: "Room 1" }));
+  if (group) {
+    fireEvent.click(screen.getByRole("button", { name: level === "Teacher's classes" ? "Teacher" : level, exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: group, exact: true }));
+  }
+  const create = screen.getByRole("button", { name: `Create ${allocations.length} drafts` });
+  fireEvent.click(create); fireEvent.click(create);
+  await screen.findByText(`${allocations.length} of ${allocations.length} assignments created`);
+  const parents = vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments");
+  expect(parents.map(([, payload]) => (payload as { teacherSubjectAllocationId: string }).teacherSubjectAllocationId)).toEqual(allocations);
+  expect(screen.getAllByRole("link", { name: /^Open assignment/ })).toHaveLength(allocations.length);
+});
 
 it("defaults to the teacher's eligible classes and keeps exclusions through search and preflight", async () => {
   context.allocations[1].teacherId = batchIds.teacherA;
@@ -156,7 +195,10 @@ it("blocks creation after a required context read fails and allows a read-only r
   if (workbook.kind !== "valid") throw new Error("Invalid workbook");
   const imported = homeworkImportFromWorkbook(workbook.draft, fixtureContext);
   if (imported.kind !== "valid") throw new Error("Invalid import");
-  render(<NextIntlClientProvider locale="en" messages={en}><HomeworkImportBatchPanel importedDraft={imported.draft} metadata={imported.draft.metadata} academicYearId={batchIds.year} termId={batchIds.term} termStart={fixtureContext.termStart} termEnd={fixtureContext.termEnd} writable initialSubjectId={batchIds.subject} onStateChange={() => {}} onReset={() => {}} /></NextIntlClientProvider>);
+  render(<NextIntlClientProvider locale="en" messages={en}><HomeworkImportBatchPanel questionDraft={imported.draft} origin="excel" validateDraft={(draft, validationContext) => {
+    const checked = validateHomeworkImportDraft({ ...imported.draft, ...draft }, validationContext);
+    return checked.kind === "valid" ? { kind: "valid" } : { kind: "invalid", origin: "excel", issues: checked.issues };
+  }} academicYearId={batchIds.year} termId={batchIds.term} termStart={fixtureContext.termStart} termEnd={fixtureContext.termEnd} writable initialSubjectId={batchIds.subject} onStateChange={() => {}} onReset={() => {}} /></NextIntlClientProvider>);
   await screen.findByText(en.academics.homework.importBatch.loadError);
   expect(screen.getByRole("button", { name: "Create 0 drafts" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Retry loading" }));

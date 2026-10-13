@@ -2,7 +2,7 @@
 
 Date: 2026-10-14
 
-Status: written spec approved, with the owner's additional request to show the multi-class choice from the first view. This task creates a plan only; application implementation is not authorized by the planning request.
+Status: approved and implemented inline on `feat/manual-homework-multi-class-plan` after the owner's explicit implementation instruction. The multi-class choice is visible and initially unchecked. The owner accepted delivery with production-build and browser-review limits caused by insufficient disk space. See [verification](../plans/2026-10-14-manual-homework-multiple-target-verification.md).
 
 ## Goal and scope
 
@@ -100,4 +100,4 @@ Cover all six scopes with manual source, teacher ownership/exclusions, changed-p
 
 Check Arabic RTL/English at mobile, tablet and desktop widths for a familiar first view, secondary optional entry action, readable editors and validation, manageable touch targets and results. Apply Clean Code Guard on production changes, Test Guard on test changes, and Docs Guard on documentation.
 
-The current task stops after an implementation plan is delivered. Do not implement application changes or run tests as part of planning. During subsequent authorized implementation, run relevant focused tests, lint, typecheck and production build. Full tests remain subject to the user's explicit preference and must not run without new authorization. Use the normal branch/PR workflow and leave merging/deployment to the owner.
+The original planning task stopped at plan delivery. The owner's later `inline` instruction authorized application implementation in this chat. Focused tests and lint passed; source type checking passed with explicit installed Next.js declarations. The normal build and browser review remain unverified because of disk space, and the owner chose to finish with these limits documented. Full tests were not run. Use the normal branch/PR workflow and leave merging/deployment to the owner.

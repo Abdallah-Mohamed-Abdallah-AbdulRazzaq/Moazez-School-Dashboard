@@ -1,5 +1,5 @@
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
-import type { CreateHomeworkAssignmentRequest } from "@/features/academics/homework/services/homeworkApi.types";
+import type { HomeworkDraftMetadata } from "@/features/academics/homework/utils/homeworkQuestionDraft.types";
 import type { AssessmentQuestion, CreateAssessmentPayload } from "@/features/grades/shared/types";
 
 export type ImportModule = "assignment" | "assessment";
@@ -29,8 +29,7 @@ export interface ImportContext {
   termEnd: string;
   publishAt?: string | null;
 }
-export type HomeworkImportMetadata = Pick<CreateHomeworkAssignmentRequest,
-  "title" | "description" | "mode" | "dueAt" | "isGraded" | "totalMarks" | "estimatedMinutes">;
+export type HomeworkImportMetadata = HomeworkDraftMetadata;
 export type AssessmentImportMetadata = Pick<CreateAssessmentPayload,
   "title" | "titleAr" | "type" | "date" | "weight" | "maxScore" | "expectedTimeMinutes" | "deliveryMode">;
 export interface HomeworkImport {
