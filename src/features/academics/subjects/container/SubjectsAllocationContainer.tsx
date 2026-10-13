@@ -25,6 +25,8 @@ import { subjectAllocationUiError, type CurriculumDependencyDetails } from "@/fe
 
 type SubjectsAllocationQueryState = {
   activeTab: "subjects" | "matrix";
+  gradeId?: string;
+  subjectId?: string;
 };
 
 export default function SubjectsAllocationContainer() {
@@ -60,6 +62,8 @@ export default function SubjectsAllocationContainer() {
   const queryState = useMemo<SubjectsAllocationQueryState>(
     () => ({
       activeTab: searchParams.get("tab") === "matrix" ? "matrix" : "subjects",
+      gradeId: searchParams.get("gradeId") || undefined,
+      subjectId: searchParams.get("subjectId") || undefined,
     }),
     [searchParams]
   );
@@ -90,7 +94,10 @@ export default function SubjectsAllocationContainer() {
       const [structureData, subjectsData, allocationsData] = await Promise.all([
         fetchStructureTree(academicYearId, termId),
         fetchSubjects(),
-        fetchSubjectAllocations(termId),
+        fetchSubjectAllocations(termId, {
+          gradeId: queryState.gradeId,
+          subjectId: queryState.subjectId,
+        }),
       ]);
 
       setStages(structureData.stages || []);
@@ -115,6 +122,8 @@ export default function SubjectsAllocationContainer() {
     academicYearId,
     canView,
     clearDirty,
+    queryState.gradeId,
+    queryState.subjectId,
     termId,
   ]);
 
@@ -160,7 +169,10 @@ export default function SubjectsAllocationContainer() {
     try {
       const [subjectsData, allocationsData] = await Promise.all([
         fetchSubjects(),
-        fetchSubjectAllocations(termId),
+        fetchSubjectAllocations(termId, {
+          gradeId: queryState.gradeId,
+          subjectId: queryState.subjectId,
+        }),
       ]);
       setSubjects(subjectsData);
       setAllocations(allocationsData);

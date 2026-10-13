@@ -69,12 +69,11 @@ export default function AllocationMatrix({
       stageFilter: searchParams.get("stage") || "",
       gradeFilter: searchParams.get("gradeId") || "",
       subjectFilter: searchParams.get("subjectId") || "",
-      showAllSubjects: searchParams.get("allSubjects") === "1",
       showOnlyMissing: searchParams.get("missing") === "1",
     }),
     [searchParams],
   );
-  const { stageFilter, gradeFilter, subjectFilter, showOnlyMissing, showAllSubjects } =
+  const { stageFilter, gradeFilter, subjectFilter, showOnlyMissing } =
     queryState;
 
   const [localAllocations, setLocalAllocations] = useState<SubjectAllocation[]>(
@@ -107,15 +106,17 @@ export default function AllocationMatrix({
     return allocation?.weeklyHours || 0;
   };
 
-  const changedAllocations = useMemo(() => {
-    return localAllocations.filter((allocation) => {
-      const originalAllocation = originalAllocations.find(
-        (candidate) => candidate.gradeId === allocation.gradeId && candidate.subjectId === allocation.subjectId,
+  // Track dirty state
+  const isDirty = useMemo(() => {
+    if (localAllocations.length !== originalAllocations.length) return true;
+
+    return localAllocations.some((local) => {
+      const original = originalAllocations.find(
+        (o) => o.gradeId === local.gradeId && o.subjectId === local.subjectId,
       );
-      return !originalAllocation || originalAllocation.weeklyHours !== allocation.weeklyHours;
+      return !original || original.weeklyHours !== local.weeklyHours;
     });
   }, [localAllocations, originalAllocations]);
-  const isDirty = changedAllocations.length > 0;
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -126,7 +127,6 @@ export default function AllocationMatrix({
       stageFilter: string;
       gradeFilter: string;
       subjectFilter: string;
-      showAllSubjects: boolean;
       showOnlyMissing: boolean;
     }>,
     historyMode: "push" | "replace" = "push",
@@ -136,7 +136,6 @@ export default function AllocationMatrix({
       stageFilter: nextState.stageFilter ?? queryState.stageFilter,
       gradeFilter: nextState.gradeFilter ?? queryState.gradeFilter,
       subjectFilter: nextState.subjectFilter ?? queryState.subjectFilter,
-      showAllSubjects: nextState.showAllSubjects ?? queryState.showAllSubjects,
       showOnlyMissing: nextState.showOnlyMissing ?? queryState.showOnlyMissing,
     };
 
@@ -156,12 +155,6 @@ export default function AllocationMatrix({
       params.set("subjectId", mergedState.subjectFilter);
     } else {
       params.delete("subjectId");
-    }
-
-    if (mergedState.showAllSubjects) {
-      params.set("allSubjects", "1");
-    } else {
-      params.delete("allSubjects");
     }
 
     if (mergedState.showOnlyMissing) {
@@ -195,23 +188,10 @@ export default function AllocationMatrix({
     return stageFilteredGrades.filter((grade) => grade.id === gradeFilter);
   }, [gradeFilter, stageFilteredGrades]);
 
-  const assignedPairs = useMemo(() => new Set(
-    [...originalAllocations, ...localAllocations]
-      .filter((allocation) => allocation.weeklyHours > 0)
-      .map((allocation) => `${allocation.gradeId}:${allocation.subjectId}`),
-  ), [localAllocations, originalAllocations]);
-
-  const availableSubjects = useMemo(() => {
-    if (showAllSubjects) return subjects;
-    return subjects.filter((subject) => selectedGrades.some(
-      (grade) => assignedPairs.has(`${grade.id}:${subject.id}`),
-    ));
-  }, [assignedPairs, selectedGrades, showAllSubjects, subjects]);
-
   const selectedSubjects = useMemo(() => {
-    if (!subjectFilter) return availableSubjects;
-    return availableSubjects.filter((subject) => subject.id === subjectFilter);
-  }, [availableSubjects, subjectFilter]);
+    if (!subjectFilter) return subjects;
+    return subjects.filter((subject) => subject.id === subjectFilter);
+  }, [subjectFilter, subjects]);
 
   const stagesData = useMemo(() => {
     const stageIds = new Set(grades.map((grade) => grade.stageId));
@@ -242,7 +222,7 @@ export default function AllocationMatrix({
 
   const subjectOptions = [
     { value: "", label: t("filters.all_subjects") },
-    ...availableSubjects.map((subject) => ({
+    ...subjects.map((subject) => ({
       value: subject.id,
       label:
         locale === "ar"
@@ -286,7 +266,7 @@ export default function AllocationMatrix({
       return;
     }
 
-    const isValidSubject = availableSubjects.some(
+    const isValidSubject = subjects.some(
       (subject) => subject.id === subjectFilter,
     );
     if (isValidSubject) {
@@ -295,7 +275,7 @@ export default function AllocationMatrix({
 
     syncQueryParams({ subjectFilter: "" }, "replace");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableSubjects, subjectFilter]);
+  }, [subjectFilter, subjects]);
 
   const filteredGrades = useMemo(() => {
     if (!showOnlyMissing) {
@@ -304,14 +284,13 @@ export default function AllocationMatrix({
 
     return selectedGrades.filter((grade) =>
       selectedSubjects.some((subject) => {
-        if (!showAllSubjects && !assignedPairs.has(`${grade.id}:${subject.id}`)) return false;
         const allocation = localAllocations.find(
           (item) => item.gradeId === grade.id && item.subjectId === subject.id,
         );
         return (allocation?.weeklyHours || 0) <= 0;
       }),
     );
-  }, [assignedPairs, showAllSubjects, showOnlyMissing, selectedGrades, selectedSubjects, localAllocations]);
+  }, [showOnlyMissing, selectedGrades, selectedSubjects, localAllocations]);
 
   const setAllocation = (
     gradeId: string,
@@ -346,7 +325,7 @@ export default function AllocationMatrix({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await bulkUpsertSubjectAllocations(termId, changedAllocations);
+      await bulkUpsertSubjectAllocations(termId, localAllocations);
       await onRefresh();
       setOriginalAllocations(localAllocations);
       onDirtyChange(false);
@@ -426,9 +405,7 @@ export default function AllocationMatrix({
   };
 
   const completionPercentage = useMemo(() => {
-    const totalCells = filteredGrades.reduce((count, grade) => count + selectedSubjects.filter(
-      (subject) => showAllSubjects || assignedPairs.has(`${grade.id}:${subject.id}`),
-    ).length, 0);
+    const totalCells = filteredGrades.length * selectedSubjects.length;
     if (totalCells === 0) return 0;
 
     const filledCells = filteredGrades.reduce((count, grade) => {
@@ -444,7 +421,7 @@ export default function AllocationMatrix({
     }, 0);
 
     return Math.round((filledCells / totalCells) * 100);
-  }, [assignedPairs, filteredGrades, selectedSubjects, localAllocations, showAllSubjects]);
+  }, [filteredGrades, selectedSubjects, localAllocations]);
 
   const getCellId = (gradeId: string, subjectId: string) =>
     `${gradeId}-${subjectId}`;
@@ -478,9 +455,6 @@ export default function AllocationMatrix({
     row: MatrixRow & { gradeId: string },
     column: MatrixColumn & { subjectId: string },
   ) => {
-    if (!showAllSubjects && !assignedPairs.has(`${row.gradeId}:${column.subjectId}`)) {
-      return <span className="block py-3 text-center text-gray-400">—</span>;
-    }
     const value = getAllocation(row.gradeId, column.subjectId);
     const originalValue =
       originalAllocations.find(
@@ -680,7 +654,7 @@ export default function AllocationMatrix({
               label={t("filters.stage")}
               value={stageFilter}
               onChange={(value) =>
-                syncQueryParams({ stageFilter: value, gradeFilter: "", subjectFilter: "" }, "push")
+                syncQueryParams({ stageFilter: value, gradeFilter: "" }, "push")
               }
               options={stageOptions}
               selectSize="sm"
@@ -692,7 +666,7 @@ export default function AllocationMatrix({
               label={t("filters.grade")}
               value={gradeFilter}
               onChange={(value) =>
-                syncQueryParams({ gradeFilter: value, subjectFilter: "" }, "push")
+                syncQueryParams({ gradeFilter: value }, "push")
               }
               options={gradeOptions}
               selectSize="sm"
@@ -710,17 +684,6 @@ export default function AllocationMatrix({
               selectSize="sm"
             />
           </div>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={showAllSubjects}
-              onChange={(event) => syncQueryParams({ showAllSubjects: event.target.checked, subjectFilter: "" })}
-              className="rounded"
-              style={{ borderColor: "var(--color-border)" }}
-            />
-            <span style={{ color: "var(--color-gray-700)" }}>{t("filters.show_all_subjects")}</span>
-          </label>
 
           <label className="flex items-center gap-2 text-sm">
             <input

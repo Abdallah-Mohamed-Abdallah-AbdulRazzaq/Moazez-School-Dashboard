@@ -192,20 +192,20 @@ describe("SubjectsAllocationContainer", () => {
     expect(screen.getByText("loaded")).toBeInTheDocument();
   });
 
-  it("retains the term allocation data when grade and subject filters are selected", async () => {
+  it("applies grade and subject query filters to the server allocation read", async () => {
     mockedSearchParams.current = "gradeId=grade-1&subjectId=subject-1";
 
     render(<SubjectsAllocationContainer />);
 
     await waitFor(() => {
-      expect(mockedSubjectsAllocationView).toHaveBeenLastCalledWith(expect.objectContaining({
-        allocations: [expect.objectContaining({ gradeId: "grade-1", subjectId: "subject-1", weeklyHours: 5 })],
-        isLoading: false,
-      }));
+      expect(mockedFetchSubjectAllocations).toHaveBeenCalledWith("term-1", {
+        gradeId: "grade-1",
+        subjectId: "subject-1",
+      });
     });
   });
 
-  it("keeps allocation data visible without reloading when only the grade filter changes", async () => {
+  it("keeps the page visible and shows matrix loading while filter results reload", async () => {
     const { rerender } = render(<SubjectsAllocationContainer />);
 
     await waitFor(() => {
@@ -218,6 +218,7 @@ describe("SubjectsAllocationContainer", () => {
     });
 
     mockedSearchParams.current = "gradeId=grade-1";
+    mockedFetchSubjectAllocations.mockReturnValueOnce(new Promise(() => undefined));
 
     rerender(<SubjectsAllocationContainer />);
 
@@ -225,12 +226,12 @@ describe("SubjectsAllocationContainer", () => {
       expect(mockedSubjectsAllocationView).toHaveBeenLastCalledWith(
         expect.objectContaining({
           isLoading: false,
-          isMatrixLoading: false,
+          isMatrixLoading: true,
         }),
       );
     });
     expect(screen.getByText("loaded")).toBeInTheDocument();
-    expect(screen.getByText("matrix-idle")).toBeInTheDocument();
+    expect(screen.getByText("matrix-loading")).toBeInTheDocument();
   });
 
   it("shows a mapped API error when loading fails", async () => {
