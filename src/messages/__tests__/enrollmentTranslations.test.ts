@@ -35,6 +35,7 @@ describe("Enrollment translations", () => {
       "dialogs.placement.validation.stage_required",
       "load_error",
       "errors.placement_conflict",
+      "errors.capacity_exceeded",
       "errors.inactive_academic_year",
       "errors.no_active_enrollment",
       "errors.unauthorized",

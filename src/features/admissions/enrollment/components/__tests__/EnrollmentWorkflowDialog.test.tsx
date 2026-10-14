@@ -82,9 +82,12 @@ describe("EnrollmentWorkflowDialog", () => {
     expect(screen.getByRole("button", { name: "Current classroom" })).toBeDisabled();
   });
 
-  it("shows a translated placement conflict after a lifecycle request fails", async () => {
+  it.each([
+    [undefined, "errors.placement_conflict"],
+    [{ capacity: 20, activeCount: 20, projectedActiveCount: 21 }, "errors.capacity_exceeded"],
+  ])("keeps the workflow open with %s after a rejected placement", async (details, messageKey) => {
     vi.mocked(promoteEnrollment).mockRejectedValueOnce(
-      new ApiError("Placement conflict", 409, "students.enrollment.placement_conflict"),
+      new ApiError("Placement conflict", 409, "students.enrollment.placement_conflict", undefined, details),
     );
     renderWorkflow("promote");
 
@@ -93,7 +96,9 @@ describe("EnrollmentWorkflowDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "confirm" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("errors.placement_conflict");
+      expect(screen.getByRole("alert")).toHaveTextContent(messageKey);
     });
+    expect(screen.getByRole("button", { name: "confirm" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "dialogs.workflow.target_academic_year" })).toBeEnabled();
   });
 });

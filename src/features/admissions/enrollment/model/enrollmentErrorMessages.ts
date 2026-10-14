@@ -34,3 +34,28 @@ export function enrollmentErrorKey(error: unknown): EnrollmentErrorKey {
 export function enrollmentValidationErrorKey(code: string): EnrollmentErrorKey {
   return backendErrorKeys[code] ?? "validation_failed";
 }
+
+function enrollmentCapacityDetails(error: unknown) {
+  if (!isApiError(error) || error.code !== "students.enrollment.placement_conflict") return null;
+  if (!error.details || typeof error.details !== "object") return null;
+
+  const { capacity, activeCount, projectedActiveCount } = error.details as Record<string, unknown>;
+  if (
+    typeof capacity !== "number" || !Number.isFinite(capacity) || capacity < 0 ||
+    typeof activeCount !== "number" || !Number.isFinite(activeCount) || activeCount < 0 ||
+    typeof projectedActiveCount !== "number" || !Number.isFinite(projectedActiveCount) ||
+    projectedActiveCount <= capacity
+  ) return null;
+
+  return { capacity, activeCount, projectedActiveCount };
+}
+
+export function enrollmentErrorMessage(
+  error: unknown,
+  translate: (key: string, counts?: Record<string, number>) => string,
+): string {
+  const capacityDetails = enrollmentCapacityDetails(error);
+  return capacityDetails
+    ? translate("errors.capacity_exceeded", capacityDetails)
+    : translate(`errors.${enrollmentErrorKey(error)}`);
+}
