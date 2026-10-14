@@ -10,6 +10,8 @@ import { batchContext, batchIds, batchHttpResponse } from "../../utils/__tests__
 import { assignmentWorkbookFile, fixtureContext } from "@/features/academics/shared/excel-import/__tests__/excelImportFixtures";
 import { readImportWorkbook } from "@/features/academics/shared/excel-import/workbookReader";
 import { homeworkImportFromWorkbook } from "../../utils/homeworkExcelImport";
+import { validateHomeworkImportDraft } from "../../utils/homeworkExcelImport";
+import { validateHomeworkQuestionDraft } from "../../utils/homeworkQuestionDraftValidation";
 
 let context = batchContext();
 let parentNumber = 0;
@@ -22,13 +24,21 @@ beforeEach(() => {
   vi.spyOn(window, "open").mockReturnValue(null);
 });
 
-async function renderPanel() {
+async function renderPanel(origin: "excel" | "manual" | "none" = "excel") {
   const workbook = await readImportWorkbook(await assignmentWorkbookFile(), "assignment");
   if (workbook.kind !== "valid") throw new Error("Invalid workbook");
   const imported = homeworkImportFromWorkbook(workbook.draft, fixtureContext);
   if (imported.kind !== "valid") throw new Error("Invalid import");
   const onStateChange = vi.fn();
-  render(<NextIntlClientProvider locale="en" messages={en} timeZone="UTC"><HomeworkImportBatchPanel importedDraft={imported.draft} metadata={imported.draft.metadata} academicYearId={batchIds.year} termId={batchIds.term} termStart={fixtureContext.termStart} termEnd={fixtureContext.termEnd} writable initialSubjectId={batchIds.subject} onStateChange={onStateChange} onReset={() => {}} /></NextIntlClientProvider>);
+  const questionDraft = { metadata: imported.draft.metadata, questions: origin === "none" ? [] : imported.draft.questions };
+  render(<NextIntlClientProvider locale="en" messages={en} timeZone="UTC"><HomeworkImportBatchPanel questionDraft={questionDraft} origin={origin} validateDraft={(draft, validationContext) => {
+    if (origin === "excel") {
+      const checked = validateHomeworkImportDraft({ ...imported.draft, ...draft }, validationContext);
+      return checked.kind === "valid" ? { kind: "valid" } : { kind: "invalid", origin: "excel", issues: checked.issues };
+    }
+    const checked = validateHomeworkQuestionDraft(draft, validationContext);
+    return checked.kind === "valid" ? { kind: "valid" } : { kind: "invalid", origin: "manual", issues: checked.issues };
+  }} academicYearId={batchIds.year} termId={batchIds.term} termStart={fixtureContext.termStart} termEnd={fixtureContext.termEnd} writable initialSubjectId={batchIds.subject} onStateChange={onStateChange} onReset={() => {}} /></NextIntlClientProvider>);
   await waitFor(() => expect(screen.getByRole("button", { name: /^Target level/ })).toBeEnabled());
   return onStateChange;
 }
@@ -36,6 +46,52 @@ async function scope(label: string) {
   fireEvent.click(screen.getByRole("button", { name: /^Target level/ }));
   fireEvent.click(await screen.findByRole("button", { name: label, exact: true }));
 }
+
+it("keeps empty multi-class creation disabled even when a class is eligible", async () => {
+  await renderPanel("none");
+  fireEvent.click(screen.getByRole("checkbox", { name: "Room 1" }));
+  expect(screen.getByRole("button", { name: "Create 1 drafts" })).toBeDisabled();
+  expect(apiPost).not.toHaveBeenCalled();
+});
+
+it("creates every eligible class even when the preview initially shows only twelve cards", async () => {
+  for (let index = 0; index < 12; index++) {
+    const classroomId = `10000000-0000-4000-8000-${String(200 + index).padStart(12, "0")}`;
+    context.structure.classrooms.push({ ...context.structure.classrooms[0], id: classroomId, nameEn: `Extra room ${index + 1}` });
+    context.allocations.push({ ...context.allocations[0], id: `10000000-0000-4000-8000-${String(300 + index).padStart(12, "0")}`, classroomId });
+    context.enrollments.push({ ...context.enrollments[0], id: `enrollment-extra-${index}`, studentId: `student-extra-${index}`, classroomId });
+  }
+  await renderPanel("manual"); await scope("Whole school");
+  expect(screen.getByText("Showing 12 of 14 classes")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Show more classes" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Create 14 drafts" }));
+  await screen.findByText("14 of 14 assignments created");
+  expect(vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments")).toHaveLength(14);
+  fireEvent.click(screen.getByRole("button", { name: "Show more classes" }));
+  expect(screen.getAllByRole("link", { name: /^Open assignment/ })).toHaveLength(14);
+});
+
+it.each([
+  ["Selected classes", null, [batchIds.allocationA]],
+  ["Teacher's classes", "Teacher 1", [batchIds.allocationA]],
+  ["Section", "Stage 1 / Grade 1 / Section 1", [batchIds.allocationA]],
+  ["Grade", "Stage 1 / Grade 1", [batchIds.allocationA, batchIds.allocationB]],
+  ["Stage", "Stage 1", [batchIds.allocationA, batchIds.allocationB]],
+  ["Whole school", null, [batchIds.allocationA, batchIds.allocationB]],
+] as const)("creates manual questions for %s without workbook provenance", async (level, group, allocations) => {
+  await renderPanel("manual"); await scope(level);
+  if (level === "Selected classes") fireEvent.click(screen.getByRole("checkbox", { name: "Room 1" }));
+  if (group) {
+    fireEvent.click(screen.getByRole("button", { name: level === "Teacher's classes" ? "Teacher" : level, exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: group, exact: true }));
+  }
+  const create = screen.getByRole("button", { name: `Create ${allocations.length} drafts` });
+  fireEvent.click(create); fireEvent.click(create);
+  await screen.findByText(`${allocations.length} of ${allocations.length} assignments created`);
+  const parents = vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments");
+  expect(parents.map(([, payload]) => (payload as { teacherSubjectAllocationId: string }).teacherSubjectAllocationId)).toEqual(allocations);
+  expect(screen.getAllByRole("link", { name: /^Open assignment/ })).toHaveLength(allocations.length);
+});
 
 it("defaults to the teacher's eligible classes and keeps exclusions through search and preflight", async () => {
   context.allocations[1].teacherId = batchIds.teacherA;
@@ -108,9 +164,27 @@ it.each(["noTeachers", "noTeacherSubjects"] as const)("explains %s and blocks te
   expect(apiPost).not.toHaveBeenCalled();
 });
 
+it.each(["excel", "manual"] as const)("creates %s batches without opening tabs when the user disables automatic opening", async origin => {
+  await renderPanel(origin); await scope("Whole school");
+  const preference = screen.getByRole("checkbox", { name: en.academics.homework.importBatch.openInNewTabs });
+  expect(preference).toBeChecked();
+  fireEvent.click(preference);
+  expect(preference).not.toBeChecked();
+  expect(screen.getByText(en.academics.homework.importBatch.tabsDisabledHelp)).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Create 2 drafts" }));
+  await screen.findByText("2 of 2 assignments created");
+  expect(preference).toBeDisabled();
+  expect(window.open).not.toHaveBeenCalled();
+  expect(screen.getAllByRole("link", { name: /^Open assignment/ })).toHaveLength(2);
+  expect(vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments")).toHaveLength(2);
+});
+
 it.each(["null return", "browser exception"])("preserves selected classes across search and records complete drafts despite %s", async restriction => {
   if (restriction === "browser exception") vi.mocked(window.open).mockImplementation(() => { throw new DOMException("Popup restricted"); });
   const onStateChange = await renderPanel();
+  const preference = screen.getByRole("checkbox", { name: en.academics.homework.importBatch.openInNewTabs });
+  fireEvent.click(preference); fireEvent.click(preference);
+  expect(preference).toBeChecked();
   fireEvent.click(screen.getByRole("checkbox", { name: "Room 1" }));
   fireEvent.change(screen.getByLabelText("Search classes"), { target: { value: "Room 2" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "Room 2" }));
@@ -156,7 +230,10 @@ it("blocks creation after a required context read fails and allows a read-only r
   if (workbook.kind !== "valid") throw new Error("Invalid workbook");
   const imported = homeworkImportFromWorkbook(workbook.draft, fixtureContext);
   if (imported.kind !== "valid") throw new Error("Invalid import");
-  render(<NextIntlClientProvider locale="en" messages={en}><HomeworkImportBatchPanel importedDraft={imported.draft} metadata={imported.draft.metadata} academicYearId={batchIds.year} termId={batchIds.term} termStart={fixtureContext.termStart} termEnd={fixtureContext.termEnd} writable initialSubjectId={batchIds.subject} onStateChange={() => {}} onReset={() => {}} /></NextIntlClientProvider>);
+  render(<NextIntlClientProvider locale="en" messages={en}><HomeworkImportBatchPanel questionDraft={imported.draft} origin="excel" validateDraft={(draft, validationContext) => {
+    const checked = validateHomeworkImportDraft({ ...imported.draft, ...draft }, validationContext);
+    return checked.kind === "valid" ? { kind: "valid" } : { kind: "invalid", origin: "excel", issues: checked.issues };
+  }} academicYearId={batchIds.year} termId={batchIds.term} termStart={fixtureContext.termStart} termEnd={fixtureContext.termEnd} writable initialSubjectId={batchIds.subject} onStateChange={() => {}} onReset={() => {}} /></NextIntlClientProvider>);
   await screen.findByText(en.academics.homework.importBatch.loadError);
   expect(screen.getByRole("button", { name: "Create 0 drafts" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Retry loading" }));

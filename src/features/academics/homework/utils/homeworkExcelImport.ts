@@ -1,15 +1,15 @@
 import { importIssue } from "@/features/academics/shared/excel-import/workbookReader";
 import { existingQuestionIssues, importQuestions, marksWarnings, questionContractIssues, readImportFields, validImportDateTime, type ImportFieldRules } from "@/features/academics/shared/excel-import/workbookValidation";
 import type { HomeworkImport, ImportContext, ImportIssue, ImportValidation, ImportWorkbookRows } from "@/features/academics/shared/excel-import/types";
-import { validateHomeworkAssignmentContract, validateHomeworkQuestion } from "./homeworkValidation";
+import { validateHomeworkQuestionDraft } from "./homeworkQuestionDraftValidation";
+import { HOMEWORK_DRAFT_LIMITS, HOMEWORK_MODES } from "./homeworkQuestionDraft.types";
 
 const metadataRules: ImportFieldRules = {
   title: { kind: "text", required: true, max: 180 }, description: { kind: "text", max: 4000 },
-  mode: { kind: "enum", options: ["homework", "worksheet", "writing_task", "quiz", "reading", "project"], default: "homework" },
+  mode: { kind: "enum", options: HOMEWORK_MODES, default: "homework" },
   dueAt: { kind: "text", required: true }, isGraded: { kind: "boolean", default: true },
-  totalMarks: { kind: "number", min: 0.01, max: 99999.99 }, estimatedMinutes: { kind: "number", min: 1, max: 2147483647, integer: true },
+  totalMarks: { kind: "number", min: 0.01, max: HOMEWORK_DRAFT_LIMITS.points }, estimatedMinutes: { kind: "number", min: 1, max: HOMEWORK_DRAFT_LIMITS.minutes, integer: true },
 };
-const validationKey = (key: string) => `validation.${key}`;
 
 export function homeworkImportFromWorkbook(workbook: ImportWorkbookRows, context: ImportContext): ImportValidation<HomeworkImport> {
   const metadata = readImportFields(workbook.details, "Details", metadataRules);
@@ -24,18 +24,25 @@ export function homeworkImportFromWorkbook(workbook: ImportWorkbookRows, context
   return issues.length ? { kind: "invalid", issues } : validated;
 }
 
-function metadataIssues(draft: HomeworkImport, context: ImportContext): ImportIssue[] {
+function metadataIssues(draft: HomeworkImport): ImportIssue[] {
   const row = { rowNumber: draft.source.details.rowNumber, cells: { ...draft.metadata } };
   const bounds = readImportFields(row as ImportWorkbookRows["details"], "Details", metadataRules).issues;
-  const errors = validateHomeworkAssignmentContract({ ...draft.metadata, isGraded: draft.metadata.isGraded ?? true, publishAt: context.publishAt }, validationKey, context.now);
-  const issues: ImportIssue[] = Object.entries(errors).map(([field, message]) => ({ sheet: "Details", row: row.rowNumber, field, messageKey: message as string }));
+  const issues: ImportIssue[] = [];
   if (!validImportDateTime(draft.metadata.dueAt)) issues.push(importIssue("Details", row.rowNumber, "dueAt", "dateTime"));
   return [...bounds, ...issues];
 }
 
 export function validateHomeworkImportDraft(draft: HomeworkImport, context: ImportContext): ImportValidation<HomeworkImport> {
-  const issues = [...metadataIssues(draft, context), ...questionContractIssues(draft.questions, draft.source)];
-  for (const question of draft.questions) issues.push(...existingQuestionIssues({ question, source: draft.source, errors: validateHomeworkQuestion(question, validationKey) }));
+  const issues = [...metadataIssues(draft), ...questionContractIssues(draft.questions, draft.source)];
+  const checked = validateHomeworkQuestionDraft(draft, context);
+  if (checked.kind === "invalid") for (const issue of checked.issues) {
+    if (issue.scope === "metadata") issues.push({ sheet: "Details", row: draft.source.details.rowNumber, field: issue.field, messageKey: issue.messageKey, values: issue.values });
+    else {
+      const question = draft.questions.find(candidate => candidate.id === issue.questionId)!;
+      const mapped = existingQuestionIssues({ question, source: draft.source, errors: { [issue.field]: issue.messageKey } });
+      if (!issues.some(existing => existing.sheet === "Questions" && existing.row === mapped[0].row && existing.field === issue.field)) issues.push(...mapped);
+    }
+  }
   if (issues.length) return { kind: "invalid", issues };
   return { kind: "valid", draft, warnings: marksWarnings(draft.metadata.isGraded ? draft.metadata.totalMarks : undefined, draft.questions, draft.source.details) };
 }

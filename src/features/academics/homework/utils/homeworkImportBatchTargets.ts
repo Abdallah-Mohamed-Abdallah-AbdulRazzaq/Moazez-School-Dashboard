@@ -1,5 +1,5 @@
 import type { Classroom, StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
-import type { HomeworkImportMetadata } from "@/features/academics/shared/excel-import/types";
+import type { HomeworkDraftMetadata } from "./homeworkQuestionDraft.types";
 import type { CreateHomeworkAssignmentRequest } from "../services/homeworkApi.types";
 import type { HomeworkBatchContext, HomeworkBatchEligibleRow, HomeworkBatchPlan, HomeworkBatchRow, HomeworkBatchSelection } from "./homeworkImportBatch.types";
 
@@ -74,7 +74,7 @@ export function homeworkBatchPlan(request: BatchPlanRequest): HomeworkBatchPlan 
 export function homeworkBatchPayload(request: {
   plan: HomeworkBatchPlan;
   target: HomeworkBatchEligibleRow;
-  metadata: HomeworkImportMetadata;
+  metadata: HomeworkDraftMetadata;
   publishAt?: string | null;
 }): CreateHomeworkAssignmentRequest {
   const { plan, target, metadata, publishAt } = request;

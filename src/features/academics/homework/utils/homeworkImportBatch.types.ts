@@ -3,6 +3,13 @@ import type { Subject } from "@/features/academics/subjects/services/subjectsSer
 import type { TeacherAllocation } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import type { StudentEnrollment } from "@/features/students-guardians/students/types";
 import type { HomeworkAssignmentUiModel } from "../services/homeworkApi.types";
+import type { ImportIssue } from "@/features/academics/shared/excel-import/types";
+import type { HomeworkDraftIssue } from "./homeworkQuestionDraft.types";
+
+export type HomeworkBatchDraftValidation =
+  | { kind: "valid" }
+  | { kind: "invalid"; origin: "manual"; issues: HomeworkDraftIssue[] }
+  | { kind: "invalid"; origin: "excel"; issues: ImportIssue[] };
 
 export type HomeworkBatchSelection =
   | { type: "classes"; classroomIds: string[] }

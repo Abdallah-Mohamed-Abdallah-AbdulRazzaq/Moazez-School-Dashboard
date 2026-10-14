@@ -1,4 +1,5 @@
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
+import { HOMEWORK_DRAFT_LIMITS } from "@/features/academics/homework/utils/homeworkQuestionDraft.types";
 import type { QuestionValidationError } from "@/features/academics/curriculum/types/types";
 import { QUESTION_TYPES } from "./templateSchemas";
 import { importIssue } from "./workbookReader";
@@ -61,7 +62,7 @@ function questionRules(module: ImportWorkbookRows["module"]): ImportFieldRules {
   const texts: ImportFieldRules = module === "assignment"
     ? { questionText: { kind: "text", required: true, max: 8000 }, instructions: { kind: "text", max: 4000 }, expectedAnswer: { kind: "text", max: 8000 } }
     : { questionTextAr: { kind: "text", required: true, max: 5000 }, questionTextEn: { kind: "text", required: true, max: 5000 }, sampleAnswerAr: { kind: "text" }, sampleAnswerEn: { kind: "text" } };
-  return { questionNumber: identifierRule, questionType: { kind: "enum", required: true, options: QUESTION_TYPES }, points: { kind: "number", required: true, min: module === "assignment" ? 0 : 0.01, max: module === "assignment" ? 99999.99 : 999999.99 }, correctAnswer: { kind: "boolean" }, ...texts };
+  return { questionNumber: identifierRule, questionType: { kind: "enum", required: true, options: QUESTION_TYPES }, points: { kind: "number", required: true, min: module === "assignment" ? 0 : 0.01, max: module === "assignment" ? HOMEWORK_DRAFT_LIMITS.points : 999999.99 }, correctAnswer: { kind: "boolean" }, ...texts };
 }
 
 function choiceRules(module: ImportWorkbookRows["module"]): ImportFieldRules {

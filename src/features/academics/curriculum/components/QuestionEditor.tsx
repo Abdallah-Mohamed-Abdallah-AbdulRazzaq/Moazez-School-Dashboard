@@ -19,6 +19,7 @@ import {
 import { AlertCircle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
+import TextArea from "@/components/ui/input/TextArea";
 import Select from "@/components/ui/input/Select";
 import Checkbox from "@/components/ui/checkbox/Checkbox";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
@@ -52,6 +53,8 @@ interface QuestionEditorProps {
   showHomeworkFields?: boolean;
   detailsInputMode?: "bilingual" | "single";
   requirementField?: "isRequired" | "required";
+  instructionsDisclosureLabel?: string;
+  showOptionErrors?: boolean;
 }
 
 interface OptionErrors {
@@ -69,6 +72,8 @@ export default function QuestionEditor({
   showHomeworkFields = false,
   detailsInputMode = "bilingual",
   requirementField = showHomeworkFields ? "isRequired" : undefined,
+  instructionsDisclosureLabel,
+  showOptionErrors = true,
 }: QuestionEditorProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
@@ -141,6 +146,7 @@ export default function QuestionEditor({
 
   const validateOption = (option: QuestionOption): OptionErrors => {
     const errors: OptionErrors = {};
+    if (!showOptionErrors) return errors;
 
     if (requireBothLocalizedTexts && !option.textAr?.trim()) {
       errors.ar = tValidation("required_ar");
@@ -271,7 +277,7 @@ export default function QuestionEditor({
           />
         )}
 
-        {showHomeworkFields && (
+        {showHomeworkFields && !instructionsDisclosureLabel && (
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">{t("instructions")}</label>
             <textarea
@@ -286,6 +292,8 @@ export default function QuestionEditor({
             {validationErrors?.instructions && <p className="mt-1 text-xs text-red-600">{validationErrors.instructions}</p>}
           </div>
         )}
+
+        {showHomeworkFields && instructionsDisclosureLabel && <details open={Boolean(validationErrors?.instructions) || undefined} className="rounded-lg border border-gray-200 p-3"><summary className="cursor-pointer text-sm font-medium text-gray-700">{instructionsDisclosureLabel}</summary><div className="mt-3"><TextArea label={t("instructions")} value={question.instructions ?? ""} onChange={event => onChange({ instructions: event.target.value })} disabled={isReadOnly} rows={3} maxLength={4001} placeholder={t("instructions_placeholder")} error={validationErrors?.instructions} /></div></details>}
 
         <div className="border-t pt-6">
           <label className="text-sm font-medium block mb-4">

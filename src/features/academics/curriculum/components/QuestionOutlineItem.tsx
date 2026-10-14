@@ -4,6 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { CheckCircle, AlertCircle, ChevronUp, ChevronDown } from "lucide-react";
 import { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import { validateQuestion } from "@/features/academics/curriculum/utils/validation";
+import type { QuestionValidationError } from "../types/types";
 
 interface QuestionOutlineItemProps {
   question: AssignmentQuestion;
@@ -17,6 +18,8 @@ interface QuestionOutlineItemProps {
   canMoveDown: boolean;
   isReadOnly: boolean;
   isLegacyReadOnly?: boolean;
+  validationErrors?: QuestionValidationError;
+  validationPending?: boolean;
 }
 
 export default function QuestionOutlineItem({
@@ -31,6 +34,8 @@ export default function QuestionOutlineItem({
   canMoveDown,
   isReadOnly,
   isLegacyReadOnly = false,
+  validationErrors,
+  validationPending = false,
 }: QuestionOutlineItemProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
@@ -43,7 +48,7 @@ export default function QuestionOutlineItem({
     question.mediaFileName;
 
   const isValid = () => {
-    return Object.keys(validateQuestion(question, tValidation)).length === 0;
+    return Object.keys(validationErrors ?? validateQuestion(question, tValidation)).length === 0;
   };
 
   const valid = isValid();
@@ -51,7 +56,7 @@ export default function QuestionOutlineItem({
   return (
     <div
       className={`mb-2 p-3 rounded-lg border-2 transition-all cursor-pointer ${
-        isSelected
+        validationPending ? (isSelected ? "border-primary bg-primary/5" : "border-gray-200 bg-white hover:border-gray-300") : isSelected
           ? valid
             ? "border-primary bg-primary/5"
             : "border-red-500 bg-red-50"
@@ -108,11 +113,11 @@ export default function QuestionOutlineItem({
         </div>
 
         <div className="flex items-center gap-1">
-          {valid ? (
+          {!validationPending && (valid ? (
             <CheckCircle className="w-4 h-4 text-green-600" aria-label={t("configured")} />
           ) : (
             <AlertCircle className="w-4 h-4 text-amber-600" aria-label={t("needs_correct")} />
-          )}
+          ))}
 
           {!isReadOnly && (
             <div className="flex flex-col">
