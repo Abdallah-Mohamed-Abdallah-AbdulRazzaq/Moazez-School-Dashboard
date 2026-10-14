@@ -54,7 +54,7 @@ export default function HomeworkImportBatchTargets({ batch, writable }: { batch:
     {selection.type === "classes" && <>
       <Input label={t("searchClasses")} value={search} onChange={event => setSearch(event.target.value)} />
       <p className="text-sm">{t("selected", { count: selection.classroomIds.length })}</p>
-      <div className="grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">{choices.map(room => <Checkbox key={room.id} label={room.name || t("unavailable")} description={room.hierarchy} checked={selection.classroomIds.includes(room.id)} onChange={() => toggleClass(room.id)} />)}</div>
+      <div className="grid max-h-80 gap-3 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">{choices.map(room => <Checkbox key={room.id} className="min-h-16 bg-white" label={room.name || t("unavailable")} description={room.hierarchy} checked={selection.classroomIds.includes(room.id)} onChange={() => toggleClass(room.id)} />)}</div>
     </>}
   </fieldset>;
 }

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { type Column } from "@/components/ui/data-table/DataTable";
 import ButtonLink from "@/components/ui/button/ButtonLink";
 import { CheckCircle2, CircleAlert, ExternalLink, LoaderCircle } from "lucide-react";
 import Checkbox from "@/components/ui/checkbox/Checkbox";
@@ -11,7 +10,7 @@ import type { HomeworkBatchPlan, HomeworkBatchResult } from "../utils/homeworkIm
 import { homeworkBatchEditorUrl } from "../hooks/useHomeworkImportBatch";
 import { getHomeworkErrorMessage } from "../services/homeworkErrors";
 import HomeworkImportBatchSummary from "./HomeworkImportBatchSummary";
-import HomeworkImportBatchTable from "./HomeworkImportBatchTable";
+import { HomeworkClassCard, HomeworkClassCardGrid } from "./HomeworkClassCards";
 
 const statusStyles: Record<HomeworkBatchResult["status"], string> = {
   queued: "bg-gray-100 text-gray-700", creating: "bg-primary-50 text-primary",
@@ -59,13 +58,6 @@ export default function HomeworkImportBatchResults({ plan, outcomes }: { plan: H
   const [search, setSearch] = useState("");
   const visibleOutcomes = outcomes.filter(row => (!attention || ["partial", "failed", "unconfirmed", "skipped"].includes(row.status))
     && `${row.target.classroomName} ${row.target.hierarchy} ${row.target.teacherName ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()));
-  const columns: Column<HomeworkBatchResult>[] = [
-    { key: "classroom", label: t("classroom"), sortable: false, render: (_, row) => <div><p>{row.status === "created" ? row.assignment.classroomName || row.target.classroomName : row.target.classroomName}</p><p className="text-xs text-gray-500">{row.target.hierarchy}</p></div> },
-    { key: "teacher", label: t("teacher"), sortable: false, render: (_, row) => row.status === "created" ? row.assignment.teacherName || row.target.teacherName || t("unavailable") : row.target.teacherName || t("unavailable") },
-    { key: "students", label: t("students"), sortable: false, render: (_, row) => row.target.studentCount },
-    { key: "status", label: t("status"), sortable: false, render: (_, row) => <BatchResultStatus outcome={row} /> },
-    { key: "action", label: t("action"), sortable: false, render: (_, row) => row.status === "created" || row.status === "partial" || row.status === "unconfirmed" ? <BatchResultAction outcome={row} plan={plan} /> : null },
-  ];
   return <div className="space-y-5">
     <BatchResultProgress outcomes={outcomes} eligible={plan.rows.filter(row => row.eligible).length} />
     <HomeworkImportBatchSummary created={outcomes.filter(row => row.status === "created").length} eligible={plan.rows.filter(row => row.eligible).length} attention={outcomes.filter(row => ["partial", "failed", "unconfirmed"].includes(row.status)).length} skipped={outcomes.filter(row => row.status === "skipped").length} />
@@ -73,6 +65,8 @@ export default function HomeworkImportBatchResults({ plan, outcomes }: { plan: H
       <Input label={t("searchClasses")} value={search} onChange={event => setSearch(event.target.value)} />
       <Checkbox className="min-h-11 bg-white" label={t("attention")} checked={attention} onChange={event => setAttention(event.target.checked)} />
     </div>
-    <HomeworkImportBatchTable columns={columns} rows={visibleOutcomes} rowKey={row => row.target.classroomId} emptyTitle={t("noAttention")} />
+    <HomeworkClassCardGrid key={`${search}:${attention}`} rows={visibleOutcomes} rowKey={row => row.target.classroomId} emptyTitle={t("noAttention")} renderCard={row => <HomeworkClassCard classroom={row.status === "created" ? row.assignment.classroomName || row.target.classroomName : row.target.classroomName} hierarchy={row.target.hierarchy} teacher={row.status === "created" ? row.assignment.teacherName || row.target.teacherName : row.target.teacherName} students={row.target.studentCount} status={<BatchResultStatus outcome={row} />}>
+      {(row.status === "created" || row.status === "partial" || row.status === "unconfirmed") && <BatchResultAction outcome={row} plan={plan} />}
+    </HomeworkClassCard>} />
   </div>;
 }

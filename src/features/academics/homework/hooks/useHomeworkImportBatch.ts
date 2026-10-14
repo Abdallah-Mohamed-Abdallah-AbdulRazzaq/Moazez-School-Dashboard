@@ -16,6 +16,7 @@ export interface HomeworkImportBatchPanelProps {
   academicYearId: string; termId: string; termStart: string; termEnd: string; writable: boolean;
   initialSubjectId?: string; initialClassroomId?: string;
   onStateChange: (state: HomeworkBatchPageState) => void; onReset: () => void;
+  onCancel?: () => void;
 }
 
 export function homeworkBatchEditorUrl(locale: string, plan: HomeworkBatchPlan, homeworkId?: string) {

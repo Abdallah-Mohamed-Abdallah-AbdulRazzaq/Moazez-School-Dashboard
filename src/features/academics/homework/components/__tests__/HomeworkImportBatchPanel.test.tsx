@@ -54,6 +54,23 @@ it("keeps empty multi-class creation disabled even when a class is eligible", as
   expect(apiPost).not.toHaveBeenCalled();
 });
 
+it("creates every eligible class even when the preview initially shows only twelve cards", async () => {
+  for (let index = 0; index < 12; index++) {
+    const classroomId = `10000000-0000-4000-8000-${String(200 + index).padStart(12, "0")}`;
+    context.structure.classrooms.push({ ...context.structure.classrooms[0], id: classroomId, nameEn: `Extra room ${index + 1}` });
+    context.allocations.push({ ...context.allocations[0], id: `10000000-0000-4000-8000-${String(300 + index).padStart(12, "0")}`, classroomId });
+    context.enrollments.push({ ...context.enrollments[0], id: `enrollment-extra-${index}`, studentId: `student-extra-${index}`, classroomId });
+  }
+  await renderPanel("manual"); await scope("Whole school");
+  expect(screen.getByText("Showing 12 of 14 classes")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Show more classes" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Create 14 drafts" }));
+  await screen.findByText("14 of 14 assignments created");
+  expect(vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments")).toHaveLength(14);
+  fireEvent.click(screen.getByRole("button", { name: "Show more classes" }));
+  expect(screen.getAllByRole("link", { name: /^Open assignment/ })).toHaveLength(14);
+});
+
 it.each([
   ["Selected classes", null, [batchIds.allocationA]],
   ["Teacher's classes", "Teacher 1", [batchIds.allocationA]],

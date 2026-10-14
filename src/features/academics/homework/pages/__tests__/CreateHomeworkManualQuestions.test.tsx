@@ -45,6 +45,10 @@ function writeQuestion() {
 }
 it("shows the new choices without changing default single-class creation", async () => {
   renderPage();
+  const title = screen.getByRole("textbox", { name: /^Title/ });
+  const questionsEntry = screen.getByRole("button", { name: en.academics.homework.manual.entry });
+  expect(title.compareDocumentPosition(questionsEntry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByRole("region", { name: en.academics.homework.manual.creationSummary })).toBeVisible();
   expect(screen.getByRole("checkbox", { name: "Assign to multiple classes" })).not.toBeChecked();
   expect(screen.getByRole("button", { name: en.academics.homework.manual.entry })).toBeVisible();
   expect(screen.queryByText(en.academics.homework.manual.localHelp)).not.toBeInTheDocument();
@@ -82,6 +86,9 @@ it("keeps manual questions through mode changes and saves a whole-class draft pe
   const level = await screen.findByRole("button", { name: /^Target level/ });
   await waitFor(() => expect(level).toBeEnabled()); fireEvent.click(level);
   fireEvent.click(screen.getByRole("button", { name: "Whole school", exact: true }));
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.getAllByRole("article")).toHaveLength(4);
+  expect(screen.getByText("2 skipped classes — view reasons")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Create 2 drafts" }));
   await screen.findByText("2 of 2 assignments created");
   expect(apiPost).toHaveBeenCalledTimes(4);

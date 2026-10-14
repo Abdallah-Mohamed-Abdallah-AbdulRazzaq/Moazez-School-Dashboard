@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Download, Upload } from "lucide-react";
 import Button from "@/components/ui/button/Button";
@@ -16,6 +16,7 @@ interface ExcelImportActionsProps {
   disabled: boolean;
   onApply: (draft: ImportedDraft) => void;
   onRemove: () => void;
+  leadingActions?: ReactNode;
 }
 export default function ExcelImportActions(props: ExcelImportActionsProps) {
   const t = useTranslations("academics.excelImport");
@@ -32,10 +33,13 @@ export default function ExcelImportActions(props: ExcelImportActionsProps) {
     } catch { showError(t("messages.parseFailed")); }
     finally { setIsDownloading(false); }
   };
+  const downloadAction = <Button variant={props.leadingActions ? "ghost" : "secondary"} size="sm" loading={isDownloading} onClick={download} leftIcon={<Download size={16} />}>{t("actions.download")}</Button>;
   return <div className="my-4 space-y-3 rounded-lg border border-border p-4">
     <div className="flex flex-wrap gap-2">
-      <Button variant="secondary" size="sm" loading={isDownloading} onClick={download} leftIcon={<Download size={16} />}>{t("actions.download")}</Button>
+      {props.leadingActions}
+      {!props.leadingActions && downloadAction}
       <Button variant="secondary" size="sm" disabled={props.disabled} onClick={() => setDialog("import")} leftIcon={<Upload size={16} />}>{t("actions.import")}</Button>
+      {props.leadingActions && downloadAction}
     </div>
     {props.pendingImport && <div className="flex flex-wrap items-center gap-3 text-sm" role="status">
       <span>{t("labels.pending", { count: props.pendingImport.questions.length })}</span>

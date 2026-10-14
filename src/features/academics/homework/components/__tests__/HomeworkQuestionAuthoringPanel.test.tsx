@@ -41,3 +41,21 @@ it("prevents opening or adding authoring content when creation is locked", () =>
   fireEvent.click(screen.getByRole("button", { name: "Write" }));
   expect(screen.queryByRole("button", { name: "Add question" })).not.toBeInTheDocument();
 });
+
+it("keeps new questions neutral and reveals validation after editing without losing instructions", () => {
+  render(<AuthoringHost />);
+  fireEvent.click(screen.getByRole("button", { name: "Write" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add question" }));
+  expect(screen.queryByLabelText(en.academics.curriculum.questions.needs_correct)).not.toBeInTheDocument();
+  expect(screen.queryByText(en.validation.all_options_required)).not.toBeInTheDocument();
+  const prompt = screen.getByPlaceholderText(en.academics.curriculum.questions.question_text);
+  fireEvent.change(prompt, { target: { value: "Choose a number" } });
+  fireEvent.blur(prompt);
+  expect(screen.getByLabelText(en.academics.curriculum.questions.needs_correct)).toBeInTheDocument();
+  expect(screen.getAllByText(en.validation.all_options_required).length).toBeGreaterThan(0);
+  const instructions = screen.getByLabelText("Instructions");
+  fireEvent.change(instructions, { target: { value: "Explain your choice" } });
+  fireEvent.click(screen.getByRole("button", { name: "Hide questions" }));
+  fireEvent.click(screen.getByRole("button", { name: "Show questions" }));
+  expect(screen.getByLabelText("Instructions")).toHaveValue("Explain your choice");
+});

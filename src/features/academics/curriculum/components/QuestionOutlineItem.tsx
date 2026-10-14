@@ -19,6 +19,7 @@ interface QuestionOutlineItemProps {
   isReadOnly: boolean;
   isLegacyReadOnly?: boolean;
   validationErrors?: QuestionValidationError;
+  validationPending?: boolean;
 }
 
 export default function QuestionOutlineItem({
@@ -34,6 +35,7 @@ export default function QuestionOutlineItem({
   isReadOnly,
   isLegacyReadOnly = false,
   validationErrors,
+  validationPending = false,
 }: QuestionOutlineItemProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
@@ -54,7 +56,7 @@ export default function QuestionOutlineItem({
   return (
     <div
       className={`mb-2 p-3 rounded-lg border-2 transition-all cursor-pointer ${
-        isSelected
+        validationPending ? (isSelected ? "border-primary bg-primary/5" : "border-gray-200 bg-white hover:border-gray-300") : isSelected
           ? valid
             ? "border-primary bg-primary/5"
             : "border-red-500 bg-red-50"
@@ -111,11 +113,11 @@ export default function QuestionOutlineItem({
         </div>
 
         <div className="flex items-center gap-1">
-          {valid ? (
+          {!validationPending && (valid ? (
             <CheckCircle className="w-4 h-4 text-green-600" aria-label={t("configured")} />
           ) : (
             <AlertCircle className="w-4 h-4 text-amber-600" aria-label={t("needs_correct")} />
-          )}
+          ))}
 
           {!isReadOnly && (
             <div className="flex flex-col">

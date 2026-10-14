@@ -10,7 +10,8 @@ import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import Select from "@/components/ui/input/Select";
 import Checkbox from "@/components/ui/checkbox/Checkbox";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
-import { ClipboardList, ChevronDown, FileSpreadsheet } from "lucide-react";
+import { ClipboardList, ChevronDown, FileSpreadsheet, PencilLine } from "lucide-react";
+import HomeworkCreationBar from "../components/HomeworkCreationBar";
 import HomeworkImportBatchPanel from "../components/HomeworkImportBatchPanel";
 import type { HomeworkBatchDraftValidation, HomeworkBatchPageState } from "../utils/homeworkImportBatch.types";
 import { useHomeworkCreateQuestions } from "../hooks/useHomeworkCreateQuestions";
@@ -651,6 +652,11 @@ export default function CreateHomeworkPage() {
     }
   };
 
+  const cancelCreation = () => guardedNavigate(() => {
+    const params = searchParams.toString();
+    router.push(`/${locale}/academics/homework${params ? `?${params}` : ""}`);
+  });
+
   if (isInitializing && !batchState.hasStarted && !batchState.isSaving) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -679,27 +685,11 @@ export default function CreateHomeworkPage() {
             <p className="mt-2 text-sm leading-6 text-gray-600">{t("description")}</p></div>
           </div>
 
-          <div className="space-y-3">
-          <p className="flex items-center gap-2 text-sm font-semibold text-gray-800"><FileSpreadsheet size={18} className="text-primary" aria-hidden="true" />{tBatch("importContent")}</p>
-          <div className="[&>div]:my-0 [&>div]:rounded-xl [&>div]:border-primary-100 [&>div]:bg-primary-50/40 [&>div]:p-5 [&_button]:min-h-11 [&_button]:text-sm">
-          <ExcelImportActions module="assignment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: effectiveDraft }} disabled={!canImport || isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} onApply={applyImport} onRemove={resetBatchImport} />
-          </div>
-          <Button variant="secondary" disabled={contentLocked} onClick={authoring.requestManualAuthoring}>{tManual("entry")}</Button>
           <Checkbox label={tBatch("toggle")} description={!canView ? tBatch("permission") : !canImport ? tManual("unavailable") : tBatch("toggleHelp")} checked={batchEnabled} onChange={event => {
             setBatchEnabled(event.target.checked);
             if (event.target.checked && authoring.content.kind === "none") authoring.requestManualAuthoring();
           }} disabled={!canView || contentLocked} className="bg-white" />
-          </div>
-          <ConfirmDialog isOpen={authoring.pendingReplacement !== null} onClose={authoring.cancelReplacement} onConfirm={authoring.acceptReplacement} title={tManual("replaceTitle")} description={tManual("replaceDescription")} confirmLabel={tManual("replace")} cancelLabel={tManual("cancel")} severity="warning" loading={contentLocked} />
-          <HomeworkQuestionAuthoringPanel authoring={authoring} locked={contentLocked} issues={manualIssues} />
-          {manualValidation?.kind === "valid" && manualValidation.warnings.map((warning, index) => <p key={index} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{tManual("marksMismatch", warning.values)}</p>)}
-          {importIssues.length > 0 && <ImportIssues issues={importIssues} />}
-          {!batchEnabled && manualIssues.length > 0 && <HomeworkDraftIssues issues={manualIssues} questions={questions} />}
-          {partialImport && <div role="alert" className="mb-4 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm">{pendingImport ? tImport("messages.partialSave", { saved: partialImport.failedQuestionIndex, total: questions.length }) : tManual("partialSave", { saved: partialImport.failedQuestionIndex, total: questions.length })}</p>
-            <Button variant="secondary" onClick={() => openImportedDraft(partialImport.homeworkId)}>{tImport("actions.openDraft")}</Button>
-          </div>}
-          <div className={batchEnabled && !batchState.hasStarted ? "grid items-start gap-6 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]" : "grid gap-6"}>
+          <div className="space-y-6">
           <details open={!batchState.hasStarted} className="group min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-base font-semibold text-gray-900 sm:p-6 [&::-webkit-details-marker]:hidden">
               <span>{tBatch("assignmentDetails")}{batchState.hasStarted && <span className="mt-1 block text-sm font-normal text-gray-600">{draft.title}</span>}</span>
@@ -707,7 +697,7 @@ export default function CreateHomeworkPage() {
             </summary>
             <div className="border-t border-gray-100 p-5 sm:p-6">
           {/* Unlayered form styles must not expand controls beyond their grid columns. */}
-          <fieldset disabled={isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className={`grid min-w-0 gap-5 [&>div]:min-w-0 [&_input]:box-border! [&_input]:min-w-0! [&_input]:max-w-full! [&_[aria-haspopup=listbox]]:box-border! [&_[aria-haspopup=listbox]]:min-w-0! [&_[aria-haspopup=listbox]]:max-w-full! ${batchEnabled ? "md:grid-cols-2 xl:grid-cols-1 xl:[&>div]:col-span-1" : "md:grid-cols-2"}`}>
+          <fieldset disabled={isSubmitting || Boolean(partialImport) || batchState.hasStarted || batchState.isSaving} className={`grid min-w-0 gap-5 [&>div]:min-w-0 [&_input]:box-border! [&_input]:min-w-0! [&_input]:max-w-full! [&_[aria-haspopup=listbox]]:box-border! [&_[aria-haspopup=listbox]]:min-w-0! [&_[aria-haspopup=listbox]]:max-w-full! md:grid-cols-2`}>
             <div className="md:col-span-2">
               <p className="mt-1 text-sm text-gray-600">
                 {batchEnabled ? tBatch("detailsHelp") : t("sections.assignmentDescription")}
@@ -1035,26 +1025,38 @@ export default function CreateHomeworkPage() {
             </div>
           </details>
 
-          {batchEnabled && <HomeworkImportBatchPanel questionDraft={questionDraft} origin={authoring.content.kind} validateDraft={validateContentDraft} publishAt={draft.publishAt} academicYearId={academicYearId || ""} termId={termId || ""} termStart={selectedTerm?.startDate ?? ""} termEnd={selectedTerm?.endDate ?? ""} writable={canImport && canView && Boolean(academicYearId && termId)} initialSubjectId={selectedAllocation?.allocation.subjectId} initialClassroomId={selectedAllocation?.allocation.classroomId} onStateChange={updateBatchState} onReset={resetBatchImport} />}
+          <div className="space-y-3">
+          <p className="flex items-center gap-2 text-base font-semibold text-gray-900"><FileSpreadsheet size={18} className="text-primary" aria-hidden="true" />{tManual("contentTitle")}</p>
+          <div className="[&>div]:my-0 [&>div]:rounded-xl [&>div]:border-primary-100 [&>div]:bg-primary-50/40 [&>div]:p-5 [&_button]:min-h-11 [&_button]:text-sm">
+          <ExcelImportActions module="assignment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: effectiveDraft }} disabled={contentLocked} onApply={applyImport} onRemove={resetBatchImport} leadingActions={<Button variant="secondary" disabled={contentLocked} leftIcon={<PencilLine size={16} />} onClick={authoring.requestManualAuthoring}>{tManual("entry")}</Button>} />
           </div>
 
-          <div className="flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-5">
+          </div>
+          <ConfirmDialog isOpen={authoring.pendingReplacement !== null} onClose={authoring.cancelReplacement} onConfirm={authoring.acceptReplacement} title={tManual("replaceTitle")} description={tManual("replaceDescription")} confirmLabel={tManual("replace")} cancelLabel={tManual("cancel")} severity="warning" loading={contentLocked} />
+          <HomeworkQuestionAuthoringPanel authoring={authoring} locked={contentLocked} issues={manualIssues} />
+          {manualValidation?.kind === "valid" && manualValidation.warnings.map((warning, index) => <p key={index} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{tManual("marksMismatch", warning.values)}</p>)}
+          {importIssues.length > 0 && <ImportIssues issues={importIssues} />}
+          {!batchEnabled && manualIssues.length > 0 && <HomeworkDraftIssues issues={manualIssues} questions={questions} />}
+          {partialImport && <div role="alert" className="mb-4 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm">{pendingImport ? tImport("messages.partialSave", { saved: partialImport.failedQuestionIndex, total: questions.length }) : tManual("partialSave", { saved: partialImport.failedQuestionIndex, total: questions.length })}</p>
+            <Button variant="secondary" onClick={() => openImportedDraft(partialImport.homeworkId)}>{tImport("actions.openDraft")}</Button>
+          </div>}
+
+          {batchEnabled && <HomeworkImportBatchPanel questionDraft={questionDraft} origin={authoring.content.kind} validateDraft={validateContentDraft} publishAt={draft.publishAt} academicYearId={academicYearId || ""} termId={termId || ""} termStart={selectedTerm?.startDate ?? ""} termEnd={selectedTerm?.endDate ?? ""} writable={canImport && canView && Boolean(academicYearId && termId)} initialSubjectId={selectedAllocation?.allocation.subjectId} initialClassroomId={selectedAllocation?.allocation.classroomId} onStateChange={updateBatchState} onReset={resetBatchImport} onCancel={cancelCreation} />}
+          </div>
+
+          {!batchEnabled && <HomeworkCreationBar questionCount={questions.length} points={questions.reduce((sum, question) => sum + Math.round(question.points * 100), 0) / 100} classCount={selectedAllocation && eligibleStudents.length ? 1 : 0} help={questions.length ? undefined : tManual("optionalHelp")}>
             <Button
               variant="secondary"
-              onClick={() => guardedNavigate(() => {
-                const params = searchParams.toString();
-                router.push(
-                  `/${locale}/academics/homework${params ? `?${params}` : ""}`,
-                );
-              })}
+              onClick={cancelCreation}
               disabled={isSubmitting || batchState.isSaving}
             >
-              {batchState.hasStarted && !batchState.isSaving ? tBatch("backToAssignments") : t("actions.cancel")}
+              {t("actions.cancel")}
             </Button>
-            {!batchEnabled && <Button onClick={() => void handleSubmit()} loading={isSubmitting} disabled={Boolean(partialImport) || Boolean(questions.length && !canImport)}>
+            <Button onClick={() => void handleSubmit()} loading={isSubmitting} disabled={Boolean(partialImport) || Boolean(questions.length && !canImport)}>
               {t("actions.createDraft")}
-            </Button>}
-          </div>
+            </Button>
+          </HomeworkCreationBar>}
         </div>
       </div>
     </div>
