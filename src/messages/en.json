@@ -5963,6 +5963,19 @@
       "create": {
         "title": "Create homework",
         "description": "Create an assignment or import questions from an Excel template.",
+        "picker": {
+          "quickSearch": "Use quick search",
+          "browseStructure": "Choose by school structure",
+          "help": "Choose the stage, grade, section, class and subject. Only classes with an assigned teacher are shown.",
+          "noPaths": "No teaching allocations have a complete school structure. Use quick search to select an allocation.",
+          "outsideStructure": "Your current allocation is retained. Use quick search to view it, or choose a new school structure below.",
+          "search": "Search options...",
+          "noChoices": "No assigned options available",
+          "chooseTeacher": "More than one teacher is assigned to this subject and class. Choose the teacher for this homework.",
+          "assignedTeacher": "Assigned teacher",
+          "fields": { "stage": "Stage", "grade": "Grade", "section": "Section", "classroom": "Class", "subject": "Subject", "teacher": "Teacher" },
+          "placeholders": { "stage": "Choose stage", "grade": "Choose grade", "section": "Choose section", "classroom": "Choose class", "subject": "Choose subject", "teacher": "Choose teacher" }
+        },
         "sections": {
           "assignment": "Assignment",
           "assignmentDescription": "Choose the teacher context, audience, and homework type.",

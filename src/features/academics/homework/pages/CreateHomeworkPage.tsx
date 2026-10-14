@@ -12,6 +12,8 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { ClipboardList, ChevronDown, FileSpreadsheet, PencilLine } from "lucide-react";
 import HomeworkCreationBar from "../components/HomeworkCreationBar";
 import HomeworkCreationWorkflow from "../components/HomeworkCreationWorkflow";
+import HomeworkAllocationPicker from "../components/HomeworkAllocationPicker";
+import type { HomeworkAllocationOption as AllocationSelectOption } from "../utils/homeworkAllocationPicker";
 import HomeworkImportBatchPanel from "../components/HomeworkImportBatchPanel";
 import type { HomeworkBatchDraftValidation, HomeworkBatchPageState } from "../utils/homeworkImportBatch.types";
 import { useHomeworkCreateQuestions } from "../hooks/useHomeworkCreateQuestions";
@@ -63,16 +65,8 @@ import {
 } from "@/features/academics/homework/services/homeworkErrors";
 import { validateHomeworkAssignmentContract } from "@/features/academics/homework/utils/homeworkValidation";
 import type { ValidationErrors } from "@/features/academics/curriculum/types/types";
-import type { SelectOption } from "@/components/ui/input/Select";
 
-interface AllocationSelectOption extends SelectOption {
-  allocation: TeacherAllocation;
-  teacherLabel: string;
-  subjectLabel: string;
-  classroomLabel: string;
-  stageId: string;
-  gradeId: string;
-}
+const emptyAllocationStructure: StructureTree = { stages: [], grades: [], sections: [], classrooms: [] };
 
 interface EligibleHomeworkStudent {
   id: string;
@@ -108,6 +102,7 @@ function allocationOptionSearchText(input: {
   return [
     input.teacher?.nameAr,
     input.teacher?.nameEn,
+    input.allocation.teacherName,
     input.subject?.nameAr,
     input.subject?.nameEn,
     input.classroom?.nameAr,
@@ -212,7 +207,7 @@ function buildAllocationOptions(input: {
         localizedName(input.locale, classroom) ||
           localizedName(input.locale, section),
       ].filter(Boolean);
-      const teacherLabel = teacherNameForLocale(input.locale, teacher);
+      const teacherLabel = teacherNameForLocale(input.locale, teacher) || allocation.teacherName || "";
       const subjectLabel = localizedName(input.locale, subject);
       const classroomLabel =
         localizedName(input.locale, classroom) ||
@@ -272,9 +267,8 @@ export default function CreateHomeworkPage() {
   const [availableTimetableDays, setAvailableTimetableDays] = useState<
     number[] | null
   >(null);
-  const [allocationOptions, setAllocationOptions] = useState<
-    AllocationSelectOption[]
-  >([]);
+  const [allocationPicker, setAllocationPicker] = useState<{ options: AllocationSelectOption[]; structure: StructureTree }>({ options: [], structure: emptyAllocationStructure });
+  const allocationOptions = allocationPicker.options;
   const [eligibleStudents, setEligibleStudents] = useState<
     EligibleHomeworkStudent[]
   >([]);
@@ -390,7 +384,7 @@ export default function CreateHomeworkPage() {
 
   useEffect(() => {
     if (!academicYearId || !termId || !canManage || isInitializing) {
-      void Promise.resolve().then(() => setAllocationOptions([]));
+      void Promise.resolve().then(() => setAllocationPicker({ options: [], structure: emptyAllocationStructure }));
       return;
     }
 
@@ -407,15 +401,16 @@ export default function CreateHomeworkPage() {
 
         if (!isActive) return;
 
-        setAllocationOptions(
-          buildAllocationOptions({
+        setAllocationPicker({
+          structure,
+          options: buildAllocationOptions({
             allocations,
             teachers,
             subjects,
             structure,
             locale,
           }),
-        );
+        });
       } catch {
         showError(t("errors.allocationsLoadFailed"));
       } finally {
@@ -730,12 +725,11 @@ export default function CreateHomeworkPage() {
                 }))
               }
             />
-            {!batchEnabled && <Select
-              label={t("fields.teacherSubjectAllocation")}
-              required
-              searchable
+            {!batchEnabled && <HomeworkAllocationPicker
+              key={`${effectiveDraft.academicYearId}:${effectiveDraft.termId}`}
               value={draft.teacherSubjectAllocationId}
               onChange={(teacherSubjectAllocationId) => {
+                if (teacherSubjectAllocationId === draft.teacherSubjectAllocationId) return;
                 setSelectedTimetableDate(undefined);
                 setDraft((current) => ({
                   ...current,
@@ -746,20 +740,13 @@ export default function CreateHomeworkPage() {
                 }));
               }}
               options={allocationOptions}
-              placeholder={t("placeholders.teacherSubjectAllocation")}
-              searchPlaceholder={t("placeholders.searchAllocation")}
-              noOptionsText={
-                isLoadingAllocations
-                  ? t("messages.loadingAllocations")
-                  : t("messages.noAllocations")
-              }
-              noResultsText={t("messages.noAllocationResults")}
+              structure={allocationPicker.structure}
+              loading={isLoadingAllocations}
               disabled={
-                isLoadingAllocations ||
+                isLoadingAllocations || isSubmitting || Boolean(partialImport) || unconfirmedCreation || batchState.hasStarted || batchState.isSaving ||
                 !effectiveDraft.academicYearId ||
                 !effectiveDraft.termId
               }
-              helperText={t("helpers.teacherSubjectAllocation")}
             />}
             {!batchEnabled && <Select
               label={t("fields.targetMode")}

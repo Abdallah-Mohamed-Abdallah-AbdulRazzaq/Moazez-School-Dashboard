@@ -18,13 +18,14 @@ import { assignmentWorkbookFile } from "@/features/academics/shared/excel-import
 import { batchContext, batchIds, batchHttpResponse } from "../../utils/__tests__/homeworkImportBatchFixtures";
 
 let parentNumber = 0;
+let allocationContext = batchContext();
 beforeEach(() => {
   vi.clearAllMocks(); parentNumber = 0; boundary.context.termStatus = "open";
   boundary.permissions = ["homework.assignments.manage", "homework.assignments.view"];
   boundary.context.academicYearId = batchIds.year; boundary.context.termId = batchIds.term;
-  const context = batchContext(); context.allocations = context.allocations.slice(0, 2);
-  vi.mocked(apiWithToken).mockResolvedValue(context.structure);
-  vi.mocked(apiGet).mockImplementation(async path => batchHttpResponse(path, context));
+  allocationContext = batchContext(); allocationContext.allocations = allocationContext.allocations.slice(0, 2);
+  vi.mocked(apiWithToken).mockImplementation(async () => allocationContext.structure);
+  vi.mocked(apiGet).mockImplementation(async path => batchHttpResponse(path, allocationContext));
   vi.mocked(apiPost).mockImplementation(async path => path === "/homework/assignments" ? { id: `parent-${++parentNumber}` } : { question: { questionId: "q", homeworkId: path.split("/")[3], type: "TRUE_FALSE", prompt: "Local", sortOrder: 1, points: 1, options: [] } });
   vi.spyOn(window, "open").mockReturnValue(null);
 });
@@ -46,6 +47,73 @@ function writeQuestion() {
   fireEvent.click(screen.getByRole("checkbox", { name: "Required question" }));
   fireEvent.change(screen.getByPlaceholderText("Question Text"), { target: { value: "Is three even?" } });
 }
+async function chooseStructureLevel(label: string, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${label}\\s`) }));
+  fireEvent.click(await screen.findByRole("button", { name: option, exact: true }));
+}
+async function chooseFirstClass() {
+  await chooseStructureLevel("Stage", "Stage 1");
+  await chooseStructureLevel("Grade", "Grade 1");
+  await chooseStructureLevel("Section", "Section 1");
+  await chooseStructureLevel("Class", "Room 1");
+  await chooseStructureLevel("Subject", "Math");
+}
+it("filters assigned school paths, clears dependent selections and saves the resolved allocation with questions", async () => {
+  renderPage(); await selectSingleTarget(); writeQuestion();
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.create.picker.browseStructure }));
+  expect(screen.getByText("Teacher 1", { exact: true })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: /^Stage\s/ }));
+  expect(screen.queryByRole("button", { name: "Stage 2", exact: true })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Stage 1", exact: true }));
+  expect(screen.getByRole("button", { name: /^Section\s/ })).toBeDisabled();
+  expect(screen.getByRole("button", { name: /^Class\s/ })).toBeDisabled();
+  expect(screen.getByRole("button", { name: /^Subject\s/ })).toBeDisabled();
+  await waitFor(() => expect(screen.queryByText("1 eligible student")).not.toBeInTheDocument());
+  await chooseStructureLevel("Grade", "Grade 1");
+  await chooseStructureLevel("Section", "Section 2");
+  await chooseStructureLevel("Class", "Room 2");
+  await chooseStructureLevel("Subject", "Math");
+  await screen.findByText("1 eligible student");
+  expect(screen.getByText("Teacher 2", { exact: true })).toBeVisible();
+  expect(screen.getByRole("textbox", { name: /^Title/ })).toHaveValue("Manual practice");
+  expect(screen.getByPlaceholderText("Question Text")).toHaveValue("Is three even?");
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  await waitFor(() => expect(boundary.replace).toHaveBeenCalled());
+  expect(apiPost).toHaveBeenNthCalledWith(1, "/homework/assignments", expect.objectContaining({ teacherSubjectAllocationId: batchIds.allocationB }));
+  expect(apiPost).toHaveBeenLastCalledWith("/homework/assignments/parent-1/questions", expect.objectContaining({ prompt: "Is three even?" }));
+});
+it("requires an explicit teacher when multiple allocations match the selected subject and class", async () => {
+  const alternateId = "10000000-0000-4000-8000-000000000099";
+  allocationContext.allocations.push({ ...allocationContext.allocations[0], id: alternateId, teacherId: batchIds.teacherB, teacherName: "Second teacher" });
+  renderPage();
+  const browse = screen.getByRole("button", { name: en.academics.homework.create.picker.browseStructure });
+  await waitFor(() => expect(browse).toBeEnabled()); fireEvent.click(browse);
+  await chooseFirstClass();
+  expect(screen.getByText(en.academics.homework.create.picker.chooseTeacher)).toBeVisible();
+  expect(screen.getByRole("button", { name: /^Teacher\s/ })).toHaveTextContent(en.academics.homework.create.picker.placeholders.teacher);
+  fireEvent.change(screen.getByRole("textbox", { name: /^Title/ }), { target: { value: "Teacher practice" } });
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  await screen.findByText(en.academics.homework.create.errors.allocationRequired);
+  expect(apiPost).not.toHaveBeenCalled();
+  await chooseStructureLevel("Teacher", "Second teacher");
+  await screen.findByText("1 eligible student");
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  await waitFor(() => expect(boundary.replace).toHaveBeenCalled());
+  expect(apiPost).toHaveBeenCalledWith("/homework/assignments", expect.objectContaining({ teacherSubjectAllocationId: alternateId }));
+});
+it("retains an allocation with incomplete structure and allows returning to quick search", async () => {
+  allocationContext.structure.stages = [];
+  renderPage(); await selectSingleTarget();
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.create.picker.browseStructure }));
+  expect(screen.getByText(en.academics.homework.create.picker.noPaths)).toBeVisible();
+  expect(screen.getByText(en.academics.homework.create.picker.outsideStructure)).toBeVisible();
+  expect(screen.getByRole("button", { name: /^Stage\s/ })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.create.picker.quickSearch }));
+  expect(screen.getByRole("button", { name: /^Teacher subject allocation/ })).toHaveTextContent("Math - Room 1");
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  await waitFor(() => expect(boundary.replace).toHaveBeenCalled());
+  expect(apiPost).toHaveBeenCalledWith("/homework/assignments", expect.objectContaining({ teacherSubjectAllocationId: batchIds.allocationA }));
+});
 it("shows the new choices without changing default single-class creation", async () => {
   renderPage();
   const title = screen.getByRole("textbox", { name: /^Title/ });
@@ -218,6 +286,9 @@ it("preserves selected-student targeting in manual single creation and guards un
   fireEvent.click(screen.getByRole("button", { name: /^Target mode/ }));
   fireEvent.click(screen.getByRole("button", { name: "Selected students", exact: true }));
   fireEvent.click(screen.getByRole("checkbox", { name: /Student S1/ }));
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.create.picker.browseStructure }));
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.create.picker.quickSearch }));
+  expect(screen.getByRole("checkbox", { name: /Student S1/ })).toBeChecked();
   fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
   await waitFor(() => expect(boundary.replace).toHaveBeenCalledWith(expect.stringContaining("/homework/parent-1?")));
   expect(apiPost).toHaveBeenNthCalledWith(1, "/homework/assignments", expect.objectContaining({ targetMode: "selected_students", studentIds: [batchContext().enrollments[0].studentId] }));
