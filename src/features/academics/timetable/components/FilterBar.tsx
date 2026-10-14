@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import Select from "@/components/ui/input/Select";
+import { Button } from "@/components/ui";
 import { Classroom, Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface FilterBarProps {
@@ -18,6 +19,8 @@ interface FilterBarProps {
   onSectionChange: (sectionId: string) => void;
   onClassroomChange: (classroomId: string) => void;
   locale: string;
+  configurationMode: "term" | "scope";
+  onConfigurationModeChange: (mode: "term" | "scope") => void;
 }
 
 export default function FilterBar({
@@ -34,6 +37,8 @@ export default function FilterBar({
   onSectionChange,
   onClassroomChange,
   locale,
+  configurationMode,
+  onConfigurationModeChange,
 }: FilterBarProps) {
   const t = useTranslations("academics.timetable.filters");
 
@@ -83,6 +88,33 @@ export default function FilterBar({
 
   return (
     <div className="bg-white px-4 py-4 lg:px-6">
+      <div
+        className="mb-4 flex flex-wrap items-center gap-2"
+        role="group"
+        aria-label={t("configuration")}
+      >
+        <span className="text-sm font-medium text-gray-700">
+          {t("configuration")}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant={configurationMode === "term" ? "primary" : "secondary"}
+          aria-pressed={configurationMode === "term"}
+          onClick={() => onConfigurationModeChange("term")}
+        >
+          {t("termConfiguration")}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={configurationMode === "scope" ? "primary" : "secondary"}
+          aria-pressed={configurationMode === "scope"}
+          onClick={() => onConfigurationModeChange("scope")}
+        >
+          {t("scopeConfiguration")}
+        </Button>
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4">
         <div className="w-full">
           <Select
