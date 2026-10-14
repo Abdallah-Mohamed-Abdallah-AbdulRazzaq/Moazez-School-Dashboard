@@ -235,6 +235,30 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
   });
 
+  it.each(["question", "assignment"] as const)("saves %s edits without replacing saved recipients when the target list is empty", async (edit) => {
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
+    vi.mocked(listHomeworkTargets).mockResolvedValue([]);
+    vi.mocked(listHomeworkQuestions).mockResolvedValue([question("question-1", "Original question")]);
+    vi.mocked(updateHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
+    vi.mocked(updateHomeworkQuestion).mockImplementation(async (_homeworkId, _questionId, updatedQuestion) => updatedQuestion);
+
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    await screen.findByText("Original question");
+    await screen.findByRole("checkbox", { name: "Student One" });
+    fireEvent.click(screen.getByText(edit === "question" ? "edit-selected-question" : "valid-nullable-edit"));
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+
+    await waitFor(() => expect(showSuccess).toHaveBeenCalledWith("messages.homeworkSaved"));
+    expect(showError).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
+    if (edit === "question") {
+      expect(screen.getByText("changed-question-1")).toBeInTheDocument();
+      expect(updateHomeworkAssignment).not.toHaveBeenCalled();
+    } else {
+      expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.not.objectContaining({ studentIds: expect.anything() }));
+    }
+  });
+
   it("blocks saving an empty selected-student list", async () => {
     vi.mocked(fetchHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
     render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
