@@ -127,9 +127,12 @@ it("freezes payloads and recovery URLs when dashboard context changes during sav
     return { question: { questionId: "q", homeworkId: path.split("/")[3], type: "TRUE_FALSE", prompt: "Is 2 even?", sortOrder: 1, points: 2, options: [] } };
   });
   const view = await prepareImport(); await chooseGrade();
+  const preference = screen.getByRole("checkbox", { name: en.academics.homework.importBatch.openInNewTabs });
+  fireEvent.click(preference);
   fireEvent.click(screen.getByRole("button", { name: "Create 2 drafts" }));
   await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/homework/assignments/parent-1/questions", expect.anything()));
   expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  expect(preference).toBeDisabled();
   boundary.context.academicYearId = "10000000-0000-4000-8000-000000000099";
   boundary.context.termId = "10000000-0000-4000-8000-000000000098";
   boundary.context.isInitializing = true;
@@ -137,6 +140,7 @@ it("freezes payloads and recovery URLs when dashboard context changes during sav
   expect(screen.getByRole("region", { name: "Assignment creation results" })).toBeInTheDocument();
   releaseQuestion();
   await screen.findByText("2 of 2 assignments created");
+  expect(window.open).not.toHaveBeenCalled();
   for (const [, payload] of vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments")) expect(payload).toMatchObject({ academicYearId: batchIds.year, termId: batchIds.term });
   for (const link of screen.getAllByRole("link", { name: /^Open assignment/ })) expect(link).toHaveAttribute("href", expect.stringContaining(`year=${batchIds.year}&term=${batchIds.term}`));
 });

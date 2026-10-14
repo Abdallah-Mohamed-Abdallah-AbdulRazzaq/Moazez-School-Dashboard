@@ -164,9 +164,27 @@ it.each(["noTeachers", "noTeacherSubjects"] as const)("explains %s and blocks te
   expect(apiPost).not.toHaveBeenCalled();
 });
 
+it.each(["excel", "manual"] as const)("creates %s batches without opening tabs when the user disables automatic opening", async origin => {
+  await renderPanel(origin); await scope("Whole school");
+  const preference = screen.getByRole("checkbox", { name: en.academics.homework.importBatch.openInNewTabs });
+  expect(preference).toBeChecked();
+  fireEvent.click(preference);
+  expect(preference).not.toBeChecked();
+  expect(screen.getByText(en.academics.homework.importBatch.tabsDisabledHelp)).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Create 2 drafts" }));
+  await screen.findByText("2 of 2 assignments created");
+  expect(preference).toBeDisabled();
+  expect(window.open).not.toHaveBeenCalled();
+  expect(screen.getAllByRole("link", { name: /^Open assignment/ })).toHaveLength(2);
+  expect(vi.mocked(apiPost).mock.calls.filter(([path]) => path === "/homework/assignments")).toHaveLength(2);
+});
+
 it.each(["null return", "browser exception"])("preserves selected classes across search and records complete drafts despite %s", async restriction => {
   if (restriction === "browser exception") vi.mocked(window.open).mockImplementation(() => { throw new DOMException("Popup restricted"); });
   const onStateChange = await renderPanel();
+  const preference = screen.getByRole("checkbox", { name: en.academics.homework.importBatch.openInNewTabs });
+  fireEvent.click(preference); fireEvent.click(preference);
+  expect(preference).toBeChecked();
   fireEvent.click(screen.getByRole("checkbox", { name: "Room 1" }));
   fireEvent.change(screen.getByLabelText("Search classes"), { target: { value: "Room 2" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "Room 2" }));

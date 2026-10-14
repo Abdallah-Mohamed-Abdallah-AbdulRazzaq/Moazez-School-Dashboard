@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
+import Checkbox from "@/components/ui/checkbox/Checkbox";
 import { FileSpreadsheet, Layers3, Plus } from "lucide-react";
 import { ImportIssues } from "@/features/academics/shared/excel-import/ExcelImportPreview";
 import { useHomeworkImportBatch, type HomeworkImportBatchPanelProps } from "../hooks/useHomeworkImportBatch";
@@ -24,7 +25,7 @@ export default function HomeworkImportBatchPanel(props: HomeworkImportBatchPanel
   const questions = props.questionDraft.questions;
   const points = questions.reduce((sum, question) => sum + Math.round(question.points * 100), 0) / 100;
   const disabled = batch.loading || !props.writable || !batch.eligibleCount || !questions.length || batch.notice === "loadError";
-  const help = batch.notice === "loadError" || !props.writable ? tManual("reviewIssues") : batch.loading ? tManual("preparingTargets") : !questions.length ? tManual("batchPrerequisite") : !batch.eligibleCount ? tManual("chooseClasses") : t("tabsHelp");
+  const help = batch.notice === "loadError" || !props.writable ? tManual("reviewIssues") : batch.loading ? tManual("preparingTargets") : !questions.length ? tManual("batchPrerequisite") : !batch.eligibleCount ? tManual("chooseClasses") : t(batch.openInNewTabs ? "tabsHelp" : "tabsDisabledHelp");
   return <><section aria-label={t(batch.started ? "resultsTitle" : "title")} className="min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm">
     <div className="flex items-start gap-3 border-b border-gray-100 px-5 py-5 sm:px-6">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary"><Layers3 size={22} aria-hidden="true" /></span>
@@ -42,6 +43,7 @@ export default function HomeworkImportBatchPanel(props: HomeworkImportBatchPanel
         <HomeworkClassPreview rows={filteredRows} search={search} />
       </> : <p className="rounded-xl bg-gray-50 p-5 text-sm text-gray-600">{t("chooseTargets")}</p>}
     </>}
+    <Checkbox label={t("openInNewTabs")} description={t("openInNewTabsHelp")} checked={batch.openInNewTabs} onChange={event => batch.setOpenInNewTabs(event.target.checked)} disabled={batch.saving || batch.started || !props.writable} className="min-h-11 bg-white" />
     {batch.loading && <p role="status">{t("loading")}</p>}
     {batch.notice && <div role="alert" className="rounded-lg bg-amber-50 p-3 text-sm">{t(batch.notice)}{batch.notice === "loadError" && <Button variant="secondary" disabled={batch.saving} onClick={batch.retry}>{t("retry")}</Button>}</div>}
     {batch.validation.kind === "invalid" && (batch.validation.origin === "excel" ? <ImportIssues issues={batch.validation.issues} /> : <HomeworkDraftIssues issues={batch.validation.issues} questions={props.questionDraft.questions} />)}

@@ -44,6 +44,7 @@ export function useHomeworkImportBatch(props: HomeworkImportBatchPanelProps) {
   const [outcomes, setOutcomes] = useState<HomeworkBatchResult[]>([]);
   const [frozenPlan, setFrozenPlan] = useState<HomeworkBatchPlan | null>(null);
   const [saving, setSaving] = useState(false);
+  const [openInNewTabs, setOpenInNewTabs] = useState(true);
   const [reload, setReload] = useState(0);
   const lock = useRef(false);
   const latestProps = useRef(props);
@@ -86,7 +87,7 @@ export function useHomeworkImportBatch(props: HomeworkImportBatchPanelProps) {
     setOutcomes(reviewed.rows.map(target => ({ target, status: target.eligible ? "queued" : "skipped" })));
     await saveHomeworkImportBatch({ plan: reviewed, draft: { ...draft, questions: prepareHomeworkDraftQuestions(draft.questions) }, publishAt, onResult: outcome => {
       setOutcomes(current => current.map(previous => previous.target.classroomId === outcome.target.classroomId ? outcome : previous));
-      openCreatedAssignment(locale, reviewed, outcome);
+      if (openInNewTabs) openCreatedAssignment(locale, reviewed, outcome);
     } });
   }
 
@@ -106,5 +107,5 @@ export function useHomeworkImportBatch(props: HomeworkImportBatchPanelProps) {
     return refreshed;
   }
 
-  return { academicYearId: props.academicYearId, termId: props.termId, context, loading, notice, validation, subjectId, setSubjectId, selection, setSelection, plan, eligibleCount, outcomes, started, saving, allCreated, start, retry: () => setReload(current => current + 1) };
+  return { academicYearId: props.academicYearId, termId: props.termId, context, loading, notice, validation, subjectId, setSubjectId, selection, setSelection, plan, eligibleCount, outcomes, started, saving, allCreated, openInNewTabs, setOpenInNewTabs, start, retry: () => setReload(current => current + 1) };
 }
