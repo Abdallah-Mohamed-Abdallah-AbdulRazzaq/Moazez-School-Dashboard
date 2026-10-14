@@ -5786,6 +5786,7 @@
     "homework": {
       "manual": {
         "workflowChoice": "How would you like to create homework?",
+        "checkListUnavailable": "You need assignment viewing access to check this save. Ask a school administrator to verify it before creating another draft.",
         "draftWorkflow": "Create a draft",
         "draftWorkflowHelp": "Enter the details, create a draft, then add questions.",
         "multipleWorkflow": "Prepare questions for multiple classes",

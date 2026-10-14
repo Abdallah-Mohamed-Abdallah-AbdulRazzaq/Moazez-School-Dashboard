@@ -52,7 +52,7 @@ export default function HomeworkImportBatchPanel(props: HomeworkImportBatchPanel
     </div>
     </section>
     <HomeworkCreationBar questionCount={questions.length} points={points} classCount={batch.eligibleCount} help={batch.started ? undefined : help}>
-      {props.onCancel && <Button variant="secondary" onClick={props.onCancel} disabled={batch.saving}>{batch.started && !batch.saving ? t("backToAssignments") : tManual("cancelCreation")}</Button>}
+      {props.onCancel && <Button variant="secondary" onClick={batch.allCreated && props.onReturnAfterCompletion ? props.onReturnAfterCompletion : props.onCancel} disabled={batch.saving}>{batch.started && !batch.saving ? t("backToAssignments") : tManual("cancelCreation")}</Button>}
       {!batch.started && <Button onClick={() => void batch.start()} loading={batch.saving} disabled={disabled}>{t("create", { count: batch.eligibleCount })}</Button>}
     </HomeworkCreationBar>
   </>;

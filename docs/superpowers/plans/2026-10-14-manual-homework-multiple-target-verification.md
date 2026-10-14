@@ -16,6 +16,7 @@ The owner authorized implementation inline and later approved a UI refinement of
 5. Review eligible and skipped classes, then Create. At least one question is required for a batch. Each eligible class receives a separate whole-class draft through the existing sequential save workflow. Successful drafts attempt to open in new tabs and retain links in the results. Individual failures retain recovery guidance.
 6. Switching back to **Create a draft** retains entered details and questions while collapsing the manual editor; **Show questions** reopens it. Returning without questions restores the short form. Choosing multiple classes reopens manual authoring. Workflow switches are locked once saving has started.
 7. Switching between manual and Excel content requires confirmation before replacing existing questions. Cancellation preserves questions and metadata. Accepting an Excel replacement preserves the multiple-class choice.
+8. If the first single-class save cannot be confirmed, creation and editing stay locked. Use **Check assignment list** to inspect the original year/term before creating another draft. If assignment-view permission is unavailable, the page explains that a school administrator must verify the save instead of offering an inaccessible list action. Prepared questions retain the navigation warning. A confirmed validation rejection still permits correction and retry.
 
 Local questions are in memory until creation. Existing navigation protection warns before leaving with pending questions. Known-parent partial saves disable repeat creation and link to the existing draft. No new backend endpoint or request field was introduced.
 
@@ -23,8 +24,8 @@ Local questions are in memory until creation. Existing navigation protection war
 
 | Check | Outcome |
 | --- | --- |
-| Focused Vitest run | PASS: 167 tests in 17 files for the card-layout refinement; PASS: 17 tests in 4 page files for the subsequent draft-first workflow refinement. |
-| Project lint | PASS: `npm run lint` |
+| Focused Vitest run | PASS: 172 tests in 17 files after the bug audit and recovery fix. |
+| Project lint | PASS: `npm run lint`; changed production/test files checked again after the recovery-permission refinement. |
 | Normal project type check | PASS: `npm run typecheck`; production build also completed its TypeScript check. |
 | Default production build | PASS: `npm run build` with physical local dependencies. Earlier external-junction and ENOSPC failures were environment issues. |
 | Actual-page browser review | PASS: real Next.js page in headless Chrome, Arabic and English at 375, 768, 1024 and 1440 pixels. No horizontal overflow or client-side errors; creation bar stays visible during editing and target review. Isolated synthetic authentication and API fixtures; no live school writes. |
@@ -53,7 +54,17 @@ Eligible target classes and batch outcomes use cards showing hierarchy, assigned
 
 Existing UI-folder inputs, selectors, buttons and checkboxes are reused. Shared editor/import presentation extensions are opt-in; assessment and saved-editor defaults retain their prior behavior.
 
-Browser screenshots and fixture-only QA logs are local artifacts in `D:/Codex-Task-Cache/manual-homework-multi-class-plan/`. The latest workflow review includes `workflow-ar-default.png`, `workflow-ar-1440.png`, `workflow-ar-1440-targets.png`, `workflow-ar-375.png`, `workflow-en-375.png` and `workflow-browser-results.json`. It checks the default selection, hidden initial editor/targets, empty opt-out, retained question text through switching, responsive overflow and the persistent action bar.
+Browser screenshots and fixture-only QA logs are local artifacts in `D:/Codex-Task-Cache/manual-homework-multi-class-plan/`. Workflow screenshots include `workflow-ar-default.png`, `workflow-ar-1440.png`, `workflow-ar-1440-targets.png`, `workflow-ar-375.png` and `workflow-en-375.png`. The final audit adds `audit-ar-recovery.png`, `audit-en-recovery.png` and `audit-browser-results.json`. It checks the default selection, hidden initial editor/targets, empty opt-out, retained question text through switching, responsive overflow and the persistent action bar. A simulated 503 initial save in each language confirms the persistent recovery warning and creation/workflow locks. A simulated successful two-class batch in each language saves its questions and returns directly to the list without the unsaved dialog. Automatic popups are blocked in this isolated QA browser; result links and popup restrictions are also covered by the focused tests. Every save request is intercepted locally, with no live assignment writes.
+
+## Bug audit and recovery fix
+
+The audit reproduced a save-recovery bug: after an unconfirmed initial single-class save, the warning did not disable Create, permitting a second request that could duplicate an assignment already created by the server. The regression failed against the previous implementation because Create remained enabled.
+
+Unconfirmed saves now retain a persistent warning, lock creation, editing, source replacement and workflow switching, and offer a guarded assignment-list action using the captured creation year/term. Users without assignment-view permission receive verification guidance without an inaccessible action. Regression cases cover legacy draft-first, manual questions and Excel imports under network, server and lost-response errors, plus the missing-view-permission case. A separate confirmed validation-rejection case checks that fields remain editable and a corrected retry succeeds. Known-parent partial saves and batch per-class uncertainty handling retain their existing behavior.
+
+The combined run also exposed a completion timing bug: a fully saved batch's Back action could open the unsaved-changes dialog before the parent page's completion effect cleared its dirty state. The batch panel now selects a dedicated completed-return callback from its own final outcomes. The page clears its dirty key and returns directly for fully saved batches; incomplete or mixed outcomes continue through guarded cancellation. The existing grade-batch regression checks a direct return without the dialog, while the partial-batch regression retains the warning.
+
+The final focused run also covers all six manual scopes, contract validation, Excel/assessment regressions, source switching, selected students, duplicate clicks, changed preflight plans, frozen context, mixed outcomes, card pagination and partial-save recovery. No additional confirmed issue remained in these reviewed paths. This does not establish that every possible frontend or live-backend failure has been tested.
 
 ## Remaining review and local artifacts
 

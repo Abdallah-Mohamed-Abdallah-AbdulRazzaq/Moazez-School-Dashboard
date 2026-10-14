@@ -1,14 +1,15 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.unmock("next-intl");
-const boundary = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn(), search: new URLSearchParams(), context: { academicYearId: "10000000-0000-4000-8000-000000000001", termId: "10000000-0000-4000-8000-000000000002", selectedTerm: { startDate: "2099-01-01", endDate: "2099-12-31" }, termStatus: "open", isInitializing: false } }));
+const boundary = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn(), search: new URLSearchParams(), permissions: ["homework.assignments.manage", "homework.assignments.view"], context: { academicYearId: "10000000-0000-4000-8000-000000000001", termId: "10000000-0000-4000-8000-000000000002", selectedTerm: { startDate: "2099-01-01", endDate: "2099-12-31" }, termStatus: "open", isInitializing: false } }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: boundary.push, replace: boundary.replace }), useSearchParams: () => boundary.search, usePathname: () => "/en/academics/homework/new" }));
-vi.mock("@/hooks/use-auth", () => ({ useAuth: () => ({ user: { id: "teacher", firstName: "Teacher", lastName: "One", activeMembership: { permissions: ["homework.assignments.manage", "homework.assignments.view"] } }, isLoading: false }) }));
+vi.mock("@/hooks/use-auth", () => ({ useAuth: () => ({ user: { id: "teacher", firstName: "Teacher", lastName: "One", activeMembership: { permissions: boundary.permissions } }, isLoading: false }) }));
 vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({ useAcademicYearTermLayoutContext: () => boundary.context }));
 vi.mock("@/lib/api", () => ({ apiPost: vi.fn(), apiGet: vi.fn(), apiWithToken: vi.fn(), apiPatch: vi.fn(), apiPut: vi.fn(), apiDelete: vi.fn() }));
 import { NextIntlClientProvider } from "next-intl";
 import en from "@/messages/en.json";
 import { apiGet, apiPost, apiWithToken } from "@/lib/api";
+import { ApiError } from "@/lib/api-error";
 import { ToastProvider } from "@/components/ui/toast/Toast";
 import { UnsavedChangesProvider } from "@/providers/UnsavedChangesProvider";
 import { NavigationGuardProvider } from "@/providers/NavigationGuardProvider";
@@ -19,6 +20,8 @@ import { batchContext, batchIds, batchHttpResponse } from "../../utils/__tests__
 let parentNumber = 0;
 beforeEach(() => {
   vi.clearAllMocks(); parentNumber = 0; boundary.context.termStatus = "open";
+  boundary.permissions = ["homework.assignments.manage", "homework.assignments.view"];
+  boundary.context.academicYearId = batchIds.year; boundary.context.termId = batchIds.term;
   const context = batchContext(); context.allocations = context.allocations.slice(0, 2);
   vi.mocked(apiWithToken).mockResolvedValue(context.structure);
   vi.mocked(apiGet).mockImplementation(async path => batchHttpResponse(path, context));
@@ -149,6 +152,61 @@ it("retains a partially saved manual draft and blocks repeated creation", async 
   expect(screen.getByPlaceholderText("Question Text")).toBeDisabled();
   fireEvent.click(open);
   expect(boundary.replace).toHaveBeenCalledWith(expect.stringContaining("/homework/partial-parent?"));
+});
+
+it.each(["legacy", "manual", "excel"] as const)("blocks duplicate %s creation after an unconfirmed save and checks the original context", async origin => {
+  const errors = { legacy: ApiError.network(), manual: new ApiError("Response unavailable", 503), excel: new Error("Response lost") };
+  vi.mocked(apiPost).mockRejectedValue(errors[origin]);
+  const view = renderPage(); await selectSingleTarget();
+  if (origin === "manual") writeQuestion();
+  if (origin === "excel") {
+    fireEvent.click(screen.getByRole("button", { name: "Import Excel" }));
+    fireEvent.change(screen.getByLabelText("Choose Excel file"), { target: { files: [await assignmentWorkbookFile()] } });
+    const apply = await screen.findByRole("button", { name: "Apply import" });
+    await waitFor(() => expect(apply).toBeEnabled()); fireEvent.click(apply);
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  await screen.findByText(origin === "excel" ? en.academics.excelImport.messages.unknownCreation : en.academics.homework.manual.unknownCreation);
+  expect(screen.getByRole("button", { name: "Create draft" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow })).toBeDisabled();
+  expect(screen.getByRole("textbox", { name: /^Title/ })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  expect(apiPost).toHaveBeenCalledTimes(1);
+  boundary.context.academicYearId = "10000000-0000-4000-8000-000000000099";
+  boundary.context.termId = "10000000-0000-4000-8000-000000000098";
+  view.rerender(<NextIntlClientProvider locale="en" messages={en} timeZone="UTC"><UnsavedChangesProvider><NavigationGuardProvider><ToastProvider><CreateHomeworkPage /></ToastProvider></NavigationGuardProvider></UnsavedChangesProvider></NextIntlClientProvider>);
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.importBatch.checkListShort }));
+  if (origin !== "legacy") {
+    await screen.findByText(en.common.unsavedChangesTitle);
+    expect(boundary.push).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: en.common.leave }));
+  }
+  await waitFor(() => expect(boundary.push).toHaveBeenCalledWith(`/en/academics/homework?year=${batchIds.year}&term=${batchIds.term}`));
+  expect(apiPost).toHaveBeenCalledTimes(1);
+});
+
+it("keeps an unconfirmed save locked and explains recovery when assignment viewing is unavailable", async () => {
+  boundary.permissions = ["homework.assignments.manage"];
+  vi.mocked(apiPost).mockRejectedValue(ApiError.network());
+  renderPage(); await selectSingleTarget();
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  await screen.findByText(en.academics.homework.manual.checkListUnavailable);
+  expect(screen.getByRole("button", { name: "Create draft" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: en.academics.homework.importBatch.checkListShort })).not.toBeInTheDocument();
+  expect(apiPost).toHaveBeenCalledTimes(1);
+});
+
+it("allows correcting and retrying a confirmed server rejection", async () => {
+  vi.mocked(apiPost).mockRejectedValueOnce(new ApiError("Title rejected", 422, "homework.assignment.validation_failed"));
+  renderPage(); await selectSingleTarget(); writeQuestion();
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  await screen.findAllByText(en.academics.homework.create.errors.createFailed.replace("{message}", en.academics.homework.errorMessages.validationFailed));
+  expect(screen.getByRole("button", { name: "Create draft" })).toBeEnabled();
+  fireEvent.change(screen.getByRole("textbox", { name: /^Title/ }), { target: { value: "Corrected practice" } });
+  fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
+  await waitFor(() => expect(boundary.replace).toHaveBeenCalledWith(expect.stringContaining("/homework/parent-1?")));
+  expect(apiPost).toHaveBeenCalledTimes(3);
+  expect(apiPost).toHaveBeenNthCalledWith(2, "/homework/assignments", expect.objectContaining({ title: "Corrected practice" }));
 });
 
 it("preserves selected-student targeting in manual single creation and guards unsaved questions", async () => {
