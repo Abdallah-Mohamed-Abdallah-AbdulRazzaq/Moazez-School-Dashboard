@@ -49,7 +49,8 @@ it("shows the new choices without changing default single-class creation", async
   const questionsEntry = screen.getByRole("button", { name: en.academics.homework.manual.entry });
   expect(title.compareDocumentPosition(questionsEntry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(screen.getByRole("region", { name: en.academics.homework.manual.creationSummary })).toBeVisible();
-  expect(screen.getByRole("checkbox", { name: "Assign to multiple classes" })).not.toBeChecked();
+  expect(screen.getByRole("button", { name: en.academics.homework.manual.draftWorkflow, exact: true })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow })).toHaveAttribute("aria-pressed", "false");
   expect(screen.getByRole("button", { name: en.academics.homework.manual.entry })).toBeVisible();
   expect(screen.queryByText(en.academics.homework.manual.localHelp)).not.toBeInTheDocument();
   await selectSingleTarget();
@@ -59,14 +60,15 @@ it("shows the new choices without changing default single-class creation", async
   expect(apiPost).toHaveBeenCalledWith("/homework/assignments", expect.objectContaining({ title: "Manual practice", teacherSubjectAllocationId: batchIds.allocationA, targetMode: "classroom", totalMarks: 10 }));
 });
 it("reveals empty authoring on multi-class opt-in without automatically adding or saving", async () => {
-  renderPage(); fireEvent.click(screen.getByRole("checkbox", { name: "Assign to multiple classes" }));
+  renderPage(); fireEvent.click(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow }));
   expect(screen.getByText(en.academics.homework.manual.empty)).toBeInTheDocument();
   expect(screen.queryByPlaceholderText("Question Text")).not.toBeInTheDocument();
   await waitFor(() => expect(screen.getByRole("button", { name: /^Target level/ })).toBeEnabled());
   expect(screen.getByRole("button", { name: "Create 0 drafts" })).toBeDisabled();
   expect(apiPost).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Assign to multiple classes" }));
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.manual.draftWorkflow, exact: true }));
   expect(screen.getByRole("button", { name: "Create draft" })).toBeVisible();
+  expect(screen.queryByText(en.academics.homework.manual.localHelp)).not.toBeInTheDocument();
   await waitFor(() => expect(screen.getByRole("button", { name: /^Teacher subject allocation/ })).toBeEnabled());
 });
 it("saves the last manual edit, explicit false and optional flag under a single draft", async () => {
@@ -79,10 +81,13 @@ it("saves the last manual edit, explicit false and optional flag under a single 
 });
 it("keeps manual questions through mode changes and saves a whole-class draft per target", async () => {
   renderPage(); await selectSingleTarget(); writeQuestion();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Assign to multiple classes" }));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Assign to multiple classes" }));
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow }));
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.manual.draftWorkflow, exact: true }));
+  expect(screen.queryByPlaceholderText("Question Text")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Show questions" }));
   expect(screen.getByPlaceholderText("Question Text")).toHaveValue("Is three even?");
-  fireEvent.click(screen.getByRole("checkbox", { name: "Assign to multiple classes" }));
+  expect(screen.getByRole("textbox", { name: /^Title/ })).toHaveValue("Manual practice");
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow }));
   const level = await screen.findByRole("button", { name: /^Target level/ });
   await waitFor(() => expect(level).toBeEnabled()); fireEvent.click(level);
   fireEvent.click(screen.getByRole("button", { name: "Whole school", exact: true }));
@@ -111,14 +116,14 @@ it("preserves cancelled replacements, confirms accepted sources and keeps multip
   fireEvent.click(within(confirmation).getByRole("button", { name: "Keep current questions" }));
   expect(screen.getByPlaceholderText("Question Text")).toHaveValue("Is three even?");
   expect(screen.getByRole("textbox", { name: /^Title/ })).toHaveValue("Manual practice"); expect(apiPost).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Assign to multiple classes" }));
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow }));
   fireEvent.click(screen.getByRole("button", { name: "Import Excel" }));
   fireEvent.change(screen.getByLabelText("Choose Excel file"), { target: { files: [file] } });
   const reapply = await screen.findByRole("button", { name: "Apply import" });
   await waitFor(() => expect(reapply).toBeEnabled()); fireEvent.click(reapply);
   fireEvent.click(within(screen.getByRole("dialog", { name: "Replace current questions?" })).getByRole("button", { name: "Replace questions" }));
   expect(screen.getByRole("textbox", { name: /^Title/ })).toHaveValue("Practice");
-  expect(screen.getByRole("checkbox", { name: "Assign to multiple classes" })).toBeChecked();
+  expect(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow })).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByPlaceholderText("Question Text")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: en.academics.homework.manual.entry }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Replace current questions?" })).getByRole("button", { name: "Keep current questions" }));
@@ -127,7 +132,7 @@ it("preserves cancelled replacements, confirms accepted sources and keeps multip
   fireEvent.click(within(screen.getByRole("dialog", { name: "Replace current questions?" })).getByRole("button", { name: "Replace questions" }));
   expect(screen.getByText(en.academics.homework.manual.empty)).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: /^Title/ })).toHaveValue("Practice");
-  expect(screen.getByRole("checkbox", { name: "Assign to multiple classes" })).toBeChecked();
+  expect(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow })).toHaveAttribute("aria-pressed", "true");
   expect(apiPost).not.toHaveBeenCalled();
 });
 

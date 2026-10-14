@@ -46,7 +46,7 @@ async function prepareImport() {
   return view;
 }
 async function chooseGrade() {
-  fireEvent.click(screen.getByRole("checkbox", { name: "Assign to multiple classes" }));
+  fireEvent.click(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow }));
   const scope = await screen.findByRole("button", { name: /^Target level/ });
   await waitFor(() => expect(scope).toBeEnabled());
   fireEvent.click(scope); fireEvent.click(screen.getByRole("button", { name: "Grade", exact: true }));
@@ -68,7 +68,8 @@ it("creates a grade batch with distinct allocations, locks the workbook and keep
   expect(window.open).toHaveBeenCalledTimes(2); expect(boundary.replace).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Remove import" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Import Excel" })).toBeDisabled();
-  expect(screen.getByRole("checkbox", { name: "Assign to multiple classes" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow })).toBeDisabled();
+  expect(screen.getByRole("button", { name: en.academics.homework.manual.draftWorkflow, exact: true })).toBeDisabled();
   expect(screen.getByLabelText(/^Title/)).toBeDisabled();
   const back = await screen.findByRole("button", { name: "Back to assignments" });
   expect(back).toBeEnabled();
@@ -82,7 +83,7 @@ it("creates a grade batch with distinct allocations, locks the workbook and keep
 it("keeps single import available without view permission and explains why batching is unavailable", async () => {
   boundary.permissions = ["homework.assignments.manage"];
   await prepareImport();
-  expect(screen.getByRole("checkbox", { name: "Assign to multiple classes" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: en.academics.homework.manual.multipleWorkflow })).toBeDisabled();
   expect(screen.getByText(en.academics.homework.importBatch.permission)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: en.academics.homework.create.actions.createDraft })).toBeEnabled();
 });

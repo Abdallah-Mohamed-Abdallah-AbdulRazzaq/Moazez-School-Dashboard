@@ -5785,6 +5785,11 @@
     },
     "homework": {
       "manual": {
+        "workflowChoice": "How would you like to create homework?",
+        "draftWorkflow": "Create a draft",
+        "draftWorkflowHelp": "Enter the details, create a draft, then add questions.",
+        "multipleWorkflow": "Prepare questions for multiple classes",
+        "multipleWorkflowHelp": "Prepare questions once and reuse them across classes.",
         "reviewIssues": "Resolve the issues above before creating drafts.",
         "preparingTargets": "Preparing class targets…",
         "chooseClasses": "Choose a subject and at least one eligible class.",

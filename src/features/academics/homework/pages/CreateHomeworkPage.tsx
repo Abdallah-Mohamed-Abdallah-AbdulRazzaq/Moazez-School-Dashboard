@@ -8,10 +8,10 @@ import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import Select from "@/components/ui/input/Select";
-import Checkbox from "@/components/ui/checkbox/Checkbox";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { ClipboardList, ChevronDown, FileSpreadsheet, PencilLine } from "lucide-react";
 import HomeworkCreationBar from "../components/HomeworkCreationBar";
+import HomeworkCreationWorkflow from "../components/HomeworkCreationWorkflow";
 import HomeworkImportBatchPanel from "../components/HomeworkImportBatchPanel";
 import type { HomeworkBatchDraftValidation, HomeworkBatchPageState } from "../utils/homeworkImportBatch.types";
 import { useHomeworkCreateQuestions } from "../hooks/useHomeworkCreateQuestions";
@@ -331,6 +331,12 @@ export default function CreateHomeworkPage() {
     if (isSubmitting || batchState.isSaving || partialImport) return;
     authoring.reset(); setImportIssues([]); setManualIssues([]); setBatchEnabled(false);
     setBatchState({ hasStarted: false, isSaving: false, allCreated: false });
+  };
+  const chooseCreationWorkflow = (workflow: "draft" | "multiple") => {
+    if (contentLocked || (workflow === "multiple" && !canView)) return;
+    setBatchEnabled(workflow === "multiple");
+    if (workflow === "multiple" && authoring.content.kind === "none") authoring.requestManualAuthoring();
+    else authoring.setEditorOpen(workflow === "multiple");
   };
   const validateContentDraft = (candidate: HomeworkQuestionDraft, context: HomeworkDraftValidationContext): HomeworkBatchDraftValidation => {
     if (pendingImport) {
@@ -682,13 +688,10 @@ export default function CreateHomeworkPage() {
             <div><h1 className="text-2xl font-semibold text-gray-900">
               {t("title")}
             </h1>
-            <p className="mt-2 text-sm leading-6 text-gray-600">{t("description")}</p></div>
+            <p className="mt-2 text-sm leading-6 text-gray-600">{tManual(batchEnabled ? "multipleWorkflowHelp" : "draftWorkflowHelp")}</p></div>
           </div>
 
-          <Checkbox label={tBatch("toggle")} description={!canView ? tBatch("permission") : !canImport ? tManual("unavailable") : tBatch("toggleHelp")} checked={batchEnabled} onChange={event => {
-            setBatchEnabled(event.target.checked);
-            if (event.target.checked && authoring.content.kind === "none") authoring.requestManualAuthoring();
-          }} disabled={!canView || contentLocked} className="bg-white" />
+          <HomeworkCreationWorkflow multipleClasses={batchEnabled} locked={contentLocked} multipleUnavailable={!canView ? tBatch("permission") : !canImport ? tManual("unavailable") : undefined} onChoose={chooseCreationWorkflow} />
           <div className="space-y-6">
           <details open={!batchState.hasStarted} className="group min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-base font-semibold text-gray-900 sm:p-6 [&::-webkit-details-marker]:hidden">
@@ -1026,14 +1029,14 @@ export default function CreateHomeworkPage() {
           </details>
 
           <div className="space-y-3">
-          <p className="flex items-center gap-2 text-base font-semibold text-gray-900"><FileSpreadsheet size={18} className="text-primary" aria-hidden="true" />{tManual("contentTitle")}</p>
-          <div className="[&>div]:my-0 [&>div]:rounded-xl [&>div]:border-primary-100 [&>div]:bg-primary-50/40 [&>div]:p-5 [&_button]:min-h-11 [&_button]:text-sm">
+          {batchEnabled && <p className="flex items-center gap-2 text-base font-semibold text-gray-900"><FileSpreadsheet size={18} className="text-primary" aria-hidden="true" />{tManual("contentTitle")}</p>}
+          <div className="[&>div]:my-0 [&>div]:rounded-xl [&>div]:border-primary-100 [&>div]:bg-primary-50/40 [&>div]:p-4 [&_button]:min-h-11 [&_button]:text-sm">
           <ExcelImportActions module="assignment" context={importContext} pendingImport={pendingImport && { ...pendingImport, metadata: effectiveDraft }} disabled={contentLocked} onApply={applyImport} onRemove={resetBatchImport} leadingActions={<Button variant="secondary" disabled={contentLocked} leftIcon={<PencilLine size={16} />} onClick={authoring.requestManualAuthoring}>{tManual("entry")}</Button>} />
           </div>
 
           </div>
           <ConfirmDialog isOpen={authoring.pendingReplacement !== null} onClose={authoring.cancelReplacement} onConfirm={authoring.acceptReplacement} title={tManual("replaceTitle")} description={tManual("replaceDescription")} confirmLabel={tManual("replace")} cancelLabel={tManual("cancel")} severity="warning" loading={contentLocked} />
-          <HomeworkQuestionAuthoringPanel authoring={authoring} locked={contentLocked} issues={manualIssues} />
+          {(batchEnabled || authoring.editorOpen || questions.length > 0) && <HomeworkQuestionAuthoringPanel authoring={authoring} locked={contentLocked} issues={manualIssues} />}
           {manualValidation?.kind === "valid" && manualValidation.warnings.map((warning, index) => <p key={index} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{tManual("marksMismatch", warning.values)}</p>)}
           {importIssues.length > 0 && <ImportIssues issues={importIssues} />}
           {!batchEnabled && manualIssues.length > 0 && <HomeworkDraftIssues issues={manualIssues} questions={questions} />}

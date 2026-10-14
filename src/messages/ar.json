@@ -5786,6 +5786,11 @@
     },
     "homework": {
       "manual": {
+        "workflowChoice": "كيف تريد إنشاء الواجب؟",
+        "draftWorkflow": "إنشاء المسودة أولاً",
+        "draftWorkflowHelp": "أدخل التفاصيل وأنشئ المسودة، ثم أضف الأسئلة.",
+        "multipleWorkflow": "تجهيز الأسئلة لعدة فصول",
+        "multipleWorkflowHelp": "جهّز الأسئلة مرة واحدة واستخدمها لعدة فصول.",
         "reviewIssues": "عالج الملاحظات أعلاه قبل إنشاء المسودات.",
         "preparingTargets": "جارٍ تجهيز الفصول…",
         "chooseClasses": "اختر مادة وفصلاً مؤهلاً واحداً على الأقل.",
