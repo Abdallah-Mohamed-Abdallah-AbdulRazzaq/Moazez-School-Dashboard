@@ -6452,6 +6452,9 @@
       "filters": {
         "selectScope": "النطاق",
         "scopeTerm": "الترم",
+        "configuration": "الإعدادات",
+        "termConfiguration": "إعدادات الترم",
+        "scopeConfiguration": "إعدادات النطاق المحدد",
         "scopeStage": "المرحلة",
         "scopeGrade": "الصف",
         "scopeSection": "الشعبة",

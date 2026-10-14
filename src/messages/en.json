@@ -6770,6 +6770,9 @@
       "filters": {
         "selectScope": "Scope",
         "scopeTerm": "Term",
+        "configuration": "Configuration",
+        "termConfiguration": "Term default",
+        "scopeConfiguration": "Selected scope",
         "scopeStage": "Stage",
         "scopeGrade": "Grade",
         "scopeSection": "Section",

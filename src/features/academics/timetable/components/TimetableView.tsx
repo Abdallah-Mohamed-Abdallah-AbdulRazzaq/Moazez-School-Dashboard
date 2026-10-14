@@ -69,6 +69,7 @@ import {
   getRoomSource as resolveRoomSource,
 } from "@/features/academics/timetable/utils/roomRecommendations";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/use-auth";
 import { useTimetableData } from "@/features/academics/timetable/hooks/useTimetableData";
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { useTimetableScheduling } from "@/features/academics/timetable/hooks/useTimetableScheduling";
@@ -153,6 +154,7 @@ export default function TimetableView({
   const locale = useLocale();
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
+  const { user } = useAuth();
   const { profile: brandingProfile } = useBrandingProfile();
   const filteredScope = resolveTimetableScopeSelection({
     stageId: selectedStageId,
@@ -207,9 +209,14 @@ export default function TimetableView({
   const {
     configurationScope,
     isTermDefaultConfiguration,
+    configurationMode,
     customizeFilteredScope: selectCustomConfigurationScope,
     returnToTermDefault: selectTermDefaultConfiguration,
-  } = useTimetableConfigurationScope(filteredScope);
+  } = useTimetableConfigurationScope(filteredScope, {
+    userId: user?.id ?? null,
+    schoolId,
+    termId,
+  });
   const [selectedSectionTabId, setSelectedSectionTabId] = useState<
     string | null
   >(null);
@@ -1703,6 +1710,15 @@ export default function TimetableView({
           className="shrink-0 print:hidden"
         >
           <FilterBar
+            configurationMode={configurationMode}
+            onConfigurationModeChange={(mode) => {
+              if (mode === configurationMode) return;
+              resetSchedulingInteraction();
+              setConfigDialogOpen(false);
+              setPeriodsDialogOpen(false);
+              if (mode === "term") selectTermDefaultConfiguration();
+              else selectCustomConfigurationScope();
+            }}
             stages={stages}
             grades={grades}
             sections={sections}
