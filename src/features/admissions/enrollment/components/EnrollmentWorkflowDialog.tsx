@@ -10,7 +10,7 @@ import TextArea from "@/components/ui/input/TextArea";
 import type { AcademicYearDto } from "../api/enrollmentDtos";
 import { promoteEnrollment, transferEnrollment, withdrawEnrollment } from "../api/enrollmentApi";
 import type { EnrollmentRecord } from "../model/enrollment";
-import { enrollmentErrorKey } from "../model/enrollmentErrorMessages";
+import { enrollmentErrorMessage } from "../model/enrollmentErrorMessages";
 
 interface Option { id: string; name: string; parentId?: string }
 interface Props {
@@ -62,7 +62,7 @@ export default function EnrollmentWorkflowDialog({ action, enrollment, stages, g
       if (action === "promote") await promoteEnrollment({ studentId: enrollment.studentId, targetAcademicYear, effectiveDate, notes: notes.trim() || undefined });
       await onSuccess(); onClose();
     } catch (caughtError) {
-      setError(t(`errors.${enrollmentErrorKey(caughtError)}`));
+      setError(enrollmentErrorMessage(caughtError, t));
     }
     finally { setSaving(false); }
   };

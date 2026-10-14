@@ -2374,6 +2374,7 @@
       "load_error": "Unable to load enrollments.",
       "errors": {
         "placement_conflict": "This placement cannot be used. Choose a different section or classroom and confirm that a seat is available.",
+        "capacity_exceeded": "Classroom capacity exceeded: {activeCount} students are currently enrolled, with a capacity of {capacity}. This action would bring the total to {projectedActiveCount}. Choose another classroom with an available seat.",
         "inactive_academic_year": "The selected academic year is not active.",
         "no_active_enrollment": "This student has no active enrollment for this action.",
         "unauthorized": "Your session has expired. Please sign in again.",

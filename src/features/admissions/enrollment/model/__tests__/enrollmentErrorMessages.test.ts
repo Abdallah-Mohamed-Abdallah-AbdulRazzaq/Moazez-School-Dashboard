@@ -1,11 +1,58 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api-error";
+import { createTranslator } from "next-intl";
+import en from "@/messages/en.json";
+import ar from "@/messages/ar.json";
 import {
   enrollmentErrorKey,
+  enrollmentErrorMessage,
   enrollmentValidationErrorKey,
 } from "../enrollmentErrorMessages";
 
+vi.unmock("next-intl");
+
 describe("enrollmentErrorMessages", () => {
+  it.each([
+    ["en", en, "Classroom capacity exceeded"],
+    ["ar", ar, "تم تجاوز سعة الفصل"],
+  ])("explains the reported 20-to-21 capacity conflict in %s", (locale, messages, explanation) => {
+    const translate = createTranslator({ locale, messages, namespace: "admissions.enrollment" });
+    const error = new ApiError(
+      "Classroom capacity exceeded or placement conflict", 409,
+      "students.enrollment.placement_conflict", undefined,
+      { capacity: 20, activeCount: 20, incrementBy: 1, projectedActiveCount: 21 },
+    );
+
+    const message = enrollmentErrorMessage(error, translate);
+
+    expect(message).toContain(explanation);
+    expect(message).toContain("20");
+    expect(message).toContain("21");
+    expect(message).not.toMatch(/\{\w+\}/);
+  });
+
+  it.each([
+    undefined,
+    { capacity: 20, activeCount: 19, projectedActiveCount: 20 },
+    { capacity: "20", activeCount: 20, projectedActiveCount: 21 },
+    { capacity: 20, projectedActiveCount: 21 },
+    { capacity: -1, activeCount: 0, projectedActiveCount: 1 },
+    { capacity: 20, activeCount: 20, projectedActiveCount: NaN },
+  ])("keeps the placement fallback when capacity is not proven exceeded: %j", (details) => {
+    const translate = createTranslator({ locale: "en", messages: en, namespace: "admissions.enrollment" });
+    const error = new ApiError("Placement conflict", 409, "students.enrollment.placement_conflict", undefined, details);
+
+    expect(enrollmentErrorMessage(error, translate)).toBe(en.admissions.enrollment.errors.placement_conflict);
+  });
+
+  it("does not treat unrelated errors as capacity conflicts", () => {
+    const translate = createTranslator({ locale: "en", messages: en, namespace: "admissions.enrollment" });
+    const error = new ApiError("Forbidden", 403, "forbidden", undefined,
+      { capacity: 20, activeCount: 20, projectedActiveCount: 21 });
+
+    expect(enrollmentErrorMessage(error, translate)).toBe(en.admissions.enrollment.errors.permission_denied);
+  });
+
   it("maps placement conflicts to an actionable message", () => {
     expect(
       enrollmentErrorKey(

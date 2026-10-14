@@ -9,7 +9,7 @@ import Select from "@/components/ui/input/Select";
 import type { Student } from "@/features/students-guardians/students/types";
 import { createEnrollment, validateEnrollment } from "../api/enrollmentApi";
 import {
-  enrollmentErrorKey,
+  enrollmentErrorMessage,
   enrollmentValidationErrorKey,
 } from "../model/enrollmentErrorMessages";
 import { studentDisplayName } from "../model/enrollmentMappers";
@@ -151,7 +151,7 @@ export default function EnrollmentPlacementDialog({
       await onSuccess();
       onClose();
     } catch (error) {
-      setErrors([t(`errors.${enrollmentErrorKey(error)}`)]);
+      setErrors([enrollmentErrorMessage(error, t)]);
     } finally {
       setSaving(false);
     }

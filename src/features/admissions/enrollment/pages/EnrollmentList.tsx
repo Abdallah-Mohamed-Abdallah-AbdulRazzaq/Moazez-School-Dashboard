@@ -17,7 +17,7 @@ import type { AcademicYearDto, EnrollmentDto, EnrollmentStatusDto } from "../api
 import EnrollmentDetailsDrawer from "../components/EnrollmentDetailsDrawer";
 import EnrollmentPlacementDialog from "../components/EnrollmentPlacementDialog";
 import EnrollmentWorkflowDialog from "../components/EnrollmentWorkflowDialog";
-import { enrollmentErrorKey } from "../model/enrollmentErrorMessages";
+import { enrollmentErrorMessage } from "../model/enrollmentErrorMessages";
 import { mapEnrollment, studentDisplayName } from "../model/enrollmentMappers";
 import type { EnrollmentRecord } from "../model/enrollment";
 
@@ -151,7 +151,7 @@ export default function EnrollmentList() {
       setSelected(mapEnrollment(currentEnrollment, enrollment.studentName));
       setWorkflow(action);
     } catch (caughtError) {
-      setWorkflowError(t(`errors.${enrollmentErrorKey(caughtError)}`));
+      setWorkflowError(enrollmentErrorMessage(caughtError, t));
     }
   };
   const columns = [
