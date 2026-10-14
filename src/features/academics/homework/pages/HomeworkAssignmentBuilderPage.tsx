@@ -355,7 +355,7 @@ export default function HomeworkAssignmentBuilderPage({
 
   const handleSaveAssignment = async () => {
     if (!assignmentDraft || !homework || isReadOnly || !isDirty) return;
-    if (targetDraft.targetMode === "selected_students" && (targetDraft.studentIds.length === 0 || targetDraft.studentIds.length > 500)) {
+    if (isTargetDirty && targetDraft.targetMode === "selected_students" && (targetDraft.studentIds.length === 0 || targetDraft.studentIds.length > 500)) {
       showError(tCreate(targetDraft.studentIds.length === 0
         ? "errors.selectedStudentsRequired" : "errors.selectedStudentsLimit"));
       return;
