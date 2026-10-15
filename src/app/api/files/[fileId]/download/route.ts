@@ -31,6 +31,7 @@ export async function GET(
     `${apiBaseUrl}/files/${encodeURIComponent(fileId)}/download`,
     {
       headers: { authorization },
+      cache: "no-store",
       redirect: "follow",
       signal: request.signal,
     },
@@ -44,7 +45,8 @@ export async function GET(
   }
 
   const responseHeaders = new Headers();
-  for (const header of ["content-type", "content-disposition", "content-length"]) {
+  // Omit Content-Length so Node uses chunked streaming beyond Cloud Run's 32 MiB limit.
+  for (const header of ["content-type", "content-disposition"]) {
     const value = backendResponse.headers.get(header);
     if (value) responseHeaders.set(header, value);
   }
