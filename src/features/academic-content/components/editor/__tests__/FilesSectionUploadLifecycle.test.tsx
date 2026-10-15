@@ -116,10 +116,10 @@ describe("file upload completion recovery", () => {
     expect(screen.queryByRole("button", { name: "Cancel upload" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Retry/ })).not.toBeInTheDocument();
     expect(onFilesChanged).not.toHaveBeenCalled();
-    expect(closeTabWouldWarn()).toBe(true);
+    await waitFor(() => expect(closeTabWouldWarn()).toBe(true));
     await act(async () => confirm(completed));
     expect(await screen.findByRole("status")).toHaveTextContent("uploaded");
-    expect(closeTabWouldWarn()).toBe(false);
+    await waitFor(() => expect(closeTabWouldWarn()).toBe(false));
   });
 
   it("warns during transfer and stops warning after the user cancels", async () => {
@@ -127,10 +127,10 @@ describe("file upload completion recovery", () => {
     StorageRequest.holdTransfer = true;
     selectFile();
     await waitFor(() => expect(StorageRequest.pending).not.toBeNull());
-    expect(closeTabWouldWarn()).toBe(true);
+    await waitFor(() => expect(closeTabWouldWarn()).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: "Cancel upload" }));
     await screen.findByRole("button", { name: "Retry upload" });
-    expect(closeTabWouldWarn()).toBe(false);
+    await waitFor(() => expect(closeTabWouldWarn()).toBe(false));
   });
 
   it("starts a fresh upload only when the backend says the previous session expired", async () => {

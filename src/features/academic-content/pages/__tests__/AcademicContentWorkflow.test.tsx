@@ -1,8 +1,13 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useCallback, useMemo, useState } from "react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { useAcademicContentEditor } from "../../hooks/useAcademicContentEditor";
+import type {
+  AcademicContentEditorSection,
+  AcademicContentEditorSectionState,
+  useAcademicContentEditor,
+} from "../../hooks/useAcademicContentEditor";
 import AcademicContentTable from "../../components/library/AcademicContentTable";
 import AcademicContentFilters from "../../components/library/AcademicContentFilters";
 import ReviewQueueTable from "../../components/review/ReviewQueueTable";
@@ -104,6 +109,11 @@ function workflowContent(status: AcademicContentDetail["status"] = "DRAFT") {
     archivedAt: status === "ARCHIVED" ? "2026-09-30T08:00:00.000Z" : null,
     createdAt: "2026-09-30T08:00:00.000Z",
     updatedAt: "2026-09-30T08:00:00.000Z",
+    latestPublicationId: null,
+    publicationStatus: null,
+    publishAt: null,
+    visibleFrom: null,
+    visibleUntil: null,
     targets: [],
     assets: [],
     links: [],
@@ -117,7 +127,6 @@ function workflowContent(status: AcademicContentDetail["status"] = "DRAFT") {
 }
 
 function workflowEditor(status: AcademicContentDetail["status"] = "DRAFT") {
-  const dirtySection = { dirty: true, saving: false, error: null };
   return {
     content: workflowContent(status),
     readiness: { canAdvance: true, blockingReasons: [] },
@@ -125,12 +134,12 @@ function workflowEditor(status: AcademicContentDetail["status"] = "DRAFT") {
     isReadOnly: status === "ARCHIVED",
     error: null,
     sections: {
-      metadata: dirtySection,
-      targets: dirtySection,
-      details: dirtySection,
-      links: dirtySection,
-      tags: dirtySection,
-      files: dirtySection,
+      metadata: { dirty: false, saving: false, error: null },
+      targets: { dirty: false, saving: false, error: null },
+      details: { dirty: false, saving: false, error: null },
+      links: { dirty: false, saving: false, error: null },
+      tags: { dirty: false, saving: false, error: null },
+      files: { dirty: false, saving: false, error: null },
     },
     hasUnsavedChanges: false,
     markSectionDirty: vi.fn(),
@@ -151,9 +160,74 @@ function workflowEditor(status: AcademicContentDetail["status"] = "DRAFT") {
   } as unknown as ReturnType<typeof useAcademicContentEditor>;
 }
 
+function WorkflowEditorHarness({
+  editor,
+}: {
+  editor: ReturnType<typeof useAcademicContentEditor>;
+}) {
+  const [sections, setSections] = useState(editor.sections);
+  const updateSection = useCallback(
+    (
+      section: AcademicContentEditorSection,
+      update: Partial<AcademicContentEditorSectionState>,
+    ) => {
+      setSections((current) => ({
+        ...current,
+        [section]: { ...current[section], ...update },
+      }));
+    },
+    [],
+  );
+  const actions = useMemo(() => {
+    const saveSection = <Args extends unknown[]>(
+      section: AcademicContentEditorSection,
+      save: (...args: Args) => Promise<boolean>,
+    ) => async (...args: Args) => {
+      updateSection(section, { saving: true, error: null });
+      try {
+        const saved = await save(...args);
+        if (saved) updateSection(section, { dirty: false });
+        return saved;
+      } finally {
+        updateSection(section, { saving: false });
+      }
+    };
+
+    return {
+      markSectionDirty: (section: AcademicContentEditorSection, dirty = true) => {
+        editor.markSectionDirty(section, dirty);
+        updateSection(section, { dirty });
+      },
+      saveMetadata: saveSection("metadata", editor.saveMetadata),
+      saveTargets: saveSection("targets", editor.saveTargets),
+      saveLinks: saveSection("links", editor.saveLinks),
+      saveTags: saveSection("tags", editor.saveTags),
+      savePreparationDetails: saveSection("details", editor.savePreparationDetails),
+      saveWeeklyPlanDetails: saveSection("details", editor.saveWeeklyPlanDetails),
+      saveGuardianNoteDetails: saveSection("details", editor.saveGuardianNoteDetails),
+      saveSubjectResourceDetails: saveSection("details", editor.saveSubjectResourceDetails),
+      saveOnlineSessionDetails: saveSection("details", editor.saveOnlineSessionDetails),
+    };
+  }, [editor, updateSection]);
+
+  return (
+    <AcademicContentEditorView
+      editor={{
+        ...editor,
+        ...actions,
+        sections,
+        hasUnsavedChanges: Object.values(sections).some((section) => section.dirty),
+      }}
+      canManage
+      academicYearName="2026/2027"
+      termName="Term 1"
+    />
+  );
+}
+
 function preparation(
   status: AcademicContentDetail["status"] = "DRAFT",
-): Extract<AcademicContentDetail, { type: "TEACHER_PREPARATION" }> {
+) {
   return {
     ...workflowContent(status),
     type: "TEACHER_PREPARATION",
@@ -175,7 +249,7 @@ function preparation(
       lessonPlanItemId: null,
       timetableEntryId: null,
     },
-  };
+  } satisfies Extract<AcademicContentDetail, { type: "TEACHER_PREPARATION" }>;
 }
 
 function revision(
@@ -200,7 +274,7 @@ function revision(
     assets: [],
     links: [],
     tags: [],
-    details: { topic },
+    details: { ...preparation().details, topic },
   };
 }
 
@@ -442,27 +516,39 @@ describe("Academic Content authoring workflow", () => {
     create.unmount();
 
     const editor = workflowEditor();
-    render(<AcademicContentEditorView editor={editor} canManage />);
+    render(<WorkflowEditorHarness editor={editor} />);
 
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Updated guardian note" },
     });
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: "Save basic information" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save basic information" })).toBeDisabled(),
     );
 
     openSection("Target audience");
     await screen.findByRole("button", { name: "Add scope" });
     fireEvent.click(screen.getByRole("button", { name: "Add scope" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save scope" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save scope" })).toBeEnabled(),
+    );
+    await user.click(screen.getByRole("button", { name: "Save scope" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save scope" })).toBeDisabled(),
+    );
 
     openSection("Note details");
     await user.type(
       await screen.findByRole("textbox", { name: "Message body" }, { timeout: 10000 }),
       "Weekly plan",
     );
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: "Save guardian message" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save guardian message" })).toBeDisabled(),
     );
 
     openSection("Resources");
@@ -473,20 +559,31 @@ describe("Academic Content authoring workflow", () => {
     fireEvent.change(screen.getByLabelText("Link 1 URL"), {
       target: { value: "https://school.example/weekly" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save links" }));
+    await user.click(screen.getByRole("button", { name: "Save links" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save links" })).toBeDisabled(),
+    );
 
     openSection("Note details");
     fireEvent.click(screen.getByRole("button", { name: "Add tag" }));
     fireEvent.change(screen.getByLabelText("Tag 1"), {
       target: { value: "weekly" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save tags" }));
+    await user.click(screen.getByRole("button", { name: "Save tags" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save tags" })).toBeDisabled(),
+    );
 
     openSection("Readiness");
     fireEvent.click(screen.getByRole("button", { name: "Refresh readiness" }));
 
     await waitFor(() => {
       expect(editor.saveMetadata).toHaveBeenCalledOnce();
+      expect(editor.saveMetadata).toHaveBeenCalledWith({
+        title: "Updated guardian note",
+        description: null,
+        audience: "GUARDIANS",
+      });
       expect(editor.saveTargets).toHaveBeenCalledWith([
         {
           scopeType: "SCHOOL",
@@ -514,11 +611,64 @@ describe("Academic Content authoring workflow", () => {
     ).toHaveLength(0);
   }, 30_000);
 
+  it.each([true, false])(
+    "preserves Guardian Note navigation protection until an asynchronous save succeeds: %s",
+    async (saved) => {
+      const user = userEvent.setup();
+      const editor = workflowEditor();
+      let completeSave!: (value: boolean) => void;
+      vi.mocked(editor.saveMetadata).mockImplementationOnce(
+        () => new Promise<boolean>((resolve) => { completeSave = resolve; }),
+      );
+      render(<WorkflowEditorHarness editor={editor} />);
+
+      const save = screen.getByRole("button", { name: "Save basic information" });
+      expect(save).toBeDisabled();
+      openSection("Target audience");
+      expect(await screen.findByRole("button", { name: "Add scope" })).toBeVisible();
+      expect(screen.queryByRole("dialog", { name: "Unsaved changes" })).not.toBeInTheDocument();
+      openSection("Note details");
+      fireEvent.change(screen.getByLabelText("Title"), {
+        target: { value: "Unsaved guardian note" },
+      });
+
+      openSection("Target audience");
+      expect(screen.getByRole("dialog", { name: "Unsaved changes" })).toBeVisible();
+      await user.click(screen.getByRole("button", { name: "Stay on this tab" }));
+      await user.click(screen.getByRole("button", { name: "Save basic information" }));
+      expect(editor.saveMetadata).toHaveBeenCalledWith({
+        title: "Unsaved guardian note",
+        description: null,
+        audience: "GUARDIANS",
+      });
+
+      openSection("Target audience");
+      expect(screen.getByRole("dialog", { name: "Unsaved changes" })).toBeVisible();
+      await user.click(screen.getByRole("button", { name: "Stay on this tab" }));
+      await act(async () => completeSave(saved));
+
+      const completedSave = screen.getByRole("button", { name: "Save basic information" });
+      if (saved) expect(completedSave).toBeDisabled();
+      else expect(completedSave).toBeEnabled();
+      openSection("Target audience");
+      if (!saved) {
+        expect(screen.getByRole("dialog", { name: "Unsaved changes" })).toBeVisible();
+        expect(screen.getByLabelText("Title")).toHaveValue("Unsaved guardian note");
+        await user.click(screen.getByRole("button", { name: "Leave without saving" }));
+        expect(editor.markSectionDirty).toHaveBeenCalledWith("metadata", false);
+      }
+      expect(await screen.findByRole("button", { name: "Add scope" })).toBeVisible();
+      expect(screen.queryByRole("dialog", { name: "Unsaved changes" })).not.toBeInTheDocument();
+    },
+  );
+
   it("keeps archived content read-only without deferred workflow actions", () => {
     render(
       <AcademicContentEditorView
         editor={workflowEditor("ARCHIVED")}
         canManage
+        academicYearName="2026/2027"
+        termName="Term 1"
       />,
     );
 
@@ -733,7 +883,14 @@ describe("Academic Content authoring workflow", () => {
     const approvedEditor = workflowEditor("APPROVED");
     approvedEditor.content = preparation("APPROVED");
     approvedEditor.isReadOnly = true;
-    render(<AcademicContentEditorView editor={approvedEditor} canManage />);
+    render(
+      <AcademicContentEditorView
+        editor={approvedEditor}
+        canManage
+        academicYearName="2026/2027"
+        termName="Term 1"
+      />,
+    );
 
     expect(
       screen.getByText("This content is read-only in its current status."),
