@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TimetableConfigDialog from "@/features/academics/timetable/components/TimetableConfigDialog";
@@ -121,6 +121,12 @@ describe("TimetableConfigDialog", () => {
     });
 
     await user.type(labelInput, "Second period");
+    fireEvent.change(screen.getByLabelText("config.startTime"), {
+      target: { value: "09:00" },
+    });
+    fireEvent.change(screen.getByLabelText("config.endTime"), {
+      target: { value: "09:45" },
+    });
     await user.click(
       screen.getByRole("button", { name: "config.addNextPeriod" }),
     );
@@ -131,6 +137,8 @@ describe("TimetableConfigDialog", () => {
           timetableConfigId: "config-1",
           index: 2,
           label: "Second period",
+          startTime: "09:00",
+          endTime: "09:45",
         }),
       );
     });

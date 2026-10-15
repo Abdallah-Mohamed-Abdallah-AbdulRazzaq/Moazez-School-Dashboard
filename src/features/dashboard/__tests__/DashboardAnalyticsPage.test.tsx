@@ -447,6 +447,10 @@ describe("DashboardAnalyticsPage", () => {
     render(<DashboardAnalyticsPage />);
     const firstCard = (await screen.findByText("Class GPA Trend")).closest("article")!;
     const secondCard = screen.getByText("Attendance Trend").closest("article")!;
+    await waitFor(() => {
+      expect(observedCards.has(firstCard)).toBe(true);
+      expect(observedCards.has(secondCard)).toBe(true);
+    });
     expect(mockedFetchChartData).not.toHaveBeenCalled();
 
     act(() => observedCards.get(firstCard)!([{ isIntersecting: true, target: firstCard } as IntersectionObserverEntry], {} as IntersectionObserver));
@@ -477,6 +481,9 @@ describe("DashboardAnalyticsPage", () => {
     render(<DashboardAnalyticsPage />);
     await screen.findByText("Chart 4");
     const cards = Array.from(document.querySelectorAll("[data-chart-key]"));
+    await waitFor(() => {
+      cards.forEach((card) => expect(observedCards.has(card)).toBe(true));
+    });
     act(() => observedCards.get(cards[0])!(cards.map((target) => ({ isIntersecting: true, target } as IntersectionObserverEntry)), {} as IntersectionObserver));
     await waitFor(() => expect(mockedFetchChartData).toHaveBeenCalledTimes(4));
 
