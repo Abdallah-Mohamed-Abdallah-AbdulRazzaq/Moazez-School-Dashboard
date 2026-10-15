@@ -17,24 +17,47 @@ export function useTimetableGeneration({
   reloadAuthoritativeState,
 }: UseTimetableGenerationParams) {
   const requestIdRef = useRef(0);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [phase, setPhase] = useState<"generating" | "refreshing" | null>(null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const [result, setResult] = useState<TimetableGenerationResponse | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const resetGeneration = useCallback(() => {
     requestIdRef.current += 1;
-    setIsGenerating(false);
+    setPhase(null);
+    setRefreshFailed(false);
     setResult(null);
     setError(null);
-  }, [configId, enabled]);
+  }, []);
+
+  useEffect(resetGeneration, [configId, enabled, resetGeneration]);
+
+  const refreshGeneration = useCallback(async (requestId: number) => {
+    setPhase("refreshing");
+    setRefreshFailed(false);
+    try {
+      await reloadAuthoritativeState();
+    } catch {
+      // Generation has already persisted; recovery must retry reads, not the mutation.
+      if (requestId === requestIdRef.current) setRefreshFailed(true);
+    } finally {
+      if (requestId === requestIdRef.current) setPhase(null);
+    }
+  }, [reloadAuthoritativeState]);
+
+  const retryRefresh = useCallback(async () => {
+    if (!result || phase !== null) return;
+    await refreshGeneration(++requestIdRef.current);
+  }, [phase, refreshGeneration, result]);
 
   const generateCurrentConfig = useCallback(async () => {
     if (!enabled || !configId) return null;
 
     const requestId = ++requestIdRef.current;
-    setIsGenerating(true);
+    setPhase("generating");
+    setRefreshFailed(false);
     setError(null);
     setResult(null);
 
@@ -42,10 +65,10 @@ export function useTimetableGeneration({
       const response = await generate(configId);
       if (requestId !== requestIdRef.current) return null;
 
-      await reloadAuthoritativeState();
+      setResult(response);
+      await refreshGeneration(requestId);
       if (requestId !== requestIdRef.current) return null;
 
-      setResult(response);
       return response;
     } catch (generationError) {
       if (requestId === requestIdRef.current) {
@@ -53,11 +76,14 @@ export function useTimetableGeneration({
       }
       return null;
     } finally {
-      if (requestId === requestIdRef.current) setIsGenerating(false);
+      if (requestId === requestIdRef.current) setPhase(null);
     }
-  }, [configId, enabled, generate, reloadAuthoritativeState]);
+  }, [configId, enabled, generate, refreshGeneration]);
 
-  return { generateCurrentConfig, isGenerating, result, error };
+  return {
+    generateCurrentConfig, isGenerating: phase !== null, phase, result, error,
+    refreshFailed, retryRefresh, resetGeneration,
+  };
 }
 
 function generationErrorMessage(generationError: unknown): string {

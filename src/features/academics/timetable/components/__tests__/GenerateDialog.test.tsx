@@ -124,4 +124,70 @@ describe("GenerateDialog", () => {
     await user.click(screen.getByRole("button", { name: "openValidation" }));
     expect(onOpenValidation).toHaveBeenCalledOnce();
   });
+
+  it("blocks generation with unsaved edits and lets the user return to save", async () => {
+    const user = userEvent.setup();
+    const onGenerate = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <GenerateDialog
+        open onClose={onClose} onGenerate={onGenerate}
+        configName="Grade 7 timetable" scopeName="Grade 7" classroomCount={3}
+        isGenerating={false} result={null} error={null}
+        blockingReason="Save or discard your manual changes first."
+        onOpenValidation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Save or discard your manual changes first.");
+    await user.click(screen.getByRole("button", { name: "generate" }));
+    expect(onGenerate).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "backToTimetable" }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("offers a refresh retry after saved generation without offering another generation", async () => {
+    const user = userEvent.setup();
+    const onRetryRefresh = vi.fn().mockResolvedValue(undefined);
+    render(
+      <GenerateDialog
+        open onClose={vi.fn()} onGenerate={vi.fn()}
+        configName="Grade 7 timetable" scopeName="Grade 7" classroomCount={3}
+        isGenerating={false} result={completeResult} error={null}
+        refreshFailed onRetryRefresh={onRetryRefresh} onOpenValidation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("refreshFailedDescription");
+    expect(screen.queryByRole("button", { name: "generate" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "openValidation" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "retryRefresh" }));
+    expect(onRetryRefresh).toHaveBeenCalledOnce();
+  });
+
+  it("keeps focus inside the dialog during refresh and moves it to the finished result", () => {
+    const { rerender } = render(
+      <GenerateDialog
+        open onClose={vi.fn()} onGenerate={vi.fn()}
+        configName="Grade 7 timetable" scopeName="Grade 7" classroomCount={3}
+        isGenerating phase="refreshing" result={completeResult} error={null}
+        onOpenValidation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("refreshing");
+    expect(screen.getByRole("status")).toHaveFocus();
+    expect(screen.queryByText("result.complete")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "openValidation" })).toBeDisabled();
+
+    rerender(
+      <GenerateDialog
+        open onClose={vi.fn()} onGenerate={vi.fn()}
+        configName="Grade 7 timetable" scopeName="Grade 7" classroomCount={3}
+        isGenerating={false} result={completeResult} error={null}
+        onOpenValidation={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("region", { name: "resultTitle" })).toHaveFocus();
+  });
 });

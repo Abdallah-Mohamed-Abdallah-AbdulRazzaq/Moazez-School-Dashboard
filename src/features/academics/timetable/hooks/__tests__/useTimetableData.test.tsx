@@ -20,6 +20,7 @@ import {
   deleteEntry,
   getConfig,
   getDashboardTimetable,
+  getConflicts,
   getPublication,
   listEntries,
   listPeriods,
@@ -27,6 +28,7 @@ import {
   unpublish,
   validate,
 } from "@/features/academics/timetable/services/timetableApiAdapter";
+import { useTimetableValidationReview } from "../useTimetableValidationReview";
 import { useTimetableData } from "@/features/academics/timetable/hooks/useTimetableData";
 import type {
   BackendTimetableConfigDto,
@@ -210,6 +212,152 @@ describe("useTimetableData", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     mockAcademicDependencies();
     mockTimetableLoad(activePublication);
+  });
+
+  it("checks a proposed lesson transfer without saving entries or replacing the current validation review", async () => {
+    mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const originalEntries = result.current.timetableEntries;
+    const originalSummary = result.current.validationSummary;
+    const draft = [...originalEntries, { ...originalEntries[0], id: "temp-copy", dayKey: "tue" }];
+    let conflicts: Awaited<ReturnType<typeof result.current.checkDraftConflicts>> = [];
+    await act(async () => { conflicts = await result.current.checkDraftConflicts(draft); });
+    expect(conflicts).toEqual([]);
+    expect(mockedCheckConflicts).toHaveBeenCalledWith({
+      termId: "term-1",
+      items: expect.arrayContaining([expect.objectContaining({ classroomId: "classroom-1", dayOfWeek: 2, periodId: "period-1", teacherSubjectAllocationId: "allocation-1" })]),
+    });
+    expect(result.current.timetableEntries).toBe(originalEntries);
+    expect(result.current.validationSummary).toBe(originalSummary);
+    expect(mockedBulkSaveEntries).not.toHaveBeenCalled();
+    expect(mockedDeleteEntry).not.toHaveBeenCalled();
+  });
+
+  it("commits a complete review together and retains it when a later publication check fails", async () => {
+    mockedValidate.mockResolvedValue(validTimetableResponse);
+    vi.mocked(getConflicts).mockResolvedValue([]);
+    const { result } = renderHook(() => {
+      const timetable = useTimetableData(hookParams);
+      const review = useTimetableValidationReview({
+        contextId: "scope-1",
+        fingerprint: JSON.stringify(timetable.timetableEntries),
+        refresh: timetable.refreshValidationReview,
+      });
+      return { timetable, review };
+    });
+    await waitFor(() =>
+      expect(result.current.timetable.timetableLoading).toBe(false),
+    );
+    await act(async () => {
+      await result.current.review.recheck();
+    });
+    expect(result.current.review.checkedAt).not.toBeNull();
+    expect(result.current.review.isCurrent).toBe(true);
+    const checkedAt = result.current.review.checkedAt;
+    const checkedSummary = result.current.timetable.validationSummary;
+    const checkedPublication = result.current.timetable.publication;
+    mockedValidate.mockResolvedValue({
+      ...validTimetableResponse,
+      summary: { ...validTimetableResponse.summary, teacherConflicts: 2 },
+    });
+    mockedGetPublication.mockRejectedValueOnce(
+      new Error("Network unavailable"),
+    );
+    await act(async () => {
+      await result.current.review.recheck();
+    });
+    expect(result.current.review.failed).toBe(true);
+    expect(result.current.review.isCurrent).toBe(false);
+    expect(result.current.review.checkedAt).toBe(checkedAt);
+    expect(result.current.timetable.validationSummary).toBe(checkedSummary);
+    expect(result.current.timetable.publication).toBe(checkedPublication);
+  });
+
+  it("marks a successful review stale after a local lesson changes", async () => {
+    mockedValidate.mockResolvedValue(validTimetableResponse);
+    vi.mocked(getConflicts).mockResolvedValue([]);
+    const { result } = renderHook(() => {
+      const timetable = useTimetableData(hookParams);
+      const review = useTimetableValidationReview({
+        contextId: "scope-1",
+        fingerprint: JSON.stringify(timetable.timetableEntries),
+        refresh: timetable.refreshValidationReview,
+      });
+      return { timetable, review };
+    });
+    await waitFor(() =>
+      expect(result.current.timetable.timetableLoading).toBe(false),
+    );
+    await act(async () => {
+      await result.current.review.recheck();
+    });
+    expect(result.current.review.isCurrent).toBe(true);
+    act(() => result.current.timetable.setTimetableEntries([]));
+    expect(result.current.review.isCurrent).toBe(false);
+    await act(async () => {
+      await result.current.review.recheck();
+    });
+    expect(result.current.timetable.timetableEntries).toEqual([]);
+    expect(mockedBulkSaveEntries).not.toHaveBeenCalled();
+  });
+
+  it("discards a review response after switching classrooms", async () => {
+    let finishValidation!: (response: TimetableValidationResponse) => void;
+    mockedValidate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishValidation = resolve;
+        }),
+    );
+    vi.mocked(getConflicts).mockResolvedValue([]);
+    const { result, rerender } = renderHook(
+      ({ classroomId }) =>
+        useTimetableData({ ...hookParams, selectedClassroomId: classroomId }),
+      { initialProps: { classroomId: "classroom-1" } },
+    );
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    let pendingReview!: ReturnType<
+      typeof result.current.refreshValidationReview
+    >;
+    act(() => {
+      pendingReview = result.current.refreshValidationReview();
+    });
+    rerender({ classroomId: "classroom-2" });
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    await act(async () => {
+      finishValidation(validTimetableResponse);
+      expect(await pendingReview).toBeNull();
+    });
+    expect(result.current.validationSummary.backendSummary).toBeNull();
+  });
+
+  it("reports a failed authoritative reload after generation instead of claiming refreshed state", async () => {
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const savedEntries = result.current.timetableEntries;
+    mockedListPeriods.mockRejectedValueOnce(new Error("Network unavailable"));
+
+    await act(async () => {
+      await expect(result.current.reloadGeneratedTimetable()).rejects.toThrow();
+    });
+
+    expect(result.current.apiError).toBeTruthy();
+    expect(result.current.timetableEntries).toEqual(savedEntries);
+  });
+
+  it("does not display a different configuration when a conflict link is stale", async () => {
+    const { result } = renderHook(() =>
+      useTimetableData({
+        ...hookParams,
+        linkedConfigurationId: "deleted-configuration",
+      }),
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.apiError).toBeTruthy();
+    expect(result.current.config).toBeNull();
+    expect(result.current.timetableEntries).toEqual([]);
+    expect(result.current.workspaceState.displayConfigId).toBeNull();
   });
 
   it("loads the exact term config while filtering entries by classroom", async () => {
@@ -758,8 +906,7 @@ describe("useTimetableData", () => {
       expect(mockedUnpublish).not.toHaveBeenCalled();
       expect(unpublishResult!).toEqual({
         ok: false,
-        error:
-          "Unpublish is unavailable for stage and section timetables.",
+        error: "Unpublish is unavailable for stage and section timetables.",
       });
       expect(result.current.apiError).toBe(
         "Unpublish is unavailable for stage and section timetables.",

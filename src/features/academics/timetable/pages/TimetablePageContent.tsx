@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
+import { conflictLinkParams } from "../services/timetableConflictLink";
 import TimetableView from "../components/TimetableView";
 import TimetableSetupGate from "../components/TimetableSetupGate";
 import RoomsView from "../../rooms/components/RoomsView";
@@ -62,6 +63,9 @@ export default function TimetablePageContent() {
       historyMode: "push" | "replace" = "push",
     ) => {
       const params = new URLSearchParams(searchParams.toString());
+      if (historyMode === "push") {
+        conflictLinkParams.forEach((key) => params.delete(key));
+      }
       const mergedState = {
         activeTab: nextState.activeTab ?? queryState.activeTab,
         stageId: nextState.stageId ?? queryState.stageId,

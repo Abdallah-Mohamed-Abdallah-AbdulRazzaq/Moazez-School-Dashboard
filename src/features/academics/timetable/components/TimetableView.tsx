@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
@@ -19,16 +19,27 @@ import {
   GraduationCap,
   Trash2,
   Library,
+  Printer,
+  Download,
 } from "lucide-react";
 import FilterBar from "./FilterBar";
 import TimetableGrid from "./TimetableGrid";
+import TimetableViewNavigation from "./TimetableViewNavigation";
+import { useTimetableFocusMode } from "../hooks/useTimetableFocusMode";
+import { findTimetableLessons } from "../services/timetableLessonSearch";
+import TimetableWorkspaceToolbar, { type TimetableDensity } from "./TimetableWorkspaceToolbar";
 import TimetableResourceLibrary from "./TimetableResourceLibrary";
 import TimetableUndoBanner from "./TimetableUndoBanner";
 import TimetableWorkspacePanelBar from "./TimetableWorkspacePanelBar";
 import TimetableCreationStepper from "./TimetableCreationStepper";
 import TimetableSourceBanner from "./TimetableSourceBanner";
+import {useTimetableValidationReview} from "../hooks/useTimetableValidationReview";
 import ValidationPanel from "./ValidationPanel";
+import TimetableConflictDialog from "./TimetableConflictDialog";
 import EditSlotDialog from "./EditSlotDialog";
+import TimetableLessonTransferDialog from "./TimetableLessonTransferDialog";
+import { previewLessonTransfer, type LessonTransferMode, type LessonTransferInput } from "../services/timetableLessonTransfer";
+import type { TimetableDropTarget } from "../services/timetableDragDrop";
 import GenerateDialog from "./GenerateDialog";
 import TimetableConfigDialog from "./TimetableConfigDialog";
 import {
@@ -37,7 +48,7 @@ import {
   TimetableGridLoadingSkeleton,
 } from "./TimetableLoadingSkeletons";
 import { AccessDenied, Button } from "@/components/ui";
-import { PrintButton, usePrint } from "@/components/print";
+import { usePrint } from "@/components/print";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useBrandingProfile } from "@/features/settings/hooks/useBrandingProfile";
@@ -70,6 +81,7 @@ import {
 } from "@/features/academics/timetable/utils/roomRecommendations";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/use-auth";
+import { useNavigationGuard } from "@/providers/NavigationGuardProvider";
 import { useTimetableData } from "@/features/academics/timetable/hooks/useTimetableData";
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
 import { useTimetableScheduling } from "@/features/academics/timetable/hooks/useTimetableScheduling";
@@ -151,10 +163,12 @@ export default function TimetableView({
   const tEmpty = useTranslations("academics.module_empty_states");
   const tRoot = useTranslations();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const locale = useLocale();
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
   const { user } = useAuth();
+  const { guardedNavigate } = useNavigationGuard();
   const { profile: brandingProfile } = useBrandingProfile();
   const filteredScope = resolveTimetableScopeSelection({
     stageId: selectedStageId,
@@ -196,6 +210,12 @@ export default function TimetableView({
   );
 
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const { focusMode, setFocusMode } = useTimetableFocusMode(workspaceRef);
+  const [searchFocusRequest, setSearchFocusRequest] = useState(0);
+  const [lessonQuery, setLessonQuery] = useState("");
+  const [focusedSearchEntryId, setFocusedSearchEntryId] = useState<string | null>(null);
+  const [gridDensity, setGridDensity] = useState<TimetableDensity>("comfortable");
   const [scopeFiltersExpanded, setScopeFiltersExpanded] = useState(false);
   const [creationProgressExpanded, setCreationProgressExpanded] =
     useState(false);
@@ -203,11 +223,14 @@ export default function TimetableView({
     useState(false);
   const [selectedConflict, setSelectedConflict] =
     useState<TimetableConflictDisplay | null>(null);
+  const [inspectionConflict, setInspectionConflict] =
+    useState<TimetableConflictDisplay | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [periodsDialogOpen, setPeriodsDialogOpen] = useState(false);
   const {
     configurationScope,
+    linkedConfigurationId,
     isTermDefaultConfiguration,
     configurationMode,
     customizeFilteredScope: selectCustomConfigurationScope,
@@ -220,7 +243,6 @@ export default function TimetableView({
   const [selectedSectionTabId, setSelectedSectionTabId] = useState<
     string | null
   >(null);
-  const [isValidating, setIsValidating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
   const [printTimestamp] = useState("");
@@ -234,6 +256,7 @@ export default function TimetableView({
 
   // Edit Dialog State
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [lessonTransfer, setLessonTransfer] = useState<{ mode: LessonTransferMode; sourceId: string } | null>(null);
   const [editingSlot, setEditingSlot] = useState<{
     dayKey: string;
     periodIndex: number;
@@ -347,11 +370,14 @@ export default function TimetableView({
     conflicts: backendConflicts,
     validationSummary,
     reloadConfigs,
+    reloadGeneratedTimetable,
+    refreshValidationReview,
     loadTimetable,
     loadConflicts,
     loadValidation,
     loadPublication,
     saveTimetable,
+    checkDraftConflicts,
     publishCurrentTimetable,
     unpublishCurrentTimetable,
   } = useTimetableData({
@@ -364,12 +390,18 @@ export default function TimetableView({
     selectedSectionId,
     selectedClassroomId,
     configurationScope,
+    linkedConfigurationId,
     isScopeSelectionNormalized,
     showToast,
     translateErrorCode: translateTimetableError,
     translateBackendMessage,
     messages: timetableMessages,
   });
+
+  const validationContextId = JSON.stringify([academicYearId, termId, workspaceState.displayConfigId, selectedGradeId, selectedClassroomId]);
+  const validationFingerprint = JSON.stringify([validationContextId, config, periods, timetableEntries, subjectAllocations, teacherAllocations, rooms, teachers, subjects]);
+  const validationReview = useTimetableValidationReview({contextId: validationContextId, fingerprint: validationFingerprint, refresh: refreshValidationReview});
+  const {recheck: recheckValidation, isChecking: isValidating} = validationReview;
 
   const publicationReasonReferenceNames = useMemo(
     () =>
@@ -415,9 +447,31 @@ export default function TimetableView({
     [config, periods, timetableEntries],
   );
 
+  const linkedEntryId = searchParams.get("entry");
   useEffect(() => {
-    setSelectedConflict(null);
-  }, [backendConflicts]);
+    const entry =
+      linkedConfigurationId === workspaceState.displayConfigId
+        ? timetableEntries.find((candidate) => candidate.id === linkedEntryId)
+        : undefined;
+    setSelectedConflict(
+      entry
+        ? {
+            type: "UNKNOWN",
+            message: "",
+            severity: "blocking",
+            dayOfWeek: null,
+            entryIds: [entry.id],
+            proposedIndexes: [],
+          }
+        : null,
+    );
+  }, [
+    backendConflicts,
+    linkedEntryId,
+    linkedConfigurationId,
+    timetableEntries,
+    workspaceState.displayConfigId,
+  ]);
 
   const configGuardEntries = useMemo(() => {
     const entriesById = new Map(
@@ -457,7 +511,7 @@ export default function TimetableView({
     : canCreateConfig;
 
   const openTimetableSettings = () => {
-    router.push("/academics/timetable/setup");
+    guardedNavigate(() => router.push("/academics/timetable/setup"));
   };
 
   const openConfigurationEditor = () => {
@@ -469,22 +523,28 @@ export default function TimetableView({
   };
 
   const openValidationDestination = (path: string) => {
-    setValidationPanelOpen(false);
-    router.push(path);
+    guardedNavigate(() => {
+      setValidationPanelOpen(false);
+      router.push(path);
+    });
   };
 
   const customizeFilteredScope = () => {
-    if (isTermDefaultConfiguration) {
-      selectCustomConfigurationScope();
-      return;
-    }
-    setConfigDialogOpen(true);
+    guardedNavigate(() => {
+      if (isTermDefaultConfiguration) {
+        selectCustomConfigurationScope();
+        return;
+      }
+      setConfigDialogOpen(true);
+    });
   };
 
   const returnToTermDefault = () => {
-    setConfigDialogOpen(false);
-    setPeriodsDialogOpen(false);
-    selectTermDefaultConfiguration();
+    guardedNavigate(() => {
+      setConfigDialogOpen(false);
+      setPeriodsDialogOpen(false);
+      selectTermDefaultConfiguration();
+    });
   };
   const isUnpublishScopeSupported = Boolean(
     config && isTimetableUnpublishScopeSupported(config.scopeType),
@@ -506,15 +566,21 @@ export default function TimetableView({
     isGenerating,
     result: generationResponse,
     error: generationError,
+    phase: generationPhase,
+    refreshFailed: generationRefreshFailed,
+    retryRefresh: retryGenerationRefresh,
+    resetGeneration,
   } = useTimetableGeneration({
     configId: hasExactConfig ? (config?.id ?? null) : null,
-    enabled: canEditTimetable,
+    enabled: canEditTimetable && !isDirty,
     generate: generateTimetableConfig,
-    reloadAuthoritativeState: async () => {
-      await reloadConfigs();
-      await Promise.all([loadValidation(), loadConflicts()]);
-    },
+    reloadAuthoritativeState: reloadGeneratedTimetable,
   });
+
+  const openGenerationDialog = () => {
+    resetGeneration();
+    setGenerateDialogOpen(true);
+  };
 
   useEffect(() => {
     if (stages.length === 0 && grades.length === 0 && sections.length === 0) {
@@ -943,6 +1009,126 @@ export default function TimetableView({
     grades,
     sections,
   ]);
+  const switchableClassrooms = classroomsForTimetableScope({
+    classrooms,
+    grades,
+    sections,
+    scope: resolveTimetableScopeSelection({
+      stageId: selectedStageId,
+      gradeId: selectedGradeId,
+      sectionId: selectedSectionId,
+      classroomId: "",
+    }),
+  });
+  const lessonMatches = useMemo(() => {
+    const classroomOrder = new Map(
+      displayedClassrooms.map((classroom, index) => [classroom.id, index]),
+    );
+    const dayOrder = new Map(
+      resolvedConfig?.days
+        .filter((day) => day.isActive)
+        .map((day, index) => [day.key, index]),
+    );
+    const periods = new Set(
+      resolvedConfig?.periods
+        .filter((period) => period.isInstructional !== false)
+        .map((period) => period.index),
+    );
+    return findTimetableLessons({
+      query: lessonQuery,
+      subjects,
+      teachers,
+      rooms,
+      entries: timetableEntries.filter(
+        (entry) =>
+          classroomOrder.has(entry.classroomId ?? "") &&
+          dayOrder.has(entry.dayKey) &&
+          !isHolidayDay(entry.dayKey) &&
+          periods.has(entry.periodIndex),
+      ),
+    }).sort(
+      (left, right) =>
+        classroomOrder.get(left.classroomId ?? "")! -
+          classroomOrder.get(right.classroomId ?? "")! ||
+        dayOrder.get(left.dayKey)! - dayOrder.get(right.dayKey)! ||
+        left.periodIndex - right.periodIndex,
+    );
+  }, [
+    displayedClassrooms,
+    isHolidayDay,
+    lessonQuery,
+    resolvedConfig,
+    rooms,
+    subjects,
+    teachers,
+    timetableEntries,
+  ]);
+  const highlightedEntryIds = useMemo(
+    () => new Set(lessonMatches.map((entry) => entry.id)),
+    [lessonMatches],
+  );
+  const focusedSearchIndex = lessonMatches.findIndex(
+    (entry) => entry.id === focusedSearchEntryId,
+  );
+  const stepThroughLessonMatches = (direction: -1 | 1) => {
+    if (!lessonMatches.length) return;
+    const nextIndex =
+      focusedSearchIndex < 0
+        ? direction === 1
+          ? 0
+          : lessonMatches.length - 1
+        : (focusedSearchIndex + direction + lessonMatches.length) %
+          lessonMatches.length;
+    const match = lessonMatches[nextIndex];
+    setSelectedConflict(null);
+    setSelectedSectionTabId(match.sectionId);
+    setFocusedSearchEntryId(match.id);
+    setSearchFocusRequest((request) => request + 1);
+  };
+  const lessonTransferInput: Omit<
+    LessonTransferInput,
+    "target" | "createEntryId"
+  > | null =
+    lessonTransfer && resolvedConfig
+      ? {
+          ...lessonTransfer,
+          entries: timetableEntries,
+          allTermEntries,
+          classrooms: displayedClassrooms,
+          sections,
+          teacherAllocations,
+          subjectAllocations,
+          rooms,
+          config: resolvedConfig,
+          readOnly: !canEditTimetable || isSaving || timetableLoading,
+        }
+      : null;
+  const confirmLessonTransfer = (target: TimetableDropTarget) => {
+    if (!lessonTransferInput) return;
+    const transfer = previewLessonTransfer({
+      ...lessonTransferInput,
+      target,
+      createEntryId: () => `temp-${crypto.randomUUID()}`,
+    });
+    if (transfer.status === "REJECTED") {
+      showToast(t(`transfer.rejections.${transfer.reason}`), "error");
+      return;
+    }
+    resetSchedulingInteraction();
+    setTimetableEntries(transfer.entries);
+    onDirtyChange(true);
+    setSelectedConflict(null);
+    setFocusedSearchEntryId(null);
+    setLessonTransfer(null);
+    showToast(
+      t(
+        lessonTransferInput.mode === "copy"
+          ? "transfer.copySuccess"
+          : "transfer.moveSuccess",
+      ),
+      "success",
+    );
+  };
   const displayedSections = sections.filter((section) =>
     displayedClassrooms.some((classroom) => classroom.sectionId === section.id),
   );
@@ -1000,7 +1186,7 @@ export default function TimetableView({
     window.requestAnimationFrame(() => gridRef.current?.focus());
   }, [handleUndoPlacement]);
 
-  const handleConflictSelect = useCallback(
+  const focusConflictInCurrentTimetable = useCallback(
     (conflict: TimetableConflictDisplay) => {
       const proposedEntries = timetableEntries.filter(
         (entry) => entry.subjectId,
@@ -1034,18 +1220,10 @@ export default function TimetableView({
     [allTermEntries, classrooms, timetableEntries],
   );
 
-  const handleValidationOpen = useCallback(async () => {
-    setIsValidating(true);
-    try {
-      await Promise.all([loadValidation(), loadConflicts()]);
-    } catch (error) {
-      console.error("Failed to load timetable conflicts:", error);
-      showToast(t("validation.loadError"), "error");
-    } finally {
-      setIsValidating(false);
-      setValidationPanelOpen(true);
-    }
-  }, [loadConflicts, loadValidation, showToast, t]);
+  const handleValidationOpen = useCallback(() => {
+    setValidationPanelOpen(true);
+    void recheckValidation();
+  }, [recheckValidation]);
 
   const hasRoomConflictForSlot = useCallback(
     (
@@ -1430,7 +1608,8 @@ export default function TimetableView({
 
   return (
     <div
-      className={`relative flex h-[calc(100dvh-89px)] max-h-[calc(100dvh-89px)] min-h-0 flex-col overflow-hidden print:pe-0 ${
+      ref={workspaceRef}
+      className={`flex min-h-0 flex-col overflow-hidden bg-gray-50 print:static print:h-auto print:max-h-none print:pe-0 ${focusMode ? "fixed inset-0 z-[1000] h-dvh max-h-dvh" : "relative h-[calc(100dvh-89px)] max-h-[calc(100dvh-89px)]"} ${
         canEditTimetable && selectedClassroom && desktopLibraryOpen
           ? "lg:pe-80"
           : ""
@@ -1669,6 +1848,7 @@ export default function TimetableView({
           }
         }
       `}</style>
+      <div className={focusMode ? "hidden" : "contents"}>
       <TimetableWorkspacePanelBar
         label={t("title")}
         panels={[
@@ -1713,11 +1893,13 @@ export default function TimetableView({
             configurationMode={configurationMode}
             onConfigurationModeChange={(mode) => {
               if (mode === configurationMode) return;
-              resetSchedulingInteraction();
-              setConfigDialogOpen(false);
-              setPeriodsDialogOpen(false);
-              if (mode === "term") selectTermDefaultConfiguration();
-              else selectCustomConfigurationScope();
+              guardedNavigate(() => {
+                resetSchedulingInteraction();
+                setConfigDialogOpen(false);
+                setPeriodsDialogOpen(false);
+                if (mode === "term") selectTermDefaultConfiguration();
+                else selectCustomConfigurationScope();
+              });
             }}
             stages={stages}
             grades={grades}
@@ -1823,6 +2005,8 @@ export default function TimetableView({
         </div>
       )}
 
+      </div>
+
       {hasTimetableScope && !timetableLoading && readOnlyBanner && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 lg:px-6">
           <div className="flex items-start gap-2">
@@ -1846,295 +2030,171 @@ export default function TimetableView({
         <TimetableActionBarLoadingSkeleton />
       )}
       {hasTimetableScope && !timetableLoading && (
-        <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 print:hidden">
-          {/* Desktop: Horizontal layout */}
-          <div className="hidden lg:flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-wrap">
-              {canManageTimetable && (
-                <>
-                  <Button
-                    onClick={handleSave}
-                    disabled={
-                      !isDirty ||
-                      isSaving ||
-                      !canEditTimetable ||
-                      !resolvedConfig
-                    }
-                    variant="primary"
-                    loading={isSaving}
-                    leftIcon={<Save className="w-4 h-4" />}
-                  >
-                    {isSaving ? t("actions.saving") : t("actions.save")}
-                  </Button>
-                  <Button
-                    onClick={handleReset}
-                    disabled={!isDirty || !canEditTimetable || !resolvedConfig}
-                    variant="secondary"
-                    leftIcon={<RotateCcw className="w-4 h-4" />}
-                  >
-                    {t("actions.reset")}
-                  </Button>
-                  <Button
-                    onClick={() => setDeleteAllEntriesConfirmOpen(true)}
-                    disabled={
-                      !canEditTimetable ||
-                      filledTimetableEntryCount === 0 ||
-                      isSaving
-                    }
-                    variant="danger"
-                    leftIcon={<Trash2 className="w-4 h-4" />}
-                  >
-                    {t("actions.deleteAllEntries")}
-                  </Button>
-                  {isTermDefaultConfiguration && (
-                    <Button
-                      onClick={openTimetableSettings}
-                      variant="secondary"
-                      leftIcon={<Settings className="w-4 h-4" />}
-                    >
-                      {t("actions.settings")}
-                    </Button>
-                  )}
-                  {!isTermDefaultConfiguration && (
-                    <>
-                      <Button
-                        onClick={openConfigurationEditor}
-                        disabled={!canConfigureTimetable}
-                        variant="secondary"
-                        leftIcon={<Settings className="w-4 h-4" />}
-                      >
-                        {t("config.button")}
-                      </Button>
-                      <Button
-                        onClick={() => setPeriodsDialogOpen(true)}
-                        disabled={!canEditTimetable || !config}
-                        variant="secondary"
-                        leftIcon={<Clock3 className="w-4 h-4" />}
-                      >
-                        {t("config.periodsButton")}
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    onClick={() => setGenerateDialogOpen(true)}
-                    disabled={!canEditTimetable || !resolvedConfig}
-                    variant="secondary"
-                    leftIcon={<Sparkles className="w-4 h-4" />}
-                  >
-                    {t("actions.generate")}
-                  </Button>
-                  {!isPublished ? (
-                    <Button
-                      onClick={handlePublish}
-                      disabled={!canEditTimetable || isDirty || !resolvedConfig}
-                      variant="secondary"
-                      loading={isPublishing}
-                      leftIcon={<Send className="w-4 h-4" />}
-                    >
-                      {t("actions.publish")}
-                    </Button>
+        <TimetableWorkspaceToolbar
+          context={{
+            selection: selectedClassroom
+              ? getDisplayName(selectedClassroom)
+              : (scopeChain.at(-1)?.name ??
+                t("workspace.allClassrooms", { count: displayedClassrooms.length })),
+            academicYear: academicYearName,
+            term: termName,
+            configuration:
+              config?.name ??
+              workspaceState.effectiveConfig?.name ??
+              t("workspace.noConfiguration"),
+            scope: configSourceLabel,
+            status: !workspaceState.displayConfigId
+              ? "unconfigured"
+              : isPublished
+                ? "published"
+                : "draft",
+            inherited: workspaceState.isInherited,
+            readOnly: !canEditTimetable,
+            dirty: isDirty,
+          }}
+          density={gridDensity}
+          onDensityChange={setGridDensity}
+          actions={{
+            save: canManageTimetable
+              ? {
+                  label: isSaving ? t("actions.saving") : t("actions.save"),
+                  onClick: handleSave,
+                  disabled:
+                    !isDirty || isSaving || !canEditTimetable || !resolvedConfig,
+                  loading: isSaving,
+                  icon: <Save className="h-4 w-4" aria-hidden="true" />,
+                }
+              : undefined,
+            validate: {
+              label: t("actions.validate"),
+              onClick: handleValidationOpen,
+              disabled: !resolvedConfig,
+              loading: isValidating,
+              icon: <CheckCircle className="h-4 w-4" aria-hidden="true" />,
+            },
+            generate: canManageTimetable
+              ? {
+                  label: t("actions.generate"),
+                  onClick: openGenerationDialog,
+                  disabled: !canEditTimetable || !resolvedConfig,
+                  icon: <Sparkles className="h-4 w-4" aria-hidden="true" />,
+                }
+              : undefined,
+            publication: canManageTimetable
+              ? {
+                  label: isPublished ? t("actions.unpublish") : t("actions.publish"),
+                  onClick: isPublished ? handleUnpublish : handlePublish,
+                  disabled: isPublished
+                    ? !canUnpublishTimetable
+                    : !canEditTimetable || isDirty || !resolvedConfig,
+                  loading: isPublished ? isUnpublishing : isPublishing,
+                  icon: isPublished ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Button
-                      onClick={handleUnpublish}
-                      disabled={!canUnpublishTimetable}
-                      title={
-                        config && !isUnpublishScopeSupported
-                          ? t("errors.unpublishUnsupportedScope")
-                          : undefined
-                      }
-                      variant="secondary"
-                      loading={isUnpublishing}
-                      leftIcon={<EyeOff className="w-4 h-4" />}
-                    >
-                      {t("actions.unpublish")}
-                    </Button>
-                  )}
-                </>
-              )}
-              <Button
-                onClick={handleValidationOpen}
-                variant="secondary"
-                disabled={!resolvedConfig}
-                loading={isValidating}
-                leftIcon={<CheckCircle className="w-4 h-4" />}
-              >
-                {t("actions.validate")}
-              </Button>
-              <Button
-                onClick={() => setShowExportModal(true)}
-                variant="secondary"
-                disabled={!hasTimetableScope || !resolvedConfig}
-              >
-                {t("actions.export")}
-              </Button>
-              <PrintButton
-                onClick={printTimetable}
-                disabled={!hasTimetableScope || !resolvedConfig}
-                label={t("actions.print")}
-              />
-            </div>
-            {isDirty && (
-              <span className="text-sm text-orange-600">
-                {t("unsavedChanges.label")}
-              </span>
-            )}
-          </div>
+                    <Send className="h-4 w-4" aria-hidden="true" />
+                  ),
+                  hint:
+                    isPublished && config && !isUnpublishScopeSupported
+                      ? t("errors.unpublishUnsupportedScope")
+                      : undefined,
+                }
+              : undefined,
+            settings: !canManageTimetable
+              ? []
+              : isTermDefaultConfiguration
+                ? [
+                    {
+                      value: "settings",
+                      label: t("actions.settings"),
+                      icon: <Settings className="h-4 w-4" aria-hidden="true" />,
+                      onClick: openTimetableSettings,
+                    },
+                  ]
+                : [
+                    {
+                      value: "configuration",
+                      label: t("config.button"),
+                      icon: <Settings className="h-4 w-4" aria-hidden="true" />,
+                      onClick: openConfigurationEditor,
+                      disabled: !canConfigureTimetable,
+                    },
+                    {
+                      value: "periods",
+                      label: t("config.periodsButton"),
+                      icon: <Clock3 className="h-4 w-4" aria-hidden="true" />,
+                      onClick: () => setPeriodsDialogOpen(true),
+                      disabled: !canEditTimetable || !config,
+                    },
+                  ],
+            more: [
+              {
+                value: "export",
+                label: t("actions.export"),
+                icon: <Download className="h-4 w-4" aria-hidden="true" />,
+                onClick: () => setShowExportModal(true),
+                disabled: !resolvedConfig,
+              },
+              {
+                value: "print",
+                label: t("actions.print"),
+                icon: <Printer className="h-4 w-4" aria-hidden="true" />,
+                onClick: printTimetable,
+                disabled: !resolvedConfig,
+              },
+              ...(canManageTimetable
+                ? [
+                    {
+                      value: "reset",
+                      label: t("actions.reset"),
+                      icon: <RotateCcw className="h-4 w-4" aria-hidden="true" />,
+                      onClick: handleReset,
+                      disabled: !isDirty || !canEditTimetable || !resolvedConfig,
+                    },
+                    {
+                      value: "delete",
+                      label: t("actions.deleteAllEntries"),
+                      icon: (
+                        <Trash2 className="h-4 w-4 text-red-700" aria-hidden="true" />
+                      ),
+                      onClick: () => setDeleteAllEntriesConfirmOpen(true),
+                      disabled:
+                        !canEditTimetable ||
+                        filledTimetableEntryCount === 0 ||
+                        isSaving,
+                      tone: "danger" as const,
+                    },
+                  ]
+                : []),
+            ],
+          }}
+        />
+      )}
 
-          {/* Mobile: Compact layout with 2 rows */}
-          <div className="lg:hidden space-y-3">
-            {/* Row 1: Primary actions */}
-            <div className="flex items-center gap-2">
-              {canManageTimetable && (
-                <>
-                  <Button
-                    onClick={handleSave}
-                    disabled={
-                      !isDirty ||
-                      isSaving ||
-                      !canEditTimetable ||
-                      !resolvedConfig
-                    }
-                    variant="primary"
-                    loading={isSaving}
-                    leftIcon={<Save className="w-4 h-4" />}
-                    className="flex-1"
-                  >
-                    {isSaving ? t("actions.saving") : t("actions.save")}
-                  </Button>
-                  <Button
-                    onClick={handleReset}
-                    disabled={!isDirty || !canEditTimetable || !resolvedConfig}
-                    variant="secondary"
-                    leftIcon={<RotateCcw className="w-4 h-4" />}
-                    className="flex-1"
-                  >
-                    {t("actions.reset")}
-                  </Button>
-                </>
-              )}
-            </div>
-
-            {/* Row 2: Secondary actions */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {canManageTimetable && (
-                <>
-                  {isTermDefaultConfiguration && (
-                    <Button
-                      onClick={openTimetableSettings}
-                      variant="secondary"
-                      leftIcon={<Settings className="w-4 h-4" />}
-                      size="sm"
-                    >
-                      {t("actions.settings")}
-                    </Button>
-                  )}
-                  {!isTermDefaultConfiguration && (
-                    <>
-                      <Button
-                        onClick={openConfigurationEditor}
-                        disabled={!canConfigureTimetable}
-                        variant="secondary"
-                        leftIcon={<Settings className="w-4 h-4" />}
-                        size="sm"
-                      >
-                        {t("config.button")}
-                      </Button>
-                      <Button
-                        onClick={() => setPeriodsDialogOpen(true)}
-                        disabled={!canEditTimetable || !config}
-                        variant="secondary"
-                        leftIcon={<Clock3 className="w-4 h-4" />}
-                        size="sm"
-                      >
-                        {t("config.periodsButton")}
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    onClick={() => setDeleteAllEntriesConfirmOpen(true)}
-                    disabled={
-                      !canEditTimetable ||
-                      filledTimetableEntryCount === 0 ||
-                      isSaving
-                    }
-                    variant="danger"
-                    leftIcon={<Trash2 className="w-4 h-4" />}
-                    size="sm"
-                  >
-                    {t("actions.deleteAllEntries")}
-                  </Button>
-                  <Button
-                    onClick={() => setGenerateDialogOpen(true)}
-                    disabled={!canEditTimetable || !resolvedConfig}
-                    variant="secondary"
-                    leftIcon={<Sparkles className="w-4 h-4" />}
-                    size="sm"
-                  >
-                    {t("actions.generate")}
-                  </Button>
-                  {!isPublished ? (
-                    <Button
-                      onClick={handlePublish}
-                      disabled={!canEditTimetable || isDirty || !resolvedConfig}
-                      variant="secondary"
-                      loading={isPublishing}
-                      leftIcon={<Send className="w-4 h-4" />}
-                      size="sm"
-                    >
-                      {t("actions.publish")}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleUnpublish}
-                      disabled={!canUnpublishTimetable}
-                      title={
-                        config && !isUnpublishScopeSupported
-                          ? t("errors.unpublishUnsupportedScope")
-                          : undefined
-                      }
-                      variant="secondary"
-                      loading={isUnpublishing}
-                      leftIcon={<EyeOff className="w-4 h-4" />}
-                      size="sm"
-                    >
-                      {t("actions.unpublish")}
-                    </Button>
-                  )}
-                </>
-              )}
-              <Button
-                onClick={handleValidationOpen}
-                variant="secondary"
-                disabled={!resolvedConfig}
-                loading={isValidating}
-                leftIcon={<CheckCircle className="w-4 h-4" />}
-                size="sm"
-              >
-                {t("actions.validate")}
-              </Button>
-              <Button
-                onClick={() => setShowExportModal(true)}
-                variant="secondary"
-                disabled={!hasTimetableScope || !resolvedConfig}
-                size="sm"
-              >
-                {t("actions.export")}
-              </Button>
-              <PrintButton
-                onClick={printTimetable}
-                disabled={!hasTimetableScope || !resolvedConfig}
-                label={t("actions.print")}
-              />
-            </div>
-
-            {/* Unsaved changes indicator */}
-            {isDirty && (
-              <div className="text-xs text-orange-600 text-center py-1 bg-orange-50 rounded">
-                {t("unsavedChanges.label")}
-              </div>
-            )}
-          </div>
-        </div>
+      {hasTimetableScope && (
+        <TimetableViewNavigation
+          classrooms={switchableClassrooms.map((classroom) => ({
+            value: classroom.id,
+            label: getClassroomScopeChain(classroom),
+            triggerLabel: getDisplayName(classroom),
+          }))}
+          classroomId={selectedClassroomId}
+          onClassroomChange={(classroomId) => {
+            resetSchedulingInteraction();
+            setFocusedSearchEntryId(null);
+            onClassroomChange(classroomId);
+          }}
+          query={lessonQuery}
+          onQueryChange={(query) => {
+            setLessonQuery(query);
+            setFocusedSearchEntryId(null);
+          }}
+          matchCount={lessonMatches.length}
+          matchPosition={focusedSearchIndex + 1}
+          onMatchStep={stepThroughLessonMatches}
+          focusMode={focusMode}
+          onFocusModeChange={setFocusMode}
+          disabled={timetableLoading}
+        />
       )}
 
       {/* Grid */}
@@ -2367,6 +2427,11 @@ export default function TimetableView({
                               </div>
                             )}
                             <TimetableGrid
+                              density={gridDensity}
+                              searchFocusRequest={searchFocusRequest}
+                              highlightedEntryIds={highlightedEntryIds}
+                              focusedSearchEntryId={focusedSearchIndex >= 0 ? focusedSearchEntryId : null}
+                              onSearchFocusDismiss={() => setFocusedSearchEntryId(null)}
                               classroomId={classroom.id}
                               sectionId={classroom.sectionId}
                               entries={classroomEntries}
@@ -2426,7 +2491,9 @@ export default function TimetableView({
             mobile
             disabled={!canEditTimetable}
             onOpenChange={setMobileLibraryOpen}
-            onItemSelect={selectLibraryItem}
+            onItemSelect={(item) => {
+              selectLibraryItem(item);
+            }}
           />
         )}
         <DragOverlay>
@@ -2442,13 +2509,19 @@ export default function TimetableView({
       {hasTimetableScope && resolvedConfig && (
         <ValidationPanel
           open={validationPanelOpen}
+          scopeName={configSourceLabel}
+          review={{...validationReview, hasUnsavedChanges: isDirty}}
+          reviewContext={{academicYearId, termId}}
           validationSummary={validationSummary}
           conflicts={backendConflicts}
           teachers={teachers}
           rooms={rooms}
           classrooms={classrooms}
           selectedConflict={selectedConflict}
-          onConflictSelect={handleConflictSelect}
+          onConflictSelect={(conflict) => {
+            setInspectionConflict(conflict);
+            setValidationPanelOpen(false);
+          }}
           requirementActions={{
             openDestination: openValidationDestination,
             focusSchedule: () => {
@@ -2462,6 +2535,23 @@ export default function TimetableView({
           locale={locale}
           publicationReasons={publication?.blockingReasons}
           publicationReferenceNames={publicationReasonReferenceNames}
+        />
+      )}
+
+      {inspectionConflict && (
+        <TimetableConflictDialog
+          key={JSON.stringify([termId, inspectionConflict])}
+          conflict={inspectionConflict}
+          academicYearId={academicYearId}
+          termId={termId}
+          hasUnsavedLessons={inspectionConflict.proposedIndexes.some(
+            (index) => timetableEntries.filter((entry) => entry.subjectId)[index],
+          )}
+          onFocusCurrent={() => {
+            setInspectionConflict(null);
+            focusConflictInCurrentTimetable(inspectionConflict);
+          }}
+          onClose={() => setInspectionConflict(null)}
         />
       )}
 
@@ -2484,6 +2574,10 @@ export default function TimetableView({
           teacherAllocations={teacherAllocations}
           rooms={rooms}
           onSave={handleSlotSave}
+          onTransfer={editingSlot.entry?.subjectId && canEditTimetable && !isSaving ? (mode) => {
+            setEditDialogOpen(false);
+            setLessonTransfer({ mode, sourceId: editingSlot.entry!.id });
+          } : undefined}
           onClose={() => setEditDialogOpen(false)}
           getDefaultTeacher={getDefaultTeacher}
           getDefaultRoomSuggestion={getDefaultRoomSuggestion}
@@ -2508,6 +2602,22 @@ export default function TimetableView({
         />
       )}
 
+      {lessonTransferInput && (
+        <TimetableLessonTransferDialog
+          key={`${termId}:${workspaceState.displayConfigId}:${lessonTransferInput.sourceId}:${lessonTransferInput.mode}`}
+          input={lessonTransferInput}
+          subjects={subjects}
+          teachers={teachers}
+          locale={locale}
+          classroomName={getClassroomScopeChain}
+          configurationName={config?.name ?? workspaceState.effectiveConfig?.name ?? t("workspace.noConfiguration")}
+          scopeName={configSourceLabel}
+          checkConflicts={checkDraftConflicts}
+          onConfirm={confirmLessonTransfer}
+          onClose={() => setLessonTransfer(null)}
+        />
+      )}
+
       {/* Generate Dialog */}
       {generateDialogOpen && (
         <GenerateDialog
@@ -2517,9 +2627,23 @@ export default function TimetableView({
           configName={config?.name ?? ""}
           scopeName={configSourceLabel}
           classroomCount={generationClassroomCount}
+          activeDayCount={config?.activeDays.length ?? 0}
+          instructionalPeriodCount={periods.filter((period) => period.isInstructional).length}
+          blockingReason={
+            isDirty
+              ? t("generate.unsavedChanges")
+              : !periods.some((period) => period.isInstructional)
+                ? t("generate.noInstructionalPeriods")
+                : !config?.activeDays.length
+                  ? t("generate.noActiveDays")
+                  : null
+          }
           isGenerating={isGenerating}
+          phase={generationPhase}
           result={generationResult}
           error={generationError}
+          refreshFailed={generationRefreshFailed}
+          onRetryRefresh={retryGenerationRefresh}
           onOpenValidation={() => {
             setGenerateDialogOpen(false);
             setValidationPanelOpen(true);

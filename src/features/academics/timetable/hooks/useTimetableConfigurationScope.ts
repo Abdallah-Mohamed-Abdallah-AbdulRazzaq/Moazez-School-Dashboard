@@ -1,4 +1,9 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  conflictLinkScope,
+  conflictLinkParams,
+} from "../services/timetableConflictLink";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import type { TimetableScopeSelection } from "@/features/academics/timetable/services/timetableScope";
 
 const termScope: TimetableScopeSelection = { scopeType: "TERM" };
@@ -43,16 +48,46 @@ function saveConfigurationPreference(
   } catch (error) {
     if (!(error instanceof DOMException)) throw error;
     sessionPreferences.set(storageKey, mode === "term");
-    console.warn("Timetable configuration preference could not be saved:", error);
+    console.warn(
+      "Timetable configuration preference could not be saved:",
+      error,
+    );
   }
   window.dispatchEvent(new Event(preferenceChanged));
 }
 
 export function useTimetableConfigurationScope(
   filteredScope: TimetableScopeSelection,
-  preferenceContext: { userId: string | null; schoolId: string; termId: string },
+  preferenceContext: {
+    userId: string | null;
+    schoolId: string;
+    termId: string;
+  },
 ) {
   const { userId, schoolId, termId } = preferenceContext;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const linkKey = JSON.stringify(
+    conflictLinkParams.map((key) => searchParams.get(key)),
+  );
+  const [linkSelection, setLinkSelection] = useState({
+    key: linkKey,
+    dismissed: false,
+  });
+  if (linkSelection.key !== linkKey) {
+    setLinkSelection({ key: linkKey, dismissed: false });
+  }
+  const linkedScope =
+    linkSelection.key === linkKey && linkSelection.dismissed
+      ? null
+      : conflictLinkScope(searchParams);
+  const clearConflictLink = useCallback(() => {
+    setLinkSelection({ key: linkKey, dismissed: true });
+    if (!conflictLinkParams.some(key => searchParams.get(key))) return;
+    const params = new URLSearchParams(searchParams.toString());
+    conflictLinkParams.forEach((key) => params.delete(key));
+    router.replace(`?${params}`, { scroll: false });
+  }, [router, searchParams, linkKey]);
   const storageKey =
     userId && schoolId && termId
       ? `timetable-configuration:${JSON.stringify([userId, schoolId, termId])}`
@@ -62,21 +97,32 @@ export function useTimetableConfigurationScope(
     () => readTermPreference(storageKey),
     () => false,
   );
-  const isTermDefaultConfiguration =
-    useTermDefault || filteredScope.scopeType === "TERM";
+  const isTermDefaultConfiguration = linkedScope
+    ? linkedScope.scopeType === "TERM"
+    : useTermDefault || filteredScope.scopeType === "TERM";
 
   const customizeFilteredScope = useCallback(() => {
+    clearConflictLink();
     saveConfigurationPreference(storageKey, "scope");
-  }, [storageKey]);
+  }, [storageKey, clearConflictLink]);
 
   const returnToTermDefault = useCallback(() => {
+    clearConflictLink();
     saveConfigurationPreference(storageKey, "term");
-  }, [storageKey]);
+  }, [storageKey, clearConflictLink]);
 
   return {
-    configurationScope: isTermDefaultConfiguration ? termScope : filteredScope,
+    configurationScope:
+      linkedScope ?? (isTermDefaultConfiguration ? termScope : filteredScope),
+    linkedConfigurationId: linkedScope
+      ? searchParams.get("configuration")
+      : null,
     isTermDefaultConfiguration,
-    configurationMode: useTermDefault ? ("term" as const) : ("scope" as const),
+    configurationMode: (
+      linkedScope ? linkedScope.scopeType === "TERM" : useTermDefault
+    )
+      ? ("term" as const)
+      : ("scope" as const),
     customizeFilteredScope,
     returnToTermDefault,
   };

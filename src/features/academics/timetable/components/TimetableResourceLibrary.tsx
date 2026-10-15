@@ -117,7 +117,7 @@ export default function TimetableResourceLibrary(
         role="dialog"
         aria-modal="true"
         aria-label={t("title")}
-        className="absolute inset-x-0 bottom-0 h-[min(72vh,36rem)] overflow-hidden rounded-t-2xl border border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl"
+        className="absolute inset-x-0 bottom-0 flex h-[min(72vh,36rem)] flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl"
       >
         {panel}
       </div>

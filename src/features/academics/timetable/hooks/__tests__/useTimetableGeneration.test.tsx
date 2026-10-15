@@ -141,6 +141,59 @@ describe("useTimetableGeneration", () => {
     expect(result.current.result).toBeNull();
     expect(reloadAuthoritativeState).not.toHaveBeenCalled();
   });
+
+  it("preserves persisted generation when refresh fails and retries only the reads", async () => {
+    const generate = vi.fn().mockResolvedValue(generationResponse);
+    const reloadAuthoritativeState = vi.fn()
+      .mockRejectedValueOnce(new Error("Network unavailable"))
+      .mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useTimetableGeneration({
+      configId: "config-1", enabled: true, generate, reloadAuthoritativeState,
+    }));
+
+    await act(async () => { await result.current.generateCurrentConfig(); });
+    expect(result.current.result).toEqual(generationResponse);
+    expect(result.current.refreshFailed).toBe(true);
+    expect(result.current.error).toBeNull();
+
+    await act(async () => { await result.current.retryRefresh(); });
+    expect(result.current.refreshFailed).toBe(false);
+    expect(result.current.isGenerating).toBe(false);
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the refresh phase until authoritative reads finish", async () => {
+    const pendingRefresh = deferred<void>();
+    const { result } = renderHook(() => useTimetableGeneration({
+      configId: "config-1", enabled: true,
+      generate: async () => generationResponse,
+      reloadAuthoritativeState: () => pendingRefresh.promise,
+    }));
+
+    let generation: Promise<TimetableGenerationResponse | null>;
+    await act(async () => { generation = result.current.generateCurrentConfig(); });
+    expect(result.current.phase).toBe("refreshing");
+    expect(result.current.isGenerating).toBe(true);
+
+    await act(async () => { pendingRefresh.resolve(); await generation; });
+    expect(result.current.phase).toBeNull();
+    expect(result.current.result).toEqual(generationResponse);
+  });
+
+  it("starts a new confirmation without the previous generation result", async () => {
+    const { result } = renderHook(() => useTimetableGeneration({
+      configId: "config-1", enabled: true,
+      generate: async () => generationResponse,
+      reloadAuthoritativeState: async () => undefined,
+    }));
+    await act(async () => { await result.current.generateCurrentConfig(); });
+    expect(result.current.result).toEqual(generationResponse);
+
+    act(() => { result.current.resetGeneration(); });
+    expect(result.current.result).toBeNull();
+    expect(result.current.error).toBeNull();
+    expect(result.current.phase).toBeNull();
+  });
 });
 
 function deferred<T>() {

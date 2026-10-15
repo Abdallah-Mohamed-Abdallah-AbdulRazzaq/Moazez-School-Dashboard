@@ -28,6 +28,24 @@ const teachers: Teacher[] = [
 ];
 
 describe("EditSlotDialog", () => {
+  it("offers lesson actions but requires form edits to be saved before transferring", async () => {
+    const user = userEvent.setup();
+    const onTransfer = vi.fn();
+    render(<EditSlotDialog open dayKey="mon" periodIndex={1} dayName="Monday"
+      entry={{ id: "entry-1", termId: "term-1", sectionId: "section-1", classroomId: "classroom-1", dayKey: "mon", periodIndex: 1, subjectId: "subject-1", teacherId: null, roomId: null }}
+      subjects={subjects} teachers={teachers} teacherAllocations={[]} rooms={[]}
+      onSave={vi.fn()} onClose={vi.fn()} onTransfer={onTransfer}
+      getDefaultTeacher={() => null} getDefaultRoomSuggestion={() => ({ roomId: null, source: null })} getRoomSource={() => null}
+      selectedSectionId="section-1" selectedClassroomId="classroom-1" hasRoomConflict={() => false} locale="en" />);
+    await user.click(screen.getByRole("button", { name: "copy" }));
+    expect(onTransfer).toHaveBeenCalledWith("copy");
+    await user.click(screen.getByRole("button", { name: "subject" }));
+    await user.click(screen.getByRole("button", { name: "noSubject" }));
+    expect(screen.getByRole("button", { name: "copy" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "move" })).toBeDisabled();
+    expect(screen.getByText("saveEditsFirst")).toBeInTheDocument();
+  });
+
   it("includes localized room eligibility messages after the missing Arabic message incident", () => {
     const englishEditSlot = englishMessages.academics.timetable.editSlot;
     const arabicEditSlot = arabicMessages.academics.timetable.editSlot;

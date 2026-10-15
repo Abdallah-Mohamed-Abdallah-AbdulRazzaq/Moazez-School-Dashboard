@@ -6,13 +6,17 @@ import {
   useState,
   useRef,
   useEffect,
+  useLayoutEffect,
+  useId,
   useCallback,
+  type KeyboardEvent,
   ReactElement,
   ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { useLocale } from "next-intl";
+import { getFocusableElements } from "@/lib/accessibility/focusTrap";
 
 export interface DropdownItem {
   label: string;
@@ -20,6 +24,7 @@ export interface DropdownItem {
   icon?: ReactNode;
   disabled?: boolean;
   onClick?: () => void;
+  tone?: "default" | "danger";
 }
 
 export interface DropdownMenuProps {
@@ -55,41 +60,125 @@ export default function DropdownMenu({
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerId = useId();
+  const menuId = useId();
+  const [openingEdge, setOpeningEdge] = useState<"first" | "last">("first");
   const locale = useLocale();
   const isRTL = locale === "ar";
   const canUseDOM = typeof document !== "undefined";
 
-  const setMenuPositionFromTrigger = useCallback((trigger: HTMLElement) => {
-    const rect = trigger.getBoundingClientRect();
-    const fallbackWidth = rect.width || 192;
-    const viewportHeight =
-      window.innerHeight || document.documentElement.clientHeight;
-    const spaceBelow = viewportHeight - rect.bottom - MENU_GAP;
-    const spaceAbove = rect.top - MENU_GAP;
-    const shouldOpenAbove =
-      spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow;
-    const availableHeight = Math.max(
-      80,
-      shouldOpenAbove ? spaceAbove : spaceBelow,
-    );
-    setMenuPosition({
-      top: shouldOpenAbove
-        ? Math.max(
-            MENU_GAP,
-            rect.top - Math.min(MENU_MAX_HEIGHT, availableHeight) - MENU_GAP,
-          )
-        : rect.bottom + MENU_GAP,
-      left: isRTL ? rect.left : rect.right - fallbackWidth,
-      width: fallbackWidth,
-    });
-  }, [isRTL]);
+  const setMenuPositionFromTrigger = useCallback(
+    (trigger: HTMLElement, measuredMenuWidth?: number) => {
+      const rect = trigger.getBoundingClientRect();
+      const fallbackWidth = measuredMenuWidth || rect.width || 192;
+      const viewportWidth =
+        window.innerWidth || document.documentElement.clientWidth;
+      const viewportHeight =
+        window.innerHeight || document.documentElement.clientHeight;
+      const spaceBelow = viewportHeight - rect.bottom - MENU_GAP;
+      const spaceAbove = rect.top - MENU_GAP;
+      const shouldOpenAbove =
+        spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow;
+      const availableHeight = Math.max(
+        80,
+        shouldOpenAbove ? spaceAbove : spaceBelow,
+      );
+      setMenuPosition({
+        top: shouldOpenAbove
+          ? Math.max(
+              MENU_GAP,
+              rect.top - Math.min(MENU_MAX_HEIGHT, availableHeight) - MENU_GAP,
+            )
+          : rect.bottom + MENU_GAP,
+        left: Math.max(
+          MENU_GAP,
+          Math.min(
+            isRTL ? rect.left : rect.right - fallbackWidth,
+            viewportWidth - fallbackWidth - MENU_GAP,
+          ),
+        ),
+        width: rect.width || 192,
+      });
+    },
+    [isRTL],
+  );
 
   const updateMenuPosition = useCallback(() => {
     const trigger = dropdownRef.current;
     if (!trigger) return;
 
-    setMenuPositionFromTrigger(trigger);
+    setMenuPositionFromTrigger(trigger, menuRef.current?.offsetWidth);
   }, [setMenuPositionFromTrigger]);
+
+  const focusTrigger = () =>
+    dropdownRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+  const enabledMenuItems = () =>
+    Array.from(
+      menuRef.current?.querySelectorAll<HTMLButtonElement>(
+        '[role="menuitem"]:not(:disabled)',
+      ) ?? [],
+    );
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    updateMenuPosition();
+    const options = enabledMenuItems();
+    (openingEdge === "last" ? options.at(-1) : options[0])?.focus();
+  }, [isOpen, openingEdge, updateMenuPosition]);
+
+  const onMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape" || event.key === "Tab") {
+      event.preventDefault();
+      if (event.key === "Escape") event.stopPropagation();
+      setIsOpen(false);
+      if (event.key === "Tab") focusAdjacentControl(event.shiftKey ? -1 : 1);
+      else focusTrigger();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const options = enabledMenuItems();
+    if (options.length === 0) return;
+    const current = options.indexOf(
+      document.activeElement as HTMLButtonElement,
+    );
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? options.length - 1
+          : (current + (event.key === "ArrowUp" ? -1 : 1) + options.length) %
+            options.length;
+    options[next]?.focus();
+  };
+
+  const focusAdjacentControl = (direction: -1 | 1) => {
+    const trigger =
+      dropdownRef.current?.querySelector<HTMLButtonElement>("button");
+    if (!trigger) return;
+    const scope =
+      trigger.closest<HTMLElement>('[role="dialog"]') ?? document.body;
+    const controls = getFocusableElements(scope).filter(
+      (control) =>
+        control.tabIndex >= 0 &&
+        !menuRef.current?.contains(control) &&
+        !control.closest('[inert], [aria-hidden="true"]'),
+    );
+    const index = controls.indexOf(trigger);
+    (index >= 0 ? (controls[index + direction] ?? trigger) : trigger).focus();
+  };
+
+  const onTriggerKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape" && isOpen) {
+      event.preventDefault();
+      setIsOpen(false);
+      return;
+    }
+    if (disabled || !["ArrowDown", "ArrowUp"].includes(event.key)) return;
+    event.preventDefault();
+    setOpeningEdge(event.key === "ArrowUp" ? "last" : "first");
+    setIsOpen(true);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -129,6 +218,7 @@ export default function DropdownMenu({
 
     setSelectedValue(item.value);
     setIsOpen(false);
+    focusTrigger();
 
     if (item.onClick) {
       item.onClick();
@@ -144,35 +234,50 @@ export default function DropdownMenu({
 
   const toggleOpen = (trigger: HTMLElement) => {
     if (disabled) return;
-    if (!isOpen) setMenuPositionFromTrigger(trigger);
+    if (!isOpen) {
+      setOpeningEdge("first");
+      setMenuPositionFromTrigger(trigger);
+    }
     setIsOpen((value) => !value);
   };
 
+  const resolvedTriggerId = isValidElement(trigger)
+    ? ((trigger.props as React.HTMLAttributes<HTMLElement>).id ?? triggerId)
+    : triggerId;
+
   const triggerElement = (() => {
     if (!trigger || !isValidElement(trigger)) return trigger;
-    const element = trigger as ReactElement<
-      React.HTMLAttributes<HTMLElement>
-    >;
+    const element = trigger as ReactElement<React.HTMLAttributes<HTMLElement>>;
     return cloneElement(element, {
+      id: resolvedTriggerId,
       onClick: (event) => {
         element.props.onClick?.(event);
         toggleOpen(event.currentTarget);
       },
       "aria-haspopup": "menu",
       "aria-expanded": isOpen,
+      "aria-controls": isOpen ? menuId : undefined,
+      onKeyDown: (event) => {
+        element.props.onKeyDown?.(event);
+        if (!event.defaultPrevented) onTriggerKeyDown(event);
+      },
     });
   })();
 
   const menu = isOpen ? (
     <div
       ref={menuRef}
+      id={menuId}
       role="menu"
-      className={`${width} fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
+      aria-labelledby={resolvedTriggerId}
+      onKeyDown={onMenuKeyDown}
+      className={`${width} fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200 motion-reduce:animate-none motion-reduce:transition-none`}
       dir={isRTL ? "rtl" : "ltr"}
       style={{
         top: menuPosition.top,
         left: menuPosition.left,
         minWidth: menuPosition.width,
+        maxWidth: "calc(100vw - 16px)",
       }}
     >
       <ul
@@ -182,13 +287,15 @@ export default function DropdownMenu({
         {items.map((item, index) => (
           <li
             key={item.value}
-            className="animate-slideIn"
+            className="animate-slideIn motion-reduce:animate-none"
             style={{
               animationDelay: `${index * 0.03}s`,
             }}
           >
             <button
               role="menuitem"
+              type="button"
+              tabIndex={-1}
               onClick={() => handleSelect(item)}
               disabled={item.disabled}
               className={`group w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-200 ${
@@ -204,7 +311,15 @@ export default function DropdownMenu({
                   {item.icon}
                 </span>
               )}
-              <span>{item.label}</span>
+              <span
+                className={
+                  item.tone === "danger" && !item.disabled
+                    ? "text-red-700"
+                    : undefined
+                }
+              >
+                {item.label}
+              </span>
             </button>
           </li>
         ))}
@@ -219,10 +334,14 @@ export default function DropdownMenu({
         triggerElement
       ) : (
         <button
+          id={triggerId}
+          type="button"
           onClick={(event) => toggleOpen(event.currentTarget)}
           disabled={disabled}
           aria-haspopup="menu"
           aria-expanded={isOpen}
+          aria-controls={isOpen ? menuId : undefined}
+          onKeyDown={onTriggerKeyDown}
           className={`${width} flex items-center justify-between px-4 py-2.5 bg-white border border-border rounded-lg hover:border-hover hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <span className="flex items-center gap-2 text-sm text-black">

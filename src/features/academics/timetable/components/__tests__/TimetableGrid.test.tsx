@@ -1,6 +1,7 @@
 import { DndContext } from "@dnd-kit/core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 import TimetableGrid from "@/features/academics/timetable/components/TimetableGrid";
 import type { TimetableConflictDisplay } from "@/features/academics/timetable/services/timetableConflictNormalization";
 import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
@@ -66,15 +67,61 @@ describe("TimetableGrid conflict highlighting", () => {
     const conflict = { ...baseConflict, entryIds: ["entry-1"] };
     renderGrid(conflict, onFocusedConflictDismiss);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /^Tuesday 0\/1$/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /^Tuesday 0\/1$/ }));
 
     expect(onFocusedConflictDismiss).toHaveBeenCalledOnce();
   });
 });
 
 describe("TimetableGrid direct placement", () => {
+  it("highlights matching lessons on desktop and mobile and reveals the searched day", () => {
+    renderGrid(null, undefined, {
+      entries: [{ ...entry, dayKey: "tue" }],
+      highlightedEntryIds: new Set([entry.id]),
+      focusedSearchEntryId: entry.id,
+    });
+    expect(screen.getByRole("cell", { name: /Math/ })).toHaveAttribute(
+      "data-search-match",
+      "true",
+    );
+    expect(screen.getAllByText("Math")).toHaveLength(2);
+    expect(
+      screen.getByRole("button", { name: /^Tuesday 1\/1$/ }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("moves between mobile days and releases search focus for manual navigation", async () => {
+    const user = userEvent.setup();
+    const onSearchFocusDismiss = vi.fn();
+    renderGrid(null, undefined, { onSearchFocusDismiss });
+    await user.click(screen.getByRole("button", { name: "nextDay" }));
+    expect(
+      screen.getByRole("button", { name: /^Tuesday 0\/1$/ }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(onSearchFocusDismiss).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "nextDay" })).toBeDisabled();
+  });
+
+  it("reveals full lesson details on keyboard focus in compact read-only view", async () => {
+    const layout = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue(new DOMRect(0, 0, 200, 100));
+    const user = userEvent.setup();
+    const onSlotClick = vi.fn();
+    renderGrid(null, undefined, {
+      isReadOnly: true,
+      density: "compact",
+      onSlotClick,
+    });
+    await user.tab();
+    const details = await screen.findByRole("tooltip");
+    expect(details).toHaveTextContent("Teacher 1");
+    expect(details).toHaveTextContent("Room 1");
+    await user.keyboard("{Enter}");
+    expect(onSlotClick).not.toHaveBeenCalled();
+    layout.mockRestore();
+  });
+
   it("opens the existing editor when no library item is selected", () => {
     const onSlotClick = vi.fn();
     renderGrid(null, undefined, { onSlotClick });

@@ -103,6 +103,7 @@ interface UseTimetableDataParams {
   selectedSectionId: string;
   selectedClassroomId: string;
   configurationScope?: TimetableScopeSelection;
+  linkedConfigurationId?: string | null;
   isScopeSelectionNormalized: boolean;
   showToast: (
     message: string,
@@ -316,6 +317,7 @@ export function useTimetableData({
   selectedSectionId,
   selectedClassroomId,
   configurationScope,
+  linkedConfigurationId,
   isScopeSelectionNormalized,
   showToast,
   translateErrorCode,
@@ -364,6 +366,7 @@ export function useTimetableData({
 
   const dependenciesRequestIdRef = useRef(0);
   const timetableRequestIdRef = useRef(0);
+  const validationRequestIdRef = useRef(0);
   const dependenciesLoadedKeyRef = useRef<string | null>(null);
   const dependenciesInFlightKeyRef = useRef<string | null>(null);
 
@@ -554,6 +557,13 @@ export function useTimetableData({
 
       if (requestId !== timetableRequestIdRef.current) return false;
 
+      if (linkedConfigurationId && nextConfig?.id !== linkedConfigurationId) {
+        clearTimetableState();
+        throw new Error(
+          "The linked timetable configuration is no longer available.",
+        );
+      }
+
       const dashboardItem = dashboardResponse
         ? selectedDashboardItem(dashboardResponse.items, selectedClassroomId)
         : null;
@@ -659,6 +669,7 @@ export function useTimetableData({
     termId,
     academicYearId,
     isScopeSelectionNormalized,
+    linkedConfigurationId,
     configurationClassroomId,
     configurationGradeId,
     configurationScopeType,
@@ -695,6 +706,44 @@ export function useTimetableData({
     return nextConflicts;
   }, [allTermEntries, config, periods, translateBackendMessage]);
 
+  const checkDraftConflicts = useCallback(
+    async (entries: TimetableEntry[]) => {
+      if (!config || timetableLoading)
+        throw new Error("No editable timetable configuration selected.");
+      const request = buildBulkSaveTimetableRequest({
+        termId,
+        entries,
+        periods,
+        teacherAllocations,
+        selectedSectionId,
+        selectedClassroomId: selectedClassroomId || undefined,
+      });
+      if (request.skippedSlots.length)
+        throw new Error(
+          messages?.missingTeacherAllocation ??
+            TEACHER_ALLOCATION_MISSING_MESSAGE,
+        );
+      assertBulkPayloadSize(request.payload.items, "conflict-check");
+      const response = await checkConflicts(request.payload);
+      return normalizeConflictCheckResponse(response, periods, {
+        entries: allTermEntries,
+        proposedEntries: entries.filter((entry) => entry.subjectId),
+        translateMessage: translateBackendMessage,
+      }).conflicts;
+    },
+    [
+      config,
+      timetableLoading,
+      termId,
+      periods,
+      teacherAllocations,
+      selectedSectionId,
+      selectedClassroomId,
+      messages?.missingTeacherAllocation,
+      allTermEntries,
+      translateBackendMessage,
+    ],
+  );
   const loadValidation =
     useCallback(async (): Promise<TimetableValidationSummary> => {
       const response = await validate({
@@ -714,6 +763,32 @@ export function useTimetableData({
       termId,
       translateBackendMessage,
     ]);
+
+  const refreshValidationReview = useCallback(async () => {
+    const configId = workspaceState.displayConfigId;
+    if (!configId || timetableLoading || !isScopeSelectionNormalized) throw new Error("No timetable configuration selected.");
+    const scopeRequest = timetableRequestIdRef.current;
+    const validationRequest = ++validationRequestIdRef.current;
+    const [validationResponse, conflictResponse, nextPublication] = await Promise.all([
+      validate({termId, gradeId: selectedGradeId || undefined, classroomId: selectedClassroomId || undefined}),
+      getConflicts(configId),
+      getPublication(configId),
+    ]);
+    if (scopeRequest !== timetableRequestIdRef.current || validationRequest !== validationRequestIdRef.current) return null;
+    const summary = validationSummaryFromResponse(validationResponse, translateBackendMessage);
+    const nextConflicts = normalizePersistedConflicts(conflictResponse, periods, {entries: allTermEntries, translateMessage: translateBackendMessage}).conflicts;
+    setValidationSummary(summary);
+    setConflicts(nextConflicts);
+    setPublication(nextPublication);
+    return {summary, conflicts: nextConflicts, publication: nextPublication};
+  }, [workspaceState.displayConfigId, timetableLoading, isScopeSelectionNormalized, termId, selectedGradeId, selectedClassroomId, periods, allTermEntries, translateBackendMessage]);
+
+  const reloadGeneratedTimetable = useCallback(async () => {
+    if (!(await loadTimetableForScope())) {
+      throw new Error(messages?.loadFailed ?? "Failed to refresh timetable.");
+    }
+    await Promise.all([loadValidation(), loadConflicts()]);
+  }, [loadTimetableForScope, loadValidation, loadConflicts, messages?.loadFailed]);
 
   const loadPublication =
     useCallback(async (): Promise<PublicationResponse | null> => {
@@ -1099,11 +1174,14 @@ export function useTimetableData({
     isSaving,
     isPublished: isPublicationActive(publication),
     reloadConfigs,
+    reloadGeneratedTimetable,
+    refreshValidationReview,
     loadTimetable,
     loadConflicts,
     loadValidation,
     loadPublication,
     saveTimetable,
+    checkDraftConflicts,
     publishCurrentTimetable,
     unpublishCurrentTimetable,
   };
