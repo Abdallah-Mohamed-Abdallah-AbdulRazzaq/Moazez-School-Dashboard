@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import ValidationPanel from "@/features/academics/timetable/components/ValidationPanel";
@@ -31,6 +31,42 @@ const knownPeriodConflict: TimetableConflictDisplay = {
 };
 
 describe("ValidationPanel conflict display", () => {
+  it.each([
+    {
+      conflicts: [],
+      message: "This timetable is already published. Review the current checks below.",
+      conflictMessage: "No conflicts in the current checks.",
+    },
+    {
+      conflicts: [knownPeriodConflict],
+      message: "This timetable is published and has validation findings to review.",
+      conflictMessage: "Teacher intervals overlap.",
+    },
+  ])("excludes published status from issues while preserving $conflicts.length conflicts", async ({ conflicts, message, conflictMessage }) => {
+    const user = userEvent.setup();
+    renderPanel({
+      conflicts,
+      isPublished: true,
+      publicationReasons: [{
+        code: "not_draft",
+        message: "Only draft timetable configurations can be published.",
+      }],
+      validationSummary: { ...emptyValidationSummary(), canPublish: true },
+    });
+
+    expect(screen.getByRole("tab", {
+      name: "Publishing requirements (0)",
+    })).toBeInTheDocument();
+    expect(screen.queryByText(
+      "Resolve validation issues before publishing.",
+    )).not.toBeInTheDocument();
+    expect(screen.getByText(message)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", {
+      name: `Conflicts (${conflicts.length})`,
+    }));
+    expect(screen.getByText(conflictMessage)).toBeInTheDocument();
+  });
+
   it.each([
     {
       locale: "en",
@@ -69,7 +105,9 @@ describe("ValidationPanel conflict display", () => {
       selectedConflict: knownPeriodConflict,
       onConflictSelect,
     });
-    await user.click(screen.getByRole("button", { name: /review next issue/i }));
+    await user.click(
+      screen.getByRole("button", { name: /review next issue/i }),
+    );
 
     expect(screen.getByText("Period 2")).toBeInTheDocument();
     expect(screen.getByText("9:00 AM - 9:45 AM")).toBeInTheDocument();
@@ -302,9 +340,7 @@ describe("ValidationPanel conflict display", () => {
     expect(
       screen.getByText(/adjust scheduled periods to match/i),
     ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: /open subjects/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /open subjects/i }));
     expect(onOpenDestination).toHaveBeenCalledWith(
       "/academics/subjects?tab=matrix&gradeId=grade-1&subjectId=mathematics",
     );
@@ -429,7 +465,9 @@ describe("ValidationPanel conflict display", () => {
     await user.click(
       screen.getByRole("tab", { name: /subject scheduling issues/i }),
     );
-    await user.click(screen.getByRole("button", { name: /^Missing teacher$/i }));
+    await user.click(
+      screen.getByRole("button", { name: /^Missing teacher$/i }),
+    );
 
     expect(screen.getByText("Biology")).toBeInTheDocument();
     expect(screen.queryByText("Mathematics")).not.toBeInTheDocument();
@@ -454,10 +492,136 @@ describe("ValidationPanel conflict display", () => {
     await user.click(screen.getByRole("button", { name: /show more \(1\)/i }));
     expect(screen.getByText("Subject 21")).toBeInTheDocument();
   });
+
+  it("clears both search and status when filters hide the subject issues", async () => {
+    const user = userEvent.setup();
+    renderPanel({
+      conflicts: [],
+      validationSummary: validationSummaryWithItems([
+        validationItem("math", "Mathematics"),
+        validationItem("biology", "Biology", "missing_teacher_allocation"),
+      ]),
+    });
+    await user.click(
+      screen.getByRole("tab", { name: /subject scheduling issues/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /^missing teacher$/i }),
+    );
+    const search = screen.getByRole("searchbox");
+    await user.type(search, "No matching subject");
+    expect(screen.getByText(/no issues match/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /clear filters/i }));
+
+    expect(search).toHaveValue("");
+    expect(search).toHaveFocus();
+    expect(screen.getByRole("button", { name: /^all$/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Results: 2");
+    expect(screen.getByText("Mathematics")).toBeInTheDocument();
+    expect(screen.getByText("Biology")).toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      tab: /subject scheduling issues/i,
+      message: /no subject or classroom issues/i,
+    },
+    { tab: /conflicts/i, message: /no conflicts in the current checks/i },
+    {
+      tab: /publishing requirements/i,
+      message: /no additional publishing requirements/i,
+    },
+  ])(
+    "explains an empty category when selecting $tab",
+    async ({ tab, message }) => {
+      const user = userEvent.setup();
+      renderPanel({ conflicts: [] });
+      await user.click(screen.getByRole("tab", { name: tab }));
+
+      const panel = screen.getByRole("tabpanel", { name: tab });
+      expect(within(panel).getByText(message)).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /back to timetable/i }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it("keeps an unknown weekly requirement distinct from zero and does not calculate a false surplus", async () => {
+    const user = userEvent.setup();
+    renderPanel({
+      conflicts: [],
+      validationSummary: validationSummaryWithItems([
+        {
+          ...validationItem("science", "Science", "missing_subject_allocation"),
+          expectedWeeklyHours: null,
+        },
+      ]),
+    });
+    await user.click(
+      screen.getByRole("tab", { name: /subject scheduling issues/i }),
+    );
+
+    const subject = within(screen.getByRole("article"));
+    expect(subject.getAllByText("Not set")).toHaveLength(2);
+    expect(subject.queryByText("+3")).not.toBeInTheDocument();
+    expect(subject.getByText("3")).toBeInTheDocument();
+  });
+
+  it("does not claim all checks passed before validation has loaded", () => {
+    renderPanel({ conflicts: [] });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /readiness is not confirmed/i,
+    );
+    expect(
+      screen.queryByText(/no blocking issues in the current checks/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows outstanding publishing requirements even when lesson validation is clear", () => {
+    renderPanel({
+      conflicts: [],
+      validationSummary: { ...emptyValidationSummary(), canPublish: true },
+      publicationReasons: [
+        {
+          code: "no_instructional_periods",
+          message: "Add instructional periods.",
+        },
+      ],
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /resolve validation issues/i,
+    );
+    expect(
+      screen.queryByText(/no blocking issues in the current checks/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /review next issue/i }),
+    ).toBeEnabled();
+  });
+
+  it("moves focus to the selected review tab when overview actions change the content", async () => {
+    const user = userEvent.setup();
+    renderPanel({ conflicts: [knownPeriodConflict] });
+    await user.click(
+      screen.getByRole("button", { name: /review next issue/i }),
+    );
+    expect(screen.getByRole("tab", { name: /conflicts/i })).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: /^overview$/i }));
+    expect(screen.getByRole("tab", { name: /^overview$/i })).toHaveFocus();
+    expect(
+      screen.getByRole("tabpanel", { name: /^overview$/i }),
+    ).toBeInTheDocument();
+  });
 });
 
 function renderPanel({
   conflicts,
+  isPublished = false,
   classrooms = [],
   publicationReasons = [],
   publicationReferenceNames = {},
@@ -469,6 +633,7 @@ function renderPanel({
   locale = "en",
 }: {
   conflicts: TimetableConflictDisplay[];
+  isPublished?: boolean;
   classrooms?: Array<{ id: string; nameAr: string; nameEn: string }>;
   publicationReasons?: TimetablePublishReason[];
   publicationReferenceNames?: PublicationReasonReferenceNames;
@@ -494,6 +659,7 @@ function renderPanel({
       rooms={[]}
       classrooms={classrooms}
       publicationReasons={publicationReasons}
+      isPublished={isPublished}
       publicationReferenceNames={publicationReferenceNames}
       selectedConflict={selectedConflict}
       onConflictSelect={onConflictSelect}

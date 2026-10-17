@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Drawer, useMediaQuery } from "@mui/material";
 import { useTranslations } from "next-intl";
 import { ChevronDown, Search, X } from "lucide-react";
 import { Button, Input } from "@/components/ui";
@@ -36,6 +37,7 @@ export default function TimetableResourceLibrary(
   props: TimetableResourceLibraryProps,
 ) {
   const t = useTranslations("academics.timetable.schedulingLibrary");
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [activeTab, setActiveTab] = useState<TimetableLibraryTab>("LESSONS");
   const [searchQuery, setSearchQuery] = useState("");
   const [unscheduledOnly, setUnscheduledOnly] = useState(false);
@@ -106,22 +108,26 @@ export default function TimetableResourceLibrary(
   }
 
   return (
-    <div className="fixed inset-0 z-40 lg:hidden print:hidden">
-      <button
-        type="button"
-        aria-label={t("close")}
-        className="absolute inset-0 cursor-default bg-black/30"
-        onClick={() => props.onOpenChange(false)}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("title")}
-        className="absolute inset-x-0 bottom-0 h-[min(72vh,36rem)] overflow-hidden rounded-t-2xl border border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl"
-      >
-        {panel}
-      </div>
-    </div>
+    <Drawer
+      anchor="bottom"
+      open={props.isOpen}
+      onClose={() => props.onOpenChange(false)}
+      transitionDuration={reducedMotion ? 0 : undefined}
+      className="lg:hidden print:hidden"
+      PaperProps={{
+        role: "dialog",
+        "aria-modal": true,
+        "aria-label": t("title"),
+        className:
+          "rounded-t-2xl border border-gray-200 pb-[env(safe-area-inset-bottom)]",
+        sx: {
+          height: "min(72vh,36rem)",
+          fontFamily: "var(--font-somar), sans-serif",
+        },
+      }}
+    >
+      {panel}
+    </Drawer>
   );
 }
 

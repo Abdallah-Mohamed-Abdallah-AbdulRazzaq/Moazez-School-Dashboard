@@ -5,9 +5,7 @@ interface LoadingSkeletonProps {
   label: string;
 }
 
-export function TimetablePageLoadingSkeleton({
-  label,
-}: LoadingSkeletonProps) {
+export function TimetablePageLoadingSkeleton({ label }: LoadingSkeletonProps) {
   return (
     <LoadingRegion label={label} className="flex h-full flex-col bg-gray-50">
       <div className="flex h-12 items-end gap-8 border-b border-gray-200 bg-white px-6">
@@ -30,16 +28,28 @@ export function TimetableContentLoadingSkeleton({
 }
 
 export function TimetableActionBarLoadingSkeleton() {
-  const buttonWidths = ["w-24", "w-20", "w-28", "w-24", "w-28", "w-20"];
+  const buttonWidths = ["w-24", "w-24", "w-28", "w-24"];
 
   return (
     <div
       aria-hidden="true"
-      className="flex min-h-16 flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 lg:px-6"
+      className="shrink-0 space-y-3 border-b border-gray-200 bg-white px-4 py-3 lg:px-6"
     >
-      {buttonWidths.map((width, index) => (
-        <Skeleton key={`${width}-${index}`} className={`h-10 ${width}`} />
-      ))}
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+        <Skeleton className="h-6 w-20 rounded-full" />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {buttonWidths.map((width, index) => (
+            <Skeleton key={`${width}-${index}`} className={`h-11 ${width}`} />
+          ))}
+        </div>
+        <Skeleton className="h-11 w-44" />
+      </div>
     </div>
   );
 }

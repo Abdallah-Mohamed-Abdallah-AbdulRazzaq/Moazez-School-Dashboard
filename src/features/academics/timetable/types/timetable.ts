@@ -5,6 +5,9 @@ export interface TimetableEntry {
   classroomId?: string;
   dayKey: string; // e.g., "sun", "mon", "tue" - config-safe identifier
   periodIndex: number; // 1-based period number
+  timetableConfigId?: string;
+  startTime?: string;
+  endTime?: string;
   slotType?: "CLASS" | "BREAK"; // Type of slot (default: CLASS)
   subjectId: string | null;
   teacherId: string | null;

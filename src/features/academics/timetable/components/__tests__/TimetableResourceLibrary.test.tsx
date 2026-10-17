@@ -1,5 +1,6 @@
 import { DndContext } from "@dnd-kit/core";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import TimetableResourceLibrary from "@/features/academics/timetable/components/TimetableResourceLibrary";
@@ -91,6 +92,45 @@ const rooms = [
 ];
 
 describe("TimetableResourceLibrary", () => {
+  it("contains mobile keyboard focus and returns to its trigger after Escape", async () => {
+    function MobileLibrary() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open library</button>
+          {library({ mobile: true, isOpen: open, onOpenChange: setOpen })}
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<MobileLibrary />);
+    const trigger = screen.getByRole("button", { name: "Open library" });
+    await user.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: "title" });
+    await user.click(within(dialog).getByRole("button", { name: "close" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(trigger).toHaveFocus();
+    await user.click(trigger);
+    const reopenedDialog = screen.getByRole("dialog", { name: "title" });
+    await user.tab();
+    expect(reopenedDialog).toContainElement(document.activeElement as HTMLElement);
+    await user.tab({ shift: true });
+    expect(
+      within(reopenedDialog).getByRole("button", { name: /Science/ }),
+    ).toHaveFocus();
+    await user.tab();
+    expect(
+      within(reopenedDialog).getByRole("button", { name: "close" }),
+    ).toHaveFocus();
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(trigger).toHaveFocus();
+  });
+
   it("shows localized lesson bundles with their remaining requirement", () => {
     renderLibrary();
 

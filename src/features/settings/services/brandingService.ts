@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import type { MeResponse } from "@/types/user";
 import type {
   BrandingApiDto,
   SchoolProfileSettings,
@@ -22,8 +23,49 @@ const EMPTY_BRANDING_PROFILE: SchoolProfileSettings = {
   mapPlaceLabel: "",
 };
 
-let brandingCache: SchoolProfileSettings | null = null;
-let pendingBrandingRequest: Promise<SchoolProfileSettings> | null = null;
+interface BrandingSession {
+  scopeKey: string | null;
+  profile: SchoolProfileSettings | null;
+  pending: Promise<SchoolProfileSettings> | null;
+}
+
+let brandingSession: BrandingSession = {
+  scopeKey: null,
+  profile: null,
+  pending: null,
+};
+let brandingSessionVersion = 0;
+
+export function getBrandingSessionVersion(): number {
+  return brandingSessionVersion;
+}
+
+export function brandingScopeKey(user: MeResponse | null): string | null {
+  const membership = user?.activeMembership;
+  return user && membership?.schoolId
+    ? JSON.stringify([user.id, membership.organizationId, membership.schoolId])
+    : null;
+}
+
+export function setBrandingScope(user: MeResponse | null): void {
+  const scopeKey = brandingScopeKey(user);
+  if (scopeKey === brandingSession.scopeKey) return;
+  brandingSessionVersion += 1;
+  brandingSession = { scopeKey, profile: null, pending: null };
+}
+
+function activeBrandingSession(): BrandingSession {
+  if (!brandingSession.scopeKey) {
+    throw new Error("School branding requires an active school session.");
+  }
+  return brandingSession;
+}
+
+function assertCurrentSession(session: BrandingSession): void {
+  if (session !== brandingSession) {
+    throw new Error("School branding request belongs to a previous school session.");
+  }
+}
 
 function normalizeNullableText(value: string | null | undefined): string {
   return value ?? "";
@@ -75,8 +117,9 @@ function cloneProfile(profile: SchoolProfileSettings): SchoolProfileSettings {
   return JSON.parse(JSON.stringify(profile)) as SchoolProfileSettings;
 }
 
-function cacheAndReturn(profile: SchoolProfileSettings) {
-  brandingCache = cloneProfile(profile);
+function cacheAndReturn(profile: SchoolProfileSettings, session: BrandingSession) {
+  assertCurrentSession(session);
+  session.profile = cloneProfile(profile);
   return cloneProfile(profile);
 }
 
@@ -92,8 +135,10 @@ function emitBrandingUpdated(profile: SchoolProfileSettings) {
   );
 }
 
-export function getCachedBrandingProfile() {
-  return brandingCache ? cloneProfile(brandingCache) : null;
+export function getCachedBrandingProfile(scopeKey = brandingSession.scopeKey) {
+  return scopeKey === brandingSession.scopeKey && brandingSession.profile
+    ? cloneProfile(brandingSession.profile)
+    : null;
 }
 
 export function getEmptyBrandingProfile() {
@@ -103,24 +148,25 @@ export function getEmptyBrandingProfile() {
 export async function fetchBrandingProfile(
   options?: { force?: boolean },
 ): Promise<SchoolProfileSettings> {
-  if (!options?.force && brandingCache) {
-    return cloneProfile(brandingCache);
+  const session = activeBrandingSession();
+  if (!options?.force && session.profile) {
+    return cloneProfile(session.profile);
   }
 
-  if (pendingBrandingRequest) return pendingBrandingRequest;
+  if (session.pending) return session.pending;
 
   const request = apiGet<BrandingApiDto>("/settings/branding")
-    .then((response) => cacheAndReturn(brandingApiToForm(response)))
+    .then((response) => cacheAndReturn(brandingApiToForm(response), session))
     .finally(() => {
-      pendingBrandingRequest = null;
+      if (session.pending === request) session.pending = null;
     });
 
-  pendingBrandingRequest = request;
+  session.pending = request;
   return request;
 }
 
-function cacheAndEmit(profile: SchoolProfileSettings) {
-  const cached = cacheAndReturn(profile);
+function cacheAndEmit(profile: SchoolProfileSettings, session: BrandingSession) {
+  const cached = cacheAndReturn(profile, session);
   emitBrandingUpdated(cached);
   return cached;
 }
@@ -128,31 +174,35 @@ function cacheAndEmit(profile: SchoolProfileSettings) {
 export async function updateBrandingProfile(
   payload: SchoolProfileSettings,
 ): Promise<SchoolProfileSettings> {
+  const session = activeBrandingSession();
   const response = await apiPatch<BrandingApiDto>(
     "/settings/branding",
     brandingFormToApi(payload),
   );
   const normalized = brandingApiToForm(response);
-  return cacheAndEmit(normalized);
+  return cacheAndEmit(normalized, session);
 }
 
 export async function uploadBrandingLogo(
   file: File,
 ): Promise<SchoolProfileSettings> {
+  const session = activeBrandingSession();
   const body = new FormData();
   body.append("file", file);
 
   const response = await apiPost<BrandingApiDto>("/settings/branding/logo", body, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  return cacheAndEmit(brandingApiToForm(response));
+  return cacheAndEmit(brandingApiToForm(response), session);
 }
 
 export async function deleteBrandingLogo(): Promise<void> {
+  const session = activeBrandingSession();
   await apiDelete<void>("/settings/branding/logo");
-  if (!brandingCache) return;
+  assertCurrentSession(session);
+  if (!session.profile) return;
 
-  cacheAndEmit({ ...brandingCache, logoUrl: "" });
+  cacheAndEmit({ ...session.profile, logoUrl: "" }, session);
 }
 
 export function calculateBrandingProfileCompleteness(

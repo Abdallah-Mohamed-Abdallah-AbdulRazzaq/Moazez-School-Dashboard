@@ -12,6 +12,7 @@ import {
   applyTimetableDrop,
   buildTimetableLibraryItems,
   mergeTimetableEntriesForValidation,
+  hasTimetableRoomConflict,
   type ApplyTimetableDropInput,
   type TimetableLibraryItem,
 } from "@/features/academics/timetable/services/timetableDragDrop";
@@ -128,8 +129,7 @@ describe("buildTimetableLibraryItems", () => {
     expect(
       libraryItems.some(
         (libraryItem) =>
-          libraryItem.kind === "LESSON" &&
-          libraryItem.subjectId === "science",
+          libraryItem.kind === "LESSON" && libraryItem.subjectId === "science",
       ),
     ).toBe(false);
   });
@@ -231,96 +231,148 @@ describe("applyTimetableDrop", () => {
     );
   });
 
-  it("swaps an existing lesson with the occupied target", () => {
-    const source = timetableEntry({
-      id: "source",
-      dayKey: "sun",
-      periodIndex: 1,
-    });
-    const occupiedTarget = timetableEntry({
-      id: "target",
-      subjectId: "science",
-      teacherId: null,
-      roomId: null,
-    });
-    const placement = applyTimetableDrop(
-      dropInput({
-        item: { kind: "ENTRY", id: "entry:source", entryId: "source" },
-        editableEntries: [source, occupiedTarget],
-        allEntries: [source, occupiedTarget],
-      }),
-    );
-
-    expect(placement).toEqual(
-      expect.objectContaining({
-        status: "APPLIED",
-        effect: "SWAP",
-        undoEntries: [source, occupiedTarget],
-        entries: [
-          expect.objectContaining({
-            id: "source",
+  it.each(["classroom-1", "classroom-2"])(
+    "swaps an existing lesson with an occupied target in %s",
+    (targetClassroomId) => {
+      const source = timetableEntry({
+        id: "source",
+        dayKey: "sun",
+        periodIndex: 1,
+      });
+      const occupiedTarget = timetableEntry({
+        id: "target",
+        classroomId: targetClassroomId,
+        subjectId: "science",
+        teacherId: null,
+        roomId: null,
+      });
+      const placement = applyTimetableDrop(
+        dropInput({
+          item: { kind: "ENTRY", id: "entry:source", entryId: "source" },
+          target: {
             dayKey: "tue",
             periodIndex: 2,
-            subjectId: "math",
-          }),
-          expect.objectContaining({
-            id: "target",
-            dayKey: "sun",
-            periodIndex: 1,
-            subjectId: "science",
-          }),
-        ],
-      }),
-    );
-  });
+            sectionId: "section-1",
+            classroomId: targetClassroomId,
+          },
+          classrooms: [classroom, { ...classroom, id: "classroom-2" }],
+          editableEntries: [source, occupiedTarget],
+          allEntries: [source, occupiedTarget],
+        }),
+      );
 
-  it("moves an existing lesson into an empty target", () => {
-    const source = timetableEntry({
-      id: "source",
-      dayKey: "sun",
-      periodIndex: 1,
-    });
-    const placement = applyTimetableDrop(
-      dropInput({
-        item: { kind: "ENTRY", id: "entry:source", entryId: "source" },
-        editableEntries: [source],
-        allEntries: [source],
-      }),
-    );
+      expect(placement).toEqual(
+        expect.objectContaining({
+          status: "APPLIED",
+          effect: "SWAP",
+          undoEntries: [source, occupiedTarget],
+          entries: [
+            expect.objectContaining({
+              id: "source",
+              classroomId: targetClassroomId,
+              dayKey: "tue",
+              periodIndex: 2,
+              subjectId: "math",
+            }),
+            expect.objectContaining({
+              id: "target",
+              classroomId: source.classroomId,
+              dayKey: "sun",
+              periodIndex: 1,
+              subjectId: "science",
+            }),
+          ],
+        }),
+      );
+    },
+  );
 
-    expect(placement).toEqual(
-      expect.objectContaining({
-        status: "APPLIED",
-        effect: "MOVE",
-        undoEntries: [source],
-        entries: [
-          expect.objectContaining({
-            id: "source",
+  it.each([
+    [false, "classroom-1"],
+    [true, "classroom-1"],
+    [false, "classroom-2"],
+    [true, "classroom-2"],
+  ] as const)(
+    "moves a saved lesson (cleared slot: %s, destination: %s) and retains its source deletion",
+    (hasClearedTarget, targetClassroomId) => {
+      const source = timetableEntry({
+        id: "source",
+        dayKey: "sun",
+        periodIndex: 1,
+      });
+      const placement = applyTimetableDrop(
+        dropInput({
+          item: { kind: "ENTRY", id: "entry:source", entryId: "source" },
+          target: {
             dayKey: "tue",
             periodIndex: 2,
-          }),
-        ],
-      }),
-    );
-  });
+            sectionId: "section-1",
+            classroomId: targetClassroomId,
+          },
+          classrooms: [classroom, { ...classroom, id: "classroom-2" }],
+          editableEntries: hasClearedTarget
+            ? [
+                source,
+                timetableEntry({
+                  id: "cleared-target",
+                  classroomId: targetClassroomId,
+                  subjectId: null,
+                  teacherId: null,
+                  roomId: null,
+                }),
+              ]
+            : [source],
+          allEntries: [source],
+        }),
+      );
+
+      expect(placement).toEqual(
+        expect.objectContaining({
+          status: "APPLIED",
+          effect: "MOVE",
+          undoEntries: expect.arrayContaining([source]),
+          entries: [
+            expect.objectContaining({
+              id: "generated-entry",
+              classroomId: targetClassroomId,
+              dayKey: "tue",
+              periodIndex: 2,
+            }),
+            expect.objectContaining({
+              id: "source",
+              classroomId: source.classroomId,
+              dayKey: "sun",
+              periodIndex: 1,
+              subjectId: null,
+              teacherId: null,
+              roomId: null,
+            }),
+          ],
+        }),
+      );
+    },
+  );
 
   it.each([
     ["READ_ONLY", { readOnly: true }],
     ["HOLIDAY", { holiday: true }],
     ["NON_INSTRUCTIONAL", { instructional: false }],
-  ] as const)("rejects %s destinations without mutation", (reason, overrides) => {
-    const existingEntry = timetableEntry();
-    const placement = applyTimetableDrop(
-      dropInput({
-        ...overrides,
-        item: lessonItem(),
-        editableEntries: [existingEntry],
-        allEntries: [existingEntry],
-      }),
-    );
+  ] as const)(
+    "rejects %s destinations without mutation",
+    (reason, overrides) => {
+      const existingEntry = timetableEntry();
+      const placement = applyTimetableDrop(
+        dropInput({
+          ...overrides,
+          item: lessonItem(),
+          editableEntries: [existingEntry],
+          allEntries: [existingEntry],
+        }),
+      );
 
-    expect(placement).toEqual({ status: "REJECTED", reason });
-  });
+      expect(placement).toEqual({ status: "REJECTED", reason });
+    },
+  );
 
   it("requires a subject before applying a room", () => {
     const placement = applyTimetableDrop(
@@ -407,13 +459,98 @@ describe("applyTimetableDrop", () => {
 });
 
 describe("mergeTimetableEntriesForValidation", () => {
+  it.each([false, true])(
+    "replaces the original lesson when a manual edit lost configuration metadata (cleared: %s)",
+    (cleared) => {
+      const original = timetableEntry({ timetableConfigId: "config-1" });
+      const edited = {
+        ...original,
+        timetableConfigId: undefined,
+        teacherId: cleared ? null : "replacement",
+        roomId: null,
+        subjectId: cleared ? null : "math",
+      };
+      expect(mergeTimetableEntriesForValidation([original], [edited])).toEqual([
+        edited,
+      ]);
+    },
+  );
+  it("retains the same numbered slot from another configuration when applying local edits", () => {
+    const current = timetableEntry({
+      id: "current",
+      timetableConfigId: "config-1",
+    });
+    const other = timetableEntry({
+      id: "other",
+      timetableConfigId: "config-2",
+      startTime: "12:00",
+      endTime: "13:00",
+    });
+    const edited = { ...current, teacherId: "replacement" };
+    expect(
+      mergeTimetableEntriesForValidation([current, other], [edited]),
+    ).toEqual([edited, other]);
+  });
   it("replaces an authoritative slot with its local edit", () => {
     const authoritativeEntry = timetableEntry({ id: "saved", teacherId: null });
-    const editedEntry = timetableEntry({ id: "draft", teacherId: "replacement" });
+    const editedEntry = timetableEntry({
+      id: "draft",
+      teacherId: "replacement",
+    });
 
     expect(
       mergeTimetableEntriesForValidation([authoritativeEntry], [editedEntry]),
     ).toEqual([editedEntry]);
+  });
+});
+
+describe("room conflict warnings", () => {
+  it.each([
+    ["hidden overlapping classroom", "08:30", "09:15", true],
+    ["hidden classroom at another time", "10:00", "11:00", false],
+    ["back-to-back booking", "09:00", "10:00", false],
+  ] as const)(
+    "checks %s against actual time ranges",
+    (_scenario, startTime, endTime, expected) => {
+      const hidden = timetableEntry({
+        id: "hidden",
+        classroomId: "classroom-2",
+        timetableConfigId: "other",
+        periodIndex: 7,
+        startTime,
+        endTime,
+      });
+      expect(
+        hasTimetableRoomConflict({
+          allEntries: [hidden],
+          editableEntries: [],
+          roomId: "room-101",
+          target: { dayKey: "tue", periodIndex: 1 },
+          periods: [{ index: 1, startTime: "08:00", endTime: "09:00" }],
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it("honors local room changes and excludes the lesson being edited", () => {
+    const original = timetableEntry({ timetableConfigId: "config-1" });
+    const input = {
+      allEntries: [original],
+      editableEntries: [original],
+      roomId: "room-101",
+      target: { dayKey: "tue", periodIndex: 2 },
+    };
+    expect(
+      hasTimetableRoomConflict({ ...input, excludeEntryId: original.id }),
+    ).toBe(false);
+    expect(
+      hasTimetableRoomConflict({
+        ...input,
+        editableEntries: [
+          { ...original, timetableConfigId: undefined, roomId: null },
+        ],
+      }),
+    ).toBe(false);
   });
 });
 

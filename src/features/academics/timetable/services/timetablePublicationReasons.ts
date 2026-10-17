@@ -1,4 +1,28 @@
-import type { TimetablePublishReason } from "./timetableApiTypes";
+import type {
+  PublicationResponse,
+  TimetablePublishReason,
+} from "./timetableApiTypes";
+
+export function isPublicationActive(
+  publication: PublicationResponse | null,
+): boolean {
+  return (
+    publication?.isPublished === true ||
+    ["published", "active"].includes(publication?.status.toLowerCase() ?? "")
+  );
+}
+
+export function validationPublicationReasons({
+  reasons,
+  isPublished,
+}: {
+  reasons: TimetablePublishReason[];
+  isPublished: boolean;
+}): TimetablePublishReason[] {
+  return isPublished
+    ? reasons.filter((reason) => reason.code !== "not_draft")
+    : reasons;
+}
 
 export type PublicationReasonCategory =
   | "configuration"

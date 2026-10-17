@@ -1,3 +1,4 @@
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type InterceptorFulfilled = (value: Record<string, unknown>) => unknown;
@@ -261,5 +262,70 @@ describe("api refresh queue", () => {
     await expect(import("../api")).rejects.toThrow(
       "Missing NEXT_PUBLIC_API_URL. Set it in your environment.",
     );
+  });
+  it("does not restore credentials from a refresh completed after logout", async () => {
+    localStorage.setItem("moazez_refresh_token", "old-refresh-token");
+    let finishRefresh!: (response: unknown) => void;
+    axiosMocks.refreshPost.mockReturnValueOnce(new Promise(resolve => { finishRefresh = resolve; }));
+    const { apiGet } = await import("../api");
+    const { tokenStorage } = await import("@/lib/token-storage");
+    const pending = apiGet("/private-resource").catch(error => error);
+    await waitFor(() => expect(axiosMocks.refreshPost).toHaveBeenCalledTimes(1));
+    tokenStorage.clearTokens();
+    finishRefresh({ data: { accessToken: "late-access", refreshToken: "late-refresh" } });
+    await pending;
+    expect(tokenStorage.getAccessToken()).toBeNull();
+    expect(tokenStorage.getRefreshToken()).toBeNull();
+  });
+
+  it("does not erase a newer login when an earlier refresh fails", async () => {
+    localStorage.setItem("moazez_refresh_token", "old-refresh-token");
+    let failRefresh!: (error: unknown) => void;
+    axiosMocks.refreshPost.mockReturnValueOnce(new Promise((_resolve, reject) => { failRefresh = reject; }));
+    const { apiGet } = await import("../api");
+    const { tokenStorage } = await import("@/lib/token-storage");
+    const pending = apiGet("/old-private-resource").catch(error => error);
+    await waitFor(() => expect(axiosMocks.refreshPost).toHaveBeenCalledTimes(1));
+    tokenStorage.clearTokens();
+    tokenStorage.setAccessToken("new-school-access");
+    tokenStorage.setRefreshToken("new-school-refresh");
+    failRefresh({ isAxiosError: true, message: "Old refresh rejected", response: { status: 401 } });
+    await pending;
+    expect(tokenStorage.getAccessToken()).toBe("new-school-access");
+    expect(tokenStorage.getRefreshToken()).toBe("new-school-refresh");
+  });
+
+  it("does not refresh an explicitly excluded logout request", async () => {
+    localStorage.setItem("moazez_refresh_token", "active-refresh");
+    const { apiClient } = await import("../api");
+    const logoutRequest = { url: "/auth/logout", method: "post", skipAuthRefresh: true };
+    await expect(apiClient(logoutRequest)).rejects.toThrow();
+    expect(axiosMocks.refreshPost).not.toHaveBeenCalled();
+    expect(localStorage.getItem("moazez_refresh_token")).toBe("active-refresh");
+  });
+
+  it("does not refresh a late 401 from the previous login", async () => {
+    await import("../api");
+    const { getAuthSessionVersion, tokenStorage } = await import("../token-storage");
+    const oldVersion = getAuthSessionVersion();
+    tokenStorage.clearTokens();
+    tokenStorage.setAccessToken("current-access");
+    tokenStorage.setRefreshToken("current-refresh");
+    await expect(axiosMocks.state.responseRejected?.({
+      config: { headers: {}, url: "/old-request", _authSessionVersion: oldVersion },
+      isAxiosError: true, message: "Unauthorized", response: { status: 401, data: {} },
+    })).rejects.toThrow();
+    expect(axiosMocks.refreshPost).not.toHaveBeenCalled();
+    expect(tokenStorage.getAccessToken()).toBe("current-access");
+  });
+
+  it("does not deliver a successful old-session response after logout", async () => {
+    await import("../api");
+    const { getAuthSessionVersion, tokenStorage } = await import("../token-storage");
+    const oldVersion = getAuthSessionVersion();
+    tokenStorage.clearTokens();
+    expect(() => axiosMocks.state.responseFulfilled?.({
+      config: { _authSessionVersion: oldVersion }, data: { privateSchool: "previous-school" },
+    })).toThrow("The authentication session has changed.");
   });
 });

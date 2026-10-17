@@ -2,8 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import Select from "@/components/ui/input/Select";
-import { Button } from "@/components/ui";
-import { Classroom, Stage, Grade, Section } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  Classroom,
+  Stage,
+  Grade,
+  Section,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface FilterBarProps {
   stages: Stage[];
@@ -19,8 +23,6 @@ interface FilterBarProps {
   onSectionChange: (sectionId: string) => void;
   onClassroomChange: (classroomId: string) => void;
   locale: string;
-  configurationMode: "term" | "scope";
-  onConfigurationModeChange: (mode: "term" | "scope") => void;
 }
 
 export default function FilterBar({
@@ -37,14 +39,13 @@ export default function FilterBar({
   onSectionChange,
   onClassroomChange,
   locale,
-  configurationMode,
-  onConfigurationModeChange,
 }: FilterBarProps) {
   const t = useTranslations("academics.timetable.filters");
 
   const stageOptions = stages.map((stage) => ({
     value: stage.id,
-    label: locale === "ar" ? stage.nameAr || stage.name : stage.nameEn || stage.name,
+    label:
+      locale === "ar" ? stage.nameAr || stage.name : stage.nameEn || stage.name,
   }));
 
   const filteredGrades = selectedStageId
@@ -53,7 +54,8 @@ export default function FilterBar({
 
   const gradeOptions = filteredGrades.map((grade) => ({
     value: grade.id,
-    label: locale === "ar" ? grade.nameAr || grade.name : grade.nameEn || grade.name,
+    label:
+      locale === "ar" ? grade.nameAr || grade.name : grade.nameEn || grade.name,
   }));
 
   const filteredSections = selectedGradeId
@@ -62,16 +64,24 @@ export default function FilterBar({
 
   const sectionOptions = filteredSections.map((section) => ({
     value: section.id,
-    label: locale === "ar" ? section.nameAr || section.name : section.nameEn || section.name,
+    label:
+      locale === "ar"
+        ? section.nameAr || section.name
+        : section.nameEn || section.name,
   }));
 
   const filteredClassrooms = selectedSectionId
-    ? classrooms.filter((classroom) => classroom.sectionId === selectedSectionId)
+    ? classrooms.filter(
+        (classroom) => classroom.sectionId === selectedSectionId,
+      )
     : [];
 
   const classroomOptions = filteredClassrooms.map((classroom) => ({
     value: classroom.id,
-    label: locale === "ar" ? classroom.nameAr || classroom.name : classroom.nameEn || classroom.name,
+    label:
+      locale === "ar"
+        ? classroom.nameAr || classroom.name
+        : classroom.nameEn || classroom.name,
   }));
 
   const handleStageChange = (value: string) => {
@@ -88,33 +98,7 @@ export default function FilterBar({
 
   return (
     <div className="bg-white px-4 py-4 lg:px-6">
-      <div
-        className="mb-4 flex flex-wrap items-center gap-2"
-        role="group"
-        aria-label={t("configuration")}
-      >
-        <span className="text-sm font-medium text-gray-700">
-          {t("configuration")}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant={configurationMode === "term" ? "primary" : "secondary"}
-          aria-pressed={configurationMode === "term"}
-          onClick={() => onConfigurationModeChange("term")}
-        >
-          {t("termConfiguration")}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={configurationMode === "scope" ? "primary" : "secondary"}
-          aria-pressed={configurationMode === "scope"}
-          onClick={() => onConfigurationModeChange("scope")}
-        >
-          {t("scopeConfiguration")}
-        </Button>
-      </div>
+      <p className="mb-4 text-sm text-gray-600">{t("viewOnly")}</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4">
         <div className="w-full">
           <Select

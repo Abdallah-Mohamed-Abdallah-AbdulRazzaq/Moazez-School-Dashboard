@@ -5,7 +5,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
-import { tokenStorage } from "./token-storage";
+import { getAuthSessionVersion, tokenStorage } from "./token-storage";
 import { ApiError, isAxiosError } from "./api-error";
 import {
   SCOPE_PERMISSION_DENIED_EVENT,
@@ -14,7 +14,13 @@ import {
 
 export { SCOPE_PERMISSION_DENIED_EVENT } from "./access-denied-event";
 
-export type ApiRequestConfig = AxiosRequestConfig;
+export type ApiRequestConfig = AxiosRequestConfig & { skipAuthRefresh?: boolean };
+
+type SessionRequestConfig = InternalAxiosRequestConfig & {
+  skipAuthRefresh?: boolean;
+  _authSessionVersion?: number;
+  _retry?: boolean;
+};
 
 function isScopePermissionDenied(error: AxiosError): boolean {
   const response = error.response;
@@ -65,7 +71,7 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-let refreshPromise: Promise<string> | null = null;
+let pendingRefresh: { sessionVersion: number; promise: Promise<string> } | null = null;
 
 export const SESSION_EXPIRED_EVENT = "moazez:session-expired";
 
@@ -99,9 +105,7 @@ function getTokenExpiry(token: string): number | null {
   }
 }
 
-async function doRefresh(): Promise<string> {
-  const refreshToken = tokenStorage.getRefreshToken();
-
+async function doRefresh(refreshToken: string | null, sessionVersion: number): Promise<string> {
   if (!refreshToken) {
     throw ApiError.unauthorized("Your session has expired. Please sign in again.");
   }
@@ -116,6 +120,10 @@ async function doRefresh(): Promise<string> {
 
   const { accessToken, refreshToken: newRefreshToken } = response.data;
 
+  if (sessionVersion !== getAuthSessionVersion() || refreshToken !== tokenStorage.getRefreshToken()) {
+    throw ApiError.unauthorized("The authentication session has changed.");
+  }
+
   if (!accessToken) {
     throw new Error("Refresh response did not include an access token");
   }
@@ -129,25 +137,32 @@ async function doRefresh(): Promise<string> {
 }
 
 async function refreshAccessToken(): Promise<string> {
-  if (refreshPromise) {
-    return refreshPromise;
+  const sessionVersion = getAuthSessionVersion();
+  if (pendingRefresh?.sessionVersion === sessionVersion) {
+    return pendingRefresh.promise;
   }
 
-  refreshPromise = doRefresh()
+  const refreshToken = tokenStorage.getRefreshToken();
+  const promise = doRefresh(refreshToken, sessionVersion)
     .catch((refreshError) => {
-      expireSession();
+      if (sessionVersion === getAuthSessionVersion() && refreshToken === tokenStorage.getRefreshToken()) {
+        expireSession();
+      }
       throw refreshError;
     })
     .finally(() => {
-      refreshPromise = null;
+      if (pendingRefresh?.promise === promise) pendingRefresh = null;
     });
 
-  return refreshPromise;
+  pendingRefresh = { sessionVersion, promise };
+  return promise;
 }
 
 // Request interceptor: Attach access token
 apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
+  async (config: SessionRequestConfig) => {
+    if (config.skipAuthRefresh) return config;
+    config._authSessionVersion ??= getAuthSessionVersion();
     let token = tokenStorage.getAccessToken();
 
     // Check if token expires within 15 seconds, refresh proactively
@@ -156,16 +171,14 @@ apiClient.interceptors.request.use(
       if (expMs) {
         const expiresInMs = expMs - Date.now();
         if (expiresInMs < 15000) {
-          try {
-            token = await refreshAccessToken();
-          } catch {
-            // Let the request proceed, it will likely fail with 401 and handle redirect
-            token = null;
-          }
+          token = await refreshAccessToken();
         }
       }
     }
 
+    if (config._authSessionVersion !== getAuthSessionVersion()) {
+      throw ApiError.unauthorized("The authentication session has changed.");
+    }
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -179,14 +192,19 @@ apiClient.interceptors.request.use(
 // Response interceptor: Handle errors & auto-refresh token on 401
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    const config = response.config as SessionRequestConfig;
+    if (!config.skipAuthRefresh && config._authSessionVersion !== undefined && config._authSessionVersion !== getAuthSessionVersion()) {
+      throw ApiError.unauthorized("The authentication session has changed.");
+    }
     return response;
   },
   async (error) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
+    const originalRequest = error.config as SessionRequestConfig | undefined;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest.skipAuthRefresh && !originalRequest._retry) {
+      if (originalRequest._authSessionVersion !== undefined && originalRequest._authSessionVersion !== getAuthSessionVersion()) {
+        return Promise.reject(ApiError.fromAxiosError(error));
+      }
       // Avoid infinite loop if the refresh token call itself fails with 401
       if (originalRequest.url?.includes("/auth/refresh")) {
         expireSession();

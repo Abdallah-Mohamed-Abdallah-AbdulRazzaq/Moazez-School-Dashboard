@@ -11,9 +11,16 @@ import React, {
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { AuthContext } from "./AuthContext";
 import { authService } from "@/services/auth-service";
-import { tokenStorage } from "@/lib/token-storage";
+import {
+  ACCESS_TOKEN_KEY,
+  getAuthSessionVersion,
+  invalidateAuthSession,
+  subscribeToAccessTokenChanges,
+  tokenStorage,
+} from "@/lib/token-storage";
 import { SESSION_EXPIRED_EVENT } from "@/lib/api";
 import { clearAuthenticatedFileUrlCache } from "@/lib/files/authenticatedFileUrlCache";
+import { setBrandingScope } from "@/features/settings/services/brandingService";
 import type {
   ChangePasswordRequest,
   ChangePasswordResponse,
@@ -34,6 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const pendingRedirectRef = useRef<string | null>(null);
+  const userRequestRef = useRef(0);
+  const explicitLogoutRef = useRef(false);
   const currentLocale = localeFromPathname(pathname);
 
   const getLocalizedPath = useCallback(
@@ -65,24 +74,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }, [currentLocale, searchParams]);
 
+  const clearLocalSession = useCallback(() => {
+    userRequestRef.current += 1;
+    clearAuthenticatedFileUrlCache();
+    setBrandingScope(null);
+    setUser(null);
+    setIsLoading(false);
+  }, []);
+
   const loadUser = useCallback(async (fallbackMustChangePassword?: boolean) => {
+    const request = ++userRequestRef.current;
     try {
       if (tokenStorage.hasTokens()) {
         const currentUser = await authService.getCurrentUser();
+        if (request !== userRequestRef.current || !tokenStorage.hasTokens()) return null;
         const normalizedUser: MeResponse = {
           ...currentUser,
           mustChangePassword:
             currentUser.mustChangePassword ?? fallbackMustChangePassword,
         };
+        setBrandingScope(normalizedUser);
+        explicitLogoutRef.current = false;
         setUser(normalizedUser);
         return normalizedUser;
       } else {
         clearAuthenticatedFileUrlCache();
+        setBrandingScope(null);
         setUser(null);
         return null;
       }
     } catch (error) {
+      if (request !== userRequestRef.current) return null;
       console.error("Failed to restore session:", error);
+      setBrandingScope(null);
       setUser(null);
       if (!tokenStorage.hasTokens()) {
         return null;
@@ -94,19 +118,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return null;
     } finally {
-      setIsLoading(false);
+      if (request === userRequestRef.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void Promise.resolve().then(() => loadUser());
+    let mounted = true;
+    void Promise.resolve().then(() => {
+      if (mounted) return loadUser();
+    });
+    return () => {
+      mounted = false;
+      userRequestRef.current += 1;
+    };
   }, [loadUser]);
 
   useEffect(() => {
+    const unsubscribe = subscribeToAccessTokenChanges(() => {
+      if (!tokenStorage.hasTokens()) clearLocalSession();
+    });
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key !== ACCESS_TOKEN_KEY && event.key !== null) return;
+      if (event.storageArea && event.storageArea !== localStorage) return;
+      if (event.key === ACCESS_TOKEN_KEY && event.newValue !== tokenStorage.getAccessToken()) return;
+      invalidateAuthSession();
+      clearLocalSession();
+      if (tokenStorage.hasTokens()) {
+        setIsLoading(true);
+        void loadUser();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [clearLocalSession, loadUser]);
+
+  useEffect(() => {
     const handleSessionExpired = () => {
-      clearAuthenticatedFileUrlCache();
-      setUser(null);
-      setIsLoading(false);
+      clearLocalSession();
     };
 
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
@@ -114,33 +165,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
     };
-  }, [loginPathWithRedirect, router]);
+  }, [clearLocalSession]);
 
   const login = useCallback(
     async (credentials: LoginRequest) => {
+      explicitLogoutRef.current = false;
+      clearLocalSession();
+      const loginRequest = authService.login(credentials);
+      const sessionVersion = getAuthSessionVersion();
       setIsLoading(true);
       try {
-        clearAuthenticatedFileUrlCache();
-        const loginResponse = await authService.login(credentials);
+        const loginResponse = await loginRequest;
+        if (sessionVersion !== getAuthSessionVersion() || !tokenStorage.hasTokens()) return null;
         return await loadUser(loginResponse.user.mustChangePassword);
       } finally {
-        setIsLoading(false);
+        if (sessionVersion === getAuthSessionVersion()) setIsLoading(false);
       }
     },
-    [loadUser],
+    [clearLocalSession, loadUser],
   );
 
   const logout = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await authService.logout();
-      clearAuthenticatedFileUrlCache();
-      setUser(null);
-      router.push(getLocalizedPath("login"));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getLocalizedPath, router]);
+    explicitLogoutRef.current = true;
+    clearLocalSession();
+    await authService.logout();
+  }, [clearLocalSession]);
 
   const refreshCurrentUser = useCallback(async () => {
     setIsLoading(true);
@@ -175,7 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let redirectPath: string | null = null;
 
       if (!user && !isLoginRoute && !isRootRoute) {
-        redirectPath = loginPathWithRedirect();
+        redirectPath = explicitLogoutRef.current ? loginPath : loginPathWithRedirect();
       } else if (user && mustChangePassword && !isChangePasswordRoute) {
         redirectPath = changePasswordPath;
       } else if (

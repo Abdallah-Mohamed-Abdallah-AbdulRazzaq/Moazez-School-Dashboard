@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { Copy, MoveRight } from "lucide-react";
+import type { LessonTransferMode } from "../services/timetableLessonTransfer";
 import Select from "@/components/ui/input/Select";
 import { Button } from "@/components/ui";
 import Modal from "@/components/ui/modal/Modal";
@@ -39,6 +41,7 @@ interface EditSlotDialogProps {
     roomId: string | null,
   ) => void;
   onClose: () => void;
+  onTransfer?: (mode: LessonTransferMode) => void;
   getDefaultTeacher: (subjectId: string) => string | null;
   getDefaultRoomSuggestion: (subjectId: string) => ResolvedRoomSuggestion;
   getRoomSource: (
@@ -65,6 +68,7 @@ export default function EditSlotDialog({
   rooms,
   onSave,
   onClose,
+  onTransfer,
   getDefaultTeacher,
   getDefaultRoomSuggestion,
   getRoomSource,
@@ -76,6 +80,7 @@ export default function EditSlotDialog({
   locale,
 }: EditSlotDialogProps) {
   const t = useTranslations("academics.timetable.editSlot");
+  const tTransfer = useTranslations("academics.timetable.transfer");
 
   const [subjectId, setSubjectId] = useState<string>("");
   const [teacherId, setTeacherId] = useState<string>("");
@@ -301,8 +306,15 @@ export default function EditSlotDialog({
     onSave(dayKey, periodIndex, null, null, null);
   };
 
+  const hasUnsavedLessonEdits = Boolean(
+    entry &&
+    (subjectId !== entry.subjectId ||
+      (teacherId || null) !== entry.teacherId ||
+      (roomId || null) !== entry.roomId),
+  );
   return (
     <Modal
+
       isOpen={open}
       onClose={onClose}
       title={t("title")}
@@ -324,6 +336,19 @@ export default function EditSlotDialog({
       }
     >
       <div className="space-y-4">
+        {entry?.subjectId && onTransfer && (
+          <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="flex flex-wrap gap-2">
+              {(["copy", "move"] as const).map((mode) => (
+                <Button key={mode} variant="secondary" className="min-h-11" disabled={hasUnsavedLessonEdits} onClick={() => onTransfer(mode)} leftIcon={mode === "copy" ? <Copy className="h-4 w-4" /> : <MoveRight className="h-4 w-4 rtl:rotate-180" />}>
+                  {tTransfer(mode)}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-600">{hasUnsavedLessonEdits ? tTransfer("saveEditsFirst") : tTransfer("chooseDestination")}</p>
+          </div>
+        )}
+
         {selectedClassroomName && (
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
             {t("targetClassroom", { classroom: selectedClassroomName })}

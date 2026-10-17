@@ -1,7 +1,11 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  timetableOverviewQuery,
+  timetableWorkspaceQuery,
+} from "../services/timetableWorkspaceNavigation";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import {
@@ -16,6 +20,7 @@ export default function TimetableSetupPage() {
   const t = useTranslations("academics.timetable");
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     academicYearId,
     termId,
@@ -34,9 +39,24 @@ export default function TimetableSetupPage() {
     canManage,
     enabled: !isInitializing && isPermissionsReady && hasContext,
   });
-  const openTimetable = () => router.replace("/academics/timetable");
+  const openTimetable = () =>
+    router.replace(
+      `/academics/timetable?${timetableOverviewQuery(searchParams.toString())}`,
+    );
+  const openWorkspace = () => {
+    const params = timetableWorkspaceQuery(searchParams.toString(), {
+      scopeType: "TERM",
+    });
+    params.set("year", academicYearId);
+    params.set("term", termId);
+    router.replace(`/academics/timetable?${params}`);
+  };
 
-  if (isInitializing || !isPermissionsReady || setup.isLoading) {
+  if (
+    isInitializing ||
+    !isPermissionsReady ||
+    (setup.isLoading && !setup.status)
+  ) {
     return (
       <div role="status" aria-label={t("loadingLabel")} aria-busy="true">
         <MainLoader />
@@ -75,9 +95,11 @@ export default function TimetableSetupPage() {
         academicYearName={localizedContextName(selectedAcademicYear, locale)}
         termName={localizedContextName(selectedTerm, locale)}
         status={setup.status}
+        entries={setup.entries}
+        isRefreshing={setup.isLoading}
         onReload={setup.reload}
         onCancel={openTimetable}
-        onComplete={openTimetable}
+        onComplete={openWorkspace}
       />
     </main>
   );
@@ -85,9 +107,7 @@ export default function TimetableSetupPage() {
 
 function localizedContextName(
   context:
-    | { name?: string; nameAr?: string; nameEn?: string }
-    | null
-    | undefined,
+    { name?: string; nameAr?: string; nameEn?: string } | null | undefined,
   locale: string,
 ): string {
   if (!context) return "";

@@ -24,6 +24,9 @@ import { Teacher } from "@/features/academics/teacher-allocation/services/teache
 import { Room } from "@/features/academics/timetable/types/timetable";
 import { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import { formatTimetableTimeRange } from "@/features/academics/timetable/services/timetableTimeFormat";
+import TimetableLessonDetails from "./TimetableLessonDetails";
+import TimetableMobileDayNavigation from "./TimetableMobileDayNavigation";
+import type { TimetableDensity } from "./TimetableWorkspaceToolbar";
 import TimetableSlotControl, {
   type TimetableDropDecision,
 } from "@/features/academics/timetable/components/TimetableSlotControl";
@@ -34,10 +37,16 @@ import type {
 
 interface TimetableGridProps {
   entries: TimetableEntry[];
+  density?: TimetableDensity;
+  highlightedEntryIds?: ReadonlySet<string>;
+  focusedSearchEntryId?: string | null;
+  searchFocusRequest?: number;
+  onSearchFocusDismiss?: () => void;
   proposalEntries?: TimetableEntry[];
-  subjects: Subject[];
-  teachers: Teacher[];
-  rooms: Room[];
+  subjects: (Pick<Subject, "id" | "nameAr" | "nameEn"> &
+    Partial<Pick<Subject, "color">>)[];
+  teachers: Pick<Teacher, "id" | "nameAr" | "nameEn">[];
+  rooms: Pick<Room, "id" | "nameAr" | "nameEn">[];
   conflicts: TimetableConflictDisplay[];
   focusedConflict?: TimetableConflictDisplay | null;
   onFocusedConflictDismiss?: () => void;
@@ -62,6 +71,11 @@ interface TimetableGridProps {
 
 export default function TimetableGrid({
   entries,
+  density = "comfortable",
+  highlightedEntryIds,
+  focusedSearchEntryId = null,
+  searchFocusRequest = 0,
+  onSearchFocusDismiss,
   proposalEntries = entries,
   subjects,
   teachers,
@@ -82,12 +96,38 @@ export default function TimetableGrid({
   onPlaceItem = () => undefined,
 }: TimetableGridProps) {
   const t = useTranslations("academics.timetable.grid");
-  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const tNavigation = useTranslations("academics.timetable.navigation");
+  const [expandedDay, setExpandedDay] = useState<string | null>(
+    () => resolvedConfig.days.find((day) => day.isActive)?.key ?? null,
+  );
+  const [mobileScrollDay, setMobileScrollDay] = useState<string | null>(null);
   const gridRootRef = useRef<HTMLDivElement | null>(null);
 
   // Get active days and periods from config
   const activeDays = resolvedConfig.days.filter((d) => d.isActive);
   const periods = resolvedConfig.periods;
+  const entriesBySlot = useMemo(() => {
+    const slots = new Map<string, TimetableEntry>();
+    for (const entry of entries) {
+      const key = `${entry.dayKey}:${entry.periodIndex}`;
+      if (!slots.has(key)) slots.set(key, entry);
+    }
+    return slots;
+  }, [entries]);
+  const subjectsById = useMemo(
+    () => new Map(subjects.map((subject) => [subject.id, subject])),
+    [subjects],
+  );
+  const teachersById = useMemo(
+    () => new Map(teachers.map((teacher) => [teacher.id, teacher])),
+    [teachers],
+  );
+  const roomsById = useMemo(
+    () => new Map(rooms.map((room) => [room.id, room])),
+    [rooms],
+  );
+  const desktopGridMinWidth =
+    144 + activeDays.length * (density === "compact" ? 156 : 180);
   const mappedProposalEntries = useMemo(
     () => proposalEntries.filter((entry) => entry.subjectId),
     [proposalEntries],
@@ -108,7 +148,55 @@ export default function TimetableGrid({
     [entries, focusedConflict, mappedProposalEntries],
   );
   const focusedDayKey = focusedTargetEntry?.dayKey ?? focusedConflict?.dayKey;
-  const visibleExpandedDay = focusedDayKey ?? expandedDay;
+  const focusedSearchEntry = entries.find(
+    (entry) => entry.id === focusedSearchEntryId,
+  );
+  const visibleExpandedDay =
+    focusedDayKey ??
+    focusedSearchEntry?.dayKey ??
+    (expandedDay && activeDays.some((day) => day.key === expandedDay)
+      ? expandedDay
+      : null);
+
+  useEffect(() => {
+    if (!focusedSearchEntryId || !gridRootRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      const candidates = Array.from(
+        gridRootRef.current?.querySelectorAll<HTMLElement>(
+          '[data-search-current="true"]',
+        ) ?? [],
+      );
+      const target = candidates.find(
+        (candidate) => candidate.getClientRects().length > 0,
+      );
+      target?.scrollIntoView?.({
+        block: "center",
+        inline: "nearest",
+        behavior: "auto",
+      });
+      target?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusedSearchEntryId, visibleExpandedDay, searchFocusRequest]);
+
+  useEffect(() => {
+    if (!mobileScrollDay || !gridRootRef.current) return;
+    const day = Array.from(
+      gridRootRef.current.querySelectorAll<HTMLElement>("[data-mobile-day]"),
+    ).find((candidate) => candidate.dataset.mobileDay === mobileScrollDay);
+    day?.scrollIntoView?.({ block: "start", behavior: "auto" });
+  }, [mobileScrollDay]);
+
+  const selectMobileDay = (day: string) => {
+    onFocusedConflictDismiss?.();
+    onSearchFocusDismiss?.();
+    setExpandedDay(day);
+    setMobileScrollDay(day);
+  };
+  const searchMatchClass = (entry: TimetableEntry | undefined) =>
+    entry && highlightedEntryIds?.has(entry.id)
+      ? "ring-2 ring-inset ring-amber-600 bg-amber-50 data-[search-current=true]:outline-2 data-[search-current=true]:outline-offset-[-3px] data-[search-current=true]:outline-primary-700 print:ring-0 print:outline-none print:bg-transparent"
+      : "";
 
   useEffect(() => {
     if (!focusedConflict || !gridRootRef.current) return;
@@ -123,7 +211,12 @@ export default function TimetableGrid({
         targets.find((candidate) => candidate.offsetParent !== null) ??
         targets[0];
       if (!target) return;
-      target.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      target.scrollIntoView?.({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "center",
+      });
       target.focus({ preventScroll: true });
     });
 
@@ -134,9 +227,7 @@ export default function TimetableGrid({
     dayKey: string,
     periodIndex: number,
   ): TimetableEntry | undefined => {
-    return entries.find(
-      (e) => e.dayKey === dayKey && e.periodIndex === periodIndex,
-    );
+    return entriesBySlot.get(`${dayKey}:${periodIndex}`);
   };
 
   const hasConflict = (
@@ -166,21 +257,21 @@ export default function TimetableGrid({
 
   const getSubjectName = (subjectId: string | null): string => {
     if (!subjectId) return "";
-    const subject = subjects.find((s) => s.id === subjectId);
+    const subject = subjectsById.get(subjectId);
     if (!subject) return "";
     return locale === "ar" ? subject.nameAr : subject.nameEn;
   };
 
   const getTeacherName = (teacherId: string | null): string => {
     if (!teacherId) return "";
-    const teacher = teachers.find((t) => t.id === teacherId);
+    const teacher = teachersById.get(teacherId);
     if (!teacher) return "";
     return locale === "ar" ? teacher.nameAr : teacher.nameEn;
   };
 
   const getRoomName = (roomId: string | null): string => {
     if (!roomId) return "";
-    const room = rooms.find((r) => r.id === roomId);
+    const room = roomsById.get(roomId);
     if (!room) return "";
     return locale === "ar" ? room.nameAr : room.nameEn;
   };
@@ -224,7 +315,10 @@ export default function TimetableGrid({
 
     if (isHoliday) {
       return (
-        <div className="text-xs text-red-600 text-center py-8 font-medium">
+        <div
+          data-slot-content
+          className="text-xs text-red-600 text-center py-8 font-medium"
+        >
           {t("holiday")}
         </div>
       );
@@ -232,7 +326,10 @@ export default function TimetableGrid({
 
     if (!isInstructionalPeriod) {
       return (
-        <div className="min-h-[80px] border-l-4 border-amber-400 bg-amber-50/50 px-3 py-6 flex flex-col items-center justify-center">
+        <div
+          data-slot-content
+          className="min-h-[96px] border-s-4 border-amber-400 bg-amber-50/50 px-3 py-6 flex flex-col items-center justify-center"
+        >
           <PeriodTypeIcon className="mb-1 h-5 w-5 text-amber-600" />
           <div className="text-sm font-medium text-amber-900">
             {periodTypeLabel(period)}
@@ -243,7 +340,10 @@ export default function TimetableGrid({
 
     if (isBreak) {
       return (
-        <div className="bg-amber-50/50 border-l-4 border-amber-400 py-6 px-3 min-h-[80px] flex flex-col items-center justify-center">
+        <div
+          data-slot-content
+          className="bg-amber-50/50 border-s-4 border-amber-400 py-6 px-3 min-h-[96px] flex flex-col items-center justify-center"
+        >
           <Coffee className="w-5 h-5 text-amber-600 mb-1" />
           <div className="text-sm font-medium text-amber-900">
             {entry.breakLabelAr && locale === "ar"
@@ -258,9 +358,15 @@ export default function TimetableGrid({
 
     if (entry?.subjectId) {
       return (
-        <div className="py-3 px-3 min-h-[80px] flex flex-col justify-start">
+        <div
+          data-slot-content
+          className="border-s-[3px] py-3 px-3 min-h-[96px] flex flex-col justify-start"
+          style={{ borderInlineStartColor: subjectAccent(entry.subjectId) }}
+        >
           <div className="flex items-start justify-between gap-2 mb-1">
-            <div className="text-sm font-semibold text-gray-900 line-clamp-2 flex-1">
+            <div
+              className={`text-sm font-semibold text-gray-950 flex-1 ${density === "compact" ? "line-clamp-1" : "line-clamp-2"}`}
+            >
               {getSubjectName(entry.subjectId)}
             </div>
             {conflict && (
@@ -276,7 +382,7 @@ export default function TimetableGrid({
             </div>
           )}
           {entry.roomId && (
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-gray-600">
               <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
               <span className="line-clamp-1">{getRoomName(entry.roomId)}</span>
             </div>
@@ -298,7 +404,10 @@ export default function TimetableGrid({
     }
 
     return (
-      <div className="py-8 px-3 min-h-[80px] flex items-center justify-center">
+      <div
+        data-slot-content
+        className="py-8 px-3 min-h-[96px] flex items-center justify-center"
+      >
         {!isReadOnly && (
           <span className="flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary">
             <Plus className="w-5 h-5" /> {t("add")}
@@ -306,6 +415,13 @@ export default function TimetableGrid({
         )}
       </div>
     );
+  };
+
+  const subjectAccent = (subjectId: string) => {
+    const color = subjectsById.get(subjectId)?.color;
+    return color && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(color)
+      ? color
+      : "var(--primary-color, #036b80)";
   };
 
   const slotTarget = (
@@ -327,25 +443,52 @@ export default function TimetableGrid({
       locale === "ar" ? day.nameAr : day.nameEn,
       locale === "ar" ? period.nameAr : period.nameEn,
       entry?.subjectId ? getSubjectName(entry.subjectId) : t("add"),
+      entry?.teacherId ? getTeacherName(entry.teacherId) : "",
+      entry?.roomId ? getRoomName(entry.roomId) : "",
+      period.startTime && period.endTime
+        ? formatTimetableTimeRange(period.startTime, period.endTime)
+        : "",
     ];
     return labels.filter(Boolean).join(", ");
   };
 
   return (
-    <div ref={gridRootRef}>
+    <div
+      ref={gridRootRef}
+      dir={locale === "ar" ? "rtl" : "ltr"}
+
+      data-density={density}
+      className={
+        density === "compact"
+          ? "[&_[data-slot-content]]:min-h-16 [&_[data-slot-content]]:py-2"
+          : undefined
+      }
+    >
       {/* Desktop: Table View */}
-      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden print:block print:rounded-none print:shadow-none print:overflow-visible">
-        <div className="overflow-x-auto print:overflow-visible">
-          <table className="w-full border-collapse">
+      <div
+        className="hidden lg:block w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-clip print:min-w-0 print:block print:rounded-none print:shadow-none print:overflow-visible"
+        style={{ minWidth: desktopGridMinWidth }}
+      >
+        <div>
+          <table
+            className="w-full table-fixed border-collapse print:min-w-0!"
+            style={{
+              minWidth: desktopGridMinWidth,
+            }}
+          >
             <thead>
               <tr className="bg-gray-50">
-                <th className="sticky top-0 left-0 z-20 bg-primary-200 border-b border-r border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900 min-w-[100px]">
+                <th
+                  scope="col"
+                  className="sticky top-0 start-0 w-36 z-20 bg-primary-200 border-b border-e border-gray-200 px-4 py-3 text-start text-sm font-semibold text-gray-900 min-w-[100px]"
+                >
                   {t("period")}
                 </th>
                 {activeDays.map((day) => (
                   <th
                     key={day.key}
-                    className={`sticky top-0 z-10 border-b border-r border-gray-200 px-4 py-3 text-center text-sm font-semibold min-w-[180px] ${
+                    scope="col"
+                    className={`sticky top-0 z-10 border-b border-e border-gray-200 px-4 py-3 text-center text-sm font-semibold ${density === "compact" ? "min-w-[156px]" : "min-w-[180px]"} ${
                       isHolidayDay(day.key)
                         ? "bg-red-50 text-red-700"
                         : "bg-primary-200 text-gray-900"
@@ -369,7 +512,10 @@ export default function TimetableGrid({
 
                 return (
                   <tr key={period.index} className="hover:bg-gray-50/50">
-                    <td className="sticky left-0 z-10 border-b border-r border-gray-200 px-4 py-4 text-sm font-medium text-gray-900 bg-primary-50 ">
+                    <th
+                      scope="row"
+                      className={`sticky start-0 z-10 border-b border-e border-gray-200 px-4 text-start text-sm font-medium text-gray-900 bg-primary-50 ${density === "compact" ? "py-2" : "py-4"}`}
+                    >
                       <div className="flex flex-col">
                         <span className="flex items-center gap-1.5">
                           <PeriodTypeIcon className="h-4 w-4 shrink-0 text-gray-500" />
@@ -389,7 +535,7 @@ export default function TimetableGrid({
                           </span>
                         )}
                       </div>
-                    </td>
+                    </th>
                     {activeDays.map((day) => {
                       const entry = getEntry(day.key, period.index);
                       const conflict = hasConflict(day.key, period, entry);
@@ -408,9 +554,28 @@ export default function TimetableGrid({
                         <td
                           key={`${day.key}-${period.index}`}
                           aria-current={isFocused ? "true" : undefined}
+                          data-search-match={
+                            entry && highlightedEntryIds?.has(entry.id)
+                              ? "true"
+                              : undefined
+                          }
+                          data-search-current={
+                            entry?.id === focusedSearchEntryId
+                              ? "true"
+                              : undefined
+                          }
+                          aria-description={
+                            entry && highlightedEntryIds?.has(entry.id)
+                              ? tNavigation("matchingLesson")
+                              : undefined
+                          }
                           data-focused-conflict={isFocused ? "true" : undefined}
-                          tabIndex={isFocused ? -1 : undefined}
-                          className={`border-b border-r border-gray-200 p-0 transition-colors relative group ${
+                          tabIndex={
+                            isFocused || entry?.id === focusedSearchEntryId
+                              ? -1
+                              : undefined
+                          }
+                          className={`border-b border-e border-gray-200 p-0 transition-colors relative group ${searchMatchClass(entry)} ${
                             isHoliday || !isInstructionalPeriod
                               ? "bg-red-50 cursor-not-allowed"
                               : ""
@@ -424,21 +589,39 @@ export default function TimetableGrid({
                               : ""
                           }`}
                         >
-                          <TimetableSlotControl
-                            presentation="desktop"
-                            target={slotTarget(day.key, period.index)}
-                            entry={entry}
-                            selectedLibraryItem={selectedLibraryItem}
-                            activeDragItem={activeDragItem}
-                            isReadOnly={isReadOnly}
-                            isBlocked={isHoliday || !isInstructionalPeriod}
-                            accessibleName={slotAccessibleName(day, period, entry)}
-                            canDropOnSlot={canDropOnSlot}
-                            onPlaceItem={onPlaceItem}
-                            onSlotClick={onSlotClick}
+                          <TimetableLessonDetails
+                            details={
+                              entry?.subjectId
+                                ? slotAccessibleName(day, period, entry)
+                                : ""
+                            }
+                            readOnly={
+                              isReadOnly || isHoliday || !isInstructionalPeriod
+                            }
                           >
-                            {renderSlotContent(day, period)}
-                          </TimetableSlotControl>
+                            <TimetableSlotControl
+                              className={
+                                density === "compact" ? "min-h-16!" : undefined
+                              }
+                              presentation="desktop"
+                              target={slotTarget(day.key, period.index)}
+                              entry={entry}
+                              selectedLibraryItem={selectedLibraryItem}
+                              activeDragItem={activeDragItem}
+                              isReadOnly={isReadOnly}
+                              isBlocked={isHoliday || !isInstructionalPeriod}
+                              accessibleName={slotAccessibleName(
+                                day,
+                                period,
+                                entry,
+                              )}
+                              canDropOnSlot={canDropOnSlot}
+                              onPlaceItem={onPlaceItem}
+                              onSlotClick={onSlotClick}
+                            >
+                              {renderSlotContent(day, period)}
+                            </TimetableSlotControl>
+                          </TimetableLessonDetails>
                         </td>
                       );
                     })}
@@ -450,6 +633,11 @@ export default function TimetableGrid({
         </div>
       </div>
 
+      <TimetableMobileDayNavigation
+        days={activeDays}
+        selectedDay={visibleExpandedDay}
+        onDayChange={selectMobileDay}
+      />
       {/* Mobile: Card View by Day */}
       <div className="lg:hidden space-y-3 print:hidden">
         {activeDays.map((day) => {
@@ -465,12 +653,14 @@ export default function TimetableGrid({
           return (
             <div
               key={day.key}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+              data-mobile-day={day.key}
+              className="scroll-mt-20 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
             >
               {/* Day Header - Collapsible */}
               <button
                 onClick={() => {
                   onFocusedConflictDismiss?.();
+                  onSearchFocusDismiss?.();
                   setExpandedDay(isExpanded ? null : day.key);
                 }}
                 aria-expanded={isExpanded}
@@ -518,9 +708,28 @@ export default function TimetableGrid({
                       <div
                         key={period.index}
                         aria-current={isFocused ? "true" : undefined}
+                        data-search-match={
+                          entry && highlightedEntryIds?.has(entry.id)
+                            ? "true"
+                            : undefined
+                        }
+                        data-search-current={
+                          entry?.id === focusedSearchEntryId
+                            ? "true"
+                            : undefined
+                        }
+                        aria-description={
+                          entry && highlightedEntryIds?.has(entry.id)
+                            ? tNavigation("matchingLesson")
+                            : undefined
+                        }
                         data-focused-conflict={isFocused ? "true" : undefined}
-                        tabIndex={isFocused ? -1 : undefined}
-                        className={`${
+                        tabIndex={
+                          isFocused || entry?.id === focusedSearchEntryId
+                            ? -1
+                            : undefined
+                        }
+                        className={`${searchMatchClass(entry)} ${
                           !isReadOnly && !isHoliday && isInstructionalPeriod
                             ? "active:bg-blue-50 cursor-pointer"
                             : ""
@@ -538,112 +747,123 @@ export default function TimetableGrid({
                           activeDragItem={activeDragItem}
                           isReadOnly={isReadOnly}
                           isBlocked={isHoliday || !isInstructionalPeriod}
-                          accessibleName={slotAccessibleName(day, period, entry)}
+                          accessibleName={slotAccessibleName(
+                            day,
+                            period,
+                            entry,
+                          )}
                           className="p-4"
                           canDropOnSlot={canDropOnSlot}
                           onPlaceItem={onPlaceItem}
                           onSlotClick={onSlotClick}
                         >
-                        {/* Period Header */}
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                              <PeriodTypeIcon className="h-4 w-4 shrink-0 text-gray-500" />
-                              <span>
-                                {locale === "ar"
-                                  ? period.nameAr
-                                  : period.nameEn}
+                          {/* Period Header */}
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                                <PeriodTypeIcon className="h-4 w-4 shrink-0 text-gray-500" />
+                                <span>
+                                  {locale === "ar"
+                                    ? period.nameAr
+                                    : period.nameEn}
+                                </span>
+                              </div>
+                              {period.startTime && period.endTime && (
+                                <div
+                                  className="mt-0.5 text-xs text-gray-500"
+                                  dir="ltr"
+                                >
+                                  {formatTimetableTimeRange(
+                                    period.startTime,
+                                    period.endTime,
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {conflict && !isHoliday && (
+                              <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                            )}
+                          </div>
+
+                          {/* Slot Content */}
+                          {isHoliday ? (
+                            <div className="text-xs text-red-600 text-center py-2 font-medium">
+                              {t("holiday")}
+                            </div>
+                          ) : !isInstructionalPeriod ? (
+                            <div className="bg-amber-50 border-s-4 border-amber-400 py-3 px-3 rounded flex items-center gap-2">
+                              <PeriodTypeIcon className="w-5 h-5 text-amber-600 shrink-0" />
+                              <div className="text-sm font-medium text-amber-900">
+                                {periodTypeLabel(period)}
+                              </div>
+                            </div>
+                          ) : isBreak ? (
+                            <div className="bg-amber-50 border-s-4 border-amber-400 py-3 px-3 rounded flex items-center gap-2">
+                              <Coffee className="w-5 h-5 text-amber-600 shrink-0" />
+                              <div className="text-sm font-medium text-amber-900">
+                                {entry.breakLabelAr && locale === "ar"
+                                  ? entry.breakLabelAr
+                                  : entry.breakLabelEn && locale === "en"
+                                    ? entry.breakLabelEn
+                                    : t("break")}
+                              </div>
+                            </div>
+                          ) : entry?.subjectId ? (
+                            <div
+                              className="space-y-2 border-s-[3px] ps-3"
+                              style={{
+                                borderInlineStartColor: subjectAccent(
+                                  entry.subjectId,
+                                ),
+                              }}
+                            >
+                              <div className="text-base font-semibold text-gray-900">
+                                {getSubjectName(entry.subjectId)}
+                              </div>
+                              {entry.teacherId && (
+                                <div className="text-sm text-gray-600 flex items-center gap-1.5">
+                                  <UserRound
+                                    className="h-4 w-4 shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span>{getTeacherName(entry.teacherId)}</span>
+                                </div>
+                              )}
+                              {entry.roomId && (
+                                <div className="text-sm text-gray-500 flex items-center gap-1.5">
+                                  <MapPin
+                                    className="h-4 w-4 shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span>{getRoomName(entry.roomId)}</span>
+                                </div>
+                              )}
+                              {!entry.teacherId && (
+                                <div className="text-xs text-orange-600 flex items-center gap-1">
+                                  <AlertTriangle
+                                    className="h-3 w-3 shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span>{t("validation.missingTeacher")}</span>
+                                </div>
+                              )}
+                              {!entry.roomId && (
+                                <div className="text-xs text-orange-600 flex items-center gap-1">
+                                  <AlertTriangle
+                                    className="h-3 w-3 shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span>{t("validation.missingRoom")}</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex justify-center py-4">
+                              <span className="flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary">
+                                <Plus className="w-5 h-5" /> {t("add")}
                               </span>
                             </div>
-                            {period.startTime && period.endTime && (
-                              <div
-                                className="mt-0.5 text-xs text-gray-500"
-                                dir="ltr"
-                              >
-                                {formatTimetableTimeRange(
-                                  period.startTime,
-                                  period.endTime,
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          {conflict && !isHoliday && (
-                            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
                           )}
-                        </div>
-
-                        {/* Slot Content */}
-                        {isHoliday ? (
-                          <div className="text-xs text-red-600 text-center py-2 font-medium">
-                            {t("holiday")}
-                          </div>
-                        ) : !isInstructionalPeriod ? (
-                          <div className="bg-amber-50 border-l-4 border-amber-400 py-3 px-3 rounded flex items-center gap-2">
-                            <PeriodTypeIcon className="w-5 h-5 text-amber-600 shrink-0" />
-                            <div className="text-sm font-medium text-amber-900">
-                              {periodTypeLabel(period)}
-                            </div>
-                          </div>
-                        ) : isBreak ? (
-                          <div className="bg-amber-50 border-l-4 border-amber-400 py-3 px-3 rounded flex items-center gap-2">
-                            <Coffee className="w-5 h-5 text-amber-600 shrink-0" />
-                            <div className="text-sm font-medium text-amber-900">
-                              {entry.breakLabelAr && locale === "ar"
-                                ? entry.breakLabelAr
-                                : entry.breakLabelEn && locale === "en"
-                                  ? entry.breakLabelEn
-                                  : t("break")}
-                            </div>
-                          </div>
-                        ) : entry?.subjectId ? (
-                          <div className="space-y-2">
-                            <div className="text-base font-semibold text-gray-900">
-                              {getSubjectName(entry.subjectId)}
-                            </div>
-                            {entry.teacherId && (
-                              <div className="text-sm text-gray-600 flex items-center gap-1.5">
-                                <UserRound
-                                  className="h-4 w-4 shrink-0"
-                                  aria-hidden="true"
-                                />
-                                <span>{getTeacherName(entry.teacherId)}</span>
-                              </div>
-                            )}
-                            {entry.roomId && (
-                              <div className="text-sm text-gray-500 flex items-center gap-1.5">
-                                <MapPin
-                                  className="h-4 w-4 shrink-0"
-                                  aria-hidden="true"
-                                />
-                                <span>{getRoomName(entry.roomId)}</span>
-                              </div>
-                            )}
-                            {!entry.teacherId && (
-                              <div className="text-xs text-orange-600 flex items-center gap-1">
-                                <AlertTriangle
-                                  className="h-3 w-3 shrink-0"
-                                  aria-hidden="true"
-                                />
-                                <span>{t("validation.missingTeacher")}</span>
-                              </div>
-                            )}
-                            {!entry.roomId && (
-                              <div className="text-xs text-orange-600 flex items-center gap-1">
-                                <AlertTriangle
-                                  className="h-3 w-3 shrink-0"
-                                  aria-hidden="true"
-                                />
-                                <span>{t("validation.missingRoom")}</span>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex justify-center py-4">
-                            <span className="flex items-center gap-1 text-xs font-medium text-gray-500 group-hover:text-primary">
-                              <Plus className="w-5 h-5" /> {t("add")}
-                            </span>
-                          </div>
-                        )}
                         </TimetableSlotControl>
                       </div>
                     );

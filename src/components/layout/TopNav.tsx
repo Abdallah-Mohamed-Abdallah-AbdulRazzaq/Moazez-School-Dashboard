@@ -10,7 +10,6 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import Modal from "@/components/ui/modal/Modal";
 import { useTranslations } from "next-intl";
@@ -234,7 +233,6 @@ function ProfileDropdown({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const router = useRouter();
   const { logout, user } = useAuth();
 
   useEffect(() => {
@@ -250,12 +248,7 @@ function ProfileDropdown({
 
   const handleLogout = async () => {
     setOpen(false);
-    try {
-      await logout();
-    } catch {
-      // Ignore errors — redirect anyway
-    }
-    router.push("/");
+    await logout();
   };
 
   return (

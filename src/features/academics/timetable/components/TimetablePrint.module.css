@@ -1,0 +1,203 @@
+.source {
+  display: none;
+}
+.report {
+  color: #172033;
+  background: white;
+  font-family: var(--font-somar), Arial, sans-serif;
+  font-size: 9pt;
+  line-height: 1.2;
+}
+.report * {
+  box-sizing: border-box;
+}
+.sheet {
+  padding: 0;
+  margin: 0 0 8mm;
+  break-after: page;
+}
+.sheet:last-child {
+  break-after: auto;
+  margin-bottom: 0;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6mm;
+  border-bottom: 1.5pt solid #036b80;
+  padding-bottom: 3mm;
+  margin-bottom: 3mm;
+}
+.header h2 {
+  font-size: 12.5pt;
+  line-height: 1.3;
+  margin: 1mm 0;
+}
+.header p {
+  margin: 0;
+}
+.school {
+  color: #036b80;
+  font-size: 11pt;
+  font-weight: 700;
+}
+.logo {
+  width: 15mm;
+  height: 15mm;
+  object-fit: contain;
+  flex: none;
+}
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2mm 5mm;
+  margin-bottom: 3mm;
+  font-size: 9pt;
+  color: #475569;
+}
+.report table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.report th,
+.report td {
+  border: 0.5pt solid #94a3b8;
+  padding: 1.3mm;
+  text-align: center;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.report thead {
+  display: table-header-group;
+}
+.report thead th {
+  background: #e5f1f3;
+  color: #164e5a;
+  font-weight: 700;
+}
+.report td strong,
+.report td span {
+  display: block;
+}
+.report td span {
+  color: #475569;
+  font-size: 8pt;
+  margin-top: 0.7mm;
+}
+.report tr {
+  break-inside: avoid;
+}
+.period {
+  width: 34mm;
+  background: #f8fafc;
+  font-size: 9pt;
+  font-weight: 600;
+}
+.time {
+  display: block;
+  font-size: 7.5pt;
+  white-space: nowrap;
+  font-weight: 400;
+  margin-top: 1mm;
+}
+.break {
+  background: #f1f5f9;
+  color: #475569;
+}
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 5mm;
+  margin-top: 3mm;
+  padding-top: 2mm;
+  border-top: 0.5pt solid #cbd5e1;
+  font-size: 8pt;
+  color: #475569;
+}
+.compact .sheet {
+  break-after: auto;
+  break-inside: avoid;
+  margin-bottom: 0;
+}
+.compact .sheet:last-child {
+  margin-bottom: 0;
+}
+.compact {
+  font-size: 8pt;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 5mm;
+}
+.compact .header h2 {
+  font-size: 11pt;
+}
+.compact .header {
+  margin-bottom: 2mm;
+  padding-bottom: 2mm;
+}
+.compact .logo {
+  width: 10mm;
+  height: 10mm;
+}
+.compact th,
+.compact td {
+  padding: 1mm;
+}
+.compact td span,
+.compact .period,
+.compact .metadata {
+  font-size: 8pt;
+}
+.compact .period {
+  width: 25mm;
+}
+.compact .time {
+  font-size: 6.5pt;
+  white-space: normal;
+}
+.preview {
+  overflow: auto;
+  max-height: 55vh;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f1f5f9;
+  padding: 16px;
+}
+.preview .report {
+  width: 297mm;
+  padding: 10mm;
+  margin-inline: auto;
+}
+@media print {
+  @page timetable {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  :global(html):has(.source),
+  :global(body):has(.source) {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    page: timetable;
+  }
+  :global(body):has(.source) > :not(.source) {
+    display: none !important;
+  }
+  .source {
+    display: flow-root !important;
+    position: static !important;
+    page: timetable;
+  }
+  .report {
+    page: inherit;
+    width: 100%;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

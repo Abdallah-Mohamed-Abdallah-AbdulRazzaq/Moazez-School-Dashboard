@@ -2,6 +2,7 @@
 
 import {
   type ReactNode,
+  type KeyboardEvent,
   useState,
   useRef,
   useEffect,
@@ -12,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import { AlertCircle, ChevronDown, Search } from "lucide-react";
 import { useLocale } from "next-intl";
+import { getFocusableElements } from "@/lib/accessibility/focusTrap";
 
 export interface SelectOption {
   value: string;
@@ -57,6 +59,14 @@ export interface SelectProps {
 const MENU_GAP = 8;
 const MENU_MAX_HEIGHT = 240;
 
+function enabledOptions(menu: HTMLElement | null) {
+  return Array.from(
+    menu?.querySelectorAll<HTMLButtonElement>(
+      "button[data-select-option]:not(:disabled)",
+    ) ?? [],
+  );
+}
+
 export default function Select({
   id,
   label,
@@ -100,6 +110,8 @@ export default function Select({
     maxHeight: MENU_MAX_HEIGHT,
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const keyboardOpenRef = useRef<"first" | "last" | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const locale = useLocale();
@@ -127,9 +139,7 @@ export default function Select({
       spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow;
     setMenuPosition({
       top: shouldOpenAbove ? null : rect.bottom + MENU_GAP,
-      bottom: shouldOpenAbove
-        ? viewportHeight - rect.top + MENU_GAP
-        : null,
+      bottom: shouldOpenAbove ? viewportHeight - rect.top + MENU_GAP : null,
       left: rect.left,
       width: rect.width,
       maxHeight: Math.min(
@@ -177,7 +187,13 @@ export default function Select({
   }, [isOpen, updateMenuPosition]);
 
   useEffect(() => {
-    if (isOpen && searchable) {
+    if (!isOpen) return;
+    if (keyboardOpenRef.current) {
+      const buttons = enabledOptions(menuRef.current);
+      const index = keyboardOpenRef.current === "last" ? buttons.length - 1 : 0;
+      buttons[index]?.focus();
+      keyboardOpenRef.current = null;
+    } else if (searchable) {
       searchInputRef.current?.focus();
     }
   }, [isOpen, searchable]);
@@ -187,6 +203,7 @@ export default function Select({
 
     setIsOpen(false);
     updateSearchQuery("");
+    triggerRef.current?.focus();
 
     if (onChange) {
       onChange(option.value);
@@ -195,11 +212,7 @@ export default function Select({
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredOptions = useMemo(() => {
-    if (
-      searchMode === "server" ||
-      !searchable ||
-      !normalizedSearchQuery
-    ) {
+    if (searchMode === "server" || !searchable || !normalizedSearchQuery) {
       return options;
     }
 
@@ -211,13 +224,65 @@ export default function Select({
   }, [normalizedSearchQuery, options, searchable, searchMode]);
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
-  const displayLabel = selectedOption?.triggerLabel || selectedOption?.label || placeholder;
+  const displayLabel =
+    selectedOption?.triggerLabel || selectedOption?.label || placeholder;
+
+  const focusOutsideMenu = (direction: -1 | 1) => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const scope =
+      trigger.closest<HTMLElement>('[role="dialog"]') ?? document.body;
+    const controls = getFocusableElements(scope).filter(
+      (control) =>
+        control.tabIndex >= 0 &&
+        !menuRef.current?.contains(control) &&
+        !control.closest('[inert], [aria-hidden="true"]'),
+    );
+    const index = controls.indexOf(trigger);
+    (index >= 0 ? (controls[index + direction] ?? trigger) : trigger).focus();
+  };
+
+  const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape" || event.key === "Tab") {
+      event.preventDefault();
+      if (event.key === "Escape") {
+        event.stopPropagation();
+      }
+      setIsOpen(false);
+      updateSearchQuery("");
+      if (event.key === "Tab") focusOutsideMenu(event.shiftKey ? -1 : 1);
+      else triggerRef.current?.focus();
+      return;
+    }
+    const fromSearch = event.target === searchInputRef.current;
+    if (
+      !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) ||
+      (fromSearch && ["Home", "End"].includes(event.key))
+    )
+      return;
+    event.preventDefault();
+    const buttons = enabledOptions(menuRef.current);
+    if (!buttons.length) return;
+    const current = buttons.indexOf(
+      document.activeElement as HTMLButtonElement,
+    );
+    const index =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? buttons.length - 1
+          : event.key === "ArrowDown"
+            ? (current + 1) % buttons.length
+            : (current <= 0 ? buttons.length : current) - 1;
+    buttons[index].focus();
+  };
 
   const menu = isOpen ? (
     <div
       id={menuId}
       ref={menuRef}
-      className="fixed z-[9999] flex flex-col bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200"
+      onKeyDown={handleMenuKeyDown}
+      className="fixed z-[9999] flex flex-col bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200 motion-reduce:animate-none motion-reduce:transition-none"
       dir={isRTL ? "rtl" : "ltr"}
       style={{
         top: menuPosition.top ?? undefined,
@@ -273,12 +338,13 @@ export default function Select({
           filteredOptions.map((option, index) => (
             <li
               key={option.value}
-              className="animate-slideIn"
+              className="animate-slideIn motion-reduce:animate-none"
               style={{
                 animationDelay: `${index * 0.03}s`,
               }}
             >
               <button
+                data-select-option
                 type="button"
                 onClick={() => handleSelect(option)}
                 disabled={option.disabled}
@@ -300,7 +366,9 @@ export default function Select({
                   {option.label}
                 </span>
                 {option.trailingContent ? (
-                  <span className="ms-3 shrink-0">{option.trailingContent}</span>
+                  <span className="ms-3 shrink-0">
+                    {option.trailingContent}
+                  </span>
                 ) : null}
               </button>
             </li>
@@ -367,6 +435,7 @@ export default function Select({
 
         {/* Trigger Button */}
         <button
+          ref={triggerRef}
           id={triggerId}
           type="button"
           aria-controls={isOpen ? menuId : undefined}
@@ -386,6 +455,42 @@ export default function Select({
             setIsOpen(true);
           }}
           onKeyDown={(event) => {
+            if (
+              event.key === "ArrowDown" ||
+              event.key === "ArrowUp" ||
+              (event.key === "Tab" && isOpen && !event.shiftKey)
+            ) {
+              event.preventDefault();
+              const boundary = event.key === "ArrowUp" ? "last" : "first";
+              if (isOpen) {
+                const buttons = enabledOptions(menuRef.current);
+                if (!buttons.length && event.key === "Tab") {
+                  setIsOpen(false);
+                  updateSearchQuery("");
+                  focusOutsideMenu(1);
+                  return;
+                }
+                buttons[boundary === "last" ? buttons.length - 1 : 0]?.focus();
+              } else {
+                keyboardOpenRef.current = boundary;
+                updateMenuPosition();
+                onOpen?.();
+                setIsOpen(true);
+              }
+              return;
+            }
+            if (event.key === "Escape" && isOpen) {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsOpen(false);
+              updateSearchQuery("");
+              return;
+            }
+            if (event.key === "Tab" && isOpen) {
+              setIsOpen(false);
+              updateSearchQuery("");
+              return;
+            }
             if (
               !searchable ||
               event.key.length !== 1 ||
@@ -419,7 +524,9 @@ export default function Select({
             ${className}
           `}
         >
-          <span className={`flex min-w-0 items-center ${!selectedOption ? "text-gray-400" : "text-gray-900"}`}>
+          <span
+            className={`flex min-w-0 items-center ${!selectedOption ? "text-gray-400" : "text-gray-900"}`}
+          >
             {selectedOption?.leadingContent ? (
               <span className="me-2 flex shrink-0 items-center">
                 {selectedOption.leadingContent}

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type {
   LoginFormErrors,
@@ -29,6 +29,9 @@ const INITIAL_VALUES: LoginFormValues = {
   rememberMe: false,
 };
 
+// Keep server-rendered credentials inert until React owns form submission.
+const subscribeToHydration = () => () => {};
+
 interface LoginFormProps {
   currentYear: number;
 }
@@ -42,6 +45,12 @@ export function LoginForm({ currentYear }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
+  const isFormDisabled = !isHydrated || isSubmitting;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -168,6 +177,7 @@ export function LoginForm({ currentYear }: LoginFormProps) {
       </header>
 
       <form
+        method="post"
         className="space-y-5"
         onSubmit={handleSubmit}
         noValidate
@@ -202,7 +212,7 @@ export function LoginForm({ currentYear }: LoginFormProps) {
             onChange={(event) => handleFieldChange("email", event.target.value)}
             onBlur={() => handleFieldBlur("email")}
             placeholder={t("emailPlaceholder")}
-            disabled={isSubmitting}
+            disabled={isFormDisabled}
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "login-email-error" : undefined}
             className={`w-full rounded-full border bg-[var(--background)] px-5 py-3.5 text-sm text-[var(--foreground)] shadow-[0_4px_12px_rgba(0,0,0,0.03)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-[color-mix(in_oklab,var(--foreground)_40%,white)] focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[color-mix(in_oklab,var(--primary-color)_14%,white)] disabled:cursor-not-allowed disabled:bg-[color-mix(in_oklab,var(--background)_96%,black)] ${
@@ -248,7 +258,7 @@ export function LoginForm({ currentYear }: LoginFormProps) {
               }
               onBlur={() => handleFieldBlur("password")}
               placeholder={t("passwordPlaceholder")}
-              disabled={isSubmitting}
+              disabled={isFormDisabled}
               aria-invalid={Boolean(errors.password)}
               aria-describedby={
                 errors.password ? "login-password-error" : undefined
@@ -272,7 +282,7 @@ export function LoginForm({ currentYear }: LoginFormProps) {
                 isRTL ? "start-1" : "end-1"
               }`}
               aria-label={showPassword ? t("hidePassword") : t("showPassword")}
-              disabled={isSubmitting}
+              disabled={isFormDisabled}
               aria-pressed={showPassword}
             >
               {showPassword ? (
@@ -294,7 +304,7 @@ export function LoginForm({ currentYear }: LoginFormProps) {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isFormDisabled}
           className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-full px-4 py-3 text-sm font-semibold text-[var(--background)] transition-[background-color,box-shadow] duration-200 hover:bg-[var(--hover-color)] hover:shadow-[0_16px_28px_color-mix(in_oklab,var(--primary-color)_22%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:cursor-not-allowed disabled:opacity-70"
           style={{
             backgroundColor: "var(--primary-color)",

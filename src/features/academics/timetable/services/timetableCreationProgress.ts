@@ -7,18 +7,10 @@ import type { TimetableEntry } from "@/features/academics/timetable/types/timeta
 import type { TimetableWorkspaceMode } from "@/features/academics/timetable/services/timetableWorkspaceState";
 
 export type TimetableCreationAction =
-  | "scope"
-  | "configuration"
-  | "periods"
-  | "schedule"
-  | "validation"
-  | "publish";
+  "scope" | "configuration" | "periods" | "schedule" | "validation" | "publish";
 
 export type TimetableCreationStepStatus =
-  | "complete"
-  | "current"
-  | "blocked"
-  | "published";
+  "complete" | "current" | "blocked" | "published";
 
 export interface TimetableCreationStep {
   id: TimetableCreationAction;
@@ -45,6 +37,7 @@ export interface TimetableCreationProgressInput {
   resolvedConfig: ResolvedTimetableConfig | null;
   entries: TimetableEntry[];
   isDirty: boolean;
+  reviewIsCurrent: boolean;
   validationSummary: TimetableValidationSummary | null;
   conflicts: TimetableConflictDisplay[];
   publication: PublicationResponse | null;
@@ -58,6 +51,7 @@ export function resolveTimetableCreationProgress({
   resolvedConfig,
   entries,
   isDirty,
+  reviewIsCurrent,
   validationSummary,
   conflicts,
   publication,
@@ -75,8 +69,12 @@ export function resolveTimetableCreationProgress({
   const hasSchedule = hasSavedEntries(entries);
   const canBuildSchedule = hasConfiguration && hasPeriods;
   const canReview = canBuildSchedule && hasSchedule && !isDirty;
-  const reviewComplete = canReview && !hasBlockingReviewIssue(validationSummary, conflicts);
   const published = isPublished(publication);
+  const reviewComplete =
+    canReview &&
+    (published ||
+      (reviewIsCurrent &&
+        !hasBlockingReviewIssue(validationSummary, conflicts)));
   const schedulePrerequisite = hasConfiguration
     ? "addInstructionalPeriod"
     : "configureTimetable";
@@ -165,12 +163,7 @@ function publicationStep({
   if (publication?.canPublish !== true) {
     const reason = publication?.blockingReasons[0];
     return {
-      ...creationStep(
-        "publish",
-        "blocked",
-        isReadOnly,
-        "publicationNotReady",
-      ),
+      ...creationStep("publish", "blocked", isReadOnly, "publicationNotReady"),
       prerequisiteMessage: reason
         ? (translateMessage?.(reason.code, reason.message) ?? reason.message)
         : undefined,
@@ -221,7 +214,9 @@ function hasActiveDays(config: ResolvedTimetableConfig | null): boolean {
   return Boolean(config?.days.some((day) => day.isActive));
 }
 
-function hasInstructionalPeriod(config: ResolvedTimetableConfig | null): boolean {
+function hasInstructionalPeriod(
+  config: ResolvedTimetableConfig | null,
+): boolean {
   return Boolean(
     config?.periods.some((period) => period.isInstructional !== false),
   );

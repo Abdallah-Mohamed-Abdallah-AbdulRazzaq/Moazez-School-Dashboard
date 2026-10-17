@@ -25,8 +25,15 @@ export function createTimetablePublishFingerprint({
     scope,
     activeDays: [...activeDays].sort((left, right) => left - right),
     periods: periods
-      .filter((period) => period.isInstructional !== false)
-      .map((period) => ({ id: period.id, index: period.index }))
+      .map((period) => ({
+        id: period.id,
+        index: period.index,
+        label: period.label,
+        startTime: period.startTime,
+        endTime: period.endTime,
+        type: period.type,
+        isInstructional: period.isInstructional,
+      }))
       .sort((left, right) => left.index - right.index),
     entries: entries
       .map((entry) => ({

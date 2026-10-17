@@ -10,6 +10,7 @@ import WizardStepper from "@/features/academics/timetable/components/WizardStepp
 import type { BackendTimetableConfigDto } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { TimetableSetupStatus } from "@/features/academics/timetable/services/timetableSetupStatus";
 import { formatTimetableTime } from "@/features/academics/timetable/services/timetableTimeFormat";
+import type { TimetableEntry } from "../types/timetable";
 
 interface TimetableSetupWizardProps {
   academicYearId: string;
@@ -17,6 +18,8 @@ interface TimetableSetupWizardProps {
   academicYearName: string;
   termName: string;
   status: TimetableSetupStatus;
+  entries: TimetableEntry[];
+  isRefreshing?: boolean;
   onReload: () => Promise<void>;
   onCancel: () => void;
   onComplete: () => void;
@@ -28,6 +31,8 @@ export default function TimetableSetupWizard({
   academicYearName,
   termName,
   status,
+  entries,
+  isRefreshing = false,
   onReload,
   onCancel,
   onComplete,
@@ -42,7 +47,7 @@ export default function TimetableSetupWizard({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const config = savedConfig ?? setupConfig(status);
   const periods = setupPeriods(status);
-  const readOnly = status.kind === "ready" && status.readOnly;
+  const readOnly = isRefreshing || (status.kind === "ready" && status.readOnly);
   const hasInstructionalPeriod = periods.some(
     (period) => period.isInstructional,
   );
@@ -118,7 +123,7 @@ export default function TimetableSetupWizard({
               academicYearId={academicYearId}
               termId={termId}
               config={config}
-              entries={[]}
+              entries={entries}
               scopeIds={{}}
               allowScopeSelection={false}
               fixedScope={{ scopeType: "TERM" }}
@@ -140,13 +145,13 @@ export default function TimetableSetupWizard({
             <TimetablePeriodsEditor
               config={config}
               periods={periods}
-              entries={[]}
+              entries={entries}
               readOnly={readOnly}
               onSaved={onReload}
             />
             <WizardActions
               isRtl={isRtl}
-              continueDisabled={!hasInstructionalPeriod}
+              continueDisabled={isRefreshing || !hasInstructionalPeriod}
               onBack={() => setActiveStep(0)}
               onContinue={() => setActiveStep(2)}
             />
@@ -174,7 +179,9 @@ export default function TimetableSetupWizard({
               >
                 {t("setup.back")}
               </Button>
-              <Button onClick={onComplete}>{t("setup.startBuilding")}</Button>
+              <Button onClick={onComplete} disabled={isRefreshing}>
+                {t("setup.startBuilding")}
+              </Button>
             </div>
           </SetupPanel>
         )}

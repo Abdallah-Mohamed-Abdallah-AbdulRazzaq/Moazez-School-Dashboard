@@ -9,7 +9,10 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import type { Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
+import type {
+  Classroom,
+  Section,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 import type { TimetableDropDecision } from "@/features/academics/timetable/components/TimetableSlotControl";
 import {
   applyTimetableDrop,
@@ -31,6 +34,7 @@ interface UseTimetableSchedulingInput {
   classroomId: string;
   selectedClassroom?: Classroom;
   classrooms: Classroom[];
+  sections: Pick<Section, "id" | "gradeId">[];
   subjects: BuildTimetableLibraryItemsInput["subjects"];
   subjectAllocations: BuildTimetableLibraryItemsInput["subjectAllocations"];
   teachers: BuildTimetableLibraryItemsInput["teachers"];
@@ -38,7 +42,12 @@ interface UseTimetableSchedulingInput {
   rooms: BuildTimetableLibraryItemsInput["rooms"];
   timetableEntries: TimetableEntry[];
   allTermEntries: TimetableEntry[];
-  periods: Array<{ index: number; isInstructional?: boolean }>;
+  periods: Array<{
+    index: number;
+    isInstructional?: boolean;
+    startTime?: string;
+    endTime?: string;
+  }>;
   canEdit: boolean;
   isDirty: boolean;
   isHolidayDay: (dayKey: string) => boolean;
@@ -75,6 +84,7 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
     rooms,
     sectionId,
     selectedClassroom,
+    sections,
     setTimetableEntries,
     showToast,
     stageId,
@@ -100,8 +110,12 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
       activationConstraint: { delay: 200, tolerance: 8 },
     }),
   );
+  const libraryGradeId = selectedClassroom
+    ? (sections.find((section) => section.id === selectedClassroom.sectionId)
+        ?.gradeId ?? gradeId)
+    : gradeId;
   const libraryScopeKey = selectedClassroom
-    ? `${gradeId}:${selectedClassroom.sectionId}:${selectedClassroom.id}`
+    ? `${libraryGradeId}:${selectedClassroom.sectionId}:${selectedClassroom.id}`
     : null;
   const interactionScopeKey = [stageId, gradeId, sectionId, classroomId].join(
     ":",
@@ -114,14 +128,14 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
     undoPlacement?.scopeKey === interactionScopeKey ? undoPlacement : null;
   const libraryItems = useMemo(
     () =>
-      selectedClassroom && gradeId
+      selectedClassroom && libraryGradeId
         ? buildTimetableLibraryItems({
             subjects,
             subjectAllocations,
             teachers,
             teacherAllocations,
             rooms,
-            gradeId,
+            gradeId: libraryGradeId,
             sectionId: selectedClassroom.sectionId,
             classroom: selectedClassroom,
             entries: timetableEntries,
@@ -129,7 +143,7 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
           })
         : [],
     [
-      gradeId,
+      libraryGradeId,
       locale,
       rooms,
       selectedClassroom,
@@ -169,6 +183,13 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
             ?.isInstructional !== false,
         rooms,
         classrooms,
+        periods,
+        allocations: {
+          classrooms,
+          sections,
+          subjectAllocations,
+          teacherAllocations,
+        },
         createEntryId,
       });
     },
@@ -181,6 +202,9 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
       rooms,
       termId,
       timetableEntries,
+      sections,
+      subjectAllocations,
+      teacherAllocations,
     ],
   );
 
@@ -196,9 +220,7 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
       }
       return {
         allowed: true,
-        tone: dropNeedsAttention(result.entries, target)
-          ? "WARNING"
-          : "VALID",
+        tone: dropNeedsAttention(result.entries, target) ? "WARNING" : "VALID",
       };
     },
     [evaluateDrop],
@@ -243,32 +265,30 @@ export function useTimetableScheduling(input: UseTimetableSchedulingInput) {
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const item = event.active.data.current?.item as
-      | TimetableLibraryItem
-      | undefined;
+      TimetableLibraryItem | undefined;
     setActiveDragItem(item ?? null);
   }, []);
   const handleDragCancel = useCallback(() => setActiveDragItem(null), []);
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const item = event.active.data.current?.item as
-        | TimetableLibraryItem
-        | undefined;
+        TimetableLibraryItem | undefined;
       const target = event.over?.data.current?.target as
-        | TimetableDropTarget
-        | undefined;
+        TimetableDropTarget | undefined;
       setActiveDragItem(null);
       if (item && target) placeItem(item, target);
     },
     [placeItem],
   );
   const undo = useCallback(() => {
-    if (!activeUndoPlacement) return;
+    if (!activeUndoPlacement || !canEdit) return;
     setTimetableEntries(activeUndoPlacement.entries);
     onDirtyChange(activeUndoPlacement.wasDirty);
     setUndoPlacement(null);
     showToast(translate("schedulingLibrary.undoComplete"), "success");
   }, [
     activeUndoPlacement,
+    canEdit,
     onDirtyChange,
     setTimetableEntries,
     showToast,

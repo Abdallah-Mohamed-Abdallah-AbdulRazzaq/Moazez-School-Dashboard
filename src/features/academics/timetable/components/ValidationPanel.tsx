@@ -1,6 +1,14 @@
 "use client";
 
-import { Accordion, AccordionDetails, AccordionSummary, Drawer, Tab, Tabs } from "@mui/material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Drawer,
+  Tab,
+  Tabs,
+  useMediaQuery,
+} from "@mui/material";
 import RtlProvider from "@mui/system/RtlProvider";
 import {
   AlertCircle,
@@ -8,6 +16,7 @@ import {
   BookOpen,
   CheckCircle,
   ChevronDown,
+  ChevronRight,
   Clock,
   Lightbulb,
   ListChecks,
@@ -18,9 +27,10 @@ import {
   UserRoundCheck,
   X,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import {
   validationIssueText,
+  hasBlockingValidation,
   type TimetableValidationSummary,
 } from "@/features/academics/timetable/services/timetableValidationSummary";
 import type {
@@ -33,10 +43,27 @@ import { Button, Input } from "@/components/ui";
 import {
   classifyPublicationReasons,
   publicationReasonPresentation,
+  validationPublicationReasons,
   type PublicationReasonCategory,
   type PublicationReasonReferenceNames,
 } from "@/features/academics/timetable/services/timetablePublicationReasons";
 import type { TimetablePublishReason } from "@/features/academics/timetable/services/timetableApiTypes";
+
+import ValidationReviewStatus, {
+  type ValidationReviewState,
+} from "./ValidationReviewStatus";
+import ValidationSubjectActions, {
+  type ValidationReviewContext,
+} from "./ValidationSubjectActions";
+import ValidationConflictFilters, {
+  conflictMatchesFilters,
+  emptyConflictFilters,
+} from "./ValidationConflictFilters";
+import ValidationConflictGroupSummary from "./ValidationConflictGroupSummary";
+import {
+  groupValidationConflicts,
+  type ValidationConflictGroup,
+} from "../services/timetableValidationReview";
 
 interface ValidationPanelProps {
   open: boolean;
@@ -51,7 +78,11 @@ interface ValidationPanelProps {
   onClose: () => void;
   locale: string;
   publicationReasons?: TimetablePublishReason[];
+  isPublished?: boolean;
   publicationReferenceNames?: PublicationReasonReferenceNames;
+  scopeName?: string;
+  review?: ValidationReviewState;
+  reviewContext?: ValidationReviewContext;
 }
 
 type NamedEntity = {
@@ -65,13 +96,11 @@ interface ValidationSection {
   issues: TimetableValidationIssue[];
   severity: "warning" | "error";
   tab: "conflicts" | "blockers";
+  conflictType?: TimetableConflictDisplay["type"];
 }
 
 type ValidationNavigationTab =
-  | "overview"
-  | "subjects"
-  | "conflicts"
-  | "blockers";
+  "overview" | "subjects" | "conflicts" | "blockers";
 
 interface SubjectIssueGroup {
   title: string;
@@ -81,11 +110,7 @@ interface SubjectIssueGroup {
 type ValidationStatus = TimetableValidationItem["status"];
 type SubjectStatusFilter = "all" | Exclude<ValidationStatus, "complete">;
 type PublicationRequirementTarget =
-  | "configuration"
-  | "schedule"
-  | "subjects"
-  | "teacherAllocation"
-  | "rooms";
+  "configuration" | "schedule" | "subjects" | "teacherAllocation" | "rooms";
 
 interface PublicationRequirementActions {
   openDestination: (path: string) => void;
@@ -114,15 +139,36 @@ export default function ValidationPanel({
   requirementActions,
   onClose,
   locale,
-  publicationReasons = [],
+  publicationReasons: reportedPublicationReasons = [],
+  isPublished = false,
   publicationReferenceNames = {},
+  scopeName,
+  review,
+  reviewContext,
 }: ValidationPanelProps) {
-  const [activeTab, setActiveTab] = useState<ValidationNavigationTab>("overview");
+  const navigationId = useId();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const [activeTab, setActiveTab] =
+    useState<ValidationNavigationTab>("overview");
   const [subjectSearch, setSubjectSearch] = useState("");
   const [subjectStatusFilter, setSubjectStatusFilter] =
     useState<SubjectStatusFilter>("all");
   const [visibleSubjectCount, setVisibleSubjectCount] = useState(
     INITIAL_VISIBLE_ISSUES,
+  );
+  const [conflictFilters, setConflictFilters] = useState(emptyConflictFilters);
+  const groupedConflicts = groupValidationConflicts(conflicts);
+  const resources = { teachers, classrooms, rooms };
+  const filteredConflicts = groupedConflicts.filter((group) =>
+    group.messages.some((message) =>
+      conflictMatchesFilters(
+        { ...group.conflict, message },
+        conflictFilters,
+        resources,
+        locale,
+      ),
+    ),
   );
   const isRTL = locale === "ar";
   const copy = getCopy(isRTL);
@@ -131,6 +177,10 @@ export default function ValidationPanel({
     (item) => item.status !== "complete" || item.issues.length > 0,
   );
   const fallbackSections = validationSections(validationSummary, copy);
+  const publicationReasons = validationPublicationReasons({
+    reasons: reportedPublicationReasons,
+    isPublished,
+  });
   const publicationGroups = classifyPublicationReasons(publicationReasons);
   const fallbackIssueCount = fallbackSections.reduce(
     (total, section) => total + section.issues.length,
@@ -143,11 +193,41 @@ export default function ValidationPanel({
     (section) => section.tab === "conflicts",
   );
   const conflictCount =
-    conflicts.length +
-    conflictSections.reduce((total, section) => total + section.issues.length, 0);
+    groupedConflicts.length +
+    conflictSections.reduce(
+      (total, section) => total + section.issues.length,
+      0,
+    );
+  const filteredConflictSections = conflictSections
+    .map((section) => ({
+      ...section,
+      issues: section.issues.filter((issue) =>
+        conflictMatchesFilters(
+          {
+            type: section.conflictType ?? "UNKNOWN",
+            dayOfWeek: issue.dayOfWeek ?? null,
+            resourceId: issue.teacherId ?? issue.classroomId ?? issue.roomId,
+            message: validationIssueText(issue),
+          },
+          conflictFilters,
+          resources,
+          locale,
+        ),
+      ),
+    }))
+    .filter((section) => section.issues.length > 0);
+  const matchingConflictCount =
+    filteredConflicts.length +
+    filteredConflictSections.reduce(
+      (total, section) => total + section.issues.length,
+      0,
+    );
   const blockerCount =
     publicationReasons.length +
-    blockerSections.reduce((total, section) => total + section.issues.length, 0);
+    blockerSections.reduce(
+      (total, section) => total + section.issues.length,
+      0,
+    );
   const attentionItemCount = issueItems.length + conflictCount + blockerCount;
   const filteredSubjectItems = filterSubjectIssues({
     issues: issueItems,
@@ -169,243 +249,458 @@ export default function ValidationPanel({
     conflicts.length > 0 ||
     fallbackIssueCount > 0 ||
     publicationGroups.length > 0;
+  const canPublish =
+    (!review ||
+      ((review.canPublish || isPublished) &&
+        review.isCurrent &&
+        !review.hasUnsavedChanges &&
+        !review.isChecking &&
+        !review.failed)) &&
+    validationSummary.canPublish &&
+    !hasBlockingValidation(validationSummary) &&
+    conflicts.length === 0 &&
+    publicationReasons.length === 0;
+  const navigateToTab = (tab: ValidationNavigationTab) => {
+    setActiveTab(tab);
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+    document.getElementById(`${navigationId}-tab-${tab}`)?.focus();
+  };
 
   return (
     <Drawer
       anchor={isRTL ? "left" : "right"}
       open={open}
       onClose={onClose}
+      transitionDuration={reducedMotion ? 0 : undefined}
       PaperProps={{
+        role: "dialog",
+        "aria-modal": true,
+        "aria-label": copy.title,
         sx: {
-          width: 680,
+          width: { xs: "100vw", sm: 720 },
           maxWidth: "100vw",
+          fontFamily: "var(--font-somar), sans-serif",
         },
       }}
     >
       <div
-        className="flex h-full flex-col bg-slate-50"
+
+        className="flex h-full min-h-0 flex-col bg-slate-50 text-start"
         dir={isRTL ? "rtl" : "ltr"}
       >
-        <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
+        <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-base font-semibold text-slate-950">
-                {copy.title}
-              </h3>
-              <p className="mt-1 text-sm text-slate-600">{copy.subtitle}</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary">
+                <ListChecks className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold text-slate-950">
+                  {copy.title}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  {copy.subtitle}
+                </p>
+              </div>
             </div>
-            <button
+            <Button
+              variant="ghost"
               onClick={onClose}
-              className="cursor-pointer rounded-md p-2 text-slate-500 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="h-11 w-11 shrink-0 cursor-pointer p-2 text-slate-600 focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
               aria-label={copy.close}
             >
-              <X className="h-5 w-5" />
-            </button>
+              <X className="h-5 w-5" aria-hidden="true" />
+            </Button>
           </div>
+          {scopeName && (
+            <p className="mt-4 break-words rounded-lg bg-primary-50 px-3 py-2 text-sm text-primary-800">
+              <span className="font-semibold">{copy.reviewingScope}: </span>
+              {scopeName}
+            </p>
+          )}
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
-          <ReadinessBanner
-            canPublish={validationSummary.canPublish}
-            attentionItemCount={attentionItemCount}
-            copy={copy}
-          />
+        <ValidationNavigation
+          id={navigationId}
+          activeTab={activeTab}
+          onNavigate={navigateToTab}
+          copy={copy}
+          isRTL={isRTL}
+          counts={{
+            overview: null,
+            subjects: issueItems.length,
+            conflicts: conflictCount,
+            blockers: blockerCount,
+          }}
+        />
 
-          {summary && (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <SummaryMetric
-                label={copy.classrooms}
-                value={summary.classroomsChecked}
-                icon={<School className="h-4 w-4" />}
-              />
-              <SummaryMetric
-                label={copy.expectedSlots}
-                value={summary.expectedWeeklySlots}
-                icon={<Clock className="h-4 w-4" />}
-              />
-              <SummaryMetric
-                label={copy.scheduledSlots}
-                value={summary.actualScheduledSlots}
-                icon={<BookOpen className="h-4 w-4" />}
-              />
-              <SummaryMetric
-                label={copy.publishIssues}
-                value={attentionItemCount}
-                icon={<AlertTriangle className="h-4 w-4" />}
-                tone={attentionItemCount > 0 ? "red" : "green"}
-              />
-            </div>
-          )}
-
-          {!hasIssues ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                <span>{copy.noIssues}</span>
-              </div>
-            </div>
-          ) : (
+        <div
+          ref={contentRef}
+          role="tabpanel"
+          id={`${navigationId}-panel-${activeTab}`}
+          aria-labelledby={`${navigationId}-tab-${activeTab}`}
+          tabIndex={0}
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:p-6"
+        >
+          {review && <ValidationReviewStatus review={review} locale={locale} />}
+          {activeTab === "overview" && (
             <>
-              <div className="sticky -top-4 z-10 border-b border-slate-200 bg-slate-50/95 pb-2 pt-1 backdrop-blur sm:-top-5">
-                <RtlProvider value={isRTL}>
-                  <Tabs
-                    dir={isRTL ? "rtl" : "ltr"}
-                    value={activeTab}
-                    onChange={(_event, nextTab) => setActiveTab(nextTab)}
-                    variant="scrollable"
-                    scrollButtons="auto"
-                    allowScrollButtonsMobile
-                    aria-label={copy.navigationLabel}
-                    sx={{
-                      minHeight: 44,
-                      "& .MuiTab-root": {
-                        minHeight: 44,
-                        minWidth: "auto",
-                        px: 1.5,
-                        textTransform: "none",
-                      },
-                    }}
-                  >
-                    <Tab value="overview" label={copy.overview} />
-                    <Tab
-                      value="subjects"
-                      label={tabLabel(copy.subjectIssues, issueItems.length)}
-                    />
-                    <Tab
-                      value="conflicts"
-                      label={tabLabel(copy.conflicts, conflictCount)}
-                    />
-                    <Tab
-                      value="blockers"
-                      label={tabLabel(copy.publishBlockers, blockerCount)}
-                    />
-                  </Tabs>
-                </RtlProvider>
-              </div>
+              <ReadinessBanner
+                isPublished={isPublished}
+                canPublish={canPublish}
+                hasIssues={hasIssues}
+                attentionItemCount={attentionItemCount}
+                copy={copy}
+              />
 
-              {activeTab === "overview" && (
+              {summary && (
+                <div className="grid grid-cols-3 gap-2">
+                  <SummaryMetric
+                    label={copy.classrooms}
+                    value={summary.classroomsChecked}
+                    icon={<School className="h-4 w-4" />}
+                  />
+                  <SummaryMetric
+                    label={copy.expectedSlots}
+                    value={summary.expectedWeeklySlots}
+                    icon={<Clock className="h-4 w-4" />}
+                  />
+                  <SummaryMetric
+                    label={copy.scheduledSlots}
+                    value={summary.actualScheduledSlots}
+                    icon={<BookOpen className="h-4 w-4" />}
+                  />
+                </div>
+              )}
+
+              {hasIssues ? (
                 <ValidationOverview
                   copy={copy}
                   subjectIssueCount={issueItems.length}
                   conflictCount={conflictCount}
                   blockerCount={blockerCount}
-                  reviewTab={reviewTab}
-                  onNavigate={setActiveTab}
+                  onNavigate={navigateToTab}
+                />
+              ) : (
+                <ValidationEmptyState
+                  copy={copy}
+                  message={canPublish ? copy.noIssues : copy.noDetails}
                 />
               )}
-
-              {activeTab === "subjects" && (
-                <section className="space-y-2">
-                  <SubjectIssueFilters
-                    copy={copy}
-                    search={subjectSearch}
-                    status={subjectStatusFilter}
-                    resultCount={filteredSubjectItems.length}
-                    onSearchChange={(search) => {
-                      setSubjectSearch(search);
-                      setVisibleSubjectCount(INITIAL_VISIBLE_ISSUES);
-                    }}
-                    onStatusChange={(status) => {
-                      setSubjectStatusFilter(status);
-                      setVisibleSubjectCount(INITIAL_VISIBLE_ISSUES);
-                    }}
-                  />
-                  {visibleSubjectGroups.map((group, index) => (
-                    <SubjectIssueSection
-                      key={group.title}
-                      group={group}
-                      defaultExpanded={index === 0}
-                      locale={locale}
-                      copy={copy}
-                    />
-                  ))}
-                  {filteredSubjectItems.length === 0 && (
-                    <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600">
-                      {copy.noMatchingIssues}
-                    </div>
-                  )}
-                  {visibleSubjectCount < filteredSubjectItems.length && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      fullWidth
-                      onClick={() =>
-                        setVisibleSubjectCount(
-                          (currentCount) => currentCount + INITIAL_VISIBLE_ISSUES,
-                        )
-                      }
-                    >
-                      {copy.showMore} ({filteredSubjectItems.length - visibleSubjectCount})
-                    </Button>
-                  )}
-                </section>
-              )}
-
-              {activeTab === "conflicts" && (
-                <section className="space-y-2">
-                  {conflicts.length > 0 && (
-                    <IssueAccordion
-                      title={copy.blockingConflicts}
-                      count={conflicts.length}
-                      defaultExpanded
-                    >
-                      <div className="space-y-3">
-                        {conflicts.map((conflict, index) => (
-                          <ConflictCard
-                            key={`${conflict.code ?? conflict.type}-${conflict.dayKey}-${conflict.periodId ?? conflict.periodIndex}-${index}`}
-                            conflict={conflict}
-                            teachers={teachers}
-                            rooms={rooms}
-                            classrooms={classrooms}
-                            locale={locale}
-                            copy={copy}
-                            isSelected={selectedConflict === conflict}
-                            onSelect={onConflictSelect}
-                          />
-                        ))}
-                      </div>
-                    </IssueAccordion>
-                  )}
-                  {conflictSections.map((section) => (
-                    <FallbackIssueSection key={section.title} section={section} />
-                  ))}
-                </section>
-              )}
-
-              {activeTab === "blockers" && (
-                <section className="space-y-2">
-                  {blockerSections.map((section) => (
-                    <FallbackIssueSection key={section.title} section={section} />
-                  ))}
-                  {publicationGroups.map((group, index) => (
-                    <IssueAccordion
-                      key={group.category}
-                      title={publicationCategoryLabel(group.category, locale)}
-                      count={group.reasons.length}
-                      defaultExpanded={index === 0}
-                    >
-                      <div className="space-y-2">
-                        {group.reasons.map((reason, reasonIndex) => (
-                          <PublicationReasonCard
-                            key={`${reason.code}-${reasonIndex}`}
-                            reason={reason}
-                            locale={locale}
-                            referenceNames={publicationReferenceNames}
-                            copy={copy}
-                            category={group.category}
-                            requirementActions={requirementActions}
-                          />
-                        ))}
-                      </div>
-                    </IssueAccordion>
-                  ))}
-                </section>
-              )}
             </>
+          )}
+
+          {activeTab !== "overview" && (
+            <div>
+              <h3 className="text-base font-semibold text-slate-950">
+                {activeTab === "subjects"
+                  ? copy.subjectIssues
+                  : activeTab === "conflicts"
+                    ? copy.conflicts
+                    : copy.publishBlockers}
+              </h3>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                {activeTab === "subjects"
+                  ? copy.subjectsDescription
+                  : activeTab === "conflicts"
+                    ? copy.conflictsDescription
+                    : copy.requirementsDescription}
+              </p>
+            </div>
+          )}
+
+          {activeTab === "subjects" && (
+            <section className="space-y-2">
+              <SubjectIssueFilters
+                copy={copy}
+                search={subjectSearch}
+                status={subjectStatusFilter}
+                resultCount={filteredSubjectItems.length}
+                onClear={() => {
+                  setSubjectSearch("");
+                  setSubjectStatusFilter("all");
+                  setVisibleSubjectCount(INITIAL_VISIBLE_ISSUES);
+                }}
+                onSearchChange={(search) => {
+                  setSubjectSearch(search);
+                  setVisibleSubjectCount(INITIAL_VISIBLE_ISSUES);
+                }}
+                onStatusChange={(status) => {
+                  setSubjectStatusFilter(status);
+                  setVisibleSubjectCount(INITIAL_VISIBLE_ISSUES);
+                }}
+              />
+              {visibleSubjectGroups.map((group, index) => (
+                <SubjectIssueSection
+                  key={group.title}
+                  group={group}
+                  openDestination={requirementActions.openDestination}
+                  reviewContext={reviewContext}
+                  defaultExpanded={index === 0}
+                  locale={locale}
+                  copy={copy}
+                />
+              ))}
+              {filteredSubjectItems.length === 0 && (
+                <ValidationEmptyState
+                  copy={copy}
+                  message={
+                    issueItems.length > 0
+                      ? copy.noMatchingIssues
+                      : copy.noSubjectIssues
+                  }
+                />
+              )}
+              {visibleSubjectCount < filteredSubjectItems.length && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  fullWidth
+                  onClick={() =>
+                    setVisibleSubjectCount(
+                      (currentCount) => currentCount + INITIAL_VISIBLE_ISSUES,
+                    )
+                  }
+                >
+                  {copy.showMore} (
+                  {filteredSubjectItems.length - visibleSubjectCount})
+                </Button>
+              )}
+            </section>
+          )}
+
+          {activeTab === "conflicts" && (
+            <section className="space-y-2">
+              {conflictCount > 0 && (
+                <ValidationConflictFilters
+                  filters={conflictFilters}
+                  onChange={setConflictFilters}
+                  count={matchingConflictCount}
+                  locale={locale}
+                />
+              )}
+              {conflictCount > 0 && matchingConflictCount === 0 && (
+                <ValidationEmptyState
+                  copy={copy}
+                  message={copy.noMatchingIssues}
+                />
+              )}
+              {conflictCount === 0 && (
+                <ValidationEmptyState copy={copy} message={copy.noConflicts} />
+              )}
+              {filteredConflicts.length > 0 && (
+                <IssueAccordion
+                  title={copy.blockingConflicts}
+                  count={filteredConflicts.length}
+                  defaultExpanded
+                >
+                  <div className="space-y-3">
+                    {filteredConflicts.map(
+                      ({ conflict, ...groupDetails }, index) => (
+                        <ConflictCard
+                          key={`${conflict.code ?? conflict.type}-${conflict.dayKey}-${conflict.periodId ?? conflict.periodIndex}-${index}`}
+                          conflict={conflict}
+                          group={{ conflict, ...groupDetails }}
+                          teachers={teachers}
+                          rooms={rooms}
+                          classrooms={classrooms}
+                          locale={locale}
+                          copy={copy}
+                          isSelected={
+                            selectedConflict === conflict ||
+                            Boolean(
+                              selectedConflict &&
+                              conflict.entryIds.some((id) =>
+                                selectedConflict.entryIds.includes(id),
+                              ),
+                            )
+                          }
+                          onSelect={onConflictSelect}
+                        />
+                      ),
+                    )}
+                  </div>
+                </IssueAccordion>
+              )}
+              {filteredConflictSections.map((section) => (
+                <FallbackIssueSection key={section.title} section={section} />
+              ))}
+            </section>
+          )}
+
+          {activeTab === "blockers" && (
+            <section className="space-y-2">
+              {blockerCount === 0 && (
+                <ValidationEmptyState
+                  copy={copy}
+                  message={copy.noRequirements}
+                />
+              )}
+              {blockerSections.map((section) => (
+                <FallbackIssueSection key={section.title} section={section} />
+              ))}
+              {publicationGroups.map((group, index) => (
+                <IssueAccordion
+                  key={group.category}
+                  title={publicationCategoryLabel(group.category, locale)}
+                  count={group.reasons.length}
+                  defaultExpanded={index === 0}
+                >
+                  <div className="space-y-2">
+                    {group.reasons.map((reason, reasonIndex) => (
+                      <PublicationReasonCard
+                        key={`${reason.code}-${reasonIndex}`}
+                        reason={reason}
+                        locale={locale}
+                        referenceNames={publicationReferenceNames}
+                        copy={copy}
+                        category={group.category}
+                        requirementActions={requirementActions}
+                      />
+                    ))}
+                  </div>
+                </IssueAccordion>
+              ))}
+            </section>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-slate-200 bg-white p-4 sm:px-6">
+          <Button
+            variant="secondary"
+            className="min-h-11 flex-1 focus-visible:ring-2 focus-visible:ring-primary sm:flex-none"
+            onClick={onClose}
+          >
+            {copy.backToTimetable}
+          </Button>
+          {activeTab === "overview" && reviewTab && (
+            <Button
+              className="min-h-11 flex-1 focus-visible:ring-2 focus-visible:ring-primary sm:flex-none"
+              onClick={() => navigateToTab(reviewTab)}
+            >
+              {copy.reviewBlockers}
+            </Button>
+          )}
+          {activeTab !== "overview" && (
+            <Button
+              className="min-h-11 flex-1 focus-visible:ring-2 focus-visible:ring-primary sm:flex-none"
+              onClick={() => navigateToTab("overview")}
+            >
+              {copy.overview}
+            </Button>
           )}
         </div>
       </div>
     </Drawer>
+  );
+}
+
+function ValidationNavigation({
+  id,
+  activeTab,
+  onNavigate,
+  copy,
+  isRTL,
+  counts,
+}: {
+  id: string;
+  activeTab: ValidationNavigationTab;
+  onNavigate: (tab: ValidationNavigationTab) => void;
+  copy: ValidationCopy;
+  isRTL: boolean;
+  counts: Record<ValidationNavigationTab, number | null>;
+}) {
+  const tabs = [
+    { value: "overview", label: copy.overview, shortLabel: copy.overview },
+    {
+      value: "subjects",
+      label: copy.subjectIssues,
+      shortLabel: copy.subjectTab,
+    },
+    { value: "conflicts", label: copy.conflicts, shortLabel: copy.conflicts },
+    {
+      value: "blockers",
+      label: copy.publishBlockers,
+      shortLabel: copy.requirementsTab,
+    },
+  ] as const;
+  return (
+    <div className="shrink-0 border-b border-slate-200 bg-white px-2 sm:px-4">
+      <RtlProvider value={isRTL}>
+        <Tabs
+          value={activeTab}
+          onChange={(_event, tab) => onNavigate(tab)}
+          variant="fullWidth"
+          dir={isRTL ? "rtl" : "ltr"}
+          aria-label={copy.navigationLabel}
+          sx={{
+            "@media (prefers-reduced-motion: reduce)": {
+              "& .MuiTabs-indicator": { transition: "none" },
+            },
+            "& .MuiTab-root": {
+              minWidth: 0,
+              minHeight: 64,
+              px: 0.5,
+              textTransform: "none",
+              fontFamily: "inherit",
+              color: "#475569",
+              "&.Mui-selected": { color: "primary.main" },
+              "&.Mui-focusVisible": {
+                outline: "2px solid",
+                outlineColor: "primary.main",
+                outlineOffset: -3,
+              },
+            },
+          }}
+        >
+          {tabs.map((tab) => {
+            const count = counts[tab.value];
+            return (
+              <Tab
+                key={tab.value}
+                value={tab.value}
+                id={`${id}-tab-${tab.value}`}
+                aria-controls={`${id}-panel-${tab.value}`}
+                aria-label={
+                  count === null ? tab.label : tabLabel(tab.label, count)
+                }
+                label={
+                  <span className="flex min-w-0 flex-col items-center gap-1 text-xs font-semibold sm:flex-row sm:gap-2 sm:text-sm">
+                    <span>{tab.shortLabel}</span>
+                    {count !== null && (
+                      <span
+                        className={`min-w-5 rounded-full px-1.5 py-0.5 text-xs tabular-nums ${activeTab === tab.value ? "bg-primary text-white" : "bg-slate-100 text-slate-600"}`}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </span>
+                }
+              />
+            );
+          })}
+        </Tabs>
+      </RtlProvider>
+    </div>
+  );
+}
+
+function ValidationEmptyState({
+  copy,
+  message,
+}: {
+  copy: ValidationCopy;
+  message: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center">
+      <ListChecks className="h-7 w-7 text-primary" aria-hidden="true" />
+      <p className="max-w-sm text-sm leading-relaxed text-slate-600">
+        {message}
+      </p>
+      <p className="text-xs leading-relaxed text-slate-500">
+        {copy.reviewHint}
+      </p>
+    </div>
   );
 }
 
@@ -424,7 +719,11 @@ function PublicationReasonCard({
   category: PublicationReasonCategory;
   requirementActions: PublicationRequirementActions;
 }) {
-  const presentation = publicationReasonPresentation(reason, locale, referenceNames);
+  const presentation = publicationReasonPresentation(
+    reason,
+    locale,
+    referenceNames,
+  );
   const actionTarget = publicationRequirementTarget(reason.code, category);
   const destination = publicationRequirementDestination(
     reason,
@@ -447,7 +746,7 @@ function PublicationReasonCard({
             </span>
           </div>
           <PublicationReasonDetails details={presentation.details} />
-          <PublicationRequirementGuidance
+          <PublicationRequirements
             category={category}
             actionTarget={actionTarget}
             copy={copy}
@@ -465,7 +764,7 @@ function PublicationReasonCard({
   );
 }
 
-function PublicationRequirementGuidance({
+function PublicationRequirements({
   category,
   actionTarget,
   copy,
@@ -514,7 +813,9 @@ function PublicationReasonDetails({
     <dl className="mt-3 grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2.5 sm:grid-cols-2">
       {details.map((detail) => (
         <div key={detail.label} className="min-w-0">
-          <dt className="text-[11px] font-medium text-slate-500">{detail.label}</dt>
+          <dt className="text-[11px] font-medium text-slate-500">
+            {detail.label}
+          </dt>
           <dd className="mt-0.5 break-words text-xs font-semibold text-slate-800">
             {detail.value}
           </dd>
@@ -529,45 +830,43 @@ function ValidationOverview({
   subjectIssueCount,
   conflictCount,
   blockerCount,
-  reviewTab,
   onNavigate,
 }: {
   copy: ValidationCopy;
   subjectIssueCount: number;
   conflictCount: number;
   blockerCount: number;
-  reviewTab: ValidationNavigationTab | null;
   onNavigate: (tab: ValidationNavigationTab) => void;
 }) {
   return (
     <section className="space-y-4">
       <p className="text-sm text-slate-600">{copy.overviewDescription}</p>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="space-y-3">
         <NavigationMetric
           label={copy.subjectIssues}
           count={subjectIssueCount}
+          description={copy.subjectsDescription}
+          icon={<BookOpen className="h-5 w-5" aria-hidden="true" />}
           onClick={() => onNavigate("subjects")}
         />
         <NavigationMetric
           label={copy.conflicts}
           count={conflictCount}
+          description={copy.conflictsDescription}
+          icon={<AlertTriangle className="h-5 w-5" aria-hidden="true" />}
           onClick={() => onNavigate("conflicts")}
         />
         <NavigationMetric
           label={copy.publishBlockers}
           count={blockerCount}
+          description={copy.requirementsDescription}
+          icon={<ListChecks className="h-5 w-5" aria-hidden="true" />}
           onClick={() => onNavigate("blockers")}
         />
       </div>
-      <Button
-        type="button"
-        variant="primary"
-        fullWidth
-        disabled={reviewTab === null}
-        onClick={() => reviewTab && onNavigate(reviewTab)}
-      >
-        {copy.reviewBlockers}
-      </Button>
+      <p className="text-xs leading-relaxed text-slate-500">
+        {copy.countsHint}
+      </p>
     </section>
   );
 }
@@ -576,20 +875,46 @@ function NavigationMetric({
   label,
   count,
   onClick,
+  description,
+  icon,
 }: {
   label: string;
   count: number;
   onClick: () => void;
+  description: string;
+  icon: ReactNode;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="secondary"
       onClick={onClick}
-      className="cursor-pointer rounded-lg border border-slate-200 bg-white p-3 text-center transition-colors duration-200 hover:border-primary-300 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+      fullWidth
+      className="min-h-20 cursor-pointer justify-start rounded-xl p-4 text-start hover:border-primary-300 hover:bg-primary-50 focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none [&>span]:w-full"
     >
-      <div className="text-xl font-semibold text-slate-950">{count}</div>
-      <div className="mt-1 text-xs font-medium text-slate-600">{label}</div>
-    </button>
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="hidden rounded-lg bg-primary-50 p-2 text-primary sm:block">
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-slate-900">
+            {label}
+          </span>
+          <span className="mt-1 block text-xs font-normal leading-relaxed text-slate-600">
+            {description}
+          </span>
+        </span>
+        <span
+          className={`min-w-8 rounded-lg px-2 py-1 text-center text-base font-semibold tabular-nums ${count > 0 ? "bg-amber-50 text-amber-800" : "bg-slate-100 text-slate-600"}`}
+        >
+          {count}
+        </span>
+        <ChevronRight
+          className="h-4 w-4 shrink-0 text-primary rtl:rotate-180"
+          aria-hidden="true"
+        />
+      </span>
+    </Button>
   );
 }
 
@@ -600,6 +925,7 @@ function SubjectIssueFilters({
   resultCount,
   onSearchChange,
   onStatusChange,
+  onClear,
 }: {
   copy: ValidationCopy;
   search: string;
@@ -607,10 +933,13 @@ function SubjectIssueFilters({
   resultCount: number;
   onSearchChange: (search: string) => void;
   onStatusChange: (status: SubjectStatusFilter) => void;
+  onClear: () => void;
 }) {
+  const searchRef = useRef<HTMLInputElement>(null);
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
       <Input
+        ref={searchRef}
         type="search"
         inputSize="sm"
         value={search}
@@ -624,9 +953,24 @@ function SubjectIssueFilters({
         selectedStatus={status}
         onSelect={onStatusChange}
       />
-      <p className="text-xs font-medium text-slate-600">
-        {copy.resultsCount}: {resultCount}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p role="status" className="text-xs font-medium text-slate-600">
+          {copy.resultsCount}: {resultCount}
+        </p>
+        {(search !== "" || status !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11 text-primary focus-visible:ring-2 focus-visible:ring-primary"
+            onClick={() => {
+              onClear();
+              searchRef.current?.focus();
+            }}
+          >
+            {copy.clearFilters}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -648,7 +992,7 @@ function SubjectStatusFilters({
           type="button"
           aria-pressed={selectedStatus === filter.value}
           onClick={() => onSelect(filter.value)}
-          className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+          className={`min-h-11 cursor-pointer rounded-full border px-3 py-2 text-xs font-medium transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-primary-500 ${
             selectedStatus === filter.value
               ? "border-primary bg-primary text-white"
               : "border-slate-200 bg-slate-50 text-slate-700 hover:border-primary-300 hover:bg-primary-50"
@@ -682,11 +1026,15 @@ function SubjectIssueSection({
   defaultExpanded,
   locale,
   copy,
+  openDestination,
+  reviewContext,
 }: {
   group: SubjectIssueGroup;
   defaultExpanded: boolean;
   locale: string;
   copy: ValidationCopy;
+  openDestination: (path: string) => void;
+  reviewContext?: ValidationReviewContext;
 }) {
   return (
     <IssueAccordion
@@ -701,6 +1049,8 @@ function SubjectIssueSection({
             item={item}
             locale={locale}
             copy={copy}
+            openDestination={openDestination}
+            reviewContext={reviewContext}
           />
         ))}
       </div>
@@ -719,12 +1069,26 @@ function IssueAccordion({
   defaultExpanded?: boolean;
   children: ReactNode;
 }) {
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   return (
     <Accordion
       defaultExpanded={defaultExpanded}
       disableGutters
       elevation={0}
-      sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}
+      slotProps={{ transition: { timeout: reducedMotion ? 0 : undefined } }}
+      sx={{
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: "12px !important",
+        overflow: "hidden",
+        "&::before": { display: "none" },
+        "& .MuiAccordionSummary-root": { minHeight: 52, bgcolor: "#f8fafc" },
+        "& .MuiAccordionSummary-root.Mui-focusVisible": {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: -2,
+        },
+      }}
     >
       <AccordionSummary expandIcon={<ChevronDown className="h-4 w-4" />}>
         <SectionTitle title={title} count={count} />
@@ -735,31 +1099,47 @@ function IssueAccordion({
 }
 
 function ReadinessBanner({
+  isPublished,
   canPublish,
   attentionItemCount,
+  hasIssues,
   copy,
 }: {
+  isPublished: boolean;
   canPublish: boolean;
   attentionItemCount: number;
+  hasIssues: boolean;
   copy: ValidationCopy;
 }) {
   const Icon = canPublish ? CheckCircle : AlertCircle;
   return (
     <div
-      className={`rounded-lg border p-3 text-sm ${
+      role="status"
+      className={`rounded-xl border p-4 text-sm ${
         canPublish
           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-amber-200 bg-amber-50 text-amber-800"
+          : hasIssues
+            ? "border-amber-200 bg-amber-50 text-amber-900"
+            : "border-slate-200 bg-white text-slate-700"
       }`}
     >
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4" />
+        <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
         <span className="font-medium">
-          {canPublish
+          {isPublished
+            ? hasIssues ? copy.publishedIssues : copy.published
+            : canPublish
             ? copy.canPublish
-            : `${copy.cannotPublish} ${copy.attentionTotal}: ${attentionItemCount}`}
+            : hasIssues
+              ? copy.cannotPublish
+              : copy.checksUnavailable}
         </span>
       </div>
+      {hasIssues && (
+        <p className="mt-2 leading-relaxed">
+          {copy.attentionTotal}: {attentionItemCount}
+        </p>
+      )}
     </div>
   );
 }
@@ -768,30 +1148,25 @@ function SummaryMetric({
   label,
   value,
   icon,
-  tone = "slate",
 }: {
   label: string;
   value: number;
   icon: ReactNode;
-  tone?: "slate" | "red" | "green";
 }) {
-  const toneClass =
-    tone === "red"
-      ? "bg-red-50 text-red-700"
-      : tone === "green"
-        ? "bg-emerald-50 text-emerald-700"
-        : "bg-slate-100 text-slate-600";
-
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-2.5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] font-medium text-slate-600">{label}</div>
+          <div className="min-h-8 text-xs font-medium text-slate-600 sm:min-h-0">
+            {label}
+          </div>
           <div className="mt-0.5 text-lg font-semibold text-slate-950">
             {value}
           </div>
         </div>
-        <div className={`rounded-full p-1.5 ${toneClass}`}>{icon}</div>
+        <div className="hidden rounded-full bg-primary-50 p-1.5 text-primary sm:block">
+          {icon}
+        </div>
       </div>
     </div>
   );
@@ -801,22 +1176,29 @@ function ValidationItemCard({
   item,
   locale,
   copy,
+  openDestination,
+  reviewContext,
 }: {
   item: TimetableValidationItem;
   locale: string;
   copy: ValidationCopy;
+  openDestination: (path: string) => void;
+  reviewContext?: ValidationReviewContext;
 }) {
   const subjectName =
     localizedName(item.subject, locale) || copy.noSubjectLabel;
   const classroomName = localizedName(item.classroom, locale);
   const gradeName = localizedName(item.grade, locale);
-  const expected = item.expectedWeeklyHours ?? 0;
+  const expected = item.expectedWeeklyHours;
   const actual = item.scheduledWeeklyHours;
-  const delta = actual - expected;
+  const delta = expected === null ? null : actual - expected;
+  const formatCount = new Intl.NumberFormat(locale).format;
 
   return (
-    <article className="rounded-lg border border-slate-200 border-s-4 border-s-red-400 bg-white p-3 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+    <article
+      className={`rounded-xl border border-slate-200 border-s-4 bg-white p-4 ${item.status === "under_scheduled" ? "border-s-amber-400" : "border-s-red-400"}`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {item.subject?.color && (
@@ -825,7 +1207,7 @@ function ValidationItemCard({
                 style={{ backgroundColor: item.subject.color }}
               />
             )}
-            <h4 className="truncate text-sm font-semibold text-slate-950">
+            <h4 className="break-words text-sm font-semibold text-slate-950">
               {subjectName}
             </h4>
             {item.subject?.code && (
@@ -842,15 +1224,30 @@ function ValidationItemCard({
         <StatusBadge status={item.status} copy={copy} />
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <MiniStat label={copy.expected} value={expected} />
-        <MiniStat label={copy.scheduled} value={actual} />
+      <dl className="mt-4 grid grid-cols-3 gap-2">
+        <MiniStat
+          label={copy.expected}
+          value={expected === null ? copy.notAvailable : formatCount(expected)}
+        />
+        <MiniStat label={copy.scheduled} value={formatCount(actual)} />
         <MiniStat
           label={copy.delta}
-          value={delta > 0 ? `+${delta}` : String(delta)}
-          tone={delta === 0 ? "normal" : delta > 0 ? "red" : "amber"}
+          value={
+            delta === null
+              ? copy.notAvailable
+              : delta > 0
+                ? `+${formatCount(delta)}`
+                : formatCount(delta)
+          }
+          tone={
+            delta === null || delta === 0
+              ? "normal"
+              : delta > 0
+                ? "red"
+                : "amber"
+          }
         />
-      </div>
+      </dl>
 
       {item.issues.length > 0 && (
         <div className="mt-3 space-y-2">
@@ -864,6 +1261,12 @@ function ValidationItemCard({
           ))}
         </div>
       )}
+      <ValidationSubjectActions
+        item={item}
+        context={reviewContext}
+        openDestination={openDestination}
+        locale={locale}
+      />
     </article>
   );
 }
@@ -877,7 +1280,7 @@ function StatusBadge({
 }) {
   return (
     <span
-      className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[status]}`}
+      className={`inline-flex max-w-full rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[status]}`}
     >
       {copy.status[status]}
     </span>
@@ -901,9 +1304,11 @@ function MiniStat({
         : "text-slate-950";
 
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-      <div className="text-[11px] font-medium text-slate-500">{label}</div>
-      <div className={`mt-1 text-sm font-semibold ${toneClass}`}>{value}</div>
+    <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-3 sm:px-3">
+      <dt className="text-xs font-medium text-slate-600">{label}</dt>
+      <dd className={`mt-1 text-base font-semibold tabular-nums ${toneClass}`}>
+        <bdi>{value}</bdi>
+      </dd>
     </div>
   );
 }
@@ -968,6 +1373,7 @@ function dayLabel(dayKey: string, locale: string): string {
 
 function ConflictCard({
   conflict,
+  group,
   teachers,
   rooms,
   classrooms,
@@ -977,6 +1383,7 @@ function ConflictCard({
   onSelect,
 }: {
   conflict: TimetableConflictDisplay;
+  group: ValidationConflictGroup;
   teachers: NamedEntity[];
   rooms: NamedEntity[];
   classrooms: NamedEntity[];
@@ -1046,6 +1453,7 @@ function ConflictCard({
           <span className="mt-3 block rounded-md bg-red-50 px-3 py-2 text-xs text-red-800">
             {conflict.message}
           </span>
+          <ValidationConflictGroupSummary group={group} />
           {conflict.proposedIndexes && conflict.proposedIndexes.length > 0 && (
             <span className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
               <span className="font-medium">{copy.affectedItems}</span>
@@ -1101,30 +1509,35 @@ function validationSections(
       tab: "blockers",
     },
     {
+      conflictType: "TEACHER",
       title: copy.teacherConflicts,
       issues: validationSummary.teacherConflicts,
       severity: "error",
       tab: "conflicts",
     },
     {
+      conflictType: "CLASSROOM",
       title: copy.classroomConflicts,
       issues: validationSummary.classroomConflicts,
       severity: "error",
       tab: "conflicts",
     },
     {
+      conflictType: "ROOM",
       title: copy.roomConflicts,
       issues: validationSummary.roomConflicts,
       severity: "error",
       tab: "conflicts",
     },
     {
+      conflictType: "ROOM",
       title: copy.roomIntegrity,
       issues: validationSummary.roomIntegrityIssues,
       severity: "error",
       tab: "conflicts",
     },
     {
+      conflictType: "UNKNOWN",
       title: copy.conflicts,
       issues: validationSummary.conflicts,
       severity: "error",
@@ -1193,7 +1606,8 @@ function compareSubjectIssues(
   secondIssue: TimetableValidationItem,
 ) {
   const statusDifference =
-    subjectStatusPriority(firstIssue.status) - subjectStatusPriority(secondIssue.status);
+    subjectStatusPriority(firstIssue.status) -
+    subjectStatusPriority(secondIssue.status);
   if (statusDifference !== 0) return statusDifference;
 
   return subjectIssueGap(secondIssue) - subjectIssueGap(firstIssue);
@@ -1211,7 +1625,9 @@ function subjectStatusPriority(status: ValidationStatus) {
 }
 
 function subjectIssueGap(issue: TimetableValidationItem) {
-  return Math.abs(issue.scheduledWeeklyHours - (issue.expectedWeeklyHours ?? 0));
+  return Math.abs(
+    issue.scheduledWeeklyHours - (issue.expectedWeeklyHours ?? 0),
+  );
 }
 
 function nextBlockingTab({
@@ -1403,6 +1819,24 @@ function localizedIssueMessage(
 }
 
 interface ValidationCopy {
+  published: string;
+  publishedIssues: string;
+  reviewingScope: string;
+  backToTimetable: string;
+  subjectTab: string;
+  requirementsTab: string;
+  subjectsDescription: string;
+  conflictsDescription: string;
+  requirementsDescription: string;
+  clearFilters: string;
+  noSubjectIssues: string;
+  noConflicts: string;
+  noRequirements: string;
+  checksUnavailable: string;
+  noDetails: string;
+  reviewHint: string;
+  countsHint: string;
+  notAvailable: string;
   title: string;
   subtitle: string;
   close: string;
@@ -1411,7 +1845,6 @@ interface ValidationCopy {
   classrooms: string;
   expectedSlots: string;
   scheduledSlots: string;
-  publishIssues: string;
   noIssues: string;
   navigationLabel: string;
   overview: string;
@@ -1468,15 +1901,37 @@ interface ValidationCopy {
 function getCopy(isRTL: boolean): ValidationCopy {
   if (isRTL) {
     return {
+      reviewingScope: "نطاق إعدادات الجدول",
+      backToTimetable: "العودة إلى الجدول",
+      subjectTab: "المواد",
+      requirementsTab: "النشر",
+      subjectsDescription:
+        "ابحث عن المادة أو الفصل، ثم قارن الحصص المطلوبة بالمجدولة.",
+      conflictsDescription: "اختر تعارضًا لمراجعة حصصه المتأثرة وفتح جداولها.",
+      requirementsDescription:
+        "راجع سبب كل متطلب وانتقل إلى الصفحة المناسبة لمعالجته.",
+      clearFilters: "مسح عوامل التصفية",
+      noSubjectIssues: "لا توجد مشاكل مواد أو فصول في نتائج التحقق الحالية.",
+      noConflicts: "لا توجد تعارضات في نتائج التحقق الحالية.",
+      noRequirements: "لم تُرجع نتائج التحقق متطلبات نشر إضافية.",
+      checksUnavailable: "جاهزية النشر غير مؤكدة بعد.",
+      noDetails:
+        "لم تصل تفاصيل مشاكل التحقق. عُد إلى الجدول وأعد تشغيل التحقق لتحميل أحدث النتائج.",
+      reviewHint:
+        "تعرض هذه النافذة آخر نتائج التحقق المحمّلة. أعد التحقق بعد تعديل الجدول.",
+      countsHint:
+        "قد تظهر المشكلة نفسها في أكثر من قسم؛ الأعداد تمثل نتائج الفحوص وليست مشاكل فريدة.",
+      notAvailable: "غير محدد",
       title: "تحقق الجدول",
       subtitle: "مقارنة الحصص المجدولة بالساعات الأسبوعية والتعارضات.",
       close: "إغلاق",
-      canPublish: "الجدول جاهز للنشر.",
+      published: "هذا الجدول منشور بالفعل. يمكنك مراجعة نتائج التحقق الحالية أدناه.",
+      publishedIssues: "هذا الجدول منشور، وتوجد نتائج تحقق تحتاج إلى المراجعة.",
+      canPublish: "لا توجد مشاكل مانعة في نتائج التحقق الحالية.",
       cannotPublish: "يجب حل مشاكل التحقق قبل النشر.",
       classrooms: "الفصول",
       expectedSlots: "المطلوب أسبوعيا",
       scheduledSlots: "المجدول",
-      publishIssues: "نتائج التحقق",
       noIssues: "لا توجد مشاكل تحقق أو تعارضات.",
       navigationLabel: "أقسام التحقق",
       overview: "نظرة عامة",
@@ -1526,8 +1981,7 @@ function getCopy(isRTL: boolean): ValidationCopy {
       openSubjects: "فتح صفحة المواد",
       openTeacherAllocation: "فتح تخصيص المعلمين",
       openRooms: "فتح صفحة الغرف",
-      noEntriesHint:
-        "أضف حصة واحدة على الأقل إلى الجدول، ثم أعد تشغيل التحقق.",
+      noEntriesHint: "أضف حصة واحدة على الأقل إلى الجدول، ثم أعد تشغيل التحقق.",
       requirementHints: {
         configuration:
           "راجع نطاق الجدول والفصل الدراسي والأيام والفترات التعليمية.",
@@ -1539,8 +1993,7 @@ function getCopy(isRTL: boolean): ValidationCopy {
           "عدّل عدد الحصص المجدولة حتى يطابق الساعات الأسبوعية المطلوبة.",
         conflicts:
           "انقل إحدى الحصص المتداخلة أو غيّر المعلم أو الفترة الزمنية.",
-        rooms:
-          "عيّن غرفة نشطة ومناسبة للسعة، أو عالج حجز الغرفة المتعارض.",
+        rooms: "عيّن غرفة نشطة ومناسبة للسعة، أو عالج حجز الغرفة المتعارض.",
       },
       status: {
         complete: "مكتمل",
@@ -1553,15 +2006,39 @@ function getCopy(isRTL: boolean): ValidationCopy {
   }
 
   return {
+    reviewingScope: "Configuration scope",
+    backToTimetable: "Back to timetable",
+    subjectTab: "Subjects",
+    requirementsTab: "Publishing",
+    subjectsDescription:
+      "Find a subject or classroom, then compare required and scheduled weekly lessons.",
+    conflictsDescription:
+      "Select a conflict to inspect its affected lessons and open their timetables.",
+    requirementsDescription:
+      "Review each requirement and open the relevant page to resolve it.",
+    clearFilters: "Clear filters",
+    noSubjectIssues: "No subject or classroom issues in the current checks.",
+    noConflicts: "No conflicts in the current checks.",
+    noRequirements:
+      "The current checks returned no additional publishing requirements.",
+    checksUnavailable: "Publishing readiness is not confirmed yet.",
+    noDetails:
+      "No issue details have been loaded. Return to the timetable and run validation to load the latest checks.",
+    reviewHint:
+      "These are the latest loaded checks. Run validation again after changing the timetable.",
+    countsHint:
+      "The same issue can appear in more than one category; counts represent findings rather than unique problems.",
+    notAvailable: "Not set",
     title: "Timetable validation",
     subtitle: "Compare scheduled periods with weekly hours and conflicts.",
     close: "Close",
-    canPublish: "This timetable is ready to publish.",
+    published: "This timetable is already published. Review the current checks below.",
+    publishedIssues: "This timetable is published and has validation findings to review.",
+    canPublish: "No blocking issues in the current checks.",
     cannotPublish: "Resolve validation issues before publishing.",
     classrooms: "Classrooms",
     expectedSlots: "Expected slots",
     scheduledSlots: "Scheduled",
-    publishIssues: "Validation results",
     noIssues: "No validation issues or conflicts found.",
     navigationLabel: "Validation sections",
     overview: "Overview",
@@ -1617,8 +2094,7 @@ function getCopy(isRTL: boolean): ValidationCopy {
     requirementHints: {
       configuration:
         "Review the timetable scope, term, active days, and instructional periods.",
-      curriculum:
-        "Add the required weekly hours for every subject and grade.",
+      curriculum: "Add the required weekly hours for every subject and grade.",
       teachers:
         "Assign a suitable teacher to every subject and classroom before publishing.",
       weekly_hours:
