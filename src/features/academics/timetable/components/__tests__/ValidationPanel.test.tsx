@@ -33,6 +33,42 @@ const knownPeriodConflict: TimetableConflictDisplay = {
 describe("ValidationPanel conflict display", () => {
   it.each([
     {
+      conflicts: [],
+      message: "This timetable is already published. Review the current checks below.",
+      conflictMessage: "No conflicts in the current checks.",
+    },
+    {
+      conflicts: [knownPeriodConflict],
+      message: "This timetable is published and has validation findings to review.",
+      conflictMessage: "Teacher intervals overlap.",
+    },
+  ])("excludes published status from issues while preserving $conflicts.length conflicts", async ({ conflicts, message, conflictMessage }) => {
+    const user = userEvent.setup();
+    renderPanel({
+      conflicts,
+      isPublished: true,
+      publicationReasons: [{
+        code: "not_draft",
+        message: "Only draft timetable configurations can be published.",
+      }],
+      validationSummary: { ...emptyValidationSummary(), canPublish: true },
+    });
+
+    expect(screen.getByRole("tab", {
+      name: "Publishing requirements (0)",
+    })).toBeInTheDocument();
+    expect(screen.queryByText(
+      "Resolve validation issues before publishing.",
+    )).not.toBeInTheDocument();
+    expect(screen.getByText(message)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", {
+      name: `Conflicts (${conflicts.length})`,
+    }));
+    expect(screen.getByText(conflictMessage)).toBeInTheDocument();
+  });
+
+  it.each([
+    {
       locale: "en",
       forwardKey: "{ArrowRight}",
       subjectsLabel: /subject scheduling issues/i,
@@ -585,6 +621,7 @@ describe("ValidationPanel conflict display", () => {
 
 function renderPanel({
   conflicts,
+  isPublished = false,
   classrooms = [],
   publicationReasons = [],
   publicationReferenceNames = {},
@@ -596,6 +633,7 @@ function renderPanel({
   locale = "en",
 }: {
   conflicts: TimetableConflictDisplay[];
+  isPublished?: boolean;
   classrooms?: Array<{ id: string; nameAr: string; nameEn: string }>;
   publicationReasons?: TimetablePublishReason[];
   publicationReferenceNames?: PublicationReasonReferenceNames;
@@ -621,6 +659,7 @@ function renderPanel({
       rooms={[]}
       classrooms={classrooms}
       publicationReasons={publicationReasons}
+      isPublished={isPublished}
       publicationReferenceNames={publicationReferenceNames}
       selectedConflict={selectedConflict}
       onConflictSelect={onConflictSelect}

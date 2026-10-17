@@ -3,8 +3,9 @@ import {
   conflictLinkScope,
   conflictLinkParams,
 } from "../services/timetableConflictLink";
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { TimetableScopeSelection } from "@/features/academics/timetable/services/timetableScope";
+import { timetableConfigScopeId } from "../services/timetableScope";
 
 const termScope: TimetableScopeSelection = { scopeType: "TERM" };
 const preferenceChanged = "timetable-configuration-preference-changed";
@@ -62,14 +63,16 @@ export function useTimetableConfigurationScope(
     userId: string | null;
     schoolId: string;
     termId: string;
+    configurationQuery?: string;
   },
 ) {
   const { userId, schoolId, termId } = preferenceContext;
+  const [customScope, setCustomScope] = useState(filteredScope);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const linkKey = JSON.stringify(
-    conflictLinkParams.map((key) => searchParams.get(key)),
-  );
+  // Explicit string coercion lets React Compiler preserve the scope memoization.
+  const linkKey = `${preferenceContext.configurationQuery ?? searchParams.toString()}`;
+  const configurationParams = new URLSearchParams(linkKey);
   const [linkSelection, setLinkSelection] = useState({
     key: linkKey,
     dismissed: false,
@@ -77,17 +80,23 @@ export function useTimetableConfigurationScope(
   if (linkSelection.key !== linkKey) {
     setLinkSelection({ key: linkKey, dismissed: false });
   }
-  const linkedScope =
-    linkSelection.key === linkKey && linkSelection.dismissed
+  const linkedScope = useMemo(
+    () => linkSelection.key === linkKey && linkSelection.dismissed
       ? null
-      : conflictLinkScope(searchParams);
-  const clearConflictLink = useCallback(() => {
+      : conflictLinkScope(new URLSearchParams(linkKey)),
+    [linkKey, linkSelection.key, linkSelection.dismissed],
+  );
+  const selectConfigurationScope = (scope: TimetableScopeSelection) => {
     setLinkSelection({ key: linkKey, dismissed: true });
-    if (!conflictLinkParams.some(key => searchParams.get(key))) return;
     const params = new URLSearchParams(searchParams.toString());
     conflictLinkParams.forEach((key) => params.delete(key));
+    params.delete("configure");
+    params.set("workspace", "1");
+    params.set("configurationScope", scope.scopeType);
+    const scopeId = timetableConfigScopeId(scope);
+    if (scopeId) params.set("scopeId", scopeId);
     router.replace(`?${params}`, { scroll: false });
-  }, [router, searchParams, linkKey]);
+  };
   const storageKey =
     userId && schoolId && termId
       ? `timetable-configuration:${JSON.stringify([userId, schoolId, termId])}`
@@ -99,30 +108,47 @@ export function useTimetableConfigurationScope(
   );
   const isTermDefaultConfiguration = linkedScope
     ? linkedScope.scopeType === "TERM"
-    : useTermDefault || filteredScope.scopeType === "TERM";
+    : useTermDefault || customScope.scopeType === "TERM";
+  const configurationScope =
+    linkedScope ?? (isTermDefaultConfiguration ? termScope : customScope);
+  useEffect(() => {
+    if (
+      !preferenceContext.configurationQuery ||
+      linkedScope ||
+      linkSelection.dismissed
+    )
+      return;
+    const params = new URLSearchParams(preferenceContext.configurationQuery);
+    params.set("workspace", "1");
+    params.set("configurationScope", configurationScope.scopeType);
+    const scopeId = timetableConfigScopeId(configurationScope);
+    if (scopeId) params.set("scopeId", scopeId);
+    router.replace(`?${params}`, { scroll: false });
+  }, [
+    configurationScope,
+    linkedScope,
+    linkSelection.dismissed,
+    preferenceContext.configurationQuery,
+    router,
+  ]);
 
-  const customizeFilteredScope = useCallback(() => {
-    clearConflictLink();
+  const customizeFilteredScope = () => {
+    setCustomScope(filteredScope);
+    selectConfigurationScope(filteredScope);
     saveConfigurationPreference(storageKey, "scope");
-  }, [storageKey, clearConflictLink]);
+  };
 
-  const returnToTermDefault = useCallback(() => {
-    clearConflictLink();
+  const returnToTermDefault = () => {
+    selectConfigurationScope(termScope);
     saveConfigurationPreference(storageKey, "term");
-  }, [storageKey, clearConflictLink]);
+  };
 
   return {
-    configurationScope:
-      linkedScope ?? (isTermDefaultConfiguration ? termScope : filteredScope),
+    configurationScope,
     linkedConfigurationId: linkedScope
-      ? searchParams.get("configuration")
+      ? configurationParams.get("configuration")
       : null,
     isTermDefaultConfiguration,
-    configurationMode: (
-      linkedScope ? linkedScope.scopeType === "TERM" : useTermDefault
-    )
-      ? ("term" as const)
-      : ("scope" as const),
     customizeFilteredScope,
     returnToTermDefault,
   };

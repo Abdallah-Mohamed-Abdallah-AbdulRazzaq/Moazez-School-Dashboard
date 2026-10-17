@@ -42,6 +42,9 @@ vi.mock("@/services/auth-service", () => ({
 }));
 
 vi.mock("@/lib/token-storage", () => ({
+  getAuthSessionVersion: () => 0,
+  invalidateAuthSession: vi.fn(),
+  subscribeToAccessTokenChanges: () => () => undefined,
   tokenStorage: {
     hasTokens: authProviderMocks.hasTokens,
     clearTokens: authProviderMocks.clearTokens,

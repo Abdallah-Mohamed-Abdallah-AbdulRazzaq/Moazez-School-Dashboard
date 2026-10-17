@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getConfig,
   listPeriods,
+  listEntries,
 } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type {
   BackendTimetableConfigDto,
@@ -11,6 +12,8 @@ import type {
   ListResponse,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import { isTimetableConfigNotFound } from "@/features/academics/timetable/services/timetableErrorHandling";
+import { mapBackendEntriesToUi } from "../services/timetableMappers";
+import type { TimetableEntry } from "../types/timetable";
 import {
   resolveTimetableSetupStatus,
   type TimetableSetupStatus,
@@ -27,14 +30,12 @@ interface UseTimetableSetupStatusParams {
 
 interface UseTimetableSetupStatusResult {
   status: TimetableSetupStatus | null;
+  entries: TimetableEntry[];
   isLoading: boolean;
   reload: () => Promise<void>;
 }
 
-type SetupAccess = Pick<
-  TimetableSetupStatusInput,
-  "canManage" | "termStatus"
->;
+type SetupAccess = Pick<TimetableSetupStatusInput, "canManage" | "termStatus">;
 
 type SetupRequest = SetupAccess & {
   academicYearId: string;
@@ -49,6 +50,15 @@ export function useTimetableSetupStatus({
   enabled = true,
 }: UseTimetableSetupStatusParams): UseTimetableSetupStatusResult {
   const [status, setStatus] = useState<TimetableSetupStatus | null>(null);
+  const [entries, setEntries] = useState<TimetableEntry[]>([]);
+  const [statusContext, setStatusContext] = useState<string | null>(null);
+  const contextKey = JSON.stringify([
+    academicYearId,
+    termId,
+    termStatus,
+    canManage,
+    enabled,
+  ]);
   const [isLoading, setIsLoading] = useState(enabled);
   const requestIdRef = useRef(0);
 
@@ -56,6 +66,8 @@ export function useTimetableSetupStatus({
     const requestId = ++requestIdRef.current;
     if (!enabled || !academicYearId || !termId) {
       setStatus(null);
+      setEntries([]);
+      setStatusContext(contextKey);
       setIsLoading(false);
       return;
     }
@@ -68,9 +80,11 @@ export function useTimetableSetupStatus({
       canManage,
     });
     if (requestId !== requestIdRef.current) return;
-    setStatus(nextStatus);
+    setStatus(nextStatus.status);
+    setEntries(nextStatus.entries);
+    setStatusContext(contextKey);
     setIsLoading(false);
-  }, [academicYearId, canManage, enabled, termId, termStatus]);
+  }, [academicYearId, canManage, contextKey, enabled, termId, termStatus]);
 
   useEffect(() => {
     void Promise.resolve().then(reload);
@@ -79,23 +93,39 @@ export function useTimetableSetupStatus({
     };
   }, [reload]);
 
-  return { status, isLoading, reload };
+  return {
+    status: statusContext === contextKey ? status : null,
+    entries: statusContext === contextKey ? entries : [],
+    isLoading: isLoading || (enabled && statusContext !== contextKey),
+    reload,
+  };
 }
 
 async function loadSetupStatus(
   request: SetupRequest,
-): Promise<TimetableSetupStatus> {
+): Promise<{ status: TimetableSetupStatus; entries: TimetableEntry[] }> {
   try {
     const config = await exactTermConfig(request);
-    const periods = config ? await configPeriods(config.id) : [];
-    return resolveTimetableSetupStatus({ ...request, config, periods });
+    const [periods, savedEntries] = config
+      ? await Promise.all([
+          configPeriods(config.id),
+          listEntries({ timetableConfigId: config.id }),
+        ])
+      : [[], []];
+    return {
+      status: resolveTimetableSetupStatus({ ...request, config, periods }),
+      entries: mapBackendEntriesToUi(listResponseItems(savedEntries)).entries,
+    };
   } catch (error) {
-    return resolveTimetableSetupStatus({
-      ...request,
-      config: null,
-      periods: [],
-      error,
-    });
+    return {
+      entries: [],
+      status: resolveTimetableSetupStatus({
+        ...request,
+        config: null,
+        periods: [],
+        error,
+      }),
+    };
   }
 }
 

@@ -32,7 +32,7 @@ describe("AuthReadyGate", () => {
   });
 
   it("renders children after auth restoration completes", () => {
-    mockedUseAuth.mockReturnValue({ isLoading: false } as never);
+    mockedUseAuth.mockReturnValue({ isLoading: false, isAuthenticated: true } as never);
 
     render(
       <AuthReadyGate>
@@ -42,5 +42,16 @@ describe("AuthReadyGate", () => {
 
     expect(screen.queryByTestId("main-loader")).not.toBeInTheDocument();
     expect(screen.getByText("Dashboard shell")).toBeInTheDocument();
+  });
+
+  it("removes protected children immediately when the user signs out", () => {
+    mockedUseAuth.mockReturnValue({ isLoading: false, isAuthenticated: true } as never);
+    const { rerender } = render(<AuthReadyGate><div>Private school content</div></AuthReadyGate>);
+    expect(screen.getByText("Private school content")).toBeInTheDocument();
+
+    mockedUseAuth.mockReturnValue({ isLoading: false, isAuthenticated: false } as never);
+    rerender(<AuthReadyGate><div>Private school content</div></AuthReadyGate>);
+    expect(screen.queryByText("Private school content")).not.toBeInTheDocument();
+    expect(screen.getByTestId("main-loader")).toBeInTheDocument();
   });
 });

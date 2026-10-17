@@ -31,6 +31,9 @@ interface TimetableConfigDialogProps {
   allowScopeSelection?: boolean;
   fixedScope?: TimetableScopeSelection;
   fixedName?: string;
+  scopeLabel?: string;
+  onContinue?: () => void;
+  isLoading?: boolean;
 }
 
 export default function TimetableConfigDialog({
@@ -52,6 +55,9 @@ export default function TimetableConfigDialog({
   allowScopeSelection = true,
   fixedScope,
   fixedName,
+  scopeLabel,
+  onContinue,
+  isLoading = false,
 }: TimetableConfigDialogProps) {
   const t = useTranslations("academics.timetable");
   const isConfigMode = mode === "config";
@@ -70,46 +76,72 @@ export default function TimetableConfigDialog({
       )}
       size="xl"
       footer={
-        <div className="flex w-full justify-end">
+        <div className="flex w-full flex-wrap justify-end gap-2">
           <Button onClick={onClose} variant="secondary">
             {t("config.close")}
           </Button>
+          {!isConfigMode && !readOnly && onContinue && (
+            <Button
+              onClick={onContinue}
+              disabled={
+                isLoading || !periods.some((period) => period.isInstructional)
+              }
+            >
+              {t("workflow.continueScheduling")}
+            </Button>
+          )}
         </div>
       }
     >
-      {isConfigMode ? (
-        <TimetableConfigEditor
-          academicYearId={academicYearId}
-          termId={termId}
-          config={config}
-          entries={entries}
-          scopeIds={{
-            stageId: selectedStageId,
-            gradeId: selectedGradeId,
-            sectionId: selectedSectionId,
-            classroomId: selectedClassroomId,
-          }}
-          allowScopeSelection={allowScopeSelection}
-          fixedScope={fixedScope}
-          fixedName={fixedName}
-          readOnly={readOnly}
-          locale={locale}
-          submitLabel={t("config.saveConfig")}
-          onSaved={finishConfigSave}
-        />
-      ) : config ? (
-        <TimetablePeriodsEditor
-          config={config}
-          periods={periods}
-          entries={entries}
-          readOnly={readOnly}
-          onSaved={onSaved}
-        />
-      ) : (
-        <p className="text-sm text-amber-700">
-          {t("config.saveBeforePeriods")}
+      {scopeLabel && (
+        <p className="mb-4 rounded-lg bg-primary-50 p-3 text-sm font-medium text-primary">
+          {t("overview.editingScope")}: {scopeLabel}
         </p>
       )}
+      {isLoading && (
+        <p
+          role="status"
+          aria-busy="true"
+          className="py-6 text-center text-sm text-gray-600"
+        >
+          {t("loadingLabel")}
+        </p>
+      )}
+      <div className={isLoading ? "hidden" : undefined}>
+        {isConfigMode ? (
+          <TimetableConfigEditor
+            academicYearId={academicYearId}
+            termId={termId}
+            config={config}
+            entries={entries}
+            scopeIds={{
+              stageId: selectedStageId,
+              gradeId: selectedGradeId,
+              sectionId: selectedSectionId,
+              classroomId: selectedClassroomId,
+            }}
+            allowScopeSelection={allowScopeSelection}
+            fixedScope={fixedScope}
+            fixedName={fixedName}
+            readOnly={readOnly || isLoading}
+            locale={locale}
+            submitLabel={t("config.saveConfig")}
+            onSaved={finishConfigSave}
+          />
+        ) : config ? (
+          <TimetablePeriodsEditor
+            config={config}
+            periods={periods}
+            entries={entries}
+            readOnly={readOnly || isLoading}
+            onSaved={onSaved}
+          />
+        ) : (
+          <p className="text-sm text-amber-700">
+            {t("config.saveBeforePeriods")}
+          </p>
+        )}
+      </div>
     </Modal>
   );
 }

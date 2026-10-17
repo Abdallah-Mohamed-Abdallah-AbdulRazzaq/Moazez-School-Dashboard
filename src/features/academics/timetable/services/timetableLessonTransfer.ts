@@ -1,3 +1,4 @@
+import { lessonAllocationRejection } from "./timetableLessonAllocation";
 import type {
   Classroom,
   Section,
@@ -80,6 +81,7 @@ export function previewLessonTransfer(
     instructional: true,
     rooms: input.rooms,
     classrooms: input.classrooms,
+    periods: input.config.periods,
     createEntryId: input.createEntryId,
   });
   if (placement.status === "REJECTED") return placement;
@@ -113,7 +115,8 @@ function transferRejection(
     return "OUTSIDE_SCOPE";
   if (sameDestination(source, input.target)) return "SAME_SLOT";
   return (
-    destinationRejection(input) ?? allocationRejection(source, classroom, input)
+    destinationRejection(input) ??
+    lessonAllocationRejection({ ...source, classroomId: classroom.id }, input)
   );
 }
 
@@ -140,38 +143,6 @@ function destinationRejection(
     )
   )
     return "OCCUPIED";
-  return null;
-}
-
-function allocationRejection(
-  source: TimetableEntry,
-  classroom: Classroom,
-  input: LessonTransferInput,
-): LessonTransferRejection | null {
-  const gradeId = input.sections.find(
-    (section) => section.id === classroom.sectionId,
-  )?.gradeId;
-  if (
-    !input.subjectAllocations.some(
-      (allocation) =>
-        allocation.gradeId === gradeId &&
-        allocation.subjectId === source.subjectId &&
-        allocation.weeklyHours > 0,
-    )
-  )
-    return "SUBJECT_NOT_ALLOCATED";
-  if (
-    !source.teacherId ||
-    !input.teacherAllocations.some(
-      (allocation) =>
-        allocation.classroomId === classroom.id &&
-        allocation.sectionId === classroom.sectionId &&
-        allocation.subjectId === source.subjectId &&
-        allocation.teacherId === source.teacherId &&
-        allocation.teacherEligibility?.eligible !== false,
-    )
-  )
-    return "ALLOCATION_MISSING";
   return null;
 }
 

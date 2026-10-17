@@ -38,7 +38,42 @@ describe("useTimetableConfigurationScope", () => {
     });
   });
 
-  it("keeps a custom configuration aligned with changing filters", () => {
+  it("adds an explicit editing scope to older classroom-filter links", () => {
+    navigation.params = new URLSearchParams("stage=stage-1");
+    renderHook(() =>
+      useTimetableConfigurationScope(
+        { scopeType: "STAGE", stageId: "stage-1" },
+        { ...preferenceContext, configurationQuery: "stage=stage-1" },
+      ),
+    );
+    expect(navigation.replace).toHaveBeenCalledWith(
+      "?stage=stage-1&workspace=1&configurationScope=STAGE&scopeId=stage-1",
+      { scroll: false },
+    );
+  });
+
+  it("retains the editing configuration when unsaved changes hold the previous URL selection", () => {
+    const retainedQuery =
+      "configurationScope=GRADE&scopeId=grade-1&configuration=grade-config";
+    navigation.params = new URLSearchParams(retainedQuery);
+    const { result, rerender } = renderHook(() =>
+      useTimetableConfigurationScope(
+        { scopeType: "CLASSROOM", classroomId: "class-1" },
+        { ...preferenceContext, configurationQuery: retainedQuery },
+      ),
+    );
+    navigation.params = new URLSearchParams(
+      "configurationScope=TERM&configuration=term-config",
+    );
+    rerender();
+    expect(result.current.configurationScope).toEqual({
+      scopeType: "GRADE",
+      gradeId: "grade-1",
+    });
+    expect(result.current.linkedConfigurationId).toBe("grade-config");
+  });
+
+  it("keeps the editing configuration fixed when classroom filters change", () => {
     const { result, rerender } = renderHook(
       ({ filteredScope }: { filteredScope: TimetableScopeSelection }) =>
         useTimetableConfigurationScope(filteredScope, preferenceContext),
@@ -57,8 +92,8 @@ describe("useTimetableConfigurationScope", () => {
     });
 
     expect(result.current.configurationScope).toEqual({
-      scopeType: "GRADE",
-      gradeId: "grade-2",
+      scopeType: "STAGE",
+      stageId: "stage-1",
     });
   });
 
@@ -165,7 +200,7 @@ describe("useTimetableConfigurationScope", () => {
     act(() => result.current.returnToTermDefault());
     expect(result.current.configurationScope).toEqual({ scopeType: "TERM" });
     expect(navigation.replace).toHaveBeenCalledWith(
-      "?year=year-1&term=term-1&classroom=classroom-1",
+      "?year=year-1&term=term-1&classroom=classroom-1&workspace=1&configurationScope=TERM",
       { scroll: false },
     );
   });
@@ -191,9 +226,12 @@ describe("useTimetableConfigurationScope", () => {
     act(() => result.current.returnToTermDefault());
     expect(result.current.configurationScope).toEqual({ scopeType: "TERM" });
     expect(result.current.linkedConfigurationId).toBeNull();
-    expect(navigation.replace).toHaveBeenCalledWith("?classroom=classroom-1", {
-      scroll: false,
-    });
+    expect(navigation.replace).toHaveBeenCalledWith(
+      "?classroom=classroom-1&workspace=1&configurationScope=TERM",
+      {
+        scroll: false,
+      },
+    );
     const conflictParams = navigation.params;
     navigation.params = new URLSearchParams("classroom=classroom-1");
     rerender();

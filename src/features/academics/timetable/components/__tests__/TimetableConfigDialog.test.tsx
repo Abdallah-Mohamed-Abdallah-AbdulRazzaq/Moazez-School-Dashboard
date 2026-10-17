@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TimetableConfigDialog from "@/features/academics/timetable/components/TimetableConfigDialog";
@@ -67,6 +67,7 @@ const renderDialog = ({
   allowScopeSelection = true,
   fixedName,
   fixedScope,
+  onContinue,
 }: {
   periods?: BackendTimetablePeriodDto[];
   readOnly?: boolean;
@@ -76,6 +77,7 @@ const renderDialog = ({
   allowScopeSelection?: boolean;
   fixedName?: string;
   fixedScope?: TimetableScopeSelection;
+  onContinue?: () => void;
 } = {}) => {
   const onSaved = vi.fn().mockResolvedValue(undefined);
   const onClose = vi.fn();
@@ -100,6 +102,7 @@ const renderDialog = ({
       allowScopeSelection={allowScopeSelection}
       fixedName={fixedName}
       fixedScope={fixedScope}
+      onContinue={onContinue}
     />,
   );
 
@@ -109,6 +112,48 @@ const renderDialog = ({
 describe("TimetableConfigDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("keeps the name label stable and announces its required-field error", async () => {
+    const user = userEvent.setup();
+    renderDialog({ mode: "config" });
+    const nameField = screen.getByRole("textbox", { name: "config.name" });
+
+    await user.clear(nameField);
+    await user.click(screen.getByRole("button", { name: "config.saveConfig" }));
+
+    expect(screen.getByRole("textbox", { name: "config.name", exact: true })).toBe(nameField);
+    expect(nameField).toHaveAttribute("aria-invalid", "true");
+    expect(nameField).toHaveAccessibleDescription("config.validation.nameRequired");
+    expect(screen.getByRole("alert")).toHaveTextContent("config.validation.nameRequired");
+  });
+
+  it("locks the submitted fields while saving and restores editing after a failure", async () => {
+    let failSave!: (error: Error) => void;
+    vi.mocked(upsertBackendTimetableConfig).mockReturnValueOnce(new Promise((_resolve, reject) => { failSave = reject; }));
+    const { onClose } = renderDialog({ mode: "config" });
+    await userEvent.click(screen.getByRole("button", { name: "config.saveConfig" }));
+    expect(screen.getByRole("textbox", { name: "config.name" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Monday" })).toBeDisabled();
+    await act(async () => { failSave(new Error("Network unavailable")); });
+    expect(screen.getByRole("textbox", { name: "config.name" })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: "Monday" })).toBeEnabled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { periods: [], ready: false },
+    { periods: [{ ...savedPeriod, isInstructional: false }], ready: false },
+    { periods: [savedPeriod], ready: true },
+  ])("allows scheduling only with a saved instructional period ($ready)", async ({ periods, ready }) => {
+    const onContinue = vi.fn();
+    renderDialog({ periods, onContinue });
+    const continueButton = screen.getByRole("button", { name: "workflow.continueScheduling" });
+    if (!ready) expect(continueButton).toBeDisabled();
+    else {
+      await userEvent.click(continueButton);
+      expect(onContinue).toHaveBeenCalledOnce();
+    }
   });
 
   it("prepares the next period after a successful rapid add", async () => {

@@ -92,6 +92,7 @@ function renderWizard({
 } = {}) {
   render(
     <TimetableSetupWizard
+      entries={[]}
       academicYearId="year-1"
       termId="term-1"
       academicYearName="2026/2027"

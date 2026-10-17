@@ -1,3 +1,7 @@
+import {
+  lessonAllocationRejection,
+  type TimetableLessonAllocations,
+} from "./timetableLessonAllocation";
 import type { Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
 import { evaluateRoomEligibility } from "@/features/academics/rooms/services/roomSchedulingEligibility";
 import type {
@@ -9,6 +13,7 @@ import type {
   TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import {
+  persistedEntriesClearedForDeletion,
   resolveTimetableLessonDefaults,
   subjectOptionsForGradeAllocations,
 } from "@/features/academics/timetable/services/timetableSlotEditing";
@@ -48,14 +53,12 @@ export type TimetableDropRejection =
   | "ROOM_INELIGIBLE"
   | "TEACHER_CONFLICT"
   | "ROOM_CONFLICT"
-  | "SAME_SLOT";
+  | "SAME_SLOT"
+  | "ALLOCATION_MISSING"
+  | "SUBJECT_NOT_ALLOCATED";
 
 export type TimetableDropEffect =
-  | "CREATE"
-  | "UPDATE"
-  | "REPLACE"
-  | "MOVE"
-  | "SWAP";
+  "CREATE" | "UPDATE" | "REPLACE" | "MOVE" | "SWAP";
 
 export type TimetableDropResult =
   | { status: "REJECTED"; reason: TimetableDropRejection }
@@ -91,6 +94,8 @@ export interface ApplyTimetableDropInput {
   rooms: Room[];
   classrooms: Classroom[];
   createEntryId: () => string;
+  periods?: Array<{ index: number; startTime?: string; endTime?: string }>;
+  allocations?: TimetableLessonAllocations;
 }
 
 export function buildTimetableLibraryItems(
@@ -138,8 +143,7 @@ function scheduledSubjectPeriods(
 ): number {
   return input.entries.filter(
     (entry) =>
-      entry.classroomId === input.classroom.id &&
-      entry.subjectId === subjectId,
+      entry.classroomId === input.classroom.id && entry.subjectId === subjectId,
   ).length;
 }
 
@@ -230,7 +234,7 @@ function proposedTimetableEntries(
   input: ApplyTimetableDropInput,
 ): TimetableEntry[] {
   const movedEntry = proposedTimetableEntry(input);
-  const targetEntry = entryAtTarget(input.editableEntries, input.target);
+  const targetEntry = swapTargetEntry(input);
   if (input.item.kind !== "ENTRY" || !targetEntry) return [movedEntry];
 
   const sourceEntry = sourceEntryForDrop(
@@ -281,10 +285,14 @@ function proposedTimetableEntry(
 ): TimetableEntry {
   const targetEntry = entryAtTarget(input.editableEntries, input.target);
   if (input.item.kind === "ENTRY") {
-    return entryAtNewTarget(
-      sourceEntryForDrop(input.editableEntries, input.item.entryId),
-      input.target,
+    const source = sourceEntryForDrop(
+      input.editableEntries,
+      input.item.entryId,
     );
+    const movedEntry = entryAtNewTarget(source, input.target);
+    return swapTargetEntry(input) || source.id.startsWith("temp-")
+      ? movedEntry
+      : { ...movedEntry, id: input.createEntryId() };
   }
 
   const baseEntry =
@@ -364,14 +372,25 @@ function resourceRejectionReason(
   const comparableEntries = entriesOutsideDropSlots(input);
   for (const proposedEntry of proposedEntries) {
     if (
+      input.allocations &&
+      proposedEntry.subjectId &&
+      (proposedEntry.teacherId || input.item.kind === "ENTRY")
+    ) {
+      const rejection = lessonAllocationRejection(
+        proposedEntry,
+        input.allocations,
+      );
+      if (rejection) return rejection;
+    }
+    if (
       proposedEntry.roomId &&
       !roomIsEligible(proposedEntry.roomId, proposedEntry.classroomId, input)
     ) {
       return "ROOM_INELIGIBLE";
     }
-    if (hasTeacherCollision(proposedEntry, comparableEntries))
+    if (hasTeacherCollision(proposedEntry, comparableEntries, input))
       return "TEACHER_CONFLICT";
-    if (hasRoomCollision(proposedEntry, comparableEntries))
+    if (hasRoomCollision(proposedEntry, comparableEntries, input))
       return "ROOM_CONFLICT";
   }
   return null;
@@ -380,35 +399,89 @@ function resourceRejectionReason(
 function hasTeacherCollision(
   proposedEntry: TimetableEntry,
   entries: TimetableEntry[],
+  input: ApplyTimetableDropInput,
 ): boolean {
   return Boolean(
     proposedEntry.teacherId &&
-      entries.some(
-        (entry) =>
-          samePeriod(entry, proposedEntry) &&
-          entry.teacherId === proposedEntry.teacherId,
-      ),
+    entries.some(
+      (entry) =>
+        timetableEntriesOverlap(entry, proposedEntry, input) &&
+        entry.teacherId === proposedEntry.teacherId,
+    ),
   );
 }
 
 function hasRoomCollision(
   proposedEntry: TimetableEntry,
   entries: TimetableEntry[],
+  input: ApplyTimetableDropInput,
 ): boolean {
   return Boolean(
     proposedEntry.roomId &&
-      entries.some(
-        (entry) =>
-          samePeriod(entry, proposedEntry) &&
-          entry.roomId === proposedEntry.roomId,
-      ),
+    entries.some(
+      (entry) =>
+        timetableEntriesOverlap(entry, proposedEntry, input) &&
+        entry.roomId === proposedEntry.roomId,
+    ),
   );
 }
 
-function samePeriod(left: TimetableEntry, right: TimetableEntry): boolean {
-  return (
-    left.dayKey === right.dayKey && left.periodIndex === right.periodIndex
+export function timetableEntriesOverlap(
+  left: TimetableEntry,
+  right: Pick<
+    TimetableEntry,
+    "dayKey" | "periodIndex" | "startTime" | "endTime"
+  >,
+  input: Pick<ApplyTimetableDropInput, "editableEntries" | "periods">,
+): boolean {
+  if (left.dayKey !== right.dayKey) return false;
+  const localPeriod = input.editableEntries.some(
+    (entry) => entry.id === left.id,
+  )
+    ? input.periods?.find((period) => period.index === left.periodIndex)
+    : undefined;
+  const targetPeriod = input.periods?.find(
+    (period) => period.index === right.periodIndex,
   );
+  const start = localPeriod?.startTime ?? left.startTime;
+  const end = localPeriod?.endTime ?? left.endTime;
+  const targetStart = targetPeriod?.startTime ?? right.startTime;
+  const targetEnd = targetPeriod?.endTime ?? right.endTime;
+  if (start && end && targetStart && targetEnd) {
+    return (
+      timeInSeconds(start) < timeInSeconds(targetEnd) &&
+      timeInSeconds(targetStart) < timeInSeconds(end)
+    );
+  }
+  return left.periodIndex === right.periodIndex;
+}
+
+export function hasTimetableRoomConflict({
+  allEntries,
+  editableEntries,
+  periods,
+  target,
+  roomId,
+  excludeEntryId,
+}: Pick<
+  ApplyTimetableDropInput,
+  "allEntries" | "editableEntries" | "periods"
+> & {
+  target: Pick<TimetableEntry, "dayKey" | "periodIndex">;
+  roomId: string;
+  excludeEntryId?: string;
+}): boolean {
+  return mergeTimetableEntriesForValidation(allEntries, editableEntries).some(
+    (entry) =>
+      entry.roomId === roomId &&
+      entry.id !== excludeEntryId &&
+      timetableEntriesOverlap(entry, target, { periods, editableEntries }),
+  );
+}
+
+function timeInSeconds(time: string): number {
+  const [hours, minutes, seconds = 0] = time.split(":").map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
 }
 
 function roomIsEligible(
@@ -441,17 +514,24 @@ function entriesAfterDrop(
 ): TimetableEntry[] {
   const targetKey = timetableSlotKey(input.target);
   const sourceId = input.item.kind === "ENTRY" ? input.item.entryId : null;
+  const clearedSource =
+    sourceId && !swapTargetEntry(input)
+      ? persistedEntriesClearedForDeletion([
+          sourceEntryForDrop(input.editableEntries, sourceId),
+        ])
+      : [];
   return [
     ...input.editableEntries.filter(
       (entry) => timetableSlotKey(entry) !== targetKey && entry.id !== sourceId,
     ),
     ...proposedEntries,
+    ...clearedSource,
   ];
 }
 
 function dropEffect(input: ApplyTimetableDropInput): TimetableDropEffect {
   if (input.item.kind === "ENTRY") {
-    return entryAtTarget(input.editableEntries, input.target) ? "SWAP" : "MOVE";
+    return swapTargetEntry(input) ? "SWAP" : "MOVE";
   }
   if (input.item.kind === "ROOM" || input.item.kind === "TEACHER") {
     return "UPDATE";
@@ -459,6 +539,13 @@ function dropEffect(input: ApplyTimetableDropInput): TimetableDropEffect {
   return entryAtTarget(input.editableEntries, input.target)
     ? "REPLACE"
     : "CREATE";
+}
+
+function swapTargetEntry(
+  input: ApplyTimetableDropInput,
+): TimetableEntry | undefined {
+  const target = entryAtTarget(input.editableEntries, input.target);
+  return target?.subjectId || target?.slotType === "BREAK" ? target : undefined;
 }
 
 function entryAtTarget(
@@ -469,18 +556,12 @@ function entryAtTarget(
   return entries.find((entry) => timetableSlotKey(entry) === targetKey);
 }
 
-function sameSlot(
-  entry: TimetableEntry,
-  target: TimetableDropTarget,
-): boolean {
+function sameSlot(entry: TimetableEntry, target: TimetableDropTarget): boolean {
   return timetableSlotKey(entry) === timetableSlotKey(target);
 }
 
 function timetableSlotKey(
-  slot: Pick<
-    TimetableEntry,
-    "classroomId" | "dayKey" | "periodIndex"
-  >,
+  slot: Pick<TimetableEntry, "classroomId" | "dayKey" | "periodIndex">,
 ): string {
   return `${slot.classroomId ?? ""}:${slot.dayKey}:${slot.periodIndex}`;
 }
@@ -489,11 +570,23 @@ export function mergeTimetableEntriesForValidation(
   authoritativeEntries: TimetableEntry[],
   editableEntries: TimetableEntry[],
 ): TimetableEntry[] {
+  const authoritativeById = new Map(
+    authoritativeEntries.map((entry) => [entry.id, entry]),
+  );
+  const configurationId = (entry: TimetableEntry) =>
+    entry.timetableConfigId ??
+    authoritativeById.get(entry.id)?.timetableConfigId;
+  const editableConfigId = editableEntries.map(configurationId).find(Boolean);
+  const validationKey = (entry: TimetableEntry, local = false) =>
+    `${configurationId(entry) ?? (local ? editableConfigId : undefined) ?? ""}:${timetableSlotKey(entry)}`;
   const entriesBySlot = new Map(
-    authoritativeEntries.map((entry) => [timetableSlotKey(entry), entry]),
+    authoritativeEntries.map((entry) => [validationKey(entry), entry]),
   );
   editableEntries.forEach((entry) => {
-    entriesBySlot.set(timetableSlotKey(entry), entry);
+    const original = authoritativeById.get(entry.id);
+    if (original && validationKey(original) !== validationKey(entry, true))
+      entriesBySlot.delete(validationKey(original));
+    entriesBySlot.set(validationKey(entry, true), entry);
   });
   return [...entriesBySlot.values()];
 }

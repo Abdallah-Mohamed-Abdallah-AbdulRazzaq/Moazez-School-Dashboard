@@ -48,6 +48,12 @@ describe("resolveTimetableCreationProgress", () => {
     });
   });
 
+  it("requires a fresh review even when the previous validation and publication data report readiness", () => {
+    const progress = resolveTimetableCreationProgress({ ...readyToPublishInput(), reviewIsCurrent: false });
+    expect(step(progress, "validation")).toMatchObject({ status: "current", actionable: true });
+    expect(step(progress, "publish")).toMatchObject({ status: "blocked", actionable: false });
+  });
+
   it("blocks scheduling until the effective configuration has an active day", () => {
     const progress = resolveTimetableCreationProgress({
       ...readyToPublishInput(),
@@ -114,10 +120,12 @@ describe("resolveTimetableCreationProgress", () => {
   it("marks the journey published from the persisted publication state", () => {
     const progress = resolveTimetableCreationProgress({
       ...readyToPublishInput(),
+      reviewIsCurrent: false,
       publication: publication({ isPublished: true, status: "published" }),
     });
 
     expect(step(progress, "publish")?.status).toBe("published");
+    expect(step(progress, "validation")?.status).toBe("complete");
   });
 
   it("uses the backend publication reason when publishing is blocked", () => {
@@ -161,6 +169,7 @@ function readyToPublishInput() {
     resolvedConfig: resolvedConfig(),
     entries: [entry()],
     isDirty: false,
+    reviewIsCurrent: true,
     validationSummary: {
       ...emptyValidationSummary(),
       canPublish: true,

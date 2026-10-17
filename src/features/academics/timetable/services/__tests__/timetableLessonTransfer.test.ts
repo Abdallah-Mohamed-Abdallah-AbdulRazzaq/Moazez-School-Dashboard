@@ -4,8 +4,88 @@ import {
   type LessonTransferInput,
 } from "../timetableLessonTransfer";
 import { lessonTransferFixture } from "./fixtures/lessonTransferFixture";
+import { applyTimetableDrop } from "../timetableDragDrop";
 
 describe("lesson transfers", () => {
+  it.each([
+    ["assigned", null],
+    ["missing teacher", "ALLOCATION_MISSING"],
+    ["ineligible teacher", "ALLOCATION_MISSING"],
+    ["missing subject", "SUBJECT_NOT_ALLOCATED"],
+    ["unassigned swapped teacher", "ALLOCATION_MISSING"],
+  ] as const)(
+    "validates destination allocations during drag-and-drop: %s",
+    (scenario, reason) => {
+      const input = lessonTransferFixture();
+      input.target.classroomId = "classroom-2";
+      if (scenario === "missing teacher")
+        input.teacherAllocations = input.teacherAllocations.slice(0, 1);
+      if (scenario === "missing subject") input.subjectAllocations = [];
+      if (scenario === "ineligible teacher")
+        input.teacherAllocations[1].teacherEligibility = {
+          eligible: false,
+          reasonCode: "inactive",
+        };
+      if (scenario === "unassigned swapped teacher")
+        input.entries.push({
+          ...input.entries[0],
+          ...input.target,
+          id: "swap-target",
+          teacherId: "unassigned",
+        });
+      const result = applyTimetableDrop({
+        item: { kind: "ENTRY", id: "drag", entryId: input.sourceId },
+        target: input.target,
+        termId: "term-1",
+        editableEntries: input.entries,
+        allEntries: input.entries,
+        rooms: input.rooms,
+        classrooms: input.classrooms,
+        periods: input.config.periods,
+        allocations: input,
+        readOnly: false,
+        holiday: false,
+        instructional: true,
+        createEntryId: input.createEntryId,
+      });
+      if (reason) expect(result).toEqual({ status: "REJECTED", reason });
+      else expect(result.status).toBe("APPLIED");
+    },
+  );
+  it.each([
+    ["same number at a different time", 2, "10:00", "10:45", null],
+    [
+      "different number overlapping the destination",
+      7,
+      "09:00",
+      "10:00",
+      "TEACHER_CONFLICT",
+    ],
+    ["back-to-back lessons", 7, "09:30", "10:00", null],
+    ["overlapping room booking", 7, "09:00", "10:00", "ROOM_CONFLICT"],
+  ] as const)(
+    "uses actual time ranges for %s in another configuration",
+    (_scenario, periodIndex, startTime, endTime, rejection) => {
+      const input = lessonTransferFixture();
+      input.allTermEntries.push({
+        ...input.entries[0],
+        id: "other-configuration-entry",
+        classroomId: "classroom-2",
+        timetableConfigId: "other-config",
+        periodIndex,
+        startTime,
+        endTime,
+        teacherId:
+          rejection === "ROOM_CONFLICT" ? "other-teacher" : "teacher-1",
+        roomId: rejection === "ROOM_CONFLICT" ? "room-1" : null,
+      });
+      const result = previewLessonTransfer(input);
+      if (rejection)
+        expect(result).toEqual({ status: "REJECTED", reason: rejection });
+      else expect(result.status).toBe("APPLIED");
+    },
+  );
+
   it("copies the complete lesson without changing the source or input arrays", () => {
     const input = lessonTransferFixture();
     const snapshot = JSON.stringify(input);

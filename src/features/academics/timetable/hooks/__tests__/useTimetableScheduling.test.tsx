@@ -13,20 +13,21 @@ const classroom = {
 };
 
 describe("useTimetableScheduling", () => {
-  it("places a selected lesson and restores the prior entries with undo", () => {
+  it.each(["grade-1", ""])("places a selected classroom lesson with grade filter '%s' and supports undo", (gradeId) => {
     const setTimetableEntries = vi.fn();
     const onDirtyChange = vi.fn();
     const showToast = vi.fn();
-    const { result } = renderHook(() =>
+    const { result, rerender } = renderHook(({ canEdit }) =>
       useTimetableScheduling({
         termId: "term-1",
         locale: "en",
-        gradeId: "grade-1",
+        gradeId,
         stageId: "stage-1",
         sectionId: "section-1",
         classroomId: "classroom-1",
         selectedClassroom: classroom,
         classrooms: [classroom],
+        sections: [{ id: "section-1", gradeId: "grade-1" }],
         subjects: [
           {
             id: "math",
@@ -47,7 +48,7 @@ describe("useTimetableScheduling", () => {
         timetableEntries: [],
         allTermEntries: [],
         periods: [{ index: 1, isInstructional: true }],
-        canEdit: true,
+        canEdit,
         isDirty: false,
         isHolidayDay: () => false,
         setTimetableEntries,
@@ -55,8 +56,10 @@ describe("useTimetableScheduling", () => {
         showToast,
         translate: (key) => key,
       }),
+      { initialProps: { canEdit: true } },
     );
     const lesson = result.current.libraryItems[0];
+    expect(lesson).toEqual(expect.objectContaining({ subjectId: "math" }));
 
     act(() => result.current.selectLibraryItem(lesson));
     expect(result.current.selectedLibraryItem).toEqual(lesson);
@@ -85,6 +88,13 @@ describe("useTimetableScheduling", () => {
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
     expect(result.current.undoEffect).toBe("CREATE");
 
+    rerender({ canEdit: false });
+    setTimetableEntries.mockClear();
+    onDirtyChange.mockClear();
+    act(() => result.current.undo());
+    expect(setTimetableEntries).not.toHaveBeenCalled();
+    expect(onDirtyChange).not.toHaveBeenCalled();
+    rerender({ canEdit: true });
     act(() => result.current.undo());
 
     expect(setTimetableEntries).toHaveBeenLastCalledWith([]);

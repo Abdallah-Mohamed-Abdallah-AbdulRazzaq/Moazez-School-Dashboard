@@ -25,7 +25,10 @@ const setupHookMock = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => routerMocks }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => routerMocks,
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: () => (key: string) => key,
@@ -59,7 +62,10 @@ vi.mock("@/components/ui", () => ({
       <span>{description}</span>
     </div>
   ),
-  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+  Button: ({
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button {...props}>{children}</button>
   ),
 }));
@@ -127,10 +133,9 @@ describe("TimetableSetupPage", () => {
   it("shows loading while setup status is unresolved", () => {
     render(<TimetableSetupPage />);
 
-    expect(screen.getByRole("status", { name: "loadingLabel" })).toHaveAttribute(
-      "aria-busy",
-      "true",
-    );
+    expect(
+      screen.getByRole("status", { name: "loadingLabel" }),
+    ).toHaveAttribute("aria-busy", "true");
   });
 
   it("shows a management blocker for incomplete read-only setup", () => {
@@ -142,7 +147,9 @@ describe("TimetableSetupPage", () => {
 
     render(<TimetableSetupPage />);
 
-    expect(screen.getByText("setup.readOnly.missingPermission")).toBeInTheDocument();
+    expect(
+      screen.getByText("setup.readOnly.missingPermission"),
+    ).toBeInTheDocument();
     expect(screen.getByText("access-denied")).toBeInTheDocument();
   });
 
@@ -158,6 +165,8 @@ describe("TimetableSetupPage", () => {
       screen.getByRole("button", { name: "setup.startBuilding" }),
     );
 
-    expect(routerMocks.replace).toHaveBeenCalledWith("/academics/timetable");
+    expect(routerMocks.replace).toHaveBeenCalledWith(
+      "/academics/timetable?workspace=1&configurationScope=TERM&year=year-1&term=term-1",
+    );
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import userEvent from "@testing-library/user-event";
 import { LoginForm } from "../LoginForm";
 
@@ -31,6 +32,19 @@ describe("LoginForm Sprint 11 behavior", () => {
     mockLogin.mockReset();
     mockPathname = "/en/login";
     mockSearchParams = new URLSearchParams();
+  });
+
+  it("keeps credentials disabled before hydration and prevents native GET submission", () => {
+    const document = new DOMParser().parseFromString(
+      renderToString(<LoginForm currentYear={2026} />),
+      "text/html",
+    );
+    const form = document.querySelector("form")!;
+    expect(form.method).toBe("post");
+    expect(form.querySelector<HTMLInputElement>('input[name="email"]')!.disabled).toBe(true);
+    expect(form.querySelector<HTMLInputElement>('input[name="password"]')!.disabled).toBe(true);
+    expect(form.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+    expect([...new FormData(form).keys()]).toEqual([]);
   });
 
   it("redirects mustChangePassword users to the change-password route", async () => {

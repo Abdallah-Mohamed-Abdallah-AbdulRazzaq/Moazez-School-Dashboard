@@ -6,6 +6,10 @@ import type {
 } from "./timetableApiTypes";
 import type { TimetableConflictDisplay } from "./timetableConflictNormalization";
 import type { TimetableValidationSummary } from "./timetableValidationSummary";
+import {
+  isPublicationActive,
+  validationPublicationReasons,
+} from "./timetablePublicationReasons";
 
 export interface ValidationReviewReport {
   summary: TimetableValidationSummary;
@@ -95,8 +99,11 @@ export function validationReviewIssueKeys(
   const conflicts = groupValidationConflicts(report.conflicts).map(
     conflictReviewKey,
   );
-  const publication =
-    report.publication.blockingReasons.map(publicationReviewKey);
+  const isPublished = isPublicationActive(report.publication);
+  const publication = validationPublicationReasons({
+    reasons: report.publication.blockingReasons,
+    isPublished,
+  }).map(publicationReviewKey);
   const fallback = [
     report.summary.teacherConflicts,
     report.summary.classroomConflicts,
@@ -129,7 +136,7 @@ export function validationReviewIssueKeys(
   ]);
   if (
     keys.size === 0 &&
-    (!report.summary.canPublish || !report.publication.canPublish)
+    (!report.summary.canPublish || (!isPublished && !report.publication.canPublish))
   )
     keys.add("unresolved-readiness");
   return [...keys];

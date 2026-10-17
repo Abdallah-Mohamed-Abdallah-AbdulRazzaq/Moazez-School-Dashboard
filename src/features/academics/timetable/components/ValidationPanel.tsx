@@ -43,6 +43,7 @@ import { Button, Input } from "@/components/ui";
 import {
   classifyPublicationReasons,
   publicationReasonPresentation,
+  validationPublicationReasons,
   type PublicationReasonCategory,
   type PublicationReasonReferenceNames,
 } from "@/features/academics/timetable/services/timetablePublicationReasons";
@@ -77,6 +78,7 @@ interface ValidationPanelProps {
   onClose: () => void;
   locale: string;
   publicationReasons?: TimetablePublishReason[];
+  isPublished?: boolean;
   publicationReferenceNames?: PublicationReasonReferenceNames;
   scopeName?: string;
   review?: ValidationReviewState;
@@ -137,7 +139,8 @@ export default function ValidationPanel({
   requirementActions,
   onClose,
   locale,
-  publicationReasons = [],
+  publicationReasons: reportedPublicationReasons = [],
+  isPublished = false,
   publicationReferenceNames = {},
   scopeName,
   review,
@@ -174,6 +177,10 @@ export default function ValidationPanel({
     (item) => item.status !== "complete" || item.issues.length > 0,
   );
   const fallbackSections = validationSections(validationSummary, copy);
+  const publicationReasons = validationPublicationReasons({
+    reasons: reportedPublicationReasons,
+    isPublished,
+  });
   const publicationGroups = classifyPublicationReasons(publicationReasons);
   const fallbackIssueCount = fallbackSections.reduce(
     (total, section) => total + section.issues.length,
@@ -244,7 +251,7 @@ export default function ValidationPanel({
     publicationGroups.length > 0;
   const canPublish =
     (!review ||
-      (review.canPublish &&
+      ((review.canPublish || isPublished) &&
         review.isCurrent &&
         !review.hasUnsavedChanges &&
         !review.isChecking &&
@@ -339,6 +346,7 @@ export default function ValidationPanel({
           {activeTab === "overview" && (
             <>
               <ReadinessBanner
+                isPublished={isPublished}
                 canPublish={canPublish}
                 hasIssues={hasIssues}
                 attentionItemCount={attentionItemCount}
@@ -1091,11 +1099,13 @@ function IssueAccordion({
 }
 
 function ReadinessBanner({
+  isPublished,
   canPublish,
   attentionItemCount,
   hasIssues,
   copy,
 }: {
+  isPublished: boolean;
   canPublish: boolean;
   attentionItemCount: number;
   hasIssues: boolean;
@@ -1116,7 +1126,9 @@ function ReadinessBanner({
       <div className="flex items-center gap-2">
         <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
         <span className="font-medium">
-          {canPublish
+          {isPublished
+            ? hasIssues ? copy.publishedIssues : copy.published
+            : canPublish
             ? copy.canPublish
             : hasIssues
               ? copy.cannotPublish
@@ -1807,6 +1819,8 @@ function localizedIssueMessage(
 }
 
 interface ValidationCopy {
+  published: string;
+  publishedIssues: string;
   reviewingScope: string;
   backToTimetable: string;
   subjectTab: string;
@@ -1911,6 +1925,8 @@ function getCopy(isRTL: boolean): ValidationCopy {
       title: "تحقق الجدول",
       subtitle: "مقارنة الحصص المجدولة بالساعات الأسبوعية والتعارضات.",
       close: "إغلاق",
+      published: "هذا الجدول منشور بالفعل. يمكنك مراجعة نتائج التحقق الحالية أدناه.",
+      publishedIssues: "هذا الجدول منشور، وتوجد نتائج تحقق تحتاج إلى المراجعة.",
       canPublish: "لا توجد مشاكل مانعة في نتائج التحقق الحالية.",
       cannotPublish: "يجب حل مشاكل التحقق قبل النشر.",
       classrooms: "الفصول",
@@ -2016,6 +2032,8 @@ function getCopy(isRTL: boolean): ValidationCopy {
     title: "Timetable validation",
     subtitle: "Compare scheduled periods with weekly hours and conflicts.",
     close: "Close",
+    published: "This timetable is already published. Review the current checks below.",
+    publishedIssues: "This timetable is published and has validation findings to review.",
     canPublish: "No blocking issues in the current checks.",
     cannotPublish: "Resolve validation issues before publishing.",
     classrooms: "Classrooms",

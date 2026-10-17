@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui";
+import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import {
   TimetableFieldError,
   TimetableFormErrors,
-  timetableInputClassName,
 } from "@/features/academics/timetable/components/TimetableFormFeedback";
 import type {
   BackendTimetableConfigDto,
@@ -89,14 +89,14 @@ export default function TimetableConfigEditor({
   }, [allowScopeSelection, config, defaultName, defaultScope, fixedName]);
 
   const saveConfig = async () => {
-    if (readOnly) return;
+    if (readOnly || isSaving) return;
     const validationErrors = validateConfig({
       name: fixedName ?? name,
       activeDays,
       config,
       entries,
-      scopeType,
-      scopeIds,
+      scopeType: fixedScope?.scopeType ?? scopeType,
+      scopeIds: fixedScope ?? scopeIds,
       t,
     });
     if (hasErrors(validationErrors)) return setErrors(validationErrors);
@@ -142,16 +142,13 @@ export default function TimetableConfigEditor({
       </h3>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {!fixedName && (
-          <label className="block text-sm font-medium text-gray-700">
-            {t("config.name")}
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              disabled={readOnly}
-              className={timetableInputClassName(errors.fields.name?.[0])}
-            />
-            <TimetableFieldError error={errors.fields.name?.[0]} />
-          </label>
+          <Input
+            label={t("config.name")}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            disabled={readOnly || isSaving}
+            error={errors.fields.name?.[0]}
+          />
         )}
         {allowScopeSelection && (
           <Select
@@ -160,7 +157,7 @@ export default function TimetableConfigEditor({
             onChange={(selectedScope) =>
               setScopeType(selectedScope as TimetableScopeType)
             }
-            disabled={readOnly || Boolean(config)}
+            disabled={readOnly || isSaving || Boolean(config)}
             options={scopeOptions(scopeIds, t)}
             helperText={t(
               config ? "config.scopeLockedHelp" : "config.scopeSelectHelp",
@@ -171,7 +168,7 @@ export default function TimetableConfigEditor({
           label={t("config.weekStartDay")}
           value={String(weekStartDay)}
           onChange={(selectedDay) => setWeekStartDay(Number(selectedDay))}
-          disabled={readOnly}
+          disabled={readOnly || isSaving}
           options={dayOptions}
         />
       </div>
@@ -193,7 +190,7 @@ export default function TimetableConfigEditor({
                     toggleDay(currentDays, day.index),
                   )
                 }
-                disabled={readOnly}
+                disabled={readOnly || isSaving}
               />
               <span>{locale === "ar" ? day.nameAr : day.nameEn}</span>
             </label>

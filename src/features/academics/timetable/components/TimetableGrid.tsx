@@ -106,6 +106,26 @@ export default function TimetableGrid({
   // Get active days and periods from config
   const activeDays = resolvedConfig.days.filter((d) => d.isActive);
   const periods = resolvedConfig.periods;
+  const entriesBySlot = useMemo(() => {
+    const slots = new Map<string, TimetableEntry>();
+    for (const entry of entries) {
+      const key = `${entry.dayKey}:${entry.periodIndex}`;
+      if (!slots.has(key)) slots.set(key, entry);
+    }
+    return slots;
+  }, [entries]);
+  const subjectsById = useMemo(
+    () => new Map(subjects.map((subject) => [subject.id, subject])),
+    [subjects],
+  );
+  const teachersById = useMemo(
+    () => new Map(teachers.map((teacher) => [teacher.id, teacher])),
+    [teachers],
+  );
+  const roomsById = useMemo(
+    () => new Map(rooms.map((room) => [room.id, room])),
+    [rooms],
+  );
   const desktopGridMinWidth =
     144 + activeDays.length * (density === "compact" ? 156 : 180);
   const mappedProposalEntries = useMemo(
@@ -207,9 +227,7 @@ export default function TimetableGrid({
     dayKey: string,
     periodIndex: number,
   ): TimetableEntry | undefined => {
-    return entries.find(
-      (e) => e.dayKey === dayKey && e.periodIndex === periodIndex,
-    );
+    return entriesBySlot.get(`${dayKey}:${periodIndex}`);
   };
 
   const hasConflict = (
@@ -239,21 +257,21 @@ export default function TimetableGrid({
 
   const getSubjectName = (subjectId: string | null): string => {
     if (!subjectId) return "";
-    const subject = subjects.find((s) => s.id === subjectId);
+    const subject = subjectsById.get(subjectId);
     if (!subject) return "";
     return locale === "ar" ? subject.nameAr : subject.nameEn;
   };
 
   const getTeacherName = (teacherId: string | null): string => {
     if (!teacherId) return "";
-    const teacher = teachers.find((t) => t.id === teacherId);
+    const teacher = teachersById.get(teacherId);
     if (!teacher) return "";
     return locale === "ar" ? teacher.nameAr : teacher.nameEn;
   };
 
   const getRoomName = (roomId: string | null): string => {
     if (!roomId) return "";
-    const room = rooms.find((r) => r.id === roomId);
+    const room = roomsById.get(roomId);
     if (!room) return "";
     return locale === "ar" ? room.nameAr : room.nameEn;
   };
@@ -400,7 +418,7 @@ export default function TimetableGrid({
   };
 
   const subjectAccent = (subjectId: string) => {
-    const color = subjects.find((subject) => subject.id === subjectId)?.color;
+    const color = subjectsById.get(subjectId)?.color;
     return color && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(color)
       ? color
       : "var(--primary-color, #036b80)";

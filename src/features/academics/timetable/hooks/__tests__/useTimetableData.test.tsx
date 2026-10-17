@@ -11,7 +11,7 @@ import {
 } from "@/features/academics/subjects/services/subjectsService";
 import {
   fetchTeacherAllocations,
-  fetchTeachers,
+  fetchTeacherDirectory,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { fetchRooms } from "@/features/academics/rooms/services/roomsService";
 import {
@@ -39,6 +39,7 @@ import type {
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import { validationSummaryFromResponse } from "@/features/academics/timetable/services/timetableValidationSummary";
 import { timetableBackendMessage } from "@/features/academics/timetable/services/timetablePublicationReasons";
+import { applyTimetableDrop } from "../../services/timetableDragDrop";
 
 vi.mock(
   "@/features/academics/academic-structure-tree/services/structureService",
@@ -57,7 +58,7 @@ vi.mock(
   "@/features/academics/teacher-allocation/services/teacherAllocationService",
   () => ({
     fetchTeacherAllocations: vi.fn(),
-    fetchTeachers: vi.fn(),
+    fetchTeacherDirectory: vi.fn(),
   }),
 );
 
@@ -85,7 +86,7 @@ const mockedFetchStructureTree = vi.mocked(fetchStructureTree);
 const mockedFetchSubjectAllocations = vi.mocked(fetchSubjectAllocations);
 const mockedFetchSubjects = vi.mocked(fetchSubjects);
 const mockedFetchTeacherAllocations = vi.mocked(fetchTeacherAllocations);
-const mockedFetchTeachers = vi.mocked(fetchTeachers);
+const mockedFetchTeacherDirectory = vi.mocked(fetchTeacherDirectory);
 const mockedFetchRooms = vi.mocked(fetchRooms);
 const mockedBulkSaveEntries = vi.mocked(bulkSaveEntries);
 const mockedCheckConflicts = vi.mocked(checkConflicts);
@@ -209,9 +210,52 @@ const hookParams = {
 describe("useTimetableData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedBulkSaveEntries.mockReset();
+    mockedDeleteEntry.mockReset();
+    mockedCheckConflicts.mockReset();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     mockAcademicDependencies();
     mockTimetableLoad(activePublication);
+  });
+
+  it.each(["changed", "added", "removed"])(
+    "retains the draft and prevents writes when another session has %s saved lessons",
+    async (change) => {
+      const { result } = renderHook(() => useTimetableData(hookParams));
+      await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+      const draft = result.current.timetableEntries.map((entry) => ({ ...entry, roomId: "room-1" }));
+      act(() => result.current.setTimetableEntries(draft));
+      const changedEntry = { ...backendEntry, updatedAt: "2026-10-17T02:00:00Z" };
+      const remoteEntries = change === "removed" ? [] : change === "added"
+        ? [backendEntry, { ...changedEntry, id: "concurrent-entry" }]
+        : [changedEntry];
+      mockedListEntries.mockResolvedValueOnce({ items: remoteEntries });
+      let saved: Awaited<ReturnType<typeof result.current.saveTimetable>>;
+      await act(async () => { saved = await result.current.saveTimetable(draft); });
+      expect(saved!).toEqual(expect.objectContaining({ ok: false, changesWereNotSaved: true }));
+      expect(result.current.apiError).toContain("another session");
+      expect(result.current.timetableEntries).toEqual(draft);
+      expect(mockedBulkSaveEntries).not.toHaveBeenCalled();
+      expect(mockedDeleteEntry).not.toHaveBeenCalled();
+    },
+  );
+
+  it("shows allocated teachers from the current directory, including invited accounts", async () => {
+    mockedFetchTeacherDirectory.mockResolvedValue({
+      teachers: [{
+        id: "teacher-1",
+        nameAr: "معلم مدعو",
+        nameEn: "Invited Teacher",
+        isActive: true,
+      }],
+    });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => {
+      expect(result.current.teachers).toEqual([
+        expect.objectContaining({ id: "teacher-1", nameEn: "Invited Teacher" }),
+      ]);
+    });
+    expect(result.current.teacherAllocations[0].teacherId).toBe("teacher-1");
   });
 
   it("checks a proposed lesson transfer without saving entries or replacing the current validation review", async () => {
@@ -220,18 +264,126 @@ describe("useTimetableData", () => {
     await waitFor(() => expect(result.current.timetableLoading).toBe(false));
     const originalEntries = result.current.timetableEntries;
     const originalSummary = result.current.validationSummary;
-    const draft = [...originalEntries, { ...originalEntries[0], id: "temp-copy", dayKey: "tue" }];
-    let conflicts: Awaited<ReturnType<typeof result.current.checkDraftConflicts>> = [];
-    await act(async () => { conflicts = await result.current.checkDraftConflicts(draft); });
+    const draft = [
+      ...originalEntries,
+      { ...originalEntries[0], id: "temp-copy", dayKey: "tue" },
+    ];
+    let conflicts: Awaited<
+      ReturnType<typeof result.current.checkDraftConflicts>
+    > = [];
+    await act(async () => {
+      conflicts = await result.current.checkDraftConflicts(draft);
+    });
     expect(conflicts).toEqual([]);
     expect(mockedCheckConflicts).toHaveBeenCalledWith({
       termId: "term-1",
-      items: expect.arrayContaining([expect.objectContaining({ classroomId: "classroom-1", dayOfWeek: 2, periodId: "period-1", teacherSubjectAllocationId: "allocation-1" })]),
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          classroomId: "classroom-1",
+          dayOfWeek: 2,
+          periodId: "period-1",
+          teacherSubjectAllocationId: "allocation-1",
+        }),
+      ]),
     });
     expect(result.current.timetableEntries).toBe(originalEntries);
     expect(result.current.validationSummary).toBe(originalSummary);
     expect(mockedBulkSaveEntries).not.toHaveBeenCalled();
     expect(mockedDeleteEntry).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    "checks only transfer destination issues despite unrelated invalid lessons (destination conflict: %s)",
+    async (destinationBusy) => {
+      const { result } = renderHook(() => useTimetableData(hookParams));
+      await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+      const source = result.current.timetableEntries[0];
+      const draft = [
+        {
+          ...source,
+          id: "unrelated-incomplete",
+          teacherId: null,
+          dayKey: "wed",
+        },
+        source,
+        { ...source, id: "temp-destination", dayKey: "tue" },
+        {
+          ...source,
+          id: "removed-source",
+          subjectId: null,
+          teacherId: null,
+          roomId: null,
+        },
+      ];
+      const issue = {
+        code: "teacher_conflict",
+        severity: "blocking",
+        dayOfWeek: 2,
+        periodId: "period-1",
+        classroomId: null,
+        teacherUserId: "teacher-1",
+        roomId: null,
+      };
+      mockedCheckConflicts.mockResolvedValue({
+        termId: "term-1",
+        academicYearId: "year-1",
+        hasConflicts: true,
+        conflicts: [
+          {
+            ...issue,
+            message: "Unrelated conflict",
+            proposedIndexes: [0],
+            entryIds: ["other"],
+          },
+          {
+            ...issue,
+            message: "Old source is being removed",
+            proposedIndexes: [1],
+            entryIds: ["removed-source"],
+          },
+          ...(destinationBusy
+            ? [
+                {
+                  ...issue,
+                  message: "Destination teacher is busy",
+                  proposedIndexes: [1],
+                  entryIds: ["busy"],
+                },
+              ]
+            : []),
+        ],
+      });
+      let conflicts: Awaited<
+        ReturnType<typeof result.current.checkDraftConflicts>
+      > = [];
+      await act(async () => {
+        conflicts = await result.current.checkDraftConflicts(
+          draft,
+          "temp-destination",
+        );
+      });
+      expect(conflicts.map((conflict) => conflict.message)).toEqual(
+        destinationBusy ? ["Destination teacher is busy"] : [],
+      );
+      if (destinationBusy) expect(conflicts[0].dayKey).toBe("tue");
+      expect(result.current.timetableEntries).toEqual([source]);
+      expect(mockedBulkSaveEntries).not.toHaveBeenCalled();
+      expect(mockedDeleteEntry).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a destination missing its teacher allocation before requesting conflicts", async () => {
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const destination = {
+      ...result.current.timetableEntries[0],
+      id: "temp-destination",
+      teacherId: "unallocated-teacher",
+    };
+    await expect(
+      result.current.checkDraftConflicts([destination], destination.id),
+    ).rejects.toThrow(/allocation/i);
+    expect(mockedCheckConflicts).not.toHaveBeenCalled();
   });
 
   it("commits a complete review together and retains it when a later publication check fails", async () => {
@@ -332,18 +484,37 @@ describe("useTimetableData", () => {
     expect(result.current.validationSummary.backendSummary).toBeNull();
   });
 
-  it("reports a failed authoritative reload after generation instead of claiming refreshed state", async () => {
+  it.each(["reloadGeneratedTimetable", "reloadConfigs"] as const)("reports a failed authoritative %s reload instead of claiming refreshed state", async (reload) => {
     const { result } = renderHook(() => useTimetableData(hookParams));
     await waitFor(() => expect(result.current.timetableLoading).toBe(false));
     const savedEntries = result.current.timetableEntries;
     mockedListPeriods.mockRejectedValueOnce(new Error("Network unavailable"));
 
     await act(async () => {
-      await expect(result.current.reloadGeneratedTimetable()).rejects.toThrow();
+      await expect(result.current[reload]()).rejects.toThrow();
     });
 
     expect(result.current.apiError).toBeTruthy();
     expect(result.current.timetableEntries).toEqual(savedEntries);
+  });
+
+  it.each([
+    { selectedClassroomId: "classroom-2" },
+    { configurationScope: { scopeType: "GRADE" as const, gradeId: "grade-2" } },
+  ])("clears the previous timetable if a new selection fails to load: %j", async (selection) => {
+    const { result, rerender } = renderHook(
+      ({ changes }: { changes: Partial<Parameters<typeof useTimetableData>[0]> }) => useTimetableData({ ...hookParams, ...changes }),
+      { initialProps: { changes: {} } },
+    );
+    await waitFor(() => expect(result.current.config?.id).toBe(backendConfig.id));
+    mockedGetConfig.mockRejectedValueOnce(new Error("Network unavailable"));
+    rerender({ changes: selection });
+    await waitFor(() => expect(result.current.apiError).toBeTruthy());
+    expect(result.current.config).toBeNull();
+    expect(result.current.resolvedConfig).toBeNull();
+    expect(result.current.timetableEntries).toEqual([]);
+    expect(result.current.allTermEntries).toEqual([]);
+    expect(result.current.workspaceState.canEdit).toBe(false);
   });
 
   it("does not display a different configuration when a conflict link is stale", async () => {
@@ -470,6 +641,122 @@ describe("useTimetableData", () => {
     });
   });
 
+  it.each([false, true])(
+    "saves a same-time classroom move unless the destination has a genuine conflict (busy: %s)",
+    async (busy) => {
+      mockedFetchTeacherAllocations.mockResolvedValue(
+        ["classroom-1", "classroom-2"].map((classroomId, index) => ({
+          id: `allocation-${index + 1}`,
+          termId: "term-1",
+          sectionId: "section-1",
+          classroomId,
+          subjectId: "subject-1",
+          teacherId: "teacher-1",
+        })),
+      );
+      let persistedEntries = [backendEntry];
+      mockedListEntries.mockImplementation(async () => ({
+        items: persistedEntries,
+      }));
+      mockedDeleteEntry.mockImplementationOnce(async (id) => {
+        persistedEntries = persistedEntries.filter((entry) => entry.id !== id);
+      });
+      mockedBulkSaveEntries.mockImplementationOnce(async () => {
+        persistedEntries.push({
+          ...backendEntry,
+          id: "moved-entry",
+          classroom: { ...backendEntry.classroom, id: "classroom-2" },
+        });
+        return { items: persistedEntries };
+      });
+      const { result } = renderHook(() => useTimetableData(hookParams));
+      await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+      const source = result.current.timetableEntries[0];
+      const draft = [
+        {
+          ...source,
+          id: "temp-move",
+          classroomId: "classroom-2",
+          sectionId: "section-1",
+        },
+        { ...source, subjectId: null, teacherId: null, roomId: null },
+      ];
+      const conflict = {
+        code: "teacher_conflict",
+        severity: "blocking",
+        message: "Teacher is busy",
+        dayOfWeek: 1,
+        periodId: "period-1",
+        classroomId: null,
+        teacherUserId: "teacher-1",
+        roomId: null,
+        proposedIndexes: [0],
+      };
+      mockedCheckConflicts.mockResolvedValue({
+        termId: "term-1",
+        academicYearId: "year-1",
+        hasConflicts: true,
+        conflicts: [
+          { ...conflict, entryIds: [source.id] },
+          ...(busy
+            ? [{ ...conflict, entryIds: ["genuine-other-lesson"] }]
+            : []),
+        ],
+      });
+      await act(async () => {
+        const saved = await result.current.saveTimetable(draft);
+        expect(saved.ok).toBe(!busy);
+        if (busy)
+          expect(saved).toMatchObject({
+            hasConflicts: true,
+            changesWereNotSaved: true,
+          });
+      });
+      expect(persistedEntries.map((entry) => entry.id)).toEqual(
+        busy ? [source.id] : ["moved-entry"],
+      );
+      expect(result.current.conflicts).toHaveLength(busy ? 1 : 0);
+    },
+  );
+
+  it("saves a dragged lesson as a move and reloads only the destination lesson", async () => {
+    let persistedEntries = [backendEntry];
+    mockedListEntries.mockImplementation(async () => ({ items: persistedEntries }));
+    mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
+    mockedDeleteEntry.mockImplementationOnce(async (id) => {
+      persistedEntries = persistedEntries.filter((entry) => entry.id !== id);
+      return undefined;
+    });
+    mockedBulkSaveEntries.mockImplementationOnce(async (payload) => {
+      persistedEntries = [...persistedEntries, { ...backendEntry, id: "moved-entry", dayOfWeek: payload.items[0].dayOfWeek }];
+      return { items: persistedEntries };
+    });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const source = result.current.timetableEntries[0];
+    const placement = applyTimetableDrop({
+      item: { kind: "ENTRY", id: `entry:${source.id}`, entryId: source.id },
+      target: { classroomId: "classroom-1", sectionId: "section-1", dayKey: "wed", periodIndex: 1 },
+      termId: "term-1",
+      editableEntries: result.current.timetableEntries,
+      allEntries: result.current.allTermEntries,
+      readOnly: false,
+      holiday: false,
+      instructional: true,
+      rooms: result.current.rooms,
+      classrooms: result.current.classrooms,
+      createEntryId: () => "temp-dragged",
+    });
+    expect(placement.status).toBe("APPLIED");
+    if (placement.status !== "APPLIED") throw new Error("Expected a move");
+    await act(async () => {
+      expect(await result.current.saveTimetable(placement.entries)).toEqual({ ok: true });
+    });
+    expect(result.current.timetableEntries).toEqual([
+      expect.objectContaining({ id: "moved-entry", dayKey: "wed", subjectId: source.subjectId }),
+    ]);
+  });
+
   it("reloads authoritative scope entries after bulk save", async () => {
     const crossScopeEntry: BackendTimetableEntryDto = {
       ...backendEntry,
@@ -488,6 +775,7 @@ describe("useTimetableData", () => {
     mockedListEntries.mockReset();
     mockedListEntries
       .mockResolvedValueOnce({ items: [backendEntry] })
+      .mockResolvedValueOnce({ items: [backendEntry] })
       .mockResolvedValueOnce({ items: [backendEntry, crossScopeEntry] });
 
     await act(async () => {
@@ -501,6 +789,50 @@ describe("useTimetableData", () => {
       expect.objectContaining({ id: "entry-1" }),
       expect.objectContaining({ id: "entry-cross-scope" }),
     ]);
+  });
+
+  it("loads all classrooms once and refreshes them after deleting all lessons", async () => {
+    const { result } = renderHook(() => useTimetableData({ ...hookParams, selectedClassroomId: "" }));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    expect(mockedListEntries).toHaveBeenCalledTimes(1);
+    const cleared = result.current.timetableEntries.map((entry) => ({ ...entry, subjectId: null, teacherId: null }));
+    mockedDeleteEntry.mockResolvedValue(undefined);
+    mockedListEntries.mockResolvedValueOnce({ items: [backendEntry] }).mockResolvedValue({ items: [] });
+    await act(async () => {
+      expect(await result.current.saveTimetable(cleared)).toEqual({ ok: true });
+    });
+    expect(mockedListEntries).toHaveBeenCalledTimes(3);
+    expect(result.current.timetableEntries).toEqual([]);
+    expect(result.current.allTermEntries).toEqual([]);
+    expect(result.current.saveProgress).toBeNull();
+  });
+
+  it("refreshes authoritative lessons even when the first deletion response fails", async () => {
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const cleared = result.current.timetableEntries.map((entry) => ({ ...entry, subjectId: null, teacherId: null }));
+    mockedDeleteEntry.mockRejectedValueOnce(new Error("Connection lost"));
+    mockedListEntries.mockResolvedValueOnce({ items: [backendEntry] }).mockResolvedValue({ items: [] });
+    await act(async () => {
+      expect(await result.current.saveTimetable(cleared)).toMatchObject({ ok: false, partialMutation: true, authoritativeReloaded: true });
+    });
+    expect(result.current.timetableEntries).toEqual([]);
+    expect(result.current.isSaving).toBe(false);
+    expect(result.current.saveProgress).toBeNull();
+  });
+
+  it("rejects a failed reset reload and retains the current draft", async () => {
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const draft = [{ ...result.current.timetableEntries[0], id: "temp-unsaved", dayKey: "wed" }];
+    act(() => result.current.setTimetableEntries(draft));
+    mockedGetConfig.mockRejectedValueOnce(new Error("Network unavailable"));
+    await act(async () => {
+      await expect(result.current.loadTimetable()).rejects.toThrow("Failed to refresh timetable.");
+    });
+    expect(result.current.timetableEntries).toEqual(draft);
+    expect(result.current.apiError).toBeTruthy();
+    expect(result.current.timetableLoading).toBe(false);
   });
 
   it("does not report save success when the authoritative reload fails", async () => {
@@ -523,6 +855,7 @@ describe("useTimetableData", () => {
       partialMutation: true,
       error: expect.stringContaining("may have been saved"),
     });
+    expect(result.current.apiError).toBe(saveResult!.error);
   });
 
   it("does not claim recovery succeeded when a partial save cannot reload", async () => {
@@ -559,7 +892,7 @@ describe("useTimetableData", () => {
 
   it("does not delete cleared entries when another slot has a conflict", async () => {
     mockedCheckConflicts.mockResolvedValueOnce({
-      conflicts: [{ code: "academics.timetable.entry_conflict" }],
+      conflicts: [{ code: "academics.timetable.entry_conflict", entryIds: ["other-lesson"], proposedIndexes: [0] }],
     });
     const { result } = renderHook(() => useTimetableData(hookParams));
 
@@ -735,10 +1068,40 @@ describe("useTimetableData", () => {
     );
   });
 
+  it("keeps published lessons locked when publication succeeds but refresh fails", async () => {
+    mockedGetPublication.mockResolvedValue({ ...activePublication, status: "draft", isPublished: false });
+    mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
+    mockedPublish.mockResolvedValueOnce(activePublication);
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    mockedGetConfig.mockRejectedValueOnce(new Error("Refresh unavailable"));
+    await act(async () => {
+      expect(await result.current.publishCurrentTimetable(
+        result.current.timetableEntries,
+        validationSummaryFromResponse(validTimetableResponse),
+      )).toMatchObject({ ok: false, error: expect.stringContaining("was published") });
+    });
+    expect(result.current.isPublished).toBe(true);
+    expect(result.current.apiError).toContain("could not be refreshed");
+  });
+
+  it("does not report unpublish completion when the authoritative refresh fails", async () => {
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    mockedUnpublish.mockResolvedValueOnce({ ok: true });
+    mockedGetConfig.mockRejectedValueOnce(new Error("Refresh unavailable"));
+    await act(async () => {
+      expect(await result.current.unpublishCurrentTimetable()).toMatchObject({
+        ok: false, error: expect.stringContaining("was unpublished"),
+      });
+    });
+    expect(result.current.isPublished).toBe(true);
+  });
+
   it("marks the loaded config active after publishing", async () => {
     mockedGetPublication.mockResolvedValueOnce(activePublication);
     mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
-    mockedPublish.mockResolvedValueOnce(undefined);
+    mockedPublish.mockResolvedValueOnce(activePublication);
     mockedGetPublication.mockResolvedValueOnce(activePublication);
 
     const { result } = renderHook(() => useTimetableData(hookParams));
@@ -973,14 +1336,14 @@ function mockAcademicDependencies() {
   mockedFetchSubjectAllocations.mockResolvedValue([
     { gradeId: "grade-1", subjectId: "subject-1", weeklyHours: 5 },
   ]);
-  mockedFetchTeachers.mockResolvedValue([
-    {
+  mockedFetchTeacherDirectory.mockResolvedValue({
+    teachers: [{
       id: "teacher-1",
       nameAr: "المعلم 1",
       nameEn: "Teacher One",
       isActive: true,
-    },
-  ]);
+    }],
+  });
   mockedFetchTeacherAllocations.mockResolvedValue([
     {
       id: "allocation-1",

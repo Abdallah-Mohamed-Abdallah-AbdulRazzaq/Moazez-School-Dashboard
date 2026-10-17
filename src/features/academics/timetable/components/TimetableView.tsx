@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { DndContext, DragOverlay } from "@dnd-kit/core";
+import { DndContext, DragOverlay, MeasuringStrategy, pointerWithin } from "@dnd-kit/core";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import {
   AlertCircle,
@@ -14,6 +15,7 @@ import {
   Send,
   EyeOff,
   CheckCircle,
+  LoaderCircle,
   Clock3,
   School,
   GraduationCap,
@@ -23,7 +25,17 @@ import {
   Download,
 } from "lucide-react";
 import FilterBar from "./FilterBar";
+import {
+  timetableOverviewQuery,
+  timetableWorkspaceQuery,
+} from "../services/timetableWorkspaceNavigation";
+import {
+  dashboardConfigurationScope,
+  timetableTargetPath,
+} from "../services/timetableOverview";
 import TimetableGrid from "./TimetableGrid";
+import TimetableClassroomList from "./TimetableClassroomList";
+import TimetablePrintDialog from "./TimetablePrintDialog";
 import TimetableViewNavigation from "./TimetableViewNavigation";
 import { useTimetableFocusMode } from "../hooks/useTimetableFocusMode";
 import { findTimetableLessons } from "../services/timetableLessonSearch";
@@ -32,23 +44,23 @@ import TimetableResourceLibrary from "./TimetableResourceLibrary";
 import TimetableUndoBanner from "./TimetableUndoBanner";
 import TimetableWorkspacePanelBar from "./TimetableWorkspacePanelBar";
 import TimetableCreationStepper from "./TimetableCreationStepper";
+import TimetableWorkflowNextAction from "./TimetableWorkflowNextAction";
+import TimetablePublishDialog from "./TimetablePublishDialog";
 import TimetableSourceBanner from "./TimetableSourceBanner";
 import {useTimetableValidationReview} from "../hooks/useTimetableValidationReview";
 import ValidationPanel from "./ValidationPanel";
-import TimetableConflictDialog from "./TimetableConflictDialog";
-import EditSlotDialog from "./EditSlotDialog";
-import TimetableLessonTransferDialog from "./TimetableLessonTransferDialog";
 import { previewLessonTransfer, type LessonTransferMode, type LessonTransferInput } from "../services/timetableLessonTransfer";
-import type { TimetableDropTarget } from "../services/timetableDragDrop";
-import GenerateDialog from "./GenerateDialog";
-import TimetableConfigDialog from "./TimetableConfigDialog";
+import {
+  hasTimetableRoomConflict,
+  mergeTimetableEntriesForValidation,
+  type TimetableDropTarget,
+} from "../services/timetableDragDrop";
 import {
   TimetableActionBarLoadingSkeleton,
   TimetableContentLoadingSkeleton,
   TimetableGridLoadingSkeleton,
 } from "./TimetableLoadingSkeletons";
 import { AccessDenied, Button } from "@/components/ui";
-import { usePrint } from "@/components/print";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useBrandingProfile } from "@/features/settings/hooks/useBrandingProfile";
@@ -113,7 +125,14 @@ import {
 } from "@/features/academics/utils/exportAdapter";
 import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
 
+const TimetableConflictDialog = dynamic(() => import("./TimetableConflictDialog"));
+const EditSlotDialog = dynamic(() => import("./EditSlotDialog"));
+const TimetableLessonTransferDialog = dynamic(() => import("./TimetableLessonTransferDialog"));
+const GenerateDialog = dynamic(() => import("./GenerateDialog"));
+const TimetableConfigDialog = dynamic(() => import("./TimetableConfigDialog"));
+
 interface TimetableViewProps {
+  configurationQuery: string;
   schoolId: string;
   termId: string;
   termStatus: "open" | "closed";
@@ -140,6 +159,7 @@ interface TimetableViewProps {
 }
 
 export default function TimetableView({
+  configurationQuery,
   schoolId,
   termId,
   termStatus,
@@ -170,12 +190,15 @@ export default function TimetableView({
   const { user } = useAuth();
   const { guardedNavigate } = useNavigationGuard();
   const { profile: brandingProfile } = useBrandingProfile();
-  const filteredScope = resolveTimetableScopeSelection({
-    stageId: selectedStageId,
-    gradeId: selectedGradeId,
-    sectionId: selectedSectionId,
-    classroomId: selectedClassroomId,
-  });
+  const filteredScope = useMemo(
+    () => resolveTimetableScopeSelection({
+      stageId: selectedStageId,
+      gradeId: selectedGradeId,
+      sectionId: selectedSectionId,
+      classroomId: selectedClassroomId,
+    }),
+    [selectedStageId, selectedGradeId, selectedSectionId, selectedClassroomId],
+  );
   const canViewTimetable = hasPermission("academics.structure.view");
   const translateTimetableError = useCallback(
     (code: TimetableErrorCode) =>
@@ -192,10 +215,13 @@ export default function TimetableView({
       loadFailed: t("errors.loadFailed"),
       saveFailed: t("errors.saveFailed"),
       saveReloadFailed: t("errors.saveReloadFailed"),
+      staleTimetable: t("errors.staleTimetable"),
       partialSaveRefreshed: t("errors.partialSaveRefreshed"),
       partialSaveReloadFailed: t("errors.partialSaveReloadFailed"),
       publishFailed: t("errors.publishFailed"),
+      publishReloadFailed: t("errors.publishReloadFailed"),
       unpublishFailed: t("errors.unpublishFailed"),
+      unpublishReloadFailed: t("errors.unpublishReloadFailed"),
       unpublishUnsupportedScope: t("errors.unpublishUnsupportedScope"),
       noConfigSelected: t("errors.noConfigSelected"),
       noFilledSlotsToSave: t("errors.noFilledSlotsToSave"),
@@ -218,7 +244,7 @@ export default function TimetableView({
   const [gridDensity, setGridDensity] = useState<TimetableDensity>("comfortable");
   const [scopeFiltersExpanded, setScopeFiltersExpanded] = useState(false);
   const [creationProgressExpanded, setCreationProgressExpanded] =
-    useState(false);
+    useState(true);
   const [timetableContextExpanded, setTimetableContextExpanded] =
     useState(false);
   const [selectedConflict, setSelectedConflict] =
@@ -226,33 +252,26 @@ export default function TimetableView({
   const [inspectionConflict, setInspectionConflict] =
     useState<TimetableConflictDisplay | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [configDialogOpen, setConfigDialogOpen] = useState(
+    searchParams.get("configure") === "1",
+  );
   const [periodsDialogOpen, setPeriodsDialogOpen] = useState(false);
   const {
     configurationScope,
     linkedConfigurationId,
     isTermDefaultConfiguration,
-    configurationMode,
     customizeFilteredScope: selectCustomConfigurationScope,
     returnToTermDefault: selectTermDefaultConfiguration,
   } = useTimetableConfigurationScope(filteredScope, {
     userId: user?.id ?? null,
     schoolId,
     termId,
+    configurationQuery,
   });
-  const [selectedSectionTabId, setSelectedSectionTabId] = useState<
-    string | null
-  >(null);
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
-  const [printTimestamp] = useState("");
-  const printMatrixRef = useRef<HTMLDivElement | null>(null);
-  const scopeRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
-  const printTimetable = usePrint({
-    contentRef: printMatrixRef,
-    title: t("title"),
-  });
 
   // Edit Dialog State
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -365,6 +384,7 @@ export default function TimetableView({
     isLoading,
     timetableLoading,
     isSaving,
+    saveProgress,
     isPublished,
     publication,
     conflicts: backendConflicts,
@@ -399,7 +419,10 @@ export default function TimetableView({
   });
 
   const validationContextId = JSON.stringify([academicYearId, termId, workspaceState.displayConfigId, selectedGradeId, selectedClassroomId]);
-  const validationFingerprint = JSON.stringify([validationContextId, config, periods, timetableEntries, subjectAllocations, teacherAllocations, rooms, teachers, subjects]);
+  const validationFingerprint = useMemo(
+    () => JSON.stringify([validationContextId, config, periods, timetableEntries, subjectAllocations, teacherAllocations, rooms, teachers, subjects]),
+    [validationContextId, config, periods, timetableEntries, subjectAllocations, teacherAllocations, rooms, teachers, subjects],
+  );
   const validationReview = useTimetableValidationReview({contextId: validationContextId, fingerprint: validationFingerprint, refresh: refreshValidationReview});
   const {recheck: recheckValidation, isChecking: isValidating} = validationReview;
 
@@ -429,6 +452,14 @@ export default function TimetableView({
     ],
   );
 
+  const configGuardEntries = useMemo(() => {
+    const entriesById = new Map(
+      allTermEntries.map((entry) => [entry.id, entry]),
+    );
+    timetableEntries.forEach((entry) => entriesById.set(entry.id, entry));
+    return [...entriesById.values()];
+  }, [allTermEntries, timetableEntries]);
+
   const currentPublishFingerprint = useMemo(
     () =>
       config
@@ -441,10 +472,10 @@ export default function TimetableView({
             },
             activeDays: config.activeDays,
             periods,
-            entries: timetableEntries,
+            entries: configGuardEntries,
           })
         : null,
-    [config, periods, timetableEntries],
+    [config, configGuardEntries, periods],
   );
 
   const linkedEntryId = searchParams.get("entry");
@@ -473,14 +504,6 @@ export default function TimetableView({
     workspaceState.displayConfigId,
   ]);
 
-  const configGuardEntries = useMemo(() => {
-    const entriesById = new Map(
-      allTermEntries.map((entry) => [entry.id, entry]),
-    );
-    timetableEntries.forEach((entry) => entriesById.set(entry.id, entry));
-    return [...entriesById.values()];
-  }, [allTermEntries, timetableEntries]);
-
   // Sync internal refs for normalization
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -499,27 +522,29 @@ export default function TimetableView({
   const hasExactConfig = workspaceState.mode === "exact";
   const canCreateConfig = canWriteTimetable && !hasExactConfig;
   const canEditTimetable =
-    canWriteTimetable && configIsDraft && workspaceState.canEdit;
+    canWriteTimetable && configIsDraft && workspaceState.canEdit && !isSaving;
   const filledTimetableEntryCount = timetableEntries.filter(
     (entry) => entry.subjectId,
   ).length;
   const canConfigureTimetable = hasExactConfig
     ? canEditTimetable
     : canCreateConfig;
-  const sourceActionEnabled = isTermDefaultConfiguration
-    ? filteredScope.scopeType !== "TERM"
-    : canCreateConfig;
-
-  const openTimetableSettings = () => {
-    guardedNavigate(() => router.push("/academics/timetable/setup"));
-  };
+  const sourceActionEnabled =
+    canWriteTimetable &&
+    (isTermDefaultConfiguration
+      ? filteredScope.scopeType !== "TERM" || canCreateConfig
+      : canCreateConfig);
 
   const openConfigurationEditor = () => {
-    if (isTermDefaultConfiguration) {
-      openTimetableSettings();
-      return;
-    }
     setConfigDialogOpen(true);
+  };
+
+  const closeConfigurationEditor = () => {
+    setConfigDialogOpen(false);
+    if (!searchParams.has("configure")) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("configure");
+    router.replace(`?${params}`, { scroll: false });
   };
 
   const openValidationDestination = (path: string) => {
@@ -532,6 +557,7 @@ export default function TimetableView({
   const customizeFilteredScope = () => {
     guardedNavigate(() => {
       if (isTermDefaultConfiguration) {
+        if (filteredScope.scopeType === "TERM") return openConfigurationEditor();
         selectCustomConfigurationScope();
         return;
       }
@@ -708,7 +734,7 @@ export default function TimetableView({
     roomId: string | null,
   ) => {
     // Update local state
-    if (!editingSlot) {
+    if (!editingSlot || !canEditTimetable) {
       return;
     }
 
@@ -720,7 +746,12 @@ export default function TimetableView({
         e.periodIndex === periodIndex,
     );
 
+    const slotPeriod = periods.find((period) => period.index === periodIndex);
     const newEntry: TimetableEntry = {
+      ...(existingIndex >= 0 ? updatedEntries[existingIndex] : {}),
+      timetableConfigId: workspaceState.displayConfigId ?? undefined,
+      startTime: slotPeriod?.startTime,
+      endTime: slotPeriod?.endTime,
       id:
         existingIndex >= 0
           ? updatedEntries[existingIndex].id
@@ -742,6 +773,7 @@ export default function TimetableView({
       updatedEntries.push(newEntry);
     }
 
+    resetSchedulingInteraction();
     setTimetableEntries(updatedEntries);
     onDirtyChange(true);
     setEditDialogOpen(false);
@@ -752,9 +784,12 @@ export default function TimetableView({
 
     const saveResult = await saveTimetable(timetableEntries);
     if (saveResult.ok) {
+      resetSchedulingInteraction();
       onDirtyChange(false);
       showToast(t("actions.saveSuccess"), "success");
     } else {
+      if (saveResult.partialMutation) resetSchedulingInteraction();
+      if (saveResult.authoritativeReloaded) onDirtyChange(false);
       if (saveResult.hasConflicts) {
         setValidationPanelOpen(true);
       }
@@ -773,6 +808,7 @@ export default function TimetableView({
 
     const entriesPendingDeletion =
       persistedEntriesClearedForDeletion(timetableEntries);
+    resetSchedulingInteraction();
     setTimetableEntries(entriesPendingDeletion);
     onDirtyChange(entriesPendingDeletion.length > 0);
     setDeleteAllEntriesConfirmOpen(false);
@@ -841,6 +877,7 @@ export default function TimetableView({
     if (!hasTimetableScope || !canWriteTimetable) return;
 
     if (
+      isDirty ||
       !publishFingerprint ||
       publishFingerprint !== currentPublishFingerprint
     ) {
@@ -916,6 +953,7 @@ export default function TimetableView({
 
     try {
       await loadTimetable();
+      resetSchedulingInteraction();
       onDirtyChange(false);
       showToast(t("actions.resetSuccess"), "success");
     } catch (error) {
@@ -991,36 +1029,68 @@ export default function TimetableView({
     ? sections.find((item) => item.id === editingSlot.sectionId)
     : selectedSection;
   const editingGradeId = editingSection?.gradeId ?? selectedGradeId;
-  const editableSlotSubjects = subjectOptionsForGradeAllocations({
-    subjects,
-    subjectAllocations,
-    gradeId: editingGradeId,
-  });
+  const editableSlotSubjects = useMemo(
+    () => subjectOptionsForGradeAllocations({
+      subjects,
+      subjectAllocations,
+      gradeId: editingGradeId,
+    }),
+    [subjects, subjectAllocations, editingGradeId],
+  );
+  const printEntries = useMemo(
+    () => mergeTimetableEntriesForValidation(allTermEntries, timetableEntries),
+    [allTermEntries, timetableEntries],
+  );
+  const entriesByClassroom = useMemo(() => {
+    const grouped = new Map<string, TimetableEntry[]>();
+    for (const entry of timetableEntries) {
+      if (!entry.classroomId) continue;
+      const classroomEntries = grouped.get(entry.classroomId);
+      if (classroomEntries) classroomEntries.push(entry);
+      else grouped.set(entry.classroomId, [entry]);
+    }
+    return grouped;
+  }, [timetableEntries]);
+  const configurationClassrooms = useMemo(
+    () =>
+      classroomsForTimetableScope({
+        classrooms,
+        grades,
+        sections,
+        scope: configurationScope,
+      }),
+    [classrooms, grades, sections, configurationScope],
+  );
+
   const displayedClassrooms = useMemo(() => {
     return classroomsForTimetableScope({
-      classrooms,
+      classrooms: configurationClassrooms,
       grades,
       sections,
       scope: filteredScope,
     });
   }, [
-    classrooms,
+    configurationClassrooms,
     filteredScope,
     grades,
     sections,
   ]);
-  const switchableClassrooms = classroomsForTimetableScope({
-    classrooms,
-    grades,
-    sections,
-    scope: resolveTimetableScopeSelection({
-      stageId: selectedStageId,
-      gradeId: selectedGradeId,
-      sectionId: selectedSectionId,
-      classroomId: "",
+  const switchableClassrooms = useMemo(
+    () => classroomsForTimetableScope({
+      classrooms: configurationClassrooms,
+      grades,
+      sections,
+      scope: resolveTimetableScopeSelection({
+        stageId: selectedStageId,
+        gradeId: selectedGradeId,
+        sectionId: selectedSectionId,
+        classroomId: "",
+      }),
     }),
-  });
+    [configurationClassrooms, grades, sections, selectedStageId, selectedGradeId, selectedSectionId],
+  );
   const lessonMatches = useMemo(() => {
+    if (!lessonQuery.trim()) return [];
     const classroomOrder = new Map(
       displayedClassrooms.map((classroom, index) => [classroom.id, index]),
     );
@@ -1081,7 +1151,6 @@ export default function TimetableView({
           lessonMatches.length;
     const match = lessonMatches[nextIndex];
     setSelectedConflict(null);
-    setSelectedSectionTabId(match.sectionId);
     setFocusedSearchEntryId(match.id);
     setSearchFocusRequest((request) => request + 1);
   };
@@ -1094,7 +1163,7 @@ export default function TimetableView({
           ...lessonTransfer,
           entries: timetableEntries,
           allTermEntries,
-          classrooms: displayedClassrooms,
+          classrooms: configurationClassrooms,
           sections,
           teacherAllocations,
           subjectAllocations,
@@ -1129,14 +1198,6 @@ export default function TimetableView({
       "success",
     );
   };
-  const displayedSections = sections.filter((section) =>
-    displayedClassrooms.some((classroom) => classroom.sectionId === section.id),
-  );
-  const activeSectionTabId = displayedSections.some(
-    (section) => section.id === selectedSectionTabId,
-  )
-    ? selectedSectionTabId
-    : displayedSections[0]?.id;
   const {
     activeDragItem,
     canDropOnSlot,
@@ -1165,6 +1226,7 @@ export default function TimetableView({
     classroomId: selectedClassroomId,
     selectedClassroom,
     classrooms,
+    sections,
     subjects,
     subjectAllocations,
     teachers,
@@ -1181,6 +1243,7 @@ export default function TimetableView({
     showToast,
     translate: t,
   });
+  useEffect(resetSchedulingInteraction, [resetSchedulingInteraction, termId, workspaceState.displayConfigId]);
   const handleUndoAndRestoreFocus = useCallback(() => {
     handleUndoPlacement();
     window.requestAnimationFrame(() => gridRef.current?.focus());
@@ -1188,42 +1251,24 @@ export default function TimetableView({
 
   const focusConflictInCurrentTimetable = useCallback(
     (conflict: TimetableConflictDisplay) => {
-      const proposedEntries = timetableEntries.filter(
-        (entry) => entry.subjectId,
-      );
-      const entriesById = new Map(
-        [...allTermEntries, ...timetableEntries].map((entry) => [
-          entry.id,
-          entry,
-        ]),
-      );
-      const targetEntry = resolveTimetableConflictTargetEntry(
-        conflict,
-        [...entriesById.values()],
-        proposedEntries,
-      );
-      const targetClassroom = classrooms.find(
-        (classroom) =>
-          classroom.id ===
-          (targetEntry?.classroomId ??
-            (conflict.type === "CLASSROOM" ? conflict.resourceId : undefined)),
-      );
-      const targetSectionId =
-        targetEntry?.sectionId ?? targetClassroom?.sectionId;
-
-      if (targetSectionId) {
-        setSelectedSectionTabId(targetSectionId);
-      }
       setSelectedConflict(conflict);
       setValidationPanelOpen(false);
     },
-    [allTermEntries, classrooms, timetableEntries],
+    [],
   );
+
+  const conflictClassroomId = selectedConflict
+    ? resolveTimetableConflictTargetEntry(
+        selectedConflict,
+        timetableEntries,
+        timetableEntries.filter((entry) => entry.subjectId),
+      )?.classroomId ?? (selectedConflict.type === "CLASSROOM" ? selectedConflict.resourceId : undefined)
+    : undefined;
 
   const handleValidationOpen = useCallback(() => {
     setValidationPanelOpen(true);
-    void recheckValidation();
-  }, [recheckValidation]);
+    if (!isValidating) void recheckValidation();
+  }, [isValidating, recheckValidation]);
 
   const hasRoomConflictForSlot = useCallback(
     (
@@ -1232,14 +1277,15 @@ export default function TimetableView({
       roomId: string,
       entryId?: string,
     ): boolean =>
-      timetableEntries.some(
-        (entry) =>
-          entry.roomId === roomId &&
-          entry.dayKey === dayKey &&
-          entry.periodIndex === periodIndex &&
-          entry.id !== entryId,
-      ),
-    [timetableEntries],
+      hasTimetableRoomConflict({
+        allEntries: allTermEntries,
+        editableEntries: timetableEntries,
+        periods,
+        target: { dayKey, periodIndex },
+        roomId,
+        excludeEntryId: entryId,
+      }),
+    [allTermEntries, timetableEntries, periods],
   );
 
   const getDisplayName = useCallback(
@@ -1273,25 +1319,48 @@ export default function TimetableView({
     Boolean(segment),
   );
 
-  const getClassroomScopeChain = useCallback(
-    (classroom: Classroom) => {
-      const classroomSection = sections.find(
-        (section) => section.id === classroom.sectionId,
-      );
-      const classroomGrade = classroomSection
-        ? grades.find((grade) => grade.id === classroomSection.gradeId)
-        : undefined;
-      const classroomStage = classroomGrade
-        ? stages.find((stage) => stage.id === classroomGrade.stageId)
-        : undefined;
-
-      return [classroomStage, classroomGrade, classroomSection, classroom]
+  const classroomScopeLabels = useMemo(() => {
+    const sectionsById = new Map(sections.map((section) => [section.id, section]));
+    const gradesById = new Map(grades.map((grade) => [grade.id, grade]));
+    const stagesById = new Map(stages.map((stage) => [stage.id, stage]));
+    return new Map(classrooms.map((classroom) => {
+      const section = sectionsById.get(classroom.sectionId);
+      const grade = section ? gradesById.get(section.gradeId) : undefined;
+      const stage = grade ? stagesById.get(grade.stageId) : undefined;
+      const label = [stage, grade, section, classroom]
         .filter(Boolean)
         .map((entity) => getDisplayName(entity))
         .join(" › ");
-    },
-    [getDisplayName, grades, sections, stages],
+      return [classroom.id, label];
+    }));
+  }, [classrooms, getDisplayName, grades, sections, stages]);
+  const getClassroomScopeChain = useCallback(
+    (classroom: Classroom) => classroomScopeLabels.get(classroom.id) ?? getDisplayName(classroom),
+    [classroomScopeLabels, getDisplayName],
   );
+
+  const editingScopeId = timetableConfigScopeId(configurationScope);
+  const editingScopeLabel = [
+    t(`overview.scope.${configurationScope.scopeType}`),
+    editingScopeId && timetableTargetPath(
+      { stages, grades, sections, classrooms }, editingScopeId, locale,
+    ),
+  ]
+    .filter(Boolean)
+    .join(": ");
+  const openInheritedConfiguration = () => {
+    const inherited = workspaceState.effectiveConfig;
+    if (!inherited) return;
+    const scope = dashboardConfigurationScope(inherited);
+    if (!scope) return;
+    const params = timetableWorkspaceQuery(
+      searchParams.toString(),
+      scope,
+      inherited.id,
+    );
+    if (selectedClassroomId) params.set("classroom", selectedClassroomId);
+    guardedNavigate(() => router.push(`?${params}`, { scroll: false }));
+  };
 
   const configurationSource = resolvedConfig?.source ?? {
     scope: configurationScope.scopeType,
@@ -1358,26 +1427,31 @@ export default function TimetableView({
       resolveTimetableCreationProgress({
         isLoading: isLoading || timetableLoading,
         resolvedConfig,
-        entries: timetableEntries,
+        entries: allTermEntries,
         isDirty,
+        reviewIsCurrent: validationReview.isCurrent && !validationReview.isChecking,
         validationSummary,
         conflicts: backendConflicts,
         publication,
-        isReadOnly: !canWriteTimetable,
+        isReadOnly: !canWriteTimetable || (hasExactConfig && !configIsDraft),
         workspaceMode: workspaceState.mode,
         translateMessage: translateBackendMessage,
       }),
     [
+      allTermEntries,
       backendConflicts,
       canWriteTimetable,
+      configIsDraft,
+      hasExactConfig,
       isDirty,
       isLoading,
       publication,
       resolvedConfig,
-      timetableEntries,
       timetableLoading,
       translateBackendMessage,
       validationSummary,
+      validationReview.isCurrent,
+      validationReview.isChecking,
       workspaceState.mode,
     ],
   );
@@ -1439,13 +1513,11 @@ export default function TimetableView({
 
   const openCreationStep = (action: TimetableCreationAction) => {
     if (action === "scope") {
-      setScopeFiltersExpanded(true);
-      window.requestAnimationFrame(() => focusDestination(scopeRef.current));
+      guardedNavigate(() => router.push(`?${timetableOverviewQuery(searchParams.toString())}`, { scroll: false }));
       return;
     }
     if (action === "configuration") return openConfigurationEditor();
     if (action === "periods") {
-      if (isTermDefaultConfiguration) return openTimetableSettings();
       return setPeriodsDialogOpen(true);
     }
     if (action === "schedule") return focusDestination(gridRef.current);
@@ -1550,34 +1622,6 @@ export default function TimetableView({
   const printLogoUrl =
     brandingProfile?.logoUrl.trim() || "/images/logo/moazzez_logo.svg";
 
-  const selectedPrintTarget = (() => {
-    if (selectedClassroom) {
-      return {
-        label: t("target.classroom"),
-        name: getDisplayName(selectedClassroom),
-      };
-    }
-    if (selectedSection) {
-      return {
-        label: t("target.section"),
-        name: getDisplayName(selectedSection),
-      };
-    }
-    if (selectedGrade) {
-      return {
-        label: t("target.grade"),
-        name: getDisplayName(selectedGrade),
-      };
-    }
-    if (selectedStage) {
-      return {
-        label: t("target.stage"),
-        name: getDisplayName(selectedStage),
-      };
-    }
-    return null;
-  })();
-
   if (!canViewTimetable) {
     return (
       <div className="flex h-full items-start justify-center p-6">
@@ -1615,246 +1659,23 @@ export default function TimetableView({
           : ""
       }`}
     >
-      <style>{`
-        @media print {
-          @page {
-            size: A4 landscape;
-            margin: 3mm;
-          }
-
-          html,
-          body {
-            background: #fff !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-          }
-
-          body * {
-            visibility: hidden !important;
-          }
-
-          .timetable-print-matrix,
-          .timetable-print-matrix * {
-            visibility: visible !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          .timetable-print-matrix {
-            position: fixed !important;
-            inset: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            overflow: hidden !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #fff !important;
-            font-size: 8px !important;
-            display: block !important;
-            direction: ltr !important;
-          }
-
-          .timetable-print-page-inner {
-            width: 100% !important;
-            max-width: 100% !important;
-            height: 100% !important;
-            margin: 0 !important;
-            padding: 0 3mm !important;
-            box-sizing: border-box !important;
-            position: relative !important;
-            transform: scale(var(--timetable-print-scale, 1)) !important;
-            transform-origin: top center !important;
-          }
-
-          .timetable-print-header {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            gap: 12px !important;
-            margin-bottom: 4px !important;
-            padding-bottom: 3px !important;
-            border-bottom: 1px solid #d1d5db !important;
-          }
-
-          .timetable-print-school {
-            max-width: 45% !important;
-            text-align: start !important;
-
-          }
-
-          .timetable-print-logo {
-            width: 32px !important;
-            height: 32px !important;
-            min-width: 32px !important;
-            min-height: 32px !important;
-            max-width: 32px !important;
-            max-height: 32px !important;
-            flex: none !important;
-            object-fit: contain !important;
-          }
-
-          .timetable-print-target {
-            display: block !important;
-            margin: 0 0 4px !important;
-            padding: 3px 6px !important;
-            border: 1px solid #d1d5db !important;
-            background: #f8fafc !important;
-            text-align: center !important;
-            font-weight: 600 !important;
-            color: #111827 !important;
-            font-size: 9px !important;
-          }
-
-          .timetable-print-footer {
-            position: absolute !important;
-            bottom: 1mm !important;
-            inset-inline-start: 3mm !important;
-            display: block !important;
-            color: #4b5563 !important;
-            font-size: 8px !important;
-          }
-
-          .timetable-print-content {
-            width: 100% !important;
-            max-width: 100% !important;
-            height: auto !important;
-            overflow: hidden !important;
-            box-sizing: border-box !important;
-          }
-
-          .timetable-print-matrix .hidden.lg\\:block {
-            display: block !important;
-          }
-
-          .timetable-print-matrix .lg\\:hidden {
-            display: none !important;
-          }
-
-          .timetable-print-matrix .overflow-x-auto {
-            overflow: visible !important;
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-
-          .timetable-print-matrix table {
-            width: 100% !important;
-            max-width: 100% !important;
-            table-layout: fixed !important;
-            border-collapse: collapse !important;
-            font-size: 7px !important;
-            line-height: 1.08 !important;
-          }
-
-          .timetable-print-rtl table {
-            direction: rtl !important;
-          }
-
-          .timetable-print-ltr table {
-            direction: ltr !important;
-          }
-
-          .timetable-print-matrix th,
-          .timetable-print-matrix td {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-            padding: 0 !important;
-            vertical-align: top !important;
-            overflow: hidden !important;
-          }
-
-          .timetable-print-matrix th {
-            padding: 2px 3px !important;
-            min-width: 0 !important;
-            text-align: center !important;
-          }
-
-          .timetable-print-matrix [class*="min-w-"] {
-            min-width: 0 !important;
-          }
-
-          .timetable-print-matrix td > div {
-            min-height: 0 !important;
-            padding: 2px 3px !important;
-          }
-
-          .timetable-print-matrix td,
-          .timetable-print-matrix th,
-          .timetable-print-matrix td * {
-            word-break: break-word !important;
-            overflow-wrap: anywhere !important;
-          }
-
-          .timetable-print-matrix th:first-child,
-          .timetable-print-matrix td:first-child {
-            width: 16mm !important;
-            min-width: 16mm !important;
-            max-width: 16mm !important;
-          }
-
-          .timetable-print-matrix [class*="min-h-"] {
-            min-height: 0 !important;
-          }
-
-          .timetable-print-matrix .text-base,
-          .timetable-print-matrix .text-sm,
-          .timetable-print-matrix .text-xs {
-            font-size: 7px !important;
-            line-height: 1.1 !important;
-          }
-
-          .timetable-print-matrix .gap-1,
-          .timetable-print-matrix .gap-1\\.5,
-          .timetable-print-matrix .gap-2,
-          .timetable-print-matrix .gap-3 {
-            gap: 2px !important;
-          }
-
-          .timetable-print-matrix .mb-1,
-          .timetable-print-matrix .mb-2,
-          .timetable-print-matrix .mt-1,
-          .timetable-print-matrix .mt-0\\.5 {
-            margin-top: 1px !important;
-            margin-bottom: 1px !important;
-          }
-
-          .timetable-print-matrix svg {
-            width: 8px !important;
-            height: 8px !important;
-          }
-
-          .timetable-print-matrix .line-clamp-1,
-          .timetable-print-matrix .line-clamp-2 {
-            overflow: hidden !important;
-            display: block !important;
-            -webkit-line-clamp: unset !important;
-            -webkit-box-orient: unset !important;
-          }
-
-          .timetable-print-matrix .sticky {
-            position: static !important;
-          }
-
-          .timetable-print-matrix .shadow-sm {
-            box-shadow: none !important;
-          }
-
-          .timetable-print-rtl .text-left {
-            text-align: right !important;
-          }
-
-          .timetable-print-ltr .text-left {
-            text-align: left !important;
-          }
-        }
-      `}</style>
       <div className={focusMode ? "hidden" : "contents"}>
+      <section className="flex shrink-0 flex-col gap-2 border-b border-gray-200 bg-white px-4 py-3 print:hidden sm:flex-row sm:items-center sm:justify-between lg:px-6" aria-label={t("overview.editingScope")}>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-gray-600">{t("overview.editingScope")}</p>
+          <h2 className="mt-1 break-words text-sm font-semibold text-primary">{editingScopeLabel}</h2>
+          <p className="mt-1 text-xs leading-5 text-gray-600">{t("overview.scopeFixed")}</p>
+        </div>
+        {workspaceState.mode === "inherited" && workspaceState.effectiveConfig && (
+          <Button variant="secondary" size="sm" onClick={openInheritedConfiguration}>{t("overview.openInherited")}</Button>
+        )}
+      </section>
       <TimetableWorkspacePanelBar
         label={t("title")}
         panels={[
           {
             id: "timetable-scope-filters",
-            title: t("filters.selectScope"),
+            title: t("overview.viewFilters"),
             summary:
               scopeChain.map((segment) => segment.name).join(" · ") ||
               t("config.scopeOptions.term"),
@@ -1885,22 +1706,10 @@ export default function TimetableView({
       {scopeFiltersExpanded && (
         <div
           id="timetable-scope-filters"
-          ref={scopeRef}
           tabIndex={-1}
           className="shrink-0 print:hidden"
         >
           <FilterBar
-            configurationMode={configurationMode}
-            onConfigurationModeChange={(mode) => {
-              if (mode === configurationMode) return;
-              guardedNavigate(() => {
-                resetSchedulingInteraction();
-                setConfigDialogOpen(false);
-                setPeriodsDialogOpen(false);
-                if (mode === "term") selectTermDefaultConfiguration();
-                else selectCustomConfigurationScope();
-              });
-            }}
             stages={stages}
             grades={grades}
             sections={sections}
@@ -1940,7 +1749,18 @@ export default function TimetableView({
         </div>
       )}
 
-      {hasTimetableScope && timetableContextExpanded && (
+      {hasTimetableScope && canWriteTimetable && !apiError && (
+        <TimetableWorkflowNextAction
+          progress={creationProgress}
+          isDirty={isDirty}
+          busy={isSaving || isPublishing || isValidating || timetableLoading}
+          canSave={canEditTimetable && Boolean(resolvedConfig)}
+          onSave={() => void handleSave()}
+          onAction={openCreationStep}
+        />
+      )}
+
+      {hasTimetableScope && (timetableContextExpanded || workspaceState.mode !== "exact") && (
         <div id="timetable-context" className="shrink-0 print:hidden">
           <div className="bg-white px-4 py-3 lg:px-6">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -2026,6 +1846,13 @@ export default function TimetableView({
       )}
 
       {/* Action Bar */}
+      {saveProgress && (
+        <p role="status" aria-live="polite" className="border-b border-primary/20 bg-primary-50 px-4 py-3 text-sm text-primary-800 lg:px-6 print:hidden">
+          {saveProgress.phase === "deleting"
+            ? t("actions.deletingProgress", { completed: saveProgress.completed, total: saveProgress.total })
+            : t(saveProgress.phase === "refreshing" ? "actions.refreshingAfterSave" : "actions.saving")}
+        </p>
+      )}
       {hasTimetableScope && timetableLoading && (
         <TimetableActionBarLoadingSkeleton />
       )}
@@ -2069,8 +1896,11 @@ export default function TimetableView({
               label: t("actions.validate"),
               onClick: handleValidationOpen,
               disabled: !resolvedConfig,
-              loading: isValidating,
-              icon: <CheckCircle className="h-4 w-4" aria-hidden="true" />,
+              icon: isValidating ? (
+                <LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              ) : (
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
+              ),
             },
             generate: canManageTimetable
               ? {
@@ -2101,31 +1931,22 @@ export default function TimetableView({
               : undefined,
             settings: !canManageTimetable
               ? []
-              : isTermDefaultConfiguration
-                ? [
-                    {
-                      value: "settings",
-                      label: t("actions.settings"),
-                      icon: <Settings className="h-4 w-4" aria-hidden="true" />,
-                      onClick: openTimetableSettings,
-                    },
-                  ]
-                : [
-                    {
-                      value: "configuration",
-                      label: t("config.button"),
-                      icon: <Settings className="h-4 w-4" aria-hidden="true" />,
-                      onClick: openConfigurationEditor,
-                      disabled: !canConfigureTimetable,
-                    },
-                    {
-                      value: "periods",
-                      label: t("config.periodsButton"),
-                      icon: <Clock3 className="h-4 w-4" aria-hidden="true" />,
-                      onClick: () => setPeriodsDialogOpen(true),
-                      disabled: !canEditTimetable || !config,
-                    },
-                  ],
+              : [
+                  {
+                    value: "configuration",
+                    label: t("config.button"),
+                    icon: <Settings className="h-4 w-4" aria-hidden="true" />,
+                    onClick: openConfigurationEditor,
+                    disabled: !canConfigureTimetable,
+                  },
+                  {
+                    value: "periods",
+                    label: t("config.periodsButton"),
+                    icon: <Clock3 className="h-4 w-4" aria-hidden="true" />,
+                    onClick: () => setPeriodsDialogOpen(true),
+                    disabled: !canEditTimetable || !config,
+                  },
+                ],
             more: [
               {
                 value: "export",
@@ -2138,7 +1959,7 @@ export default function TimetableView({
                 value: "print",
                 label: t("actions.print"),
                 icon: <Printer className="h-4 w-4" aria-hidden="true" />,
-                onClick: printTimetable,
+                onClick: () => setPrintDialogOpen(true),
                 disabled: !resolvedConfig,
               },
               ...(canManageTimetable
@@ -2200,6 +2021,8 @@ export default function TimetableView({
       {/* Grid */}
       <DndContext
         sensors={dragSensors}
+        collisionDetection={pointerWithin}
+        measuring={{ droppable: { strategy: MeasuringStrategy.WhileDragging } }}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
@@ -2257,9 +2080,7 @@ export default function TimetableView({
                 ctaDisabled={!canEditTimetable}
                 onCtaClick={
                   canManageTimetable
-                    ? isTermDefaultConfiguration
-                      ? openTimetableSettings
-                      : () => setPeriodsDialogOpen(true)
+                    ? () => setPeriodsDialogOpen(true)
                     : undefined
                 }
                 className="h-full"
@@ -2311,7 +2132,7 @@ export default function TimetableView({
                       </>
                     ) : (
                       <p className="text-sm text-gray-600">
-                        {t("schedulingLibrary.selectClassroomHint")}
+                        {t("classroomList.schedulingHint")}
                       </p>
                     )}
                   </div>
@@ -2328,7 +2149,6 @@ export default function TimetableView({
                   />
                 )}
                 <div
-                  ref={printMatrixRef}
                   className={`timetable-print-matrix ${
                     locale === "ar"
                       ? "timetable-print-rtl"
@@ -2338,94 +2158,27 @@ export default function TimetableView({
                 >
                   <div className="timetable-print-page-inner">
                     <div
-                      className="hidden timetable-print-header"
-                      dir={locale === "ar" ? "rtl" : "ltr"}
-                    >
-                      <div className="timetable-print-school">
-                        <div className="text-base font-semibold text-gray-900">
-                          {schoolName}
-                        </div>
-                        <div className="mt-1 text-xs text-gray-500">
-                          {t("title")}
-                        </div>
-                      </div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={printLogoUrl}
-                        alt={schoolName}
-                        className="timetable-print-logo"
-                      />
-                    </div>
-                    {selectedPrintTarget && (
-                      <div
-                        className="hidden timetable-print-target"
-                        dir={locale === "ar" ? "rtl" : "ltr"}
-                      >
-                        {selectedPrintTarget.label}: {selectedPrintTarget.name}
-                      </div>
-                    )}
-                    <div
                       className="timetable-print-content space-y-6"
                       dir={locale === "ar" ? "rtl" : "ltr"}
                     >
                       <p className="sr-only" role="status" aria-live="polite">
                         {selectedConflict?.message ?? ""}
                       </p>
-                      {displayedSections.length > 1 && (
-                        <div
-                          role="group"
-                          aria-label={t("target.section")}
-                          className="flex gap-2 overflow-x-auto border-b border-gray-200 pb-3 print:hidden"
-                        >
-                          {displayedSections.map((section) => {
-                            const isActive = section.id === activeSectionTabId;
-
-                            return (
-                              <button
-                                key={section.id}
-                                type="button"
-                                aria-pressed={isActive}
-                                onClick={() =>
-                                  setSelectedSectionTabId(section.id)
-                                }
-                                className={`shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors focus:outline-none${
-                                  isActive
-                                    ? "border-primary-600 bg-primary-600 text-white"
-                                    : "border-gray-200 bg-white text-gray-700 hover:border-primary-300 hover:bg-primary-50"
-                                }`}
-                              >
-                                <span className="block max-w-64 truncate">
-                                  {getDisplayName(section)}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {displayedClassrooms.map((classroom) => {
-                        const classroomEntries = timetableEntries.filter(
-                          (entry) => entry.classroomId === classroom.id,
-                        );
-                        const classroomScopeChain =
-                          getClassroomScopeChain(classroom);
-                        const showClassroomHeader =
-                          displayedClassrooms.length > 1;
-                        const isActive =
-                          classroom.sectionId === activeSectionTabId;
-
-                        return (
-                          <section
-                            key={classroom.id}
-                            aria-label={getDisplayName(classroom)}
-                            className={`relative space-y-3 ${
-                              isActive ? "" : "hidden print:block"
-                            }`}
-                          >
-                            {showClassroomHeader && (
-                              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 print:rounded-none print:border-x-0 print:px-0">
-                                {classroomScopeChain}
-                              </div>
-                            )}
+                      <TimetableClassroomList
+                        classrooms={displayedClassrooms.map((classroom) => ({
+                          id: classroom.id,
+                          label: getClassroomScopeChain(classroom),
+                        }))}
+                        scrollRef={gridRef}
+                        activeDrag={Boolean(activeDragItem)}
+                        printing={false}
+                        revealClassroomId={selectedConflict ? conflictClassroomId : lessonMatches.find((entry) => entry.id === focusedSearchEntryId)?.classroomId}
+                        revealRequest={selectedConflict ?? searchFocusRequest}
+                      >
+                        {(classroomId) => {
+                          const classroom = displayedClassrooms.find((item) => item.id === classroomId)!;
+                          const classroomEntries = entriesByClassroom.get(classroomId) ?? [];
+                          return (
                             <TimetableGrid
                               density={gridDensity}
                               searchFocusRequest={searchFocusRequest}
@@ -2440,7 +2193,7 @@ export default function TimetableView({
                               teachers={teachers}
                               rooms={rooms}
                               conflicts={backendConflicts}
-                              focusedConflict={selectedConflict}
+                              focusedConflict={classroomId === conflictClassroomId ? selectedConflict : null}
                               onFocusedConflictDismiss={() =>
                                 setSelectedConflict(null)
                               }
@@ -2460,19 +2213,11 @@ export default function TimetableView({
                               canDropOnSlot={canDropOnSlot}
                               onPlaceItem={placeTimetableItem}
                             />
-                          </section>
-                        );
-                      })}
+                          );
+                        }}
+                      </TimetableClassroomList>
                     </div>
-                    {printTimestamp && (
-                      <div
-                        className="hidden timetable-print-footer"
-                        dir={locale === "ar" ? "rtl" : "ltr"}
-                      >
-                        {locale === "ar" ? "وقت الطباعة" : "Print time"}:{" "}
-                        {printTimestamp}
-                      </div>
-                    )}
+
                   </div>
                 </div>
               </div>
@@ -2496,7 +2241,7 @@ export default function TimetableView({
             }}
           />
         )}
-        <DragOverlay>
+        <DragOverlay className="pointer-events-none" dropAnimation={null}>
           {activeDragItem ? (
             <div className="max-w-64 rounded-lg border border-primary-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-xl">
               {t("schedulingLibrary.dragging")}
@@ -2504,6 +2249,25 @@ export default function TimetableView({
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {resolvedConfig && <TimetablePrintDialog
+        open={printDialogOpen}
+        onClose={() => setPrintDialogOpen(false)}
+        locale={locale}
+        schoolName={schoolName}
+        logoUrl={printLogoUrl}
+        contextName={[academicYearName, termName].filter(Boolean).join(" · ")}
+        configurationName={config?.name ?? workspaceState.effectiveConfig?.name ?? t("title")}
+        scopeName={configSourceLabel}
+        status={isDirty ? t("printing.unsaved") : isPublished ? t("printing.published") : t("printing.draft")}
+        classrooms={configurationClassrooms.map((classroom) => ({ id: classroom.id, label: getClassroomScopeChain(classroom) }))}
+        visibleClassroomIds={displayedClassrooms.map((classroom) => classroom.id)}
+        entries={printEntries}
+        config={resolvedConfig}
+        subjects={subjects}
+        teachers={teachers}
+        rooms={rooms}
+      />}
 
       {/* Validation Drawer */}
       {hasTimetableScope && resolvedConfig && (
@@ -2534,6 +2298,7 @@ export default function TimetableView({
           onClose={() => setValidationPanelOpen(false)}
           locale={locale}
           publicationReasons={publication?.blockingReasons}
+          isPublished={isPublished}
           publicationReferenceNames={publicationReasonReferenceNames}
         />
       )}
@@ -2652,14 +2417,16 @@ export default function TimetableView({
       )}
 
       {/* Config Dialog */}
-      {configDialogOpen && !isTermDefaultConfiguration && (
+      {configDialogOpen && (
         <TimetableConfigDialog
           mode="config"
+          isLoading={timetableLoading}
           open={configDialogOpen}
-          onClose={() => setConfigDialogOpen(false)}
+          onClose={closeConfigurationEditor}
           onSaved={async () => {
             await reloadConfigs();
             showToast(t("config.saveSuccess"), "success");
+            if (!periods.some((period) => period.isInstructional)) setPeriodsDialogOpen(true);
           }}
           academicYearId={academicYearId}
           termId={termId}
@@ -2674,12 +2441,19 @@ export default function TimetableView({
           locale={locale}
           allowScopeSelection={false}
           fixedScope={configurationScope}
+          scopeLabel={editingScopeLabel}
         />
       )}
 
-      {periodsDialogOpen && !isTermDefaultConfiguration && (
+      {periodsDialogOpen && (
         <TimetableConfigDialog
           mode="periods"
+          isLoading={timetableLoading}
+          scopeLabel={editingScopeLabel}
+          onContinue={() => {
+            setPeriodsDialogOpen(false);
+            window.requestAnimationFrame(() => focusDestination(gridRef.current));
+          }}
           open={periodsDialogOpen}
           onClose={() => setPeriodsDialogOpen(false)}
           onSaved={async () => {
@@ -2724,21 +2498,25 @@ export default function TimetableView({
         severity="danger"
       />
 
-      {/* Publish Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={publishConfirmOpen}
-        onClose={() => setPublishConfirmOpen(false)}
-        onConfirm={confirmPublish}
-        title={t("publish.confirmTitle")}
-        description={
-          publishWithErrors
-            ? t("publish.withErrors")
-            : t("publish.confirmMessage")
-        }
-        confirmLabel={t("publish.confirm")}
-        cancelLabel={t("publish.cancel")}
-        severity={publishWithErrors ? "warning" : "info"}
+      <TimetablePublishDialog
+        open={publishConfirmOpen}
         loading={isPublishing}
+        hasWarnings={publishWithErrors}
+        contextName={[academicYearName, termName].filter(Boolean).join(" · ")}
+        configurationName={config?.name ?? t("title")}
+        scopeName={editingScopeLabel}
+        classroomCount={configurationClassrooms.length}
+        lessonCount={
+          allTermEntries.filter(
+            (entry) => entry.subjectId && !entry.id.startsWith("temp-"),
+          ).length
+        }
+        onClose={() => setPublishConfirmOpen(false)}
+        onReview={() => {
+          setPublishConfirmOpen(false);
+          handleValidationOpen();
+        }}
+        onConfirm={() => void confirmPublish()}
       />
 
       <AcademicsGlobalExportModal
@@ -2750,7 +2528,7 @@ export default function TimetableView({
         datasetCount={
           resolvedConfig
             ? resolvedConfig.days.filter((day) => day.isActive).length *
-              resolvedConfig.periods.length
+              resolvedConfig.periods.length * displayedClassrooms.length
             : 0
         }
       />

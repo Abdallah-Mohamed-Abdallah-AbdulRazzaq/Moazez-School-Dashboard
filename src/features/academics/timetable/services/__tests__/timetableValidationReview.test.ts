@@ -66,6 +66,28 @@ describe("validation conflict groups", () => {
 });
 
 describe("validation review progress", () => {
+  it.each(["ACTIVE", "PUBLISHED"])("excludes the %s publication state from issue progress without hiding actual requirements", (status) => {
+    const publishedReport: ValidationReviewReport = {
+      ...report,
+      conflicts: [],
+      summary: { ...emptyValidationSummary(), canPublish: true },
+      publication: {
+        ...report.publication,
+        status,
+        blockingReasons: [{ code: "not_draft", message: "Already published" }],
+      },
+    };
+    expect(validationReviewIssueKeys(publishedReport)).toEqual([]);
+
+    publishedReport.publication.blockingReasons.push({
+      code: "term_closed",
+      message: "Term closed",
+    });
+    expect(validationReviewIssueKeys(publishedReport)).toHaveLength(1);
+    publishedReport.publication.status = "DRAFT";
+    expect(validationReviewIssueKeys(publishedReport)).toHaveLength(2);
+  });
+
   it("counts resolved and new findings by identity even when the total stays unchanged", () => {
     const before = validationReviewIssueKeys(report);
     const after = validationReviewIssueKeys({

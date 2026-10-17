@@ -6833,6 +6833,214 @@
       }
     },
     "timetable": {
+      "printing": {
+        "title": "Print timetable",
+        "description": "Choose a layout and classrooms, review the preview, then print or save as PDF.",
+        "layout": "Layout",
+        "onePerPage": "One classroom per page",
+        "compact": "Compact report",
+        "classrooms": "Classrooms to print",
+        "visible": "Displayed classrooms ({count})",
+        "all": "All classrooms in this configuration ({count})",
+        "teachers": "Include teachers",
+        "rooms": "Include rooms",
+        "previewClassroom": "Preview classroom",
+        "preview": "Print preview",
+        "pageHint": "A4 landscape. Each classroom starts on a new page. Long timetables continue onto additional pages without clipping.",
+        "compactHint": "A4 landscape. Two compact timetables sit side by side. Long timetables continue onto additional pages without clipping.",
+        "cancel": "Close",
+        "print": "Print {count, plural, one {# classroom} other {# classrooms}}",
+        "failed": "Could not prepare the document. Please try printing again.",
+        "scope": "Configuration scope: {scope}",
+        "period": "Period",
+        "break": "Break",
+        "empty": "Empty slot",
+        "unassigned": "Unassigned",
+        "room": "Room: {room}",
+        "printedAt": "Printed: {time}",
+        "classroomCount": "Classroom {current} of {total}",
+        "unsaved": "Draft · Unsaved changes",
+        "draft": "Draft",
+        "published": "Published"
+      },
+      "classroomList": {
+        "schedulingHint": "Drag lessons between classrooms. Hover over a collapsed classroom to expand it. Select one classroom to add lessons from the library.",
+        "count": "{count} classroom timetables",
+        "expandAll": "Expand all",
+        "collapseAll": "Collapse all",
+        "load": "Load timetable"
+      },
+      "workflow": {
+        "publishWarnings": "The latest review contains non-blocking warnings. Review them before confirming publication.",
+        "nextAction": "Next step",
+        "publishedTitle": "This timetable is published",
+        "publishedDescription": "The saved timetable is available and this configuration is locked for editing.",
+        "continueScheduling": "Continue to scheduling",
+        "publishDescription": "Review the configuration and scope before publishing its saved lessons.",
+        "reviewAgain": "Review again",
+        "classroomsInScope": "Classrooms in configuration scope",
+        "savedLessons": "Saved lessons in this configuration",
+        "publishImpact": "Publishing locks this configuration for editing. More specific configurations keep their own schedules.",
+        "steps": {
+          "scope": {
+            "title": "Choose the timetable scope",
+            "description": "Choose the part of the school this configuration applies to.",
+            "action": "Choose scope"
+          },
+          "configuration": {
+            "title": "Set the timetable days",
+            "description": "Configure active days for this scope, then add its periods.",
+            "action": "Configure days"
+          },
+          "periods": {
+            "title": "Add teaching periods",
+            "description": "Add at least one teaching period before scheduling lessons. Breaks alone are not enough.",
+            "action": "Add periods"
+          },
+          "schedule": {
+            "title": "Build the lesson schedule",
+            "description": "Choose a classroom and add lessons manually or use automatic generation.",
+            "action": "Go to schedule"
+          },
+          "save": {
+            "title": "Save lessons before reviewing",
+            "description": "Your changes are still a draft in this browser. Save them so validation checks the latest lessons.",
+            "action": "Save lessons"
+          },
+          "validation": {
+            "title": "Review saved lessons",
+            "description": "Run a fresh review of saved lessons and resolve blocking issues before publishing.",
+            "action": "Review timetable"
+          },
+          "publish": {
+            "title": "Ready for the publishing check",
+            "description": "Review the scope and saved lesson counts before confirming publication.",
+            "action": "Review and publish"
+          }
+        }
+      },
+      "overview": {
+        "title": "Timetables",
+        "description": "Choose a configuration to manage its days, periods and lessons, or create one for a different part of the school.",
+        "create": "Create timetable",
+        "back": "All timetable configurations",
+        "configurations": "Configurations ({count})",
+        "inheritance": "The school-wide default is the starting point. Published configurations take priority from stage to grade, section, then classroom. Drafts can contain saved lessons, but a classroom uses its most specific published configuration.",
+        "uncovered": "{count, plural, one {# classroom is not covered by a published timetable.} other {# classrooms are not covered by a published timetable.}} Saved draft lessons may already exist.",
+        "emptyTitle": "Start with a timetable configuration",
+        "emptyDescription": "Choose who the timetable is for, set the school days and periods, then add lessons and review before publishing.",
+        "emptyReadOnly": "No configurations are available for this term. A timetable administrator can create one.",
+        "loading": "Loading timetable configurations",
+        "loadFailed": "Timetable configurations could not be loaded. Try again.",
+        "retry": "Try again",
+        "open": "Open timetable",
+        "scope": {
+          "TERM": "School-wide default",
+          "STAGE": "Stage",
+          "GRADE": "Grade",
+          "SECTION": "Section",
+          "CLASSROOM": "Classroom"
+        },
+        "status": {
+          "published": "Published",
+          "draft": "Draft",
+          "active": "Active",
+          "archived": "Archived",
+          "unknown": "Status unavailable",
+
+          "checking": "Checking status…"
+        },
+              "filterResultsPending": "Some statuses and setup details are still loading. Filter results may change.",
+              "checkingMatches": "Checking for matching configurations…",
+            "attentionFilter": "Needs attention",
+            "allAttention": "All configurations",
+            "attention": {
+              "setup": "Setup incomplete",
+              "review": "Review issues",
+              "uncovered": "No published timetable",
+              "unavailable": "Status unavailable"
+            },
+            "scopeColumn": "Configuration scope",
+            "coverageColumn": "Classroom coverage",
+            "progressColumn": "Next step",
+            "actionColumn": "Action",
+            "parentConfiguration": "Parent configuration: {name}",
+            "noParentConfiguration": "No broader configuration exists yet",
+            "continueTimetable": "Continue timetable",
+            "setupProgress": "Setup checkpoints: {count}/3",
+            "setupCheckpoints": "Days, instructional periods, saved lessons",
+            "reviewNeeded": "Review the reported issues in the timetable workspace.",
+            "reviewInWorkspace": "Run validation and review publication details in the workspace.",
+            "progressStep": {
+
+            "archived": "Archived configuration",
+              "configuration": "Choose timetable days",
+              "periods": "Add instructional periods",
+              "schedule": "Add lessons",
+              "review": "Review before publishing",
+              "published": "Published timetable",
+              "unknown": "Open to check setup progress"
+            },
+          "viewClassrooms": "View classrooms",
+          "otherConfigurations": "Other configurations",
+          "searchLabel": "Find a timetable",
+          "searchPlaceholder": "Configuration or classroom name…",
+          "scopeFilter": "Scope",
+          "statusFilter": "Status",
+          "allScopes": "All scopes",
+          "allStatuses": "All statuses",
+          "clearFilters": "Clear filters",
+          "matchingCount": "Showing {count} of {total} configurations",
+          "noMatches": "No configurations match your filters",
+          "coverageType": {
+            "using": "Using this: {count}",
+            "overridden": "More specific timetable: {count}",
+            "inherited": "Using parent timetable: {count}",
+            "uncovered": "No published timetable: {count}"
+          },
+          "coverageHelp": {
+            "using": "These classrooms currently use this configuration. Open a classroom to view its timetable.",
+            "overridden": "These classrooms use a more specific configuration. Opening one takes you to the timetable it currently uses.",
+            "inherited": "These classrooms currently use a broader configuration. This configuration is not their effective timetable.",
+            "uncovered": "These classrooms have no published timetable. Saved drafts may already contain lessons. Open an existing draft to review it and continue toward publishing, or configure a classroom if needed."
+          },
+          "effectiveSource": "Current timetable: {name}",
+            "draftSource": "Draft configuration: {name}",
+            "savedSource": "Saved configuration: {name}",
+            "savedLessonCount": "Saved lessons in this classroom: {count}",
+            "openDraft": "Open draft timetable",
+          "noEffectiveTimetable": "No published timetable applies to this classroom.",
+          "configureClassroom": "Configure classroom",
+        "statusRefreshFailed": "Some publication statuses could not be checked. You can still open the configurations.",
+        "coverage": "{total} classrooms in scope · currently used by {effective}",
+        "unknownScope": "Scope unavailable",
+        "createTitle": "Who is this timetable for?",
+        "createDescription": "Choose the configuration scope first. You can filter classrooms later without changing this scope.",
+        "scopeChoice": "Configuration type",
+        "schoolDefault": "School-wide default",
+        "custom": "Custom configuration",
+        "defaultDescription": "Shared days and periods for the whole school in this term.",
+        "customDescription": "Different days or periods for a stage, grade, section or classroom.",
+        "cancel": "Cancel",
+        "continue": "Continue to configuration",
+        "openExisting": "Open existing configuration",
+        "scopeLevel": "Scope level",
+        "scopeTarget": "Apply to",
+        "selectTarget": "Choose a target",
+        "searchTarget": "Search school structure",
+        "noResults": "No matching targets",
+        "noTargets": "No targets available",
+        "preview": "Scope preview",
+        "affected": "{count} classrooms in this scope",
+        "noClassrooms": "There are no classrooms in this scope yet. Add classrooms in Academic structure to schedule lessons.",
+        "existing": "A configuration already exists: {name}. Continue to open it.",
+        "inherits": "Current configuration sources: {names}. Creating an override here gives this scope its own days, periods and lessons.",
+        "chooseTarget": "Choose a target to preview the affected classrooms.",
+        "editingScope": "Configuration scope",
+        "scopeFixed": "Classroom filters only change what you see. Return to all configurations to change the editing scope.",
+        "viewFilters": "Viewing classrooms",
+        "openInherited": "Open inherited configuration"
+      },
       "title": "Timetable",
       "loadingLabel": "Loading timetable",
       "tabs": {
@@ -6840,6 +7048,7 @@
         "rooms": "Rooms"
       },
       "filters": {
+        "viewOnly": "These filters only change the classrooms shown. The configuration scope stays the same.",
         "selectScope": "Scope",
         "scopeTerm": "Term",
         "configuration": "Configuration",
@@ -6940,6 +7149,8 @@
           "swap": "Timetable lessons swapped."
         },
         "rejections": {
+          "ALLOCATION_MISSING": "Assign this teacher and subject to the destination classroom first.",
+          "SUBJECT_NOT_ALLOCATED": "This subject has no weekly allocation in the destination grade.",
           "READ_ONLY": "This timetable is read-only.",
           "HOLIDAY": "Items cannot be placed on a holiday.",
           "NON_INSTRUCTIONAL": "Items cannot be placed in a non-instructional period.",
@@ -6965,6 +7176,8 @@
         "clearAll": "Clear All",
         "deleteAllEntries": "Delete all entries",
         "deleteAllEntriesConfirmTitle": "Delete all timetable entries?",
+        "deletingProgress": "Deleting lessons: {completed} of {total} completed…",
+        "refreshingAfterSave": "Refreshing timetable…",
         "deleteAllEntriesConfirmMessage": "This will remove all {count} entries from the current timetable draft. Save changes to apply the deletion. Period settings will not be changed.",
         "deleteAllEntriesSuccess": "All timetable entries were removed. Save changes to apply the deletion.",
         "reset": "Reset",
@@ -7640,6 +7853,9 @@
       "errors": {
         "loadFailed": "Failed to load timetable data.",
         "saveFailed": "Failed to save timetable.",
+        "publishReloadFailed": "The timetable was published, but its view could not be refreshed. Reload the page to load the latest data.",
+        "unpublishReloadFailed": "The timetable was unpublished, but its view could not be refreshed. Reload the page before editing.",
+        "staleTimetable": "This timetable changed in another session. Your draft was kept. Reset to load the latest timetable before saving again.",
         "saveReloadFailed": "Timetable changes may have been saved, but the authoritative reload failed.",
         "partialSaveRefreshed": "Some deletions may already have been applied. The timetable was refreshed.",
         "partialSaveReloadFailed": "Some deletions may already have been applied, and the authoritative reload failed.",

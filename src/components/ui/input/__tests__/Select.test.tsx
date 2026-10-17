@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Select from "../Select";
 
 vi.mock("next-intl", () => ({
@@ -8,6 +8,113 @@ vi.mock("next-intl", () => ({
 }));
 
 describe("Select", () => {
+  afterEach(() => vi.restoreAllMocks());
+  it("navigates enabled options by keyboard, selects, and returns focus to the trigger", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Select
+        label="Status"
+        value="draft"
+        onChange={onChange}
+        options={[
+          { value: "draft", label: "Draft" },
+          { value: "disabled", label: "Unavailable", disabled: true },
+          { value: "published", label: "Published" },
+        ]}
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Status" });
+    trigger.focus();
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("button", { name: "Draft" })).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("button", { name: "Published" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(onChange).toHaveBeenCalledWith("published");
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("closes keyboard-opened options with Escape and moves to the next field with Tab", async () => {
+    vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+      document.body,
+    );
+    const user = userEvent.setup();
+    render(
+      <>
+        <Select
+          label="Scope"
+          options={[
+            { value: "term", label: "School" },
+            { value: "grade", label: "Grade" },
+          ]}
+        />
+        <input aria-label="Next field" />
+      </>,
+    );
+    const trigger = screen.getByRole("button", { name: "Scope" });
+    trigger.focus();
+    await user.keyboard("{ArrowUp}");
+    expect(screen.getByRole("button", { name: "Grade" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await user.keyboard("{ArrowDown}{Tab}");
+    expect(screen.getByRole("textbox", { name: "Next field" })).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it.each([
+    { name: "empty menu", options: [] },
+    {
+      name: "disabled options",
+      options: [{ value: "disabled", label: "Unavailable", disabled: true }],
+    },
+  ])("does not trap keyboard focus with $name", async ({ options }) => {
+    vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+      document.body,
+    );
+    const user = userEvent.setup();
+    render(
+      <>
+        <Select label="Scope" options={options} />
+        <input aria-label="Next field" />
+      </>,
+    );
+    screen.getByRole("button", { name: "Scope" }).focus();
+    await user.keyboard("{ArrowDown}{Tab}");
+    expect(screen.getByRole("textbox", { name: "Next field" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Scope" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("moves from searched options by arrow keys without breaking text editing", async () => {
+    const user = userEvent.setup();
+    render(
+      <Select
+        label="Classroom"
+        searchable
+        searchLabel="Find classroom"
+        options={[
+          { value: "a", label: "Room A" },
+          { value: "b", label: "Room B" },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Classroom" }));
+    const search = screen.getByRole("textbox", { name: "Find classroom" });
+    await user.type(search, "Room B");
+    await user.keyboard("{Home}");
+    expect(search).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("button", { name: "Room B" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "Classroom" })).toHaveFocus();
+  });
+
   it("renders the open menu outside the component container", async () => {
     const user = userEvent.setup();
     const { container } = render(
@@ -44,18 +151,20 @@ describe("Select", () => {
       />,
     );
     const trigger = screen.getByRole("button", { name: /All modes/i });
-    vi.spyOn(trigger.parentElement as HTMLElement, "getBoundingClientRect")
-      .mockReturnValue({
-        bottom: 760,
-        height: 40,
-        left: 24,
-        right: 204,
-        top: 720,
-        width: 180,
-        x: 24,
-        y: 720,
-        toJSON: () => ({}),
-      });
+    vi.spyOn(
+      trigger.parentElement as HTMLElement,
+      "getBoundingClientRect",
+    ).mockReturnValue({
+      bottom: 760,
+      height: 40,
+      left: 24,
+      right: 204,
+      top: 720,
+      width: 180,
+      x: 24,
+      y: 720,
+      toJSON: () => ({}),
+    });
     vi.stubGlobal("innerHeight", 800);
 
     await user.click(trigger);
@@ -166,11 +275,11 @@ describe("Select", () => {
     expect(screen.getByText("First user")).toBeInTheDocument();
     expect(screen.getByText("Second user")).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: "Select an option" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Select an option" }));
     expect(onSearchChange).toHaveBeenLastCalledWith("");
-    expect(screen.queryByPlaceholderText("Search users")).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText("Search users"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders a menu footer and reports reaching the list end", async () => {

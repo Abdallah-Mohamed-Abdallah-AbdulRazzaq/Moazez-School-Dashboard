@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api-error";
 import {
   getConfig,
   listPeriods,
+  listEntries,
 } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type {
   BackendTimetableConfigDto,
@@ -14,6 +15,7 @@ import { useTimetableSetupStatus } from "@/features/academics/timetable/hooks/us
 vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
   getConfig: vi.fn(),
   listPeriods: vi.fn(),
+  listEntries: vi.fn(),
 }));
 
 const mockedGetConfig = vi.mocked(getConfig);
@@ -63,6 +65,7 @@ describe("useTimetableSetupStatus", () => {
     vi.clearAllMocks();
     mockedGetConfig.mockResolvedValue(termConfig);
     mockedListPeriods.mockResolvedValue({ items: [instructionalPeriod] });
+    vi.mocked(listEntries).mockResolvedValue({ items: [] });
   });
 
   it("loads readiness from the exact term config", async () => {
@@ -167,5 +170,18 @@ describe("useTimetableSetupStatus", () => {
         config: { id: "term-config-2" },
       }),
     );
+  });
+
+  it("hides the previous term's setup while the next term is loading", async () => {
+    const { result, rerender } = renderHook(({ termId }) => useTimetableSetupStatus({ ...hookParams, termId }), { initialProps: { termId: "term-1" } });
+    await waitFor(() => expect(result.current.status?.kind).toBe("ready"));
+    let finishNextTerm!: (config: BackendTimetableConfigDto) => void;
+    mockedGetConfig.mockReturnValueOnce(new Promise((resolve) => { finishNextTerm = resolve; }));
+    rerender({ termId: "term-2" });
+    expect(result.current.status).toBeNull();
+    expect(result.current.entries).toEqual([]);
+    expect(result.current.isLoading).toBe(true);
+    await act(async () => { finishNextTerm({ ...termConfig, id: "term-config-2", termId: "term-2" }); });
+    await waitFor(() => expect(result.current.status).toMatchObject({ config: { id: "term-config-2" } }));
   });
 });

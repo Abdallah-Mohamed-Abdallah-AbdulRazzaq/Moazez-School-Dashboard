@@ -31,6 +31,7 @@ interface TimetableLessonTransferDialogProps {
   classroomName: (classroom: Classroom) => string;
   checkConflicts: (
     entries: TimetableEntry[],
+    destinationEntryId: string,
   ) => Promise<TimetableConflictDisplay[]>;
   onConfirm: (target: TimetableDropTarget) => void;
   onClose: () => void;
@@ -107,7 +108,18 @@ export default function TimetableLessonTransferDialog(
     const request = ++checkSequence.current;
     setCheck({ key: fingerprint, status: "checking", conflicts: [] });
     try {
-      const conflicts = await props.checkConflicts(preview.entries);
+      const destination = preview.entries.find(
+        (entry) =>
+          entry.classroomId === target.classroomId &&
+          entry.dayKey === target.dayKey &&
+          entry.periodIndex === target.periodIndex &&
+          entry.subjectId,
+      );
+      if (!destination) throw new Error("Transfer destination is missing.");
+      const conflicts = await props.checkConflicts(
+        preview.entries,
+        destination.id,
+      );
       if (request !== checkSequence.current) return;
       setCheck({
         key: fingerprint,

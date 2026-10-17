@@ -7,6 +7,15 @@ const ACCESS_TOKEN_CHANGED_EVENT = "moazez:access-token-changed";
 
 const ACCESS_TOKEN_MAX_AGE_SECONDS = 60 * 60;
 const REFRESH_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+let authSessionVersion = 0;
+
+export function getAuthSessionVersion(): number {
+  return authSessionVersion;
+}
+
+export function invalidateAuthSession(): void {
+  authSessionVersion += 1;
+}
 
 function setTokenCookie(
   name: string,
@@ -64,6 +73,7 @@ export const tokenStorage = {
 
   removeAccessToken: () => {
     if (typeof window === "undefined") return;
+    invalidateAuthSession();
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     clearTokenCookie(ACCESS_TOKEN_KEY);
     notifyAccessTokenChanged();
@@ -88,6 +98,7 @@ export const tokenStorage = {
 
   clearTokens: () => {
     if (typeof window === "undefined") return;
+    invalidateAuthSession();
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     clearTokenCookie(ACCESS_TOKEN_KEY);
