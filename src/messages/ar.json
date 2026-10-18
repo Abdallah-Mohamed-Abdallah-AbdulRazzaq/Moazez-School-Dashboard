@@ -5481,6 +5481,20 @@
         "descriptionPlaceholderEn": "Enter assignment description (optional)"
       },
       "assignmentBuilder": {
+        "needsAttention": "يحتاج إلى مراجعة",
+        "hideSettings": "إخفاء الإعدادات",
+        "showSettings": "إظهار الإعدادات",
+        "settingsNeedAttention": "حقول في الإعدادات تحتاج إلى مراجعة",
+        "settingsSaved": "تم حفظ الإعدادات",
+        "settingsUnsaved": "تغييرات الإعدادات غير محفوظة",
+        "settingsSaving": "جاري حفظ الإعدادات…",
+        "questionSaved": "تم حفظ السؤال",
+        "questionUnsaved": "تغييرات السؤال غير محفوظة",
+        "questionSaving": "جاري حفظ السؤال…",
+        "questionsNeedAttention": "أسئلة تحتاج إلى مراجعة: {count}",
+        "questionIssue": "السؤال {number}: {message}",
+        "questionActions": "إجراءات السؤال {number}",
+
         "backToLesson": "العودة إلى الدرس",
         "questions": "الأسئلة",
         "settings": "الإعدادات",

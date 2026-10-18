@@ -4,12 +4,14 @@ import { useTranslations } from "next-intl";
 import { Plus, FileText } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
+import type { ValidationErrors } from "../types/types";
 import QuestionOutlineItem from "./QuestionOutlineItem";
 
 interface QuestionsOutlineProps {
   questions: AssignmentQuestion[];
   selectedQuestionId: string | null;
   isReadOnly: boolean;
+  validationErrors?: ValidationErrors["questions"];
   onSelectQuestion: (questionId: string) => void;
   onAddQuestion: () => void;
   onMoveQuestion: (questionId: string, direction: "up" | "down") => void;
@@ -26,13 +28,14 @@ export default function QuestionsOutline({
   onMoveQuestion,
   onDeleteQuestion,
   isQuestionReadOnly,
+  validationErrors,
 }: QuestionsOutlineProps) {
   const t = useTranslations("academics.curriculum.assignmentBuilder");
 
   return (
-    <div className="w-80 bg-white overflow-y-auto">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-3">
+    <div className="min-h-0 w-64 shrink-0 overflow-y-auto bg-white xl:w-72">
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-gray-900">{t("questionsOutline")}</h2>
           {!isReadOnly && (
             <Button
@@ -79,6 +82,7 @@ export default function QuestionsOutline({
               canMoveUp={index > 0}
               canMoveDown={index < questions.length - 1}
               isReadOnly={isReadOnly || (isQuestionReadOnly?.(q) ?? false)}
+              validationErrors={validationErrors?.[q.id]}
               isLegacyReadOnly={isQuestionReadOnly?.(q) ?? false}
             />
           ))}

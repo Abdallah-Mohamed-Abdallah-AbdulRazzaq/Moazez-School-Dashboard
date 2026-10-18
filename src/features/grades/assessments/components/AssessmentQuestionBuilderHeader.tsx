@@ -1,7 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Trash2 } from "lucide-react";
+import BuilderSaveStatus from "@/features/academics/curriculum/components/BuilderSaveStatus";
 import Button from "@/components/ui/button/Button";
 import type { Assessment } from "../types";
 
@@ -50,12 +51,11 @@ export default function AssessmentQuestionBuilderHeader({
   const tGrades = useTranslations("academics.grades");
   const tCommon = useTranslations("common");
   const locale = useLocale();
-  const isDirty = isAssessmentDirty || isQuestionDirty;
 
   return (
     <header className="sticky top-0 z-20 border-b bg-white shadow-sm" style={{ borderColor: "var(--border-color)" }}>
       <div className="px-4 py-4 md:px-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 lg:flex lg:flex-wrap lg:justify-between">
           <button
             type="button"
             onClick={onBack}
@@ -67,37 +67,21 @@ export default function AssessmentQuestionBuilderHeader({
             <span className="hidden font-medium sm:inline">{t("back")}</span>
           </button>
 
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
             <h1 className="max-w-xs truncate text-base font-semibold md:max-w-md md:text-lg" style={{ color: "var(--text-primary)" }}>
               {locale === "ar" ? assessment.titleAr : assessment.title}
             </h1>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {isReadOnly && (
                 <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning-text)" }}>
                   {t("readOnly")}
                 </span>
               )}
-              {(isAssignmentSaving || isQuestionSaving) && (
-                <span className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: "var(--color-primary-50)", color: "var(--primary-color)" }}>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  {tCommon("saving")}
-                </span>
-              )}
-              {!isAssignmentSaving && !isQuestionSaving && isDirty && (
-                <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning-text)" }}>
-                  {tCommon("unsaved")}
-                </span>
-              )}
-              {!isAssignmentSaving && !isQuestionSaving && !isDirty && (
-                <span className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: "var(--success-bg)", color: "var(--success-text)" }}>
-                  <CheckCircle2 className="h-3 w-3" />
-                  {tCommon("saved")}
-                </span>
-              )}
+              {!isReadOnly && <BuilderSaveStatus isSettingsDirty={isAssessmentDirty} isQuestionDirty={isQuestionDirty} isSettingsSaving={isAssignmentSaving} isQuestionSaving={isQuestionSaving} />}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="col-span-2 flex flex-wrap items-center justify-end gap-2">
             {workflowAction && (
               <Button
                 onClick={() => onWorkflowAction(workflowAction)}

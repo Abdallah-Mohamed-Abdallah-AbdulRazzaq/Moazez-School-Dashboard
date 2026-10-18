@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Drawer, Tab, Tabs } from "@mui/material";
 import { Menu, Plus, Save } from "lucide-react";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { ValidationErrors, PointsSummary } from "@/features/academics/curriculum/types/types";
+import QuestionValidationSummary from "@/features/academics/curriculum/components/QuestionValidationSummary";
 import Button from "@/components/ui/button/Button";
 import QuestionOutlineItem from "@/features/academics/curriculum/components/QuestionOutlineItem";
 import EmptyQuestionState from "@/features/academics/curriculum/components/EmptyQuestionState";
@@ -69,6 +70,7 @@ export default function AssessmentQuestionMobileLayout({
 }: AssessmentQuestionMobileLayoutProps) {
   const t = useTranslations("academics.curriculum.assignmentBuilder");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
   const [mobileTab, setMobileTab] = useState<"questions" | "settings">("questions");
   const [questionsDrawerOpen, setQuestionsDrawerOpen] = useState(false);
   const selectedQuestionReadOnly = isReadOnly
@@ -110,6 +112,7 @@ export default function AssessmentQuestionMobileLayout({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
+              <QuestionValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
               {selectedQuestion ? (
                 <QuestionEditor
                   key={selectedQuestion.id}
@@ -146,8 +149,8 @@ export default function AssessmentQuestionMobileLayout({
         )}
       </div>
 
-      <Drawer anchor="left" open={questionsDrawerOpen} onClose={() => setQuestionsDrawerOpen(false)}>
-        <div className="h-full w-80 bg-white">
+      <Drawer anchor={locale === "ar" ? "right" : "left"} open={questionsDrawerOpen} onClose={() => setQuestionsDrawerOpen(false)}>
+        <div className="h-full w-80 max-w-[calc(100vw-2rem)] bg-white">
           <div className="border-b p-4" style={{ borderColor: "var(--border-color)" }}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t("questionsOutline")}</h2>
@@ -184,6 +187,7 @@ export default function AssessmentQuestionMobileLayout({
                 canMoveUp={index > 0}
                 canMoveDown={index < questions.length - 1}
                 isReadOnly={isReadOnly || isQuestionReadOnly(question)}
+                validationErrors={validationErrors.questions?.[question.id]}
                 isLegacyReadOnly={isQuestionReadOnly(question)}
               />
             ))}

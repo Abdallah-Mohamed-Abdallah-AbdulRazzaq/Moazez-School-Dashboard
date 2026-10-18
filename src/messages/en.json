@@ -5480,6 +5480,20 @@
         "descriptionPlaceholderEn": "Enter assignment description (optional)"
       },
       "assignmentBuilder": {
+        "needsAttention": "Needs attention",
+        "hideSettings": "Hide settings",
+        "showSettings": "Show settings",
+        "settingsNeedAttention": "settings fields need attention",
+        "settingsSaved": "Settings saved",
+        "settingsUnsaved": "Settings have unsaved changes",
+        "settingsSaving": "Saving settings…",
+        "questionSaved": "Question saved",
+        "questionUnsaved": "Question has unsaved changes",
+        "questionSaving": "Saving question…",
+        "questionsNeedAttention": "{count, plural, one {# question needs attention} other {# questions need attention}}",
+        "questionIssue": "Question {number}: {message}",
+        "questionActions": "Actions for question {number}",
+
         "backToLesson": "Back to Lesson",
         "questions": "Questions",
         "settings": "Settings",
