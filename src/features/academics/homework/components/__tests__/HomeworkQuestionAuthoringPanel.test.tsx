@@ -32,7 +32,8 @@ it("opens empty, authors blank questions, and keeps final edits across collapse 
   expect(screen.getByPlaceholderText(en.academics.curriculum.questions.question_text)).toHaveValue("My local question");
   fireEvent.click(screen.getAllByRole("button", { name: "Move down" })[0]);
   expect(screen.getByRole("button", { name: /Question 2.*My local question/ })).toBeInTheDocument();
-  fireEvent.click(screen.getAllByRole("button", { name: en.academics.curriculum.questions.delete_question })[0]);
+  fireEvent.click(screen.getByRole("button", { name: "Actions for question 1" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: en.academics.curriculum.questions.delete_question }));
   expect(screen.getByPlaceholderText(en.academics.curriculum.questions.question_text)).toHaveValue("My local question");
 });
 
@@ -46,13 +47,13 @@ it("keeps new questions neutral and reveals validation after editing without los
   render(<AuthoringHost />);
   fireEvent.click(screen.getByRole("button", { name: "Write" }));
   fireEvent.click(screen.getByRole("button", { name: "Add question" }));
-  expect(screen.queryByLabelText(en.academics.curriculum.questions.needs_correct)).not.toBeInTheDocument();
-  expect(screen.queryByText(en.validation.all_options_required)).not.toBeInTheDocument();
+  expect(screen.queryByText(en.academics.curriculum.assignmentBuilder.needsAttention)).not.toBeInTheDocument();
+  expect(screen.queryByText(en.validation.everyOptionTextRequired)).not.toBeInTheDocument();
   const prompt = screen.getByPlaceholderText(en.academics.curriculum.questions.question_text);
   fireEvent.change(prompt, { target: { value: "Choose a number" } });
   fireEvent.blur(prompt);
-  expect(screen.getByLabelText(en.academics.curriculum.questions.needs_correct)).toBeInTheDocument();
-  expect(screen.getAllByText(en.validation.all_options_required).length).toBeGreaterThan(0);
+  expect(screen.getByText(en.academics.curriculum.assignmentBuilder.needsAttention)).toBeInTheDocument();
+  expect(screen.getAllByText(en.validation.everyOptionTextRequired).length).toBeGreaterThan(0);
   const instructions = screen.getByLabelText("Instructions");
   fireEvent.change(instructions, { target: { value: "Explain your choice" } });
   fireEvent.click(screen.getByRole("button", { name: "Hide questions" }));

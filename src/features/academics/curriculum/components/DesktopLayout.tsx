@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { Save } from "lucide-react";
 import { AssignmentQuestion, Assignment, AssignmentAttachment } from "@/features/academics/curriculum/services/curriculumService";
 import { ValidationErrors, PointsSummary } from "../types/types";
+import BuilderSettingsSidebar from "./BuilderSettingsSidebar";
+import BuilderValidationSummary from "./BuilderValidationSummary";
 import Button from "@/components/ui/button/Button";
 import QuestionsOutline from "@/features/academics/curriculum/components/QuestionsOutline";
 import AssignmentSettingsPanel from "@/features/academics/curriculum/components/AssignmentSettingsPanel";
@@ -77,12 +79,13 @@ export default function DesktopLayout({
   const tCommon = useTranslations("common");
 
   return (
-    <div className="flex h-[calc(100vh-73px)]">
+    <div className="flex h-[calc(100dvh-73px)] min-h-0 overflow-hidden">
       {/* Left Sidebar - Questions Outline */}
       <QuestionsOutline
         questions={questions}
         selectedQuestionId={selectedQuestionId}
         isReadOnly={isReadOnly}
+        validationErrors={validationErrors.questions}
         onSelectQuestion={onSelectQuestion}
         onAddQuestion={onAddQuestion}
         onMoveQuestion={onMoveQuestion}
@@ -90,7 +93,7 @@ export default function DesktopLayout({
       />
 
       {/* Center - Question Editor */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 border-x border-border">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-gray-50 border-x border-border">
         {selectedQuestion ? (
           <div className="h-full flex flex-col">
             {/* Question Editor Header */}
@@ -112,7 +115,8 @@ export default function DesktopLayout({
             </div>
 
             {/* Question Editor Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 xl:p-6">
+              <BuilderValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
               <QuestionEditor
                 key={selectedQuestion.id}
                 question={selectedQuestion}
@@ -128,13 +132,14 @@ export default function DesktopLayout({
           </div>
         ) : (
           <div className="p-6">
+            <BuilderValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
             <EmptyQuestionState isReadOnly={isReadOnly} onAddQuestion={onAddQuestion} />
           </div>
         )}
       </div>
 
       {/* Right Panel - Settings + Attachments */}
-      <div className="w-96 border-l border-gray-200 bg-white overflow-y-auto">
+      <BuilderSettingsSidebar validationErrors={validationErrors}>
         <div className="p-6 space-y-6">
           {sidebarDetails}
           {/* Assignment Settings */}
@@ -158,7 +163,7 @@ export default function DesktopLayout({
             showLinkUpload={showAttachmentLinks}
           />
         </div>
-      </div>
+      </BuilderSettingsSidebar>
     </div>
   );
 }

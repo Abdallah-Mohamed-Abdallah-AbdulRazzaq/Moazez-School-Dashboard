@@ -1,8 +1,9 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, Save, Eye, EyeOff, RotateCcw, Trash2, Loader2, CheckCircle2, ArrowRight, MoreVertical } from "lucide-react";
+import { ArrowLeft, Save, Eye, EyeOff, RotateCcw, Trash2, ArrowRight, MoreVertical } from "lucide-react";
 import { useMediaQuery, useTheme } from "@mui/material";
+import BuilderSaveStatus from "@/features/academics/curriculum/components/BuilderSaveStatus";
 import Button from "@/components/ui/button/Button";
 import DropdownMenu from "@/components/ui/dropdown/DropdownMenu";
 import { Assignment } from "@/features/academics/curriculum/services/curriculumService";
@@ -45,7 +46,7 @@ export default function BuilderHeader({
   return (
     <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
       <div className="px-4 md:px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 lg:flex lg:flex-wrap lg:justify-between">
           {/* Left: Back button */}
           <button
             onClick={onBack}
@@ -57,13 +58,13 @@ export default function BuilderHeader({
           </button>
 
           {/* Center: Title + Status */}
-          <div className="flex-1 flex items-center justify-center gap-3 min-w-0">
+          <div className="min-w-0 flex-1 flex flex-wrap items-center justify-center gap-2">
             <h1 className="text-base md:text-lg font-semibold text-gray-900 truncate max-w-xs md:max-w-md">
               {assignment.titleAr || assignment.titleEn || t("draft")}
             </h1>
 
             {/* Status Chips */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {assignment.isPublished ? (
                 <span className="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full whitespace-nowrap">
                   {t("published")}
@@ -80,35 +81,12 @@ export default function BuilderHeader({
                 </span>
               )}
 
-              {/* Save status indicator */}
-              {!isReadOnly && (
-                <>
-                  {(isAssignmentSaving || isQuestionSaving) && (
-                    <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full whitespace-nowrap flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      {tCommon("saving")}
-                    </span>
-                  )}
-                  
-                  {!isAssignmentSaving && !isQuestionSaving && (isAssignmentDirty || isQuestionDirty) && (
-                    <span className="px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-700 rounded-full whitespace-nowrap">
-                      {tCommon("unsaved")}
-                    </span>
-                  )}
-                  
-                  {!isAssignmentSaving && !isQuestionSaving && !isAssignmentDirty && !isQuestionDirty && (
-                    <span className="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full whitespace-nowrap flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      {tCommon("saved")}
-                    </span>
-                  )}
-                </>
-              )}
+              {!isReadOnly && <BuilderSaveStatus isSettingsDirty={isAssignmentDirty} isQuestionDirty={isQuestionDirty} isSettingsSaving={isAssignmentSaving} isQuestionSaving={isQuestionSaving} />}
             </div>
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-2">
+          <div className="col-span-2 flex flex-wrap items-center justify-end gap-2">
             {!isReadOnly && (
               <>
                 {/* Desktop: Show all buttons */}

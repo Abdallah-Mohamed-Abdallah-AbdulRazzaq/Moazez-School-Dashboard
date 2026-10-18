@@ -127,7 +127,7 @@ function validateOptionStructure(
   if (!CHOICE_TYPES.has(question.questionType) && options.length > 0) return { options: t("textQuestionOptionsForbidden") };
   if (options.length > 50) return { options: t("tooManyOptions") };
   if (options.some((option) => (option.textEn?.trim() || option.textAr?.trim() || "").length > 1000)) return { options: t("optionTextTooLong") };
-  if (options.some((option) => !option.textAr?.trim() && !option.textEn?.trim())) return { options: t("all_options_required") };
+  if (options.some((option) => !option.textAr?.trim() && !option.textEn?.trim())) return { options: t("everyOptionTextRequired") };
   if (question.questionType === "TRUE_FALSE") return {};
   if ((question.questionType === "MCQ_SINGLE" || question.questionType === "MCQ_MULTI") && options.length < 2) return { options: t("minTwoOptions") };
   return {};

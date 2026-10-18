@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { Save } from "lucide-react";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { ValidationErrors, PointsSummary } from "@/features/academics/curriculum/types/types";
+import BuilderSettingsSidebar from "@/features/academics/curriculum/components/BuilderSettingsSidebar";
+import BuilderValidationSummary from "@/features/academics/curriculum/components/BuilderValidationSummary";
 import Button from "@/components/ui/button/Button";
 import QuestionsOutline from "@/features/academics/curriculum/components/QuestionsOutline";
 import EmptyQuestionState from "@/features/academics/curriculum/components/EmptyQuestionState";
@@ -75,6 +77,7 @@ export default function AssessmentQuestionDesktopLayout({
         questions={questions}
         selectedQuestionId={selectedQuestionId}
         isReadOnly={isReadOnly}
+        validationErrors={validationErrors.questions}
         onSelectQuestion={onSelectQuestion}
         onAddQuestion={onAddQuestion}
         onMoveQuestion={onMoveQuestion}
@@ -82,7 +85,7 @@ export default function AssessmentQuestionDesktopLayout({
         isQuestionReadOnly={isQuestionReadOnly}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto border-x bg-gray-50" style={{ borderColor: "var(--border-color)" }}>
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto border-x bg-gray-50" style={{ borderColor: "var(--border-color)" }}>
         {selectedQuestion ? (
           <div className="flex h-full min-h-0 flex-col">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4" style={{ borderColor: "var(--border-color)" }}>
@@ -102,7 +105,8 @@ export default function AssessmentQuestionDesktopLayout({
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 xl:p-6">
+              <BuilderValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
               <QuestionEditor
                 key={selectedQuestion.id}
                 question={selectedQuestion}
@@ -116,12 +120,13 @@ export default function AssessmentQuestionDesktopLayout({
           </div>
         ) : (
           <div className="p-6">
+            <BuilderValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
             <EmptyQuestionState isReadOnly={isReadOnly} onAddQuestion={onAddQuestion} />
           </div>
         )}
       </div>
 
-      <div className="h-full min-h-0 w-96 overflow-y-auto overscroll-contain border-l bg-white" style={{ borderColor: "var(--border-color)" }}>
+      <BuilderSettingsSidebar validationErrors={validationErrors}>
         <div className="p-6">
           <AssessmentQuestionSettingsPanel
             assessment={assessment}
@@ -137,7 +142,7 @@ export default function AssessmentQuestionDesktopLayout({
             isAutoDistributeDisabled={isAutoDistributeDisabled}
           />
         </div>
-      </div>
+      </BuilderSettingsSidebar>
     </div>
   );
 }

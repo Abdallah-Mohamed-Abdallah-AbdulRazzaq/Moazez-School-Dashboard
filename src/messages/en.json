@@ -5480,6 +5480,25 @@
         "descriptionPlaceholderEn": "Enter assignment description (optional)"
       },
       "assignmentBuilder": {
+        "validationSummary": "Validation issues",
+        "settingsValidationHeading": "Settings need attention",
+        "settingsValidationHint": "Open Settings to correct these fields.",
+        "validationFields": {"titleAr": "Title", "titleEn": "Title", "descriptionAr": "Description", "descriptionEn": "Description", "dueDate": "Due date", "maxScore": "Total marks", "expectedTimeMinutes": "Expected time"},
+
+        "needsAttention": "Needs attention",
+        "hideSettings": "Hide settings",
+        "showSettings": "Show settings",
+        "settingsNeedAttention": "settings fields need attention",
+        "settingsSaved": "Settings saved",
+        "settingsUnsaved": "Settings have unsaved changes",
+        "settingsSaving": "Saving settings…",
+        "questionSaved": "Question saved",
+        "questionUnsaved": "Question has unsaved changes",
+        "questionSaving": "Saving question…",
+        "questionsNeedAttention": "{count, plural, one {# question needs attention} other {# questions need attention}}",
+        "questionIssue": "Question {number}: {message}",
+        "questionActions": "Actions for question {number}",
+
         "backToLesson": "Back to Lesson",
         "questions": "Questions",
         "settings": "Settings",
@@ -9206,6 +9225,7 @@
     "duplicateOptionEn": "Duplicate English option",
     "minTwoOptions": "At least 2 options required",
     "option_text_required": "At least one option must have text",
+    "everyOptionTextRequired": "Enter text for every option.",
     "all_options_required": "All options must have both Arabic and English text",
     "option_ar_en_must_differ": "Option Arabic and English text must be different",
     "at_least_one_question": "At least one question is required",

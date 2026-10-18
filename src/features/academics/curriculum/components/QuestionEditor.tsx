@@ -157,7 +157,7 @@ export default function QuestionEditor({
     }
 
     if (!requireBothLocalizedTexts && !option.textAr?.trim() && !option.textEn?.trim()) {
-      errors.en = tValidation("all_options_required");
+      errors.en = tValidation("everyOptionTextRequired");
     }
 
     return errors;

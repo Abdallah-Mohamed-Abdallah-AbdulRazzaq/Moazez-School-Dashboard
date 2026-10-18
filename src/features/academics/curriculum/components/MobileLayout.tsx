@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Drawer, Tabs, Tab } from "@mui/material";
 import { Menu, Plus, FileText, Save } from "lucide-react";
+import BuilderValidationSummary from "@/features/academics/curriculum/components/BuilderValidationSummary";
 import Button from "@/components/ui/button/Button";
 import { AssignmentQuestion, Assignment, AssignmentAttachment } from "@/features/academics/curriculum/services/curriculumService";
 import { ValidationErrors, PointsSummary } from "../types/types";
@@ -78,6 +79,7 @@ export default function MobileLayout({
 }: MobileLayoutProps) {
   const t = useTranslations("academics.curriculum.assignmentBuilder");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
   const [mobileTab, setMobileTab] = useState<"questions" | "settings" | "attachments">("questions");
   const [questionsDrawerOpen, setQuestionsDrawerOpen] = useState(false);
 
@@ -126,6 +128,7 @@ export default function MobileLayout({
 
             {/* Question Editor Content */}
             <div className="flex-1 overflow-y-auto p-4">
+              <BuilderValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
               {selectedQuestion ? (
                 <QuestionEditor
                   key={selectedQuestion.id}
@@ -175,8 +178,8 @@ export default function MobileLayout({
       </div>
 
       {/* Questions Drawer */}
-      <Drawer anchor="left" open={questionsDrawerOpen} onClose={() => setQuestionsDrawerOpen(false)}>
-        <div className="w-80 h-full bg-white">
+      <Drawer anchor={locale === "ar" ? "right" : "left"} open={questionsDrawerOpen} onClose={() => setQuestionsDrawerOpen(false)}>
+        <div className="h-full w-80 max-w-[calc(100vw-2rem)] bg-white">
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-900">{t("questionsOutline")}</h2>
@@ -219,6 +222,7 @@ export default function MobileLayout({
                   canMoveUp={index > 0}
                   canMoveDown={index < questions.length - 1}
                   isReadOnly={isReadOnly}
+                  validationErrors={validationErrors.questions?.[q.id]}
                 />
               ))}
             </div>
