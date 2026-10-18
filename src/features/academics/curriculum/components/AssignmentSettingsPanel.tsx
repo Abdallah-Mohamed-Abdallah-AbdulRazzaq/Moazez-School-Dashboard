@@ -142,6 +142,7 @@ export default function AssignmentSettingsPanel({
 
           <DateTimePicker
             label={tQuestions("due_date")}
+            error={validationErrors.dueDate}
             value={assignment.dueDate ? new Date(assignment.dueDate) : null}
             onChange={(date) => onUpdate({ dueDate: date?.toISOString() })}
             disabled={isReadOnly}

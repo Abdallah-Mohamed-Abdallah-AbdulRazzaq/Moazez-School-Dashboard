@@ -5,7 +5,7 @@ import { Save } from "lucide-react";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { ValidationErrors, PointsSummary } from "@/features/academics/curriculum/types/types";
 import BuilderSettingsSidebar from "@/features/academics/curriculum/components/BuilderSettingsSidebar";
-import QuestionValidationSummary from "@/features/academics/curriculum/components/QuestionValidationSummary";
+import BuilderValidationSummary from "@/features/academics/curriculum/components/BuilderValidationSummary";
 import Button from "@/components/ui/button/Button";
 import QuestionsOutline from "@/features/academics/curriculum/components/QuestionsOutline";
 import EmptyQuestionState from "@/features/academics/curriculum/components/EmptyQuestionState";
@@ -106,7 +106,7 @@ export default function AssessmentQuestionDesktopLayout({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 xl:p-6">
-              <QuestionValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
+              <BuilderValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
               <QuestionEditor
                 key={selectedQuestion.id}
                 question={selectedQuestion}
@@ -120,7 +120,7 @@ export default function AssessmentQuestionDesktopLayout({
           </div>
         ) : (
           <div className="p-6">
-            <QuestionValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
+            <BuilderValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
             <EmptyQuestionState isReadOnly={isReadOnly} onAddQuestion={onAddQuestion} />
           </div>
         )}

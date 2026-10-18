@@ -5481,6 +5481,11 @@
         "descriptionPlaceholderEn": "Enter assignment description (optional)"
       },
       "assignmentBuilder": {
+        "validationSummary": "أخطاء التحقق",
+        "settingsValidationHeading": "إعدادات تحتاج إلى مراجعة",
+        "settingsValidationHint": "افتح الإعدادات لتصحيح هذه الحقول.",
+        "validationFields": {"titleAr": "العنوان", "titleEn": "العنوان", "descriptionAr": "الوصف", "descriptionEn": "الوصف", "dueDate": "موعد التسليم", "maxScore": "الدرجة الكلية", "expectedTimeMinutes": "الوقت المتوقع"},
+
         "needsAttention": "يحتاج إلى مراجعة",
         "hideSettings": "إخفاء الإعدادات",
         "showSettings": "إظهار الإعدادات",

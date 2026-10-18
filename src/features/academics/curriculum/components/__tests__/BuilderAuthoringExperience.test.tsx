@@ -10,7 +10,8 @@ import type { AssignmentQuestion } from "../../services/curriculumService";
 import BuilderSettingsSidebar from "../BuilderSettingsSidebar";
 import BuilderSaveStatus from "../BuilderSaveStatus";
 import QuestionOutlineItem from "../QuestionOutlineItem";
-import QuestionValidationSummary from "../QuestionValidationSummary";
+import BuilderValidationSummary from "../BuilderValidationSummary";
+import AssignmentSettingsPanel from "../AssignmentSettingsPanel";
 
 vi.unmock("next-intl");
 
@@ -24,6 +25,27 @@ function Localized({ children, locale = "en" }: { children: ReactNode; locale?: 
 }
 
 describe("builder authoring experience", () => {
+  it.each(["en", "ar"] as const)("shows a deadline save error outside collapsed settings and beside the date field in %s", async locale => {
+    const user = userEvent.setup();
+    const catalog = locale === "ar" ? ar : en;
+    const labels = catalog.academics.curriculum.assignmentBuilder;
+    const dueDateError = catalog.validation.assignmentDueAtFuture;
+    const errors = { dueDate: dueDateError };
+    render(<Localized locale={locale}>
+      <BuilderValidationSummary questions={[]} validationErrors={errors} onSelectQuestion={() => {}} />
+      <BuilderSettingsSidebar validationErrors={errors}>
+        <AssignmentSettingsPanel assignment={{ id: "homework-1", lessonId: "homework", titleAr: "Homework", titleEn: "Homework", dueDate: "2000-01-01T12:00:00Z", maxScore: 10 }} pointsSummary={{ maxScore: 10, totalPoints: 0, difference: -10, isMatch: false }} validationErrors={errors} isReadOnly={false} onUpdate={() => {}} onAutoDistributePoints={() => {}} detailsInputMode="single" />
+      </BuilderSettingsSidebar>
+    </Localized>);
+
+    expect(screen.getByRole("button", { name: labels.showSettings })).toHaveAttribute("aria-expanded", "false");
+    expect(within(screen.getByRole("region", { name: labels.validationSummary })).getByText(dueDateError)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: labels.showSettings }));
+    const visibleErrors = screen.getAllByText(dueDateError);
+    expect(visibleErrors).toHaveLength(2);
+    visibleErrors.forEach(error => expect(error).toBeVisible());
+  });
+
   it.each(["en", "ar"] as const)("preserves settings input when collapsed and exposes errors in %s", async locale => {
     const user = userEvent.setup();
     const labels = (locale === "ar" ? ar : en).academics.curriculum.assignmentBuilder;
@@ -53,7 +75,7 @@ describe("builder authoring experience", () => {
     const user = userEvent.setup();
     function ReviewQuestions() {
       const [selected, setSelected] = useState("question-1");
-      return <><QuestionValidationSummary questions={[question, { ...question, id: "question-2" }]} validationErrors={{ questions: { "question-2": { correctAnswer: "Choose a correct answer" }, removed: { points: "Enter points" } } }} onSelectQuestion={setSelected} /><output aria-label="Selected question">{selected}</output></>;
+      return <><BuilderValidationSummary questions={[question, { ...question, id: "question-2" }]} validationErrors={{ questions: { "question-2": { correctAnswer: "Choose a correct answer" }, removed: { points: "Enter points" } } }} onSelectQuestion={setSelected} /><output aria-label="Selected question">{selected}</output></>;
     }
     render(<Localized><ReviewQuestions /></Localized>);
 

@@ -5480,6 +5480,11 @@
         "descriptionPlaceholderEn": "Enter assignment description (optional)"
       },
       "assignmentBuilder": {
+        "validationSummary": "Validation issues",
+        "settingsValidationHeading": "Settings need attention",
+        "settingsValidationHint": "Open Settings to correct these fields.",
+        "validationFields": {"titleAr": "Title", "titleEn": "Title", "descriptionAr": "Description", "descriptionEn": "Description", "dueDate": "Due date", "maxScore": "Total marks", "expectedTimeMinutes": "Expected time"},
+
         "needsAttention": "Needs attention",
         "hideSettings": "Hide settings",
         "showSettings": "Show settings",

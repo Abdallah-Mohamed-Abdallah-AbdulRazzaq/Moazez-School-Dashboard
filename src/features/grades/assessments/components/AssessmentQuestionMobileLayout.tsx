@@ -6,7 +6,7 @@ import { Drawer, Tab, Tabs } from "@mui/material";
 import { Menu, Plus, Save } from "lucide-react";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { ValidationErrors, PointsSummary } from "@/features/academics/curriculum/types/types";
-import QuestionValidationSummary from "@/features/academics/curriculum/components/QuestionValidationSummary";
+import BuilderValidationSummary from "@/features/academics/curriculum/components/BuilderValidationSummary";
 import Button from "@/components/ui/button/Button";
 import QuestionOutlineItem from "@/features/academics/curriculum/components/QuestionOutlineItem";
 import EmptyQuestionState from "@/features/academics/curriculum/components/EmptyQuestionState";
@@ -112,7 +112,7 @@ export default function AssessmentQuestionMobileLayout({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              <QuestionValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
+              <BuilderValidationSummary questions={questions} validationErrors={validationErrors} onSelectQuestion={onSelectQuestion} />
               {selectedQuestion ? (
                 <QuestionEditor
                   key={selectedQuestion.id}
