@@ -48,12 +48,12 @@ it("keeps new questions neutral and reveals validation after editing without los
   fireEvent.click(screen.getByRole("button", { name: "Write" }));
   fireEvent.click(screen.getByRole("button", { name: "Add question" }));
   expect(screen.queryByText(en.academics.curriculum.assignmentBuilder.needsAttention)).not.toBeInTheDocument();
-  expect(screen.queryByText(en.validation.all_options_required)).not.toBeInTheDocument();
+  expect(screen.queryByText(en.validation.everyOptionTextRequired)).not.toBeInTheDocument();
   const prompt = screen.getByPlaceholderText(en.academics.curriculum.questions.question_text);
   fireEvent.change(prompt, { target: { value: "Choose a number" } });
   fireEvent.blur(prompt);
   expect(screen.getByText(en.academics.curriculum.assignmentBuilder.needsAttention)).toBeInTheDocument();
-  expect(screen.getAllByText(en.validation.all_options_required).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(en.validation.everyOptionTextRequired).length).toBeGreaterThan(0);
   const instructions = screen.getByLabelText("Instructions");
   fireEvent.change(instructions, { target: { value: "Explain your choice" } });
   fireEvent.click(screen.getByRole("button", { name: "Hide questions" }));

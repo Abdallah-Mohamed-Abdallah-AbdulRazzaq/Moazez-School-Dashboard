@@ -9225,6 +9225,7 @@
     "duplicateOptionEn": "Duplicate English option",
     "minTwoOptions": "At least 2 options required",
     "option_text_required": "At least one option must have text",
+    "everyOptionTextRequired": "Enter text for every option.",
     "all_options_required": "All options must have both Arabic and English text",
     "option_ar_en_must_differ": "Option Arabic and English text must be different",
     "at_least_one_question": "At least one question is required",

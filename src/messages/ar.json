@@ -9227,6 +9227,7 @@
     "duplicateOptionEn": "اختيار إنجليزي مكرر",
     "minTwoOptions": "مطلوب اختيارين على الأقل",
     "option_text_required": "يجب أن يحتوي اختيار واحد على الأقل على نص",
+    "everyOptionTextRequired": "أدخل نصًا لكل اختيار.",
     "all_options_required": "يجب أن تحتوي جميع الاختيارات على نص بالعربي والإنجليزي",
     "option_ar_en_must_differ": "يجب أن يكون نص الاختيار بالعربي مختلفاً عن الإنجليزي",
     "at_least_one_question": "مطلوب سؤال واحد على الأقل",

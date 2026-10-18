@@ -15,6 +15,17 @@ function question(overrides = {}) {
 }
 
 describe("validateHomeworkQuestion", () => {
+  it.each([
+    ["اختيار", "", {}],
+    ["", "Option", {}],
+    [" ", " ", { options: "everyOptionTextRequired" }],
+  ])("accepts single-language option text and identifies empty options %#", (textAr, textEn, expectedErrors) => {
+    expect(validateHomeworkQuestion(question({ questionType: "MCQ_SINGLE", options: [
+      { id: "one", textAr, textEn, isCorrect: true, order: 0 },
+      { id: "two", textAr: "آخر", textEn: "", isCorrect: false, order: 1 },
+    ] }), t)).toEqual(expectedErrors);
+  });
+
   it("accepts either localized prompt", () => {
     expect(validateHomeworkQuestion(question({ questionTextEn: "" }), t)).toEqual({});
   });
