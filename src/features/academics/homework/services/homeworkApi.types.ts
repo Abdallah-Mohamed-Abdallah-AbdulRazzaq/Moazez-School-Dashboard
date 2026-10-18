@@ -150,8 +150,8 @@ export interface CreateHomeworkAssignmentRequest {
   title: string;
   targetMode: string;
   dueAt: string;
-  timetableEntryId?: string;
-  scheduleDate?: string;
+  timetableEntryId?: string | null;
+  scheduleDate?: string | null;
   description?: string | null;
   mode?: string;
   studentIds?: string[];

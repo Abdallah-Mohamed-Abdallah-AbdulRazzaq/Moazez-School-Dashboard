@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { fetchSubjects } from "@/features/academics/subjects/services/subjectsService";
+import { fetchTeacherAllocations, fetchTeachers } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import HomeworkAssignmentBuilderPage from "../HomeworkAssignmentBuilderPage";
 import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 import { fetchAllStudents } from "@/features/students-guardians/students/services/studentsService";
@@ -20,6 +23,9 @@ const translate = (key: string) => key;
 vi.mock("@/features/students-guardians/enrollments/services/enrollmentsApiService", () => ({ fetchEnrollments: vi.fn() }));
 vi.mock("@/features/students-guardians/students/services/studentsService", () => ({ fetchAllStudents: vi.fn() }));
 let recoveryMode = false;
+vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({ fetchStructureTree: vi.fn() }));
+vi.mock("@/features/academics/subjects/services/subjectsService", () => ({ fetchSubjects: vi.fn() }));
+vi.mock("@/features/academics/teacher-allocation/services/teacherAllocationService", () => ({ fetchTeacherAllocations: vi.fn(), fetchTeachers: vi.fn() }));
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
@@ -132,10 +138,6 @@ vi.mock("@/features/academics/homework/components/HomeworkSubmissionReviewPanel"
   default: () => null,
 }));
 
-vi.mock("@/components/ui/confirm-dialog/ConfirmDialog", () => ({
-  default: () => null,
-}));
-
 vi.mock("../../services/homeworkService", () => ({
   fetchHomeworkAssignment: vi.fn(),
   listHomeworkQuestions: vi.fn(),
@@ -166,6 +168,13 @@ function homework() {
     status: "draft" as const,
     targetMode: "classroom",
     academicYearId: "year-1",
+    termId: "term-1",
+    teacherSubjectAllocationId: "allocation-1",
+    teacherName: "Teacher One",
+    subjectName: "Science",
+    classroomName: "Class One",
+    timetableEntryId: "session-1",
+    scheduleDate: "2026-10-18",
     classroomId: "classroom-1",
     dueAt: new Date(Date.now() + 86_400_000).toISOString(),
     publishAt: null,
@@ -192,6 +201,22 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     recoveryMode = false;
+    vi.mocked(fetchStructureTree).mockResolvedValue({
+      stages: [], grades: [], sections: [], classrooms: [
+        { id: "classroom-1", name: "Class One", nameEn: "Class One", nameAr: "الفصل الأول", sectionId: "section-1" },
+        { id: "classroom-2", name: "Class Two", nameEn: "Class Two", nameAr: "الفصل الثاني", sectionId: "section-1" },
+      ],
+    } as Awaited<ReturnType<typeof fetchStructureTree>>);
+    vi.mocked(fetchSubjects).mockResolvedValue([{ id: "subject-1", nameEn: "Science", nameAr: "العلوم" }] as Awaited<ReturnType<typeof fetchSubjects>>);
+    vi.mocked(fetchTeachers).mockResolvedValue([
+      { id: "teacher-1", nameEn: "Teacher One", nameAr: "المعلم الأول", isActive: true },
+      { id: "teacher-2", nameEn: "Teacher Two", nameAr: "المعلم الثاني", isActive: true },
+    ]);
+    vi.mocked(fetchTeacherAllocations).mockResolvedValue([
+      { id: "allocation-1", termId: "term-1", sectionId: "section-1", classroomId: "classroom-1", subjectId: "subject-1", teacherId: "teacher-1" },
+      { id: "allocation-2", termId: "term-1", sectionId: "section-1", classroomId: "classroom-2", subjectId: "subject-1", teacherId: "teacher-2" },
+      { id: "allocation-3", termId: "term-1", sectionId: "section-1", classroomId: "classroom-1", subjectId: "subject-1", teacherId: "teacher-2" },
+    ]);
     vi.mocked(fetchEnrollments).mockResolvedValue([
       { id: "enrollment-1", studentId: "student-1", academicYearId: "year-1", classroomId: "classroom-1", status: "active" },
       { id: "enrollment-2", studentId: "student-2", academicYearId: "year-1", classroomId: "classroom-1", status: "active" },
@@ -212,6 +237,83 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
       },
     ]);
     vi.mocked(updateHomeworkAssignment).mockResolvedValue(homework());
+  });
+
+  it("saves a new allocation and clears the incompatible session", async () => {
+    vi.mocked(updateHomeworkAssignment).mockResolvedValue({ ...homework(), teacherSubjectAllocationId: "allocation-2", teacherName: "Teacher Two", classroomId: "classroom-2", classroomName: "Class Two", timetableEntryId: null, scheduleDate: null });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    const select = await screen.findByLabelText(/fields.teacherSubjectAllocation/);
+    await waitFor(() => expect(select).toBeEnabled());
+    fireEvent.click(select);
+    fireEvent.click(screen.getByRole("button", { name: "Teacher Two - Science - Class Two" }));
+    expect(screen.getByText("Teacher Two")).toBeInTheDocument();
+    expect(screen.getByText("Class Two")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+    await waitFor(() => expect(showSuccess).toHaveBeenCalledWith("messages.homeworkSaved"));
+    expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.objectContaining({ teacherSubjectAllocationId: "allocation-2", timetableEntryId: null, scheduleDate: null }));
+    expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
+  });
+
+  it("requires new recipients after changing classroom and preserves recipients for the same classroom", async () => {
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    await screen.findByRole("checkbox", { name: "Student One" });
+    const select = screen.getByLabelText(/fields.teacherSubjectAllocation/);
+    await waitFor(() => expect(select).toBeEnabled());
+    fireEvent.click(select);
+    fireEvent.click(screen.getByRole("button", { name: "Teacher Two - Science - Class One" }));
+    expect(await screen.findByRole("checkbox", { name: "Student One" })).toBeChecked();
+    fireEvent.click(select);
+    fireEvent.click(screen.getByRole("button", { name: "Teacher Two - Science - Class Two" }));
+    await screen.findByText("targets.noStudents");
+    expect(screen.queryByRole("checkbox", { name: "Student One" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+    expect(updateHomeworkAssignment).not.toHaveBeenCalled();
+    expect(showError).toHaveBeenCalledWith("errors.selectedStudentsRequired");
+  });
+
+  it("resets an allocation change and restores the saved recipients", async () => {
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue({ ...homework(), targetMode: "selected_students" });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    await screen.findByRole("checkbox", { name: "Student One" });
+    const select = screen.getByLabelText(/fields.teacherSubjectAllocation/);
+    await waitFor(() => expect(select).toBeEnabled());
+    fireEvent.click(select);
+    fireEvent.click(screen.getByRole("button", { name: "Teacher Two - Science - Class Two" }));
+    await screen.findByText("targets.noStudents");
+    fireEvent.click(screen.getByRole("button", { name: "actions.reset" }));
+    fireEvent.click(await screen.findByRole("button", { name: "confirm.confirm" }));
+    expect(await screen.findByRole("checkbox", { name: "Student One" })).toBeChecked();
+    expect(select).toHaveTextContent("Teacher One - Science - Class One");
+    expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
+    expect(updateHomeworkAssignment).not.toHaveBeenCalled();
+  });
+
+  it("keeps the saved allocation visible when there are no available allocations", async () => {
+    vi.mocked(fetchTeacherAllocations).mockResolvedValue([]);
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    await screen.findByText("messages.noAllocations");
+    const select = screen.getByLabelText(/fields.teacherSubjectAllocation/);
+    expect(select).toBeDisabled();
+    expect(select).toHaveTextContent("Teacher One - Science - Class One");
+  });
+
+  it("reports allocation loading failures and supports retry", async () => {
+    vi.mocked(fetchTeacherAllocations).mockRejectedValueOnce(new Error("unavailable"));
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    await screen.findByText("errors.allocationsLoadFailed");
+    expect(screen.getByLabelText(/fields.teacherSubjectAllocation/)).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "actions.retry" }));
+    await waitFor(() => expect(screen.getByLabelText(/fields.teacherSubjectAllocation/)).toBeEnabled());
+    fireEvent.click(screen.getByLabelText(/fields.teacherSubjectAllocation/));
+    expect(screen.getByRole("button", { name: "Teacher Two - Science - Class Two" })).toBeInTheDocument();
+  });
+
+  it.each(["published", "closed", "cancelled", "archived"] as const)("does not allow allocation editing for %s assignments", async status => {
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue({ ...homework(), status });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    await screen.findByRole("heading", { name: "title" });
+    expect(screen.queryByLabelText(/fields.teacherSubjectAllocation/)).not.toBeInTheDocument();
   });
 
   it("adds a student to the same draft while preserving existing selections", async () => {
@@ -276,7 +378,8 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     fireEvent.click(await screen.findByRole("button", { name: "targetModes.classroom" }));
     fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
     await waitFor(() => expect(showSuccess).toHaveBeenCalledWith("messages.homeworkSaved"));
-    expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.objectContaining({ targetMode: "classroom", studentIds: [] }));
+    expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.objectContaining({ targetMode: "classroom" }));
+    expect(vi.mocked(updateHomeworkAssignment).mock.calls[0][1]).not.toHaveProperty("studentIds");
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
   });

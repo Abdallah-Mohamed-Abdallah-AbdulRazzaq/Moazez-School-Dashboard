@@ -12,6 +12,7 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { ClipboardList, ChevronDown, FileSpreadsheet, PencilLine } from "lucide-react";
 import HomeworkCreationBar from "../components/HomeworkCreationBar";
 import HomeworkCreationWorkflow from "../components/HomeworkCreationWorkflow";
+import { buildAllocationOptions } from "../utils/homeworkAllocationOptions";
 import HomeworkAllocationPicker from "../components/HomeworkAllocationPicker";
 import type { HomeworkAllocationOption as AllocationSelectOption } from "../utils/homeworkAllocationPicker";
 import HomeworkImportBatchPanel from "../components/HomeworkImportBatchPanel";
@@ -36,13 +37,10 @@ import {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchSubjects,
-  type Subject,
 } from "@/features/academics/subjects/services/subjectsService";
 import {
   fetchTeacherAllocations,
   fetchTeachers,
-  type Teacher,
-  type TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 import { fetchAllStudents } from "@/features/students-guardians/students/services/studentsService";
@@ -73,48 +71,6 @@ interface EligibleHomeworkStudent {
   name: string;
   studentNumber: string;
   enrollmentId: string;
-}
-
-function localizedName(
-  locale: string,
-  item?: { nameAr?: string; nameEn?: string; name?: string } | null,
-) {
-  if (!item) return "";
-  return locale === "ar"
-    ? item.nameAr || item.nameEn || item.name || ""
-    : item.nameEn || item.nameAr || item.name || "";
-}
-
-function teacherNameForLocale(locale: string, teacher?: Teacher) {
-  return locale === "ar"
-    ? teacher?.nameAr || teacher?.nameEn || ""
-    : teacher?.nameEn || teacher?.nameAr || "";
-}
-
-function allocationOptionSearchText(input: {
-  allocation: TeacherAllocation;
-  teacher?: Teacher;
-  subject?: Subject;
-  classroom?: StructureTree["classrooms"][number];
-  section?: StructureTree["sections"][number];
-  grade?: StructureTree["grades"][number];
-}) {
-  return [
-    input.teacher?.nameAr,
-    input.teacher?.nameEn,
-    input.allocation.teacherName,
-    input.subject?.nameAr,
-    input.subject?.nameEn,
-    input.classroom?.nameAr,
-    input.classroom?.nameEn,
-    input.section?.nameAr,
-    input.section?.nameEn,
-    input.grade?.nameAr,
-    input.grade?.nameEn,
-    input.allocation.id,
-  ]
-    .filter(Boolean)
-    .join(" ");
 }
 
 function studentNameForLocale(locale: string, student: Student) {
@@ -174,65 +130,6 @@ function buildEligibleStudents(input: {
       };
     })
     .sort((left, right) => left.name.localeCompare(right.name, input.locale));
-}
-
-function buildAllocationOptions(input: {
-  allocations: TeacherAllocation[];
-  teachers: Teacher[];
-  subjects: Subject[];
-  structure: StructureTree;
-  locale: string;
-}): AllocationSelectOption[] {
-  return input.allocations
-    .filter((allocation) => Boolean(allocation.teacherId))
-    .map((allocation) => {
-      const teacher = input.teachers.find(
-        (item) => item.id === allocation.teacherId,
-      );
-      const subject = input.subjects.find(
-        (item) => item.id === allocation.subjectId,
-      );
-      const classroom = input.structure.classrooms.find(
-        (item) => item.id === allocation.classroomId,
-      );
-      const section = input.structure.sections.find(
-        (item) => item.id === allocation.sectionId,
-      );
-      const grade = input.structure.grades.find(
-        (item) => item.id === section?.gradeId,
-      );
-      const labelParts = [
-        teacherNameForLocale(input.locale, teacher),
-        localizedName(input.locale, subject),
-        localizedName(input.locale, classroom) ||
-          localizedName(input.locale, section),
-      ].filter(Boolean);
-      const teacherLabel = teacherNameForLocale(input.locale, teacher) || allocation.teacherName || "";
-      const subjectLabel = localizedName(input.locale, subject);
-      const classroomLabel =
-        localizedName(input.locale, classroom) ||
-        localizedName(input.locale, section);
-
-      return {
-        value: allocation.id,
-        label: labelParts.length > 0 ? labelParts.join(" - ") : allocation.id,
-        searchText: allocationOptionSearchText({
-          allocation,
-          teacher,
-          subject,
-          classroom,
-          section,
-          grade,
-        }),
-        allocation,
-        teacherLabel,
-        subjectLabel,
-        classroomLabel,
-        stageId: grade?.stageId ?? "",
-        gradeId: grade?.id ?? "",
-      };
-    })
-    .sort((left, right) => left.label.localeCompare(right.label, input.locale));
 }
 
 export default function CreateHomeworkPage() {

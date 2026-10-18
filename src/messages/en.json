@@ -6087,6 +6087,7 @@
         }
       },
       "builder": {
+        "allocationChangeHelp": "Changing allocation clears the linked session. Changing classroom clears selected students.",
         "details": {
           "title": "Assignment details",
           "academicContext": "Academic context",
