@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Layers3, Search } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import Select from "@/components/ui/input/Select";
+import Select, { type SelectOption } from "@/components/ui/input/Select";
 import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   HOMEWORK_ALLOCATION_LEVELS, homeworkAllocationChoices, homeworkAllocationFilters,
@@ -14,6 +14,7 @@ import {
 
 interface HomeworkAllocationPickerProps {
   options: HomeworkAllocationOption[];
+  currentOption?: SelectOption;
   structure: StructureTree;
   value: string;
   disabled: boolean;
@@ -30,6 +31,8 @@ export default function HomeworkAllocationPicker(props: HomeworkAllocationPicker
   const selectedPath = paths.find(path => path.option.value === props.value);
   const matching = homeworkAllocationsMatchingPath(paths, filters);
   const structured = mode === "structure";
+  const quickOptions = props.currentOption && !props.options.some(option => option.value === props.currentOption?.value)
+    ? [props.currentOption, ...props.options] : props.options;
 
   function chooseMode() {
     if (props.disabled) return;
@@ -54,7 +57,7 @@ export default function HomeworkAllocationPicker(props: HomeworkAllocationPicker
     </div>}
     {!structured ? <><Select
       label={t("fields.teacherSubjectAllocation")} required searchable value={props.value} onChange={props.onChange}
-      options={props.options} placeholder={t("placeholders.teacherSubjectAllocation")} searchPlaceholder={t("placeholders.searchAllocation")}
+      options={quickOptions} placeholder={t("placeholders.teacherSubjectAllocation")} searchPlaceholder={t("placeholders.searchAllocation")}
       noOptionsText={t(props.loading ? "messages.loadingAllocations" : "messages.noAllocations")}
       noResultsText={t("messages.noAllocationResults")} disabled={props.disabled} helperText={t("helpers.teacherSubjectAllocation")}
     /><div className="flex justify-end">{modeToggle}</div></> : <div role="group" aria-label={t("picker.browseStructure")} className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4">

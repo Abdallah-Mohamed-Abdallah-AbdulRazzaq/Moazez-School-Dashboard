@@ -124,6 +124,8 @@ export default function HomeworkAssignmentBuilderPage({
   const [homework, setHomework] = useState<HomeworkAssignmentUiModel | null>(
     null,
   );
+  const [allocationPickerVersion, setAllocationPickerVersion] = useState(0);
+  const [isAllocationPending, setIsAllocationPending] = useState(false);
   const [selectedAllocation, setSelectedAllocation] = useState<HomeworkAllocationOption | null>(null);
   const [assignmentDraft, setAssignmentDraft] = useState<Assignment | null>(
     null,
@@ -182,6 +184,7 @@ export default function HomeworkAssignmentBuilderPage({
       const nextAssignment = mapHomeworkUiToBuilderAssignment(nextHomework);
       setHomework(nextHomework);
       setSelectedAllocation(null);
+      setIsAllocationPending(false);
       setAssignmentDraft(nextAssignment);
       setLastSavedAssignment(nextAssignment);
       setQuestions(nextQuestions);
@@ -330,8 +333,10 @@ export default function HomeworkAssignmentBuilderPage({
       classroomSectionName: undefined,
     };
   }, [homework, selectedAllocation, isAllocationDirty]);
-  const chooseAllocation = (option: HomeworkAllocationOption) => {
+  const chooseAllocation = (option: HomeworkAllocationOption | null) => {
     if (isReadOnly || isAssignmentSaving || isLifecyclePending) return;
+    setIsAllocationPending(option === null);
+    if (!option) return;
     if (option.allocation.classroomId !== draftHomework?.classroomId) {
       setTargetDraft(current => ({ ...current, studentIds: [] }));
     }
@@ -344,6 +349,7 @@ export default function HomeworkAssignmentBuilderPage({
       JSON.stringify([...savedTargetDraft.studentIds].sort())
   );
   const isDirty =
+    isAllocationPending ||
     isAllocationDirty ||
     isTargetDirty ||
     isAssignmentDirty ||
@@ -387,6 +393,10 @@ export default function HomeworkAssignmentBuilderPage({
 
   const handleSaveAssignment = async () => {
     if (!assignmentDraft || !homework || isReadOnly || !isDirty) return;
+    if (isAllocationPending) {
+      showError(tCreate("errors.allocationRequired"));
+      return;
+    }
     if ((isTargetDirty || isAllocationDirty) && targetDraft.targetMode === "selected_students" && (targetDraft.studentIds.length === 0 || targetDraft.studentIds.length > 500)) {
       showError(tCreate(targetDraft.studentIds.length === 0
         ? "errors.selectedStudentsRequired" : "errors.selectedStudentsLimit"));
@@ -607,6 +617,8 @@ export default function HomeworkAssignmentBuilderPage({
     setAssignmentDraft(lastSavedAssignment);
     setTargetDraft(savedTargetDraft);
     setSelectedAllocation(null);
+    setIsAllocationPending(false);
+    setAllocationPickerVersion(current => current + 1);
     setQuestions(savedQuestions);
     setQuestionDraft(null);
     setSelectedQuestionId(savedQuestions[0]?.id || null);
@@ -939,8 +951,9 @@ export default function HomeworkAssignmentBuilderPage({
       )}
 
       {homework.status === "draft" && <HomeworkBuilderAllocationSelect
+        key={allocationPickerVersion}
         homework={homework}
-        value={draftHomework?.teacherSubjectAllocationId || ""}
+        value={isAllocationPending ? "" : draftHomework?.teacherSubjectAllocationId || ""}
         onChange={chooseAllocation}
         disabled={isReadOnly || isAssignmentSaving || isLifecyclePending}
       />}
