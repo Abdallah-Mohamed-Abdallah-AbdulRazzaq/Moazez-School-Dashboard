@@ -82,6 +82,8 @@ import { getHomeworkPublishReadiness } from "@/features/academics/homework/utils
 import HomeworkGradeSyncPanel from "@/features/academics/homework/components/HomeworkGradeSyncPanel";
 import HomeworkSubmissionReviewPanel from "@/features/academics/homework/components/HomeworkSubmissionReviewPanel";
 import HomeworkAssignmentDetailsCard from "@/features/academics/homework/components/HomeworkAssignmentDetailsCard";
+import HomeworkBuilderAllocationSelect from "../components/HomeworkBuilderAllocationSelect";
+import type { HomeworkAllocationOption } from "../utils/homeworkAllocationPicker";
 import HomeworkTargetEditor, { type HomeworkTargetDraft } from "../components/HomeworkTargetEditor";
 
 interface HomeworkAssignmentBuilderPageProps {
@@ -122,6 +124,7 @@ export default function HomeworkAssignmentBuilderPage({
   const [homework, setHomework] = useState<HomeworkAssignmentUiModel | null>(
     null,
   );
+  const [selectedAllocation, setSelectedAllocation] = useState<HomeworkAllocationOption | null>(null);
   const [assignmentDraft, setAssignmentDraft] = useState<Assignment | null>(
     null,
   );
@@ -178,6 +181,7 @@ export default function HomeworkAssignmentBuilderPage({
     ) => {
       const nextAssignment = mapHomeworkUiToBuilderAssignment(nextHomework);
       setHomework(nextHomework);
+      setSelectedAllocation(null);
       setAssignmentDraft(nextAssignment);
       setLastSavedAssignment(nextAssignment);
       setQuestions(nextQuestions);
@@ -307,12 +311,40 @@ export default function HomeworkAssignmentBuilderPage({
     [lastSavedQuestionOrder, questions],
   );
 
+  const isAllocationDirty = selectedAllocation !== null &&
+    selectedAllocation.value !== homework?.teacherSubjectAllocationId;
+  const draftHomework = useMemo(() => {
+    if (!homework || !selectedAllocation || !isAllocationDirty) return homework;
+    const { allocation, teacherLabel, subjectLabel, classroomLabel } = selectedAllocation;
+    return {
+      ...homework,
+      teacherSubjectAllocationId: allocation.id,
+      teacherUserId: allocation.teacherId || undefined,
+      teacherName: teacherLabel,
+      subjectId: allocation.subjectId,
+      subjectName: subjectLabel,
+      subjectCode: null,
+      classroomId: allocation.classroomId,
+      classroomName: classroomLabel,
+      classroomGradeName: undefined,
+      classroomSectionName: undefined,
+    };
+  }, [homework, selectedAllocation, isAllocationDirty]);
+  const chooseAllocation = (option: HomeworkAllocationOption) => {
+    if (isReadOnly || isAssignmentSaving || isLifecyclePending) return;
+    if (option.allocation.classroomId !== draftHomework?.classroomId) {
+      setTargetDraft(current => ({ ...current, studentIds: [] }));
+    }
+    setSelectedAllocation(option);
+  };
+
   const isTargetDirty = targetDraft.targetMode !== savedTargetDraft.targetMode || (
     targetDraft.targetMode === "selected_students" &&
     JSON.stringify([...targetDraft.studentIds].sort()) !==
       JSON.stringify([...savedTargetDraft.studentIds].sort())
   );
   const isDirty =
+    isAllocationDirty ||
     isTargetDirty ||
     isAssignmentDirty ||
     isQuestionDirty ||
@@ -355,7 +387,7 @@ export default function HomeworkAssignmentBuilderPage({
 
   const handleSaveAssignment = async () => {
     if (!assignmentDraft || !homework || isReadOnly || !isDirty) return;
-    if (isTargetDirty && targetDraft.targetMode === "selected_students" && (targetDraft.studentIds.length === 0 || targetDraft.studentIds.length > 500)) {
+    if ((isTargetDirty || isAllocationDirty) && targetDraft.targetMode === "selected_students" && (targetDraft.studentIds.length === 0 || targetDraft.studentIds.length > 500)) {
       showError(tCreate(targetDraft.studentIds.length === 0
         ? "errors.selectedStudentsRequired" : "errors.selectedStudentsLimit"));
       return;
@@ -403,20 +435,26 @@ export default function HomeworkAssignmentBuilderPage({
         await deleteHomeworkQuestion(homeworkId, questionId);
       }
 
-      if (isAssignmentDirty || isTargetDirty) {
+      if (isAssignmentDirty || isTargetDirty || isAllocationDirty) {
         const nextHomework = await updateHomeworkAssignment(
           homeworkId,
           {
             ...mapBuilderAssignmentToHomeworkUpdate(assignmentDraft),
-            ...(isTargetDirty ? {
+            ...(isAllocationDirty ? {
+              teacherSubjectAllocationId: selectedAllocation!.value,
+              timetableEntryId: null,
+              scheduleDate: null,
+            } : {}),
+            ...(isTargetDirty || isAllocationDirty ? {
               targetMode: targetDraft.targetMode,
-              studentIds: targetDraft.targetMode === "selected_students"
-                ? targetDraft.studentIds : [],
+              ...(targetDraft.targetMode === "selected_students"
+                ? { studentIds: targetDraft.studentIds } : {}),
             } : {}),
           },
         );
         const nextAssignment = mapHomeworkUiToBuilderAssignment(nextHomework);
         setHomework(nextHomework);
+        setSelectedAllocation(null);
         setAssignmentDraft(nextAssignment);
         setLastSavedAssignment(nextAssignment);
         setSavedTargetDraft(targetDraft);
@@ -568,6 +606,7 @@ export default function HomeworkAssignmentBuilderPage({
     );
     setAssignmentDraft(lastSavedAssignment);
     setTargetDraft(savedTargetDraft);
+    setSelectedAllocation(null);
     setQuestions(savedQuestions);
     setQuestionDraft(null);
     setSelectedQuestionId(savedQuestions[0]?.id || null);
@@ -899,10 +938,16 @@ export default function HomeworkAssignmentBuilderPage({
         </section>
       )}
 
-      <HomeworkAssignmentDetailsCard homework={homework} />
-      {homework.status === "draft" && <HomeworkTargetEditor
+      {homework.status === "draft" && <HomeworkBuilderAllocationSelect
         homework={homework}
-        targets={publishTargets}
+        value={draftHomework?.teacherSubjectAllocationId || ""}
+        onChange={chooseAllocation}
+        disabled={isReadOnly || isAssignmentSaving || isLifecyclePending}
+      />}
+      <HomeworkAssignmentDetailsCard homework={draftHomework || homework} />
+      {homework.status === "draft" && <HomeworkTargetEditor
+        homework={draftHomework || homework}
+        targets={draftHomework?.classroomId === homework.classroomId ? publishTargets : []}
         value={targetDraft}
         onChange={setTargetDraft}
         disabled={isReadOnly || isAssignmentSaving || isLifecyclePending}
