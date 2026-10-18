@@ -242,6 +242,19 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     vi.mocked(updateHomeworkAssignment).mockResolvedValue(homework());
   });
 
+  it("shows the allocation teacher name when the teacher is missing from the directory", async () => {
+    vi.mocked(fetchTeachers).mockResolvedValue([]);
+    vi.mocked(fetchTeacherAllocations).mockResolvedValue([
+      { id: "allocation-1", termId: "term-1", sectionId: "section-1", classroomId: "classroom-1", subjectId: "subject-1", teacherId: "teacher-1", teacherName: "Allocation Teacher" },
+    ]);
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    const select = await screen.findByLabelText(/fields.teacherSubjectAllocation/);
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(select).toHaveTextContent("Allocation Teacher - Science - Class One");
+    fireEvent.click(select);
+    expect(screen.getByRole("button", { name: "Allocation Teacher - Science - Class One", exact: true })).toBeInTheDocument();
+  });
+
   it("browses the academic structure, blocks incomplete choices and saves the resolved allocation", async () => {
     vi.mocked(updateHomeworkAssignment).mockResolvedValue({ ...homework(), teacherSubjectAllocationId: "allocation-2", teacherName: "Teacher Two", classroomId: "classroom-2", classroomName: "Class Two" });
     render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);

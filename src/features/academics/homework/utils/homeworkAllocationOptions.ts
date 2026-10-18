@@ -70,13 +70,13 @@ export function buildAllocationOptions(input: {
       const grade = input.structure.grades.find(
         (item) => item.id === section?.gradeId,
       );
+      const teacherLabel = teacherNameForLocale(input.locale, teacher) || allocation.teacherName || "";
       const labelParts = [
-        teacherNameForLocale(input.locale, teacher),
+        teacherLabel,
         localizedName(input.locale, subject),
         localizedName(input.locale, classroom) ||
           localizedName(input.locale, section),
       ].filter(Boolean);
-      const teacherLabel = teacherNameForLocale(input.locale, teacher) || allocation.teacherName || "";
       const subjectLabel = localizedName(input.locale, subject);
       const classroomLabel =
         localizedName(input.locale, classroom) ||

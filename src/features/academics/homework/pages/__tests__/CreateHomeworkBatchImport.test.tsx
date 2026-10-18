@@ -37,7 +37,7 @@ async function prepareImport() {
   const view = render(pageElement());
   const allocation = await screen.findByRole("button", { name: name => name.startsWith(en.academics.homework.create.fields.teacherSubjectAllocation) });
   await waitFor(() => expect(allocation).toBeEnabled());
-  fireEvent.click(allocation); fireEvent.click(await screen.findByText("Math - Room 1"));
+  fireEvent.click(allocation); fireEvent.click(await screen.findByText("Teacher 1 - Math - Room 1"));
   await screen.findByText("1 eligible student");
   fireEvent.click(screen.getByRole("button", { name: "Import Excel" }));
   fireEvent.change(screen.getByLabelText("Choose Excel file"), { target: { files: [file] } });
