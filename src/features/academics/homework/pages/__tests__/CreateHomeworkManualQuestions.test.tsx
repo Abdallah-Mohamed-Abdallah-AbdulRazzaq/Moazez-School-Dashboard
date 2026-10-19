@@ -35,7 +35,7 @@ function renderPage() {
 async function selectSingleTarget() {
   const allocation = await screen.findByRole("button", { name: /^Teacher subject allocation/ });
   await waitFor(() => expect(allocation).toBeEnabled()); fireEvent.click(allocation);
-  fireEvent.click(await screen.findByText("Math - Room 1")); await screen.findByText("1 eligible student");
+  fireEvent.click(await screen.findByText("Teacher 1 - Math - Room 1")); await screen.findByText("1 eligible student");
   fireEvent.change(screen.getByRole("textbox", { name: /^Title/ }), { target: { value: "Manual practice" } });
 }
 function writeQuestion() {
@@ -109,7 +109,7 @@ it("retains an allocation with incomplete structure and allows returning to quic
   expect(screen.getByText(en.academics.homework.create.picker.outsideStructure)).toBeVisible();
   expect(screen.getByRole("button", { name: /^Stage\s/ })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: en.academics.homework.create.picker.quickSearch }));
-  expect(screen.getByRole("button", { name: /^Teacher subject allocation/ })).toHaveTextContent("Math - Room 1");
+  expect(screen.getByRole("button", { name: /^Teacher subject allocation/ })).toHaveTextContent("Teacher 1 - Math - Room 1");
   fireEvent.click(screen.getByRole("button", { name: "Create draft" }));
   await waitFor(() => expect(boundary.replace).toHaveBeenCalled());
   expect(apiPost).toHaveBeenCalledWith("/homework/assignments", expect.objectContaining({ teacherSubjectAllocationId: batchIds.allocationA }));

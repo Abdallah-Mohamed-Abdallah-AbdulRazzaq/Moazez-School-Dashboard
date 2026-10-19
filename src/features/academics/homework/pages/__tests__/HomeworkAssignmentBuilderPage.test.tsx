@@ -202,7 +202,10 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     vi.resetAllMocks();
     recoveryMode = false;
     vi.mocked(fetchStructureTree).mockResolvedValue({
-      stages: [], grades: [], sections: [], classrooms: [
+      stages: [{ id: "stage-1", name: "Stage One", nameEn: "Stage One", nameAr: "المرحلة الأولى" }],
+      grades: [{ id: "grade-1", stageId: "stage-1", name: "Grade One", nameEn: "Grade One", nameAr: "الصف الأول" }],
+      sections: [{ id: "section-1", gradeId: "grade-1", name: "Section One", nameEn: "Section One", nameAr: "القسم الأول" }],
+      classrooms: [
         { id: "classroom-1", name: "Class One", nameEn: "Class One", nameAr: "الفصل الأول", sectionId: "section-1" },
         { id: "classroom-2", name: "Class Two", nameEn: "Class Two", nameAr: "الفصل الثاني", sectionId: "section-1" },
       ],
@@ -239,6 +242,56 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     vi.mocked(updateHomeworkAssignment).mockResolvedValue(homework());
   });
 
+  it("shows the allocation teacher name when the teacher is missing from the directory", async () => {
+    vi.mocked(fetchTeachers).mockResolvedValue([]);
+    vi.mocked(fetchTeacherAllocations).mockResolvedValue([
+      { id: "allocation-1", termId: "term-1", sectionId: "section-1", classroomId: "classroom-1", subjectId: "subject-1", teacherId: "teacher-1", teacherName: "Allocation Teacher" },
+    ]);
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    const select = await screen.findByLabelText(/fields.teacherSubjectAllocation/);
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(select).toHaveTextContent("Allocation Teacher - Science - Class One");
+    fireEvent.click(select);
+    expect(screen.getByRole("button", { name: "Allocation Teacher - Science - Class One", exact: true })).toBeInTheDocument();
+  });
+
+  it("browses the academic structure, blocks incomplete choices and saves the resolved allocation", async () => {
+    vi.mocked(updateHomeworkAssignment).mockResolvedValue({ ...homework(), teacherSubjectAllocationId: "allocation-2", teacherName: "Teacher Two", classroomId: "classroom-2", classroomName: "Class Two" });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    const browse = await screen.findByRole("button", { name: "picker.browseStructure" });
+    await waitFor(() => expect(browse).toBeEnabled());
+    fireEvent.click(browse);
+    fireEvent.click(screen.getByLabelText(/picker.fields.stage/));
+    fireEvent.click(screen.getByRole("button", { name: "Stage One", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+    expect(showError).toHaveBeenCalledWith("errors.allocationRequired");
+    expect(updateHomeworkAssignment).not.toHaveBeenCalled();
+    for (const [level, label] of [["grade", "Grade One"], ["section", "Section One"], ["classroom", "Class Two"], ["subject", "Science"]]) {
+      fireEvent.click(screen.getByLabelText(new RegExp(`picker.fields.${level}`)));
+      fireEvent.click(screen.getByRole("button", { name: label, exact: true }));
+    }
+    expect(screen.getByText("Class Two", { selector: "dd" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "picker.quickSearch" }));
+    expect(screen.getByLabelText(/fields.teacherSubjectAllocation/)).toHaveTextContent("Teacher Two - Science - Class Two");
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+    await waitFor(() => expect(showSuccess).toHaveBeenCalledWith("messages.homeworkSaved"));
+    expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.objectContaining({ teacherSubjectAllocationId: "allocation-2" }));
+  });
+
+  it("restores the saved allocation after resetting an incomplete structure selection", async () => {
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    const browse = await screen.findByRole("button", { name: "picker.browseStructure" });
+    await waitFor(() => expect(browse).toBeEnabled());
+    fireEvent.click(browse);
+    fireEvent.click(screen.getByLabelText(/picker.fields.stage/));
+    fireEvent.click(screen.getByRole("button", { name: "Stage One", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "actions.reset" }));
+    fireEvent.click(await screen.findByRole("button", { name: "confirm.confirm" }));
+    expect(await screen.findByLabelText(/fields.teacherSubjectAllocation/)).toHaveTextContent("Teacher One - Science - Class One");
+    expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
+    expect(updateHomeworkAssignment).not.toHaveBeenCalled();
+  });
+
   it("saves a new allocation and clears the incompatible session", async () => {
     vi.mocked(updateHomeworkAssignment).mockResolvedValue({ ...homework(), teacherSubjectAllocationId: "allocation-2", teacherName: "Teacher Two", classroomId: "classroom-2", classroomName: "Class Two", timetableEntryId: null, scheduleDate: null });
     render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
@@ -247,7 +300,7 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     fireEvent.click(select);
     fireEvent.click(screen.getByRole("button", { name: "Teacher Two - Science - Class Two" }));
     expect(screen.getByText("Teacher Two")).toBeInTheDocument();
-    expect(screen.getByText("Class Two")).toBeInTheDocument();
+    expect(screen.getByText("Class Two", { selector: "dd" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
     await waitFor(() => expect(showSuccess).toHaveBeenCalledWith("messages.homeworkSaved"));
     expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.objectContaining({ teacherSubjectAllocationId: "allocation-2", timetableEntryId: null, scheduleDate: null }));
@@ -284,7 +337,7 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     fireEvent.click(screen.getByRole("button", { name: "actions.reset" }));
     fireEvent.click(await screen.findByRole("button", { name: "confirm.confirm" }));
     expect(await screen.findByRole("checkbox", { name: "Student One" })).toBeChecked();
-    expect(select).toHaveTextContent("Teacher One - Science - Class One");
+    expect(screen.getByLabelText(/fields.teacherSubjectAllocation/)).toHaveTextContent("Teacher One - Science - Class One");
     expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
     expect(updateHomeworkAssignment).not.toHaveBeenCalled();
   });
@@ -295,7 +348,7 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     await screen.findByText("messages.noAllocations");
     const select = screen.getByLabelText(/fields.teacherSubjectAllocation/);
     expect(select).toBeDisabled();
-    expect(select).toHaveTextContent("Teacher One - Science - Class One");
+    expect(screen.getByLabelText(/fields.teacherSubjectAllocation/)).toHaveTextContent("Teacher One - Science - Class One");
   });
 
   it("reports allocation loading failures and supports retry", async () => {
