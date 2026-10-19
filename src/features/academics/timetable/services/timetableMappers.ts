@@ -47,6 +47,9 @@ export function mapBackendEntryToUi(
     startTime: dto.period?.startTime,
     endTime: dto.period?.endTime,
     subjectId: dto.subject?.id ?? null,
+    subjectSnapshot: dto.subject
+      ? { id: dto.subject.id, nameAr: dto.subject.nameAr, nameEn: dto.subject.nameEn }
+      : undefined,
     teacherId: dto.teacher?.userId ?? null,
     roomId: dto.room?.id ?? null,
     status: dto.status === "active" ? "PUBLISHED" : "DRAFT",

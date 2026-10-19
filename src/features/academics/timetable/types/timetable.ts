@@ -10,6 +10,7 @@ export interface TimetableEntry {
   endTime?: string;
   slotType?: "CLASS" | "BREAK"; // Type of slot (default: CLASS)
   subjectId: string | null;
+  subjectSnapshot?: { id: string; nameAr: string; nameEn: string };
   teacherId: string | null;
   roomId: string | null;
   breakLabelAr?: string; // Label for break slots (default: "فُسحة")

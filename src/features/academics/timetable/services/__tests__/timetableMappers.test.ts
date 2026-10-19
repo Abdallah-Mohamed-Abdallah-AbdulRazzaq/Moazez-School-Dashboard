@@ -81,6 +81,7 @@ describe("timetableMappers", () => {
       startTime: "09:00",
       endTime: "09:45",
       subjectId: "subject-1",
+      subjectSnapshot: { id: "subject-1", nameAr: "Subject AR", nameEn: "Subject EN" },
       teacherId: "teacher-1",
       roomId: "room-1",
       status: "PUBLISHED",

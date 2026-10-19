@@ -1,4 +1,5 @@
 import type { TimetableEntry } from "../types/timetable";
+import { timetableSubjectName } from "./timetableSubjectDisplay";
 
 interface LessonSearchReference {
   id: string;
@@ -44,7 +45,7 @@ export function findTimetableLessons({
     if (!entry.subjectId || entry.slotType === "BREAK") return false;
     const text = searchableText(
       [
-        subjectNames.get(entry.subjectId),
+        subjectNames.get(entry.subjectId) ?? `${timetableSubjectName(entry, undefined, "ar")} ${timetableSubjectName(entry, undefined, "en")}`,
         entry.teacherId ? teacherNames.get(entry.teacherId) : "",
         entry.roomId ? roomNames.get(entry.roomId) : "",
       ]

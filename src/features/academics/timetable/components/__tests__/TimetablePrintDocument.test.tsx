@@ -48,6 +48,17 @@ function documentProps(): TimetablePrintDocumentProps {
 }
 
 describe("printable timetable", () => {
+  it("prints the saved subject name and a warning after subject deletion", () => {
+    language.locale = "en";
+    const props = documentProps();
+    const savedLesson = props.entries.find((entry) => entry.subjectId)!;
+    render(<TimetablePrintDocument {...props} subjects={[]} entries={[{
+      ...savedLesson,
+      subjectSnapshot: { id: savedLesson.subjectId!, nameAr: "اختبار", nameEn: "Deleted Test" },
+    }]} />);
+    expect(screen.getByText("Deleted Test")).toBeVisible();
+    expect(screen.getByText("Deleted or unavailable subject")).toBeVisible();
+  });
   it.each(["en", "ar"])(
     "prints each classroom with active days, times and localized lessons in %s",
     (locale) => {
