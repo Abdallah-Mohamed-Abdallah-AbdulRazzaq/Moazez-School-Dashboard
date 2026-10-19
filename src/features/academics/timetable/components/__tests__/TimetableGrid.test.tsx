@@ -74,6 +74,21 @@ describe("TimetableGrid conflict highlighting", () => {
 });
 
 describe("TimetableGrid direct placement", () => {
+  it.each([["en", "Deleted Math"], ["ar", "رياضيات محذوفة"]])("keeps a deleted subject visible with a warning in %s on desktop and mobile", (locale, name) => {
+    renderGrid(null, undefined, {
+      locale,
+      subjects: [],
+      entries: [{ ...entry, subjectSnapshot: { id: entry.subjectId!, nameAr: "رياضيات محذوفة", nameEn: "Deleted Math" } }],
+    });
+    expect(screen.getAllByText(name)).toHaveLength(2);
+    expect(screen.getAllByText("unavailableSubject")).toHaveLength(2);
+    const lessonButtons = screen.getAllByRole("button", { name: new RegExp(name) });
+    expect(lessonButtons).toHaveLength(2);
+    for (const button of lessonButtons) {
+      expect(button).toHaveAccessibleName(/unavailableSubject/);
+    }
+  });
+
   it("highlights matching lessons on desktop and mobile and reveals the searched day", () => {
     renderGrid(null, undefined, {
       entries: [{ ...entry, dayKey: "tue" }],

@@ -125,11 +125,22 @@ import {
 } from "@/features/academics/utils/exportAdapter";
 import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
 
-const TimetableConflictDialog = dynamic(() => import("./TimetableConflictDialog"));
-const EditSlotDialog = dynamic(() => import("./EditSlotDialog"));
-const TimetableLessonTransferDialog = dynamic(() => import("./TimetableLessonTransferDialog"));
-const GenerateDialog = dynamic(() => import("./GenerateDialog"));
-const TimetableConfigDialog = dynamic(() => import("./TimetableConfigDialog"));
+// A local loading boundary keeps first-open dialog chunks from hiding the workspace.
+const TimetableConflictDialog = dynamic(() => import("./TimetableConflictDialog"), {
+  loading: () => null,
+});
+const EditSlotDialog = dynamic(() => import("./EditSlotDialog"), {
+  loading: () => null,
+});
+const TimetableLessonTransferDialog = dynamic(() => import("./TimetableLessonTransferDialog"), {
+  loading: () => null,
+});
+const GenerateDialog = dynamic(() => import("./GenerateDialog"), {
+  loading: () => null,
+});
+const TimetableConfigDialog = dynamic(() => import("./TimetableConfigDialog"), {
+  loading: () => null,
+});
 
 interface TimetableViewProps {
   configurationQuery: string;

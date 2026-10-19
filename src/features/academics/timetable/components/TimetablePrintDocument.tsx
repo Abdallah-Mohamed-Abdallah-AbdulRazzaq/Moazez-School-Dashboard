@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import type { TimetableEntry } from "../types/timetable";
 import type { ResolvedTimetableConfig } from "../types/timetableConfig";
 import { formatTimetableTimeRange } from "../services/timetableTimeFormat";
+import { timetableSubjectName } from "../services/timetableSubjectDisplay";
 import styles from "./TimetablePrint.module.css";
 
 interface PrintReference {
@@ -37,6 +38,7 @@ export default function TimetablePrintDocument(
   props: TimetablePrintDocumentProps,
 ) {
   const t = useTranslations("academics.timetable.printing");
+  const tGrid = useTranslations("academics.timetable.grid");
   const days = props.config.days.filter((day) => day.isActive);
   const periods = [...props.config.periods].sort(
     (left, right) => left.index - right.index,
@@ -129,8 +131,11 @@ export default function TimetablePrintDocument(
                         ) : entry?.subjectId ? (
                           <>
                             <strong>
-                              {name(props.subjects, entry.subjectId)}
+                              {timetableSubjectName(entry, props.subjects.find((subject) => subject.id === entry.subjectId), props.locale) || tGrid("unavailableSubject")}
                             </strong>
+                            {!props.subjects.some((subject) => subject.id === entry.subjectId) && (
+                              <span>{tGrid("unavailableSubject")}</span>
+                            )}
                             {props.showTeachers && (
                               <span>
                                 {name(props.teachers, entry.teacherId)}

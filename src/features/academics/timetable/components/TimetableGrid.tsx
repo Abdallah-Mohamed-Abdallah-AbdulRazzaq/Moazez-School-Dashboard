@@ -24,6 +24,7 @@ import { Teacher } from "@/features/academics/teacher-allocation/services/teache
 import { Room } from "@/features/academics/timetable/types/timetable";
 import { ResolvedTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 import { formatTimetableTimeRange } from "@/features/academics/timetable/services/timetableTimeFormat";
+import { timetableSubjectName } from "../services/timetableSubjectDisplay";
 import TimetableLessonDetails from "./TimetableLessonDetails";
 import TimetableMobileDayNavigation from "./TimetableMobileDayNavigation";
 import type { TimetableDensity } from "./TimetableWorkspaceToolbar";
@@ -255,12 +256,9 @@ export default function TimetableGrid({
         )
       : false;
 
-  const getSubjectName = (subjectId: string | null): string => {
-    if (!subjectId) return "";
-    const subject = subjectsById.get(subjectId);
-    if (!subject) return "";
-    return locale === "ar" ? subject.nameAr : subject.nameEn;
-  };
+  const getSubjectName = (entry: TimetableEntry): string =>
+    timetableSubjectName(entry, subjectsById.get(entry.subjectId ?? ""), locale) ||
+    t("unavailableSubject");
 
   const getTeacherName = (teacherId: string | null): string => {
     if (!teacherId) return "";
@@ -367,12 +365,15 @@ export default function TimetableGrid({
             <div
               className={`text-sm font-semibold text-gray-950 flex-1 ${density === "compact" ? "line-clamp-1" : "line-clamp-2"}`}
             >
-              {getSubjectName(entry.subjectId)}
+              {getSubjectName(entry)}
             </div>
             {conflict && (
               <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             )}
           </div>
+          {!subjectsById.has(entry.subjectId) && (
+            <p className="mb-1 text-xs text-amber-800">{t("unavailableSubject")}</p>
+          )}
           {entry.teacherId && (
             <div className="mb-0.5 flex items-center gap-1 text-xs text-gray-600">
               <UserRound className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -442,7 +443,10 @@ export default function TimetableGrid({
     const labels = [
       locale === "ar" ? day.nameAr : day.nameEn,
       locale === "ar" ? period.nameAr : period.nameEn,
-      entry?.subjectId ? getSubjectName(entry.subjectId) : t("add"),
+      entry?.subjectId ? getSubjectName(entry) : t("add"),
+      entry?.subjectId && !subjectsById.has(entry.subjectId)
+        ? t("unavailableSubject")
+        : "",
       entry?.teacherId ? getTeacherName(entry.teacherId) : "",
       entry?.roomId ? getRoomName(entry.roomId) : "",
       period.startTime && period.endTime
@@ -818,8 +822,11 @@ export default function TimetableGrid({
                               }}
                             >
                               <div className="text-base font-semibold text-gray-900">
-                                {getSubjectName(entry.subjectId)}
+                                {getSubjectName(entry)}
                               </div>
+                              {!subjectsById.has(entry.subjectId) && (
+                                <p className="text-xs text-amber-800">{t("unavailableSubject")}</p>
+                              )}
                               {entry.teacherId && (
                                 <div className="text-sm text-gray-600 flex items-center gap-1.5">
                                   <UserRound

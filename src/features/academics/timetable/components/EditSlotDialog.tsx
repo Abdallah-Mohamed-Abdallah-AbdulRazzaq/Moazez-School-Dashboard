@@ -17,6 +17,7 @@ import { Room } from "@/features/academics/timetable/types/timetable";
 import { RoomAssignmentSource } from "@/features/academics/rooms/services/roomsService";
 import { evaluateRoomEligibility } from "@/features/academics/rooms/services/roomSchedulingEligibility";
 import { teacherAllocationOptions } from "@/features/academics/timetable/services/timetableSlotEditing";
+import { timetableSubjectName } from "../services/timetableSubjectDisplay";
 
 type ResolvedRoomSuggestion = {
   roomId: string | null;
@@ -81,6 +82,7 @@ export default function EditSlotDialog({
 }: EditSlotDialogProps) {
   const t = useTranslations("academics.timetable.editSlot");
   const tTransfer = useTranslations("academics.timetable.transfer");
+  const tGrid = useTranslations("academics.timetable.grid");
 
   const [subjectId, setSubjectId] = useState<string>("");
   const [teacherId, setTeacherId] = useState<string>("");
@@ -135,8 +137,21 @@ export default function EditSlotDialog({
   ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  const unavailableSubjectSelected = Boolean(
+    subjectId && !subjects.some((subject) => subject.id === subjectId),
+  );
+  const originalSubjectUnavailable = Boolean(
+    entry?.subjectId && !subjects.some((subject) => subject.id === entry.subjectId),
+  );
   const subjectOptions = [
     { value: "", label: t("noSubject") },
+    ...(originalSubjectUnavailable && entry?.subjectId
+      ? [{
+          value: entry.subjectId,
+          label: `${timetableSubjectName(entry, undefined, locale) || tGrid("unavailableSubject")} — ${tGrid("unavailableSubject")}`,
+          disabled: true,
+        }]
+      : []),
     ...subjects.map((subject) => ({
       value: subject.id,
       label: locale === "ar" ? subject.nameAr : subject.nameEn,
@@ -293,6 +308,7 @@ export default function EditSlotDialog({
   const missingRoomWarning = subjectId && !roomId;
 
   const handleSave = () => {
+    if (unavailableSubjectSelected) return;
     onSave(
       dayKey,
       periodIndex,
@@ -329,18 +345,23 @@ export default function EditSlotDialog({
           <Button onClick={onClose} variant="secondary">
             {t("cancel")}
           </Button>
-          <Button onClick={handleSave} variant="primary">
+          <Button onClick={handleSave} variant="primary" disabled={unavailableSubjectSelected}>
             {t("save")}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
+        {unavailableSubjectSelected && (
+          <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            {t("unavailableSubjectWarning")}
+          </p>
+        )}
         {entry?.subjectId && onTransfer && (
           <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
             <div className="flex flex-wrap gap-2">
               {(["copy", "move"] as const).map((mode) => (
-                <Button key={mode} variant="secondary" className="min-h-11" disabled={hasUnsavedLessonEdits} onClick={() => onTransfer(mode)} leftIcon={mode === "copy" ? <Copy className="h-4 w-4" /> : <MoveRight className="h-4 w-4 rtl:rotate-180" />}>
+                <Button key={mode} variant="secondary" className="min-h-11" disabled={hasUnsavedLessonEdits || originalSubjectUnavailable} onClick={() => onTransfer(mode)} leftIcon={mode === "copy" ? <Copy className="h-4 w-4" /> : <MoveRight className="h-4 w-4 rtl:rotate-180" />}>
                   {tTransfer(mode)}
                 </Button>
               ))}

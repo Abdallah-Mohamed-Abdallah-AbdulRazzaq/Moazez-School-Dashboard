@@ -25,6 +25,11 @@ const searchInput = {
 };
 
 describe("timetable lesson search", () => {
+  it("finds a deleted subject using the saved name but does not reuse it after the subject changes", () => {
+    const deletedLesson = { ...lesson, subjectSnapshot: { id: "math", nameAr: "اختبار", nameEn: "Deleted Test" } };
+    const entries = [deletedLesson, { ...deletedLesson, id: "replaced", subjectId: "other-subject" }];
+    expect(findTimetableLessons({ ...searchInput, subjects: [], entries, query: "Deleted Test" })).toEqual([deletedLesson]);
+  });
   it.each([
     "  MATH  ",
     "AHMED",

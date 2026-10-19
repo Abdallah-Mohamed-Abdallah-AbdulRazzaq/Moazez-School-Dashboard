@@ -7111,6 +7111,7 @@
         }
       },
       "grid": {
+        "unavailableSubject": "Deleted or unavailable subject",
         "period": "Period",
         "day": "Day",
         "sunday": "Sunday",
@@ -7435,6 +7436,7 @@
         "readOnlyHint": "Read-only timetable. The selected lesson is highlighted. Your workspace changes are preserved."
       },
       "editSlot": {
+        "unavailableSubjectWarning": "This lesson's subject was deleted or is no longer available for this classroom. Choose another subject or clear the lesson.",
         "title": "Edit Time Slot",
         "period": "Period {number}",
         "day": "{day}",

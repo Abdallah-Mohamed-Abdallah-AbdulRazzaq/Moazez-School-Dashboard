@@ -28,6 +28,32 @@ const teachers: Teacher[] = [
 ];
 
 describe("EditSlotDialog", () => {
+  it.each(["clear", "replace"])("keeps a deleted subject identifiable and allows %s without resaving it", async (action) => {
+    const onSave = vi.fn();
+    const user = userEvent.setup();
+    render(<EditSlotDialog open dayKey="mon" periodIndex={1} dayName="Monday"
+      entry={{ id: "deleted-entry", termId: "term-1", sectionId: "section-1", classroomId: "classroom-1", dayKey: "mon", periodIndex: 1, subjectId: "deleted-subject", subjectSnapshot: { id: "deleted-subject", nameAr: "اختبار", nameEn: "Deleted Test" }, teacherId: null, roomId: null }}
+      subjects={subjects} teachers={teachers} teacherAllocations={[]} rooms={[]}
+      onSave={onSave} onClose={vi.fn()} onTransfer={vi.fn()}
+      getDefaultTeacher={() => null} getDefaultRoomSuggestion={() => ({ roomId: null, source: null })} getRoomSource={() => null}
+      selectedSectionId="section-1" selectedClassroomId="classroom-1" hasRoomConflict={() => false} locale="en" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("unavailableSubjectWarning");
+    expect(screen.getByRole("button", { name: "subject" })).toHaveTextContent("Deleted Test");
+    expect(screen.getByRole("button", { name: "save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "copy" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "move" })).toBeDisabled();
+    if (action === "clear") {
+      await user.click(screen.getByRole("button", { name: "clear" }));
+      expect(onSave).toHaveBeenCalledWith("mon", 1, null, null, null);
+    } else {
+      await user.click(screen.getByRole("button", { name: "subject" }));
+      await user.click(screen.getByRole("button", { name: "Math", exact: true }));
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "save" }));
+      expect(onSave).toHaveBeenCalledWith("mon", 1, "subject-1", null, null);
+    }
+  });
+
   it("offers lesson actions but requires form edits to be saved before transferring", async () => {
     const user = userEvent.setup();
     const onTransfer = vi.fn();
