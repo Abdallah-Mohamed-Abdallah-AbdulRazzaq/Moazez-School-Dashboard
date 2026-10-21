@@ -70,6 +70,7 @@ describe("grades assessments contract adapter", () => {
         explanation: "Explanation",
         required: false,
         type: "short_answer",
+        metadata: { mediaUrl: "https://school.example/question.png" },
         points: 1,
         sortOrder: 1,
         options: [{ id: "option-1", labelAr: "خيار", label: "Option", value: "A" }],
@@ -81,6 +82,7 @@ describe("grades assessments contract adapter", () => {
     const [mappedQuestion] = await fetchAssessmentQuestions("year-1", "term-1", "assessment-1");
 
     expect(mappedQuestion).toEqual(expect.objectContaining({
+      mediaUrl: "https://school.example/question.png",
       explanationAr: "شرح",
       explanation: "Explanation",
       required: false,

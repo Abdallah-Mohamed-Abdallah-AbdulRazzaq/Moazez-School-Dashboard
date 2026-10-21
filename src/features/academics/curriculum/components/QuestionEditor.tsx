@@ -27,6 +27,7 @@ import { AssignmentQuestion, QuestionOption } from "@/features/academics/curricu
 import { useQuestionFormState } from "@/features/academics/curriculum/hooks/useQuestionFormState";
 import QuestionOptionRow from "./QuestionOptionRow";
 import QuestionTypeSpecificFields from "./QuestionTypeSpecificFields";
+import QuestionImageField from "./QuestionImageField";
 import type { QuestionType } from "../types/types";
 
 export type QuestionEditorQuestion = AssignmentQuestion & { required?: boolean };
@@ -48,6 +49,7 @@ interface QuestionEditorProps {
     instructions?: string;
     expectedAnswer?: string;
   };
+  allowQuestionImages?: boolean;
   allowedQuestionTypes?: QuestionType[];
   requireBothLocalizedTexts?: boolean;
   showHomeworkFields?: boolean;
@@ -68,6 +70,7 @@ export default function QuestionEditor({
   isReadOnly,
   validationErrors,
   allowedQuestionTypes,
+  allowQuestionImages = false,
   requireBothLocalizedTexts = true,
   showHomeworkFields = false,
   detailsInputMode = "bilingual",
@@ -122,6 +125,7 @@ export default function QuestionEditor({
     setMediaFileValue,
     clearMedia,
   } = useQuestionFormState({
+    allowQuestionImages,
     question,
     resetKey: question.id,
     onChange,
@@ -234,6 +238,11 @@ export default function QuestionEditor({
             </div>
           )}
         </div>
+
+        {allowQuestionImages && questionType !== "MEDIA" && (
+          <QuestionImageField url={mediaUrl} isReadOnly={isReadOnly}
+            error={validationErrors?.media} onChange={setMediaUrlValue} />
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select

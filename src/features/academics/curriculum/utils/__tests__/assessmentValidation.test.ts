@@ -60,3 +60,14 @@ describe("assessment backend validation boundaries", () => {
     );
   });
 });
+
+
+it.each([
+  ["", undefined],
+  ["https://school.example/question.png", undefined],
+  ["http://school.example/question.png", "invalid_media_url"],
+  ["blob:https://school.example/local", "invalid_media_url"],
+  ["data:image/png;base64,AA==", "invalid_media_url"],
+])("validates optional images on regular questions: %s", (mediaUrl, expectedError) => {
+  expect(validateQuestion(question({ mediaUrl }), t).media).toBe(expectedError);
+});

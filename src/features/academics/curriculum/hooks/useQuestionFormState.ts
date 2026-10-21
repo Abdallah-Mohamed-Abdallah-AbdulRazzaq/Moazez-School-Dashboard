@@ -16,6 +16,7 @@ interface UseQuestionFormStateOptions {
   isOpen?: boolean;
   resetKey?: string | null;
   onChange?: (updates: Partial<AssignmentQuestion>) => void;
+  allowQuestionImages?: boolean;
 }
 
 interface UseQuestionFormStateReturn {
@@ -92,6 +93,7 @@ export function useQuestionFormState({
   isOpen = true,
   resetKey,
   onChange,
+  allowQuestionImages = false,
 }: UseQuestionFormStateOptions): UseQuestionFormStateReturn {
   const [questionTextAr, setQuestionTextAr] = useState("");
   const [questionTextEn, setQuestionTextEn] = useState("");
@@ -214,7 +216,7 @@ export function useQuestionFormState({
         mediaTitle:
           nextQuestionType === "MEDIA" && nextMediaTitle.trim() ? nextMediaTitle.trim() : undefined,
         mediaUrl:
-          nextQuestionType === "MEDIA" && nextMediaUrl.trim() ? nextMediaUrl.trim() : undefined,
+          allowQuestionImages || nextQuestionType === "MEDIA" ? nextMediaUrl.trim() : undefined,
         mediaFileName:
           nextQuestionType === "MEDIA" && nextMediaFileName.trim()
             ? nextMediaFileName.trim()
@@ -240,6 +242,7 @@ export function useQuestionFormState({
       acceptedAnswersAr,
       acceptedAnswersEn,
       matchingPairs,
+      allowQuestionImages,
       mediaMode,
       mediaTitle,
       mediaUrl,
@@ -391,7 +394,7 @@ export function useQuestionFormState({
         setMatchingPairs([]);
       }
 
-      if (questionType === "MEDIA" && newType !== "MEDIA") {
+      if (!allowQuestionImages && questionType === "MEDIA" && newType !== "MEDIA") {
         nextMediaMode = "LINK";
         nextMediaTitle = "";
         nextMediaUrl = "";
@@ -432,7 +435,7 @@ export function useQuestionFormState({
           newType === "MATCHING" && nextMatchingPairs.length > 0 ? nextMatchingPairs : undefined,
         mediaMode: newType === "MEDIA" ? nextMediaMode : undefined,
         mediaTitle: newType === "MEDIA" && nextMediaTitle.trim() ? nextMediaTitle.trim() : undefined,
-        mediaUrl: newType === "MEDIA" && nextMediaUrl.trim() ? nextMediaUrl.trim() : undefined,
+        mediaUrl: allowQuestionImages || newType === "MEDIA" ? nextMediaUrl.trim() : undefined,
         mediaFileName:
           newType === "MEDIA" && nextMediaFileName.trim() ? nextMediaFileName.trim() : undefined,
         mediaMimeType:
@@ -448,6 +451,7 @@ export function useQuestionFormState({
       matchingPairs,
       mediaFileName,
       mediaMimeType,
+      allowQuestionImages,
       mediaMode,
       mediaSize,
       mediaTitle,
@@ -770,7 +774,7 @@ export function useQuestionFormState({
           : undefined,
       mediaMode: questionType === "MEDIA" ? mediaMode : undefined,
       mediaTitle: questionType === "MEDIA" && mediaTitle.trim() ? mediaTitle.trim() : undefined,
-      mediaUrl: questionType === "MEDIA" && mediaUrl.trim() ? mediaUrl.trim() : undefined,
+      mediaUrl: allowQuestionImages || questionType === "MEDIA" ? mediaUrl.trim() : undefined,
       mediaFileName:
         questionType === "MEDIA" && mediaFileName.trim() ? mediaFileName.trim() : undefined,
       mediaMimeType:
@@ -784,6 +788,7 @@ export function useQuestionFormState({
       matchingPairs,
       mediaFileName,
       mediaMimeType,
+      allowQuestionImages,
       mediaMode,
       mediaSize,
       mediaTitle,
