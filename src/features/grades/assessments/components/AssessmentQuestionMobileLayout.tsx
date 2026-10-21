@@ -119,6 +119,7 @@ export default function AssessmentQuestionMobileLayout({
                   question={selectedQuestion}
                   onChange={(updates) => onUpdateQuestion(selectedQuestion.id, updates)}
                   isReadOnly={selectedQuestionReadOnly}
+                  allowQuestionImages
                   allowedQuestionTypes={ASSESSMENT_AUTHORING_QUESTION_TYPES}
                   requirementField="required"
                   validationErrors={validationErrors.questions?.[selectedQuestion.id]}
