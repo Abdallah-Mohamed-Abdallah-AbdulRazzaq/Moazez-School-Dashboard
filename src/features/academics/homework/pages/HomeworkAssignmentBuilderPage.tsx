@@ -17,6 +17,7 @@ import {
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
 import { AccessDenied } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -157,6 +158,7 @@ export default function HomeworkAssignmentBuilderPage({
     {},
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
   const [isAssignmentSaving, setIsAssignmentSaving] = useState(false);
   const [isLifecyclePending, setIsLifecyclePending] = useState(false);
   const [isPublishReadinessOpen, setIsPublishReadinessOpen] = useState(false);
@@ -172,7 +174,8 @@ export default function HomeworkAssignmentBuilderPage({
   const lifecycle = homework ? homeworkLifecycle(homework.status) : null;
   const lifecycleActions = lifecycle?.actions ?? [];
   const canRunLifecycleAction = termStatus !== "closed" && canManage;
-  const isReadOnly = !canRunLifecycleAction || !lifecycle?.isEditable;
+  const isReadOnly = !canRunLifecycleAction || !lifecycle?.isEditable ||
+    isAssignmentSaving || isLifecyclePending;
 
   const applyReloadedHomework = useCallback(
     (
@@ -233,14 +236,15 @@ export default function HomeworkAssignmentBuilderPage({
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
+    setLoadErrorMessage(null);
     try {
       await reloadHomework();
     } catch (error) {
-      showError(
-        tHomework("errors.loadFailed", {
-          message: getHomeworkErrorMessage(error, tHomeworkError),
-        }),
-      );
+      const loadFailureMessage = tHomework("errors.loadFailed", {
+        message: getHomeworkErrorMessage(error, tHomeworkError),
+      });
+      setLoadErrorMessage(loadFailureMessage);
+      showError(loadFailureMessage);
     } finally {
       setIsLoading(false);
     }
@@ -334,7 +338,7 @@ export default function HomeworkAssignmentBuilderPage({
     };
   }, [homework, selectedAllocation, isAllocationDirty]);
   const chooseAllocation = (option: HomeworkAllocationOption | null) => {
-    if (isReadOnly || isAssignmentSaving || isLifecyclePending) return;
+    if (isReadOnly) return;
     setIsAllocationPending(option === null);
     if (!option) return;
     if (option.allocation.classroomId !== draftHomework?.classroomId) {
@@ -756,6 +760,24 @@ export default function HomeworkAssignmentBuilderPage({
     );
   }
 
+  if (loadErrorMessage) {
+    return (
+      <div role="alert" className="flex min-h-0 flex-1 items-center justify-center p-6">
+        <EmptyState
+          message={loadErrorMessage}
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button onClick={() => void refresh()}>{tCreate("actions.retry")}</Button>
+              <Button variant="secondary" onClick={handleBack}>
+                {tHomework("actions.backToHomework")}
+              </Button>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
+
   if (isLoading || !homework || !assignmentDraft) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -957,7 +979,7 @@ export default function HomeworkAssignmentBuilderPage({
         homework={homework}
         value={isAllocationPending ? "" : draftHomework?.teacherSubjectAllocationId || ""}
         onChange={chooseAllocation}
-        disabled={isReadOnly || isAssignmentSaving || isLifecyclePending}
+        disabled={isReadOnly}
       />}
       <HomeworkAssignmentDetailsCard homework={draftHomework || homework} />
       {homework.status === "draft" && <HomeworkTargetEditor
@@ -965,7 +987,7 @@ export default function HomeworkAssignmentBuilderPage({
         targets={draftHomework?.classroomId === homework.classroomId ? publishTargets : []}
         value={targetDraft}
         onChange={setTargetDraft}
-        disabled={isReadOnly || isAssignmentSaving || isLifecyclePending}
+        disabled={isReadOnly}
       />}
     </aside>
   );
