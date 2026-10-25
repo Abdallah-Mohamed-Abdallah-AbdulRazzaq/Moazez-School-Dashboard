@@ -103,6 +103,12 @@ vi.mock("@/features/academics/curriculum/components/DesktopLayout", () => ({
       </button>
       <button
         type="button"
+        onClick={() => onUpdateAssignment({ dueDate: "2099-11-01T12:00:00.000Z" })}
+      >
+        edit-submission-date
+      </button>
+      <button
+        type="button"
         onClick={() =>
           selectedQuestion &&
           onUpdateQuestion(selectedQuestion.id, {
@@ -387,6 +393,33 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     expect(updateHomeworkAssignment).toHaveBeenCalledWith("homework-1", expect.objectContaining({ targetMode: "selected_students", studentIds: ["student-1", "student-2"] }));
     expect(screen.getByRole("checkbox", { name: "Student One" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Student Two" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
+  });
+
+  it.each(["selected_students", "classroom"])("saves a draft submission-date edit for %s without losing its recipients", async (targetMode) => {
+    const draft = { ...homework(), targetMode };
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue(draft);
+    vi.mocked(updateHomeworkAssignment).mockImplementation(async (_homeworkId, payload) => {
+      if (targetMode === "selected_students" && !payload.studentIds?.length) {
+        throw { code: "homework.assignment.target_required" };
+      }
+      return { ...draft, dueAt: payload.dueAt };
+    });
+
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "edit-submission-date" }));
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+
+    await waitFor(() => expect(showSuccess).toHaveBeenCalledWith("messages.homeworkSaved"));
+    expect(showError).not.toHaveBeenCalled();
+    const savedPayload = vi.mocked(updateHomeworkAssignment).mock.calls[0][1];
+    expect(savedPayload.dueAt).toBe("2099-11-01T12:00:00.000Z");
+    if (targetMode === "selected_students") {
+      expect(savedPayload.studentIds).toEqual(["student-1"]);
+      expect(await screen.findByRole("checkbox", { name: "Student One" })).toBeChecked();
+    } else {
+      expect(savedPayload).not.toHaveProperty("studentIds");
+    }
     expect(screen.getByRole("button", { name: "actions.save" })).toBeDisabled();
   });
 

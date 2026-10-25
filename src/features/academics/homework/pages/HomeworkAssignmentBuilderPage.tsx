@@ -455,7 +455,9 @@ export default function HomeworkAssignmentBuilderPage({
               timetableEntryId: null,
               scheduleDate: null,
             } : {}),
-            ...(isTargetDirty || isAllocationDirty ? {
+            // The API also requires saved recipients on metadata-only updates.
+            ...(isTargetDirty || isAllocationDirty ||
+              (targetDraft.targetMode === "selected_students" && targetDraft.studentIds.length > 0) ? {
               targetMode: targetDraft.targetMode,
               ...(targetDraft.targetMode === "selected_students"
                 ? { studentIds: targetDraft.studentIds } : {}),
