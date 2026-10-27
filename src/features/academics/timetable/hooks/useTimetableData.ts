@@ -1,6 +1,11 @@
 "use client";
 
 import { withoutClearedEntryConflicts } from "../services/timetableConflictCheck";
+import {
+  buildTimetableChangeRequest,
+  remapTimetableConflictIndexes,
+  remapTimetableConflictResponse,
+} from "../services/timetableChangeRequest";
 import { timetableEntryFingerprint } from "../services/timetableEntryFingerprint";
 import { deleteTimetableEntries } from "../services/timetableEntryDeletion";
 import { useCallback, useEffect, useState, useRef } from "react";
@@ -342,6 +347,7 @@ export function useTimetableData({
   >([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const savedEntryFingerprintRef = useRef<string | null>(null);
+  const savedEntriesRef = useRef<BackendTimetableEntryDto[]>([]);
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>(
     [],
   );
@@ -414,6 +420,7 @@ export function useTimetableData({
     setConflicts([]);
     setValidationSummary(emptyValidationSummary());
     savedEntryFingerprintRef.current = null;
+    savedEntriesRef.current = [];
     setTimetableEntries([]);
     setAllTermEntries([]);
     setConfigs([]);
@@ -661,6 +668,7 @@ export function useTimetableData({
       const nextEntries =
         listResponseItems<BackendTimetableEntryDto>(entriesResponse);
       savedEntryFingerprintRef.current = timetableEntryFingerprint(nextEntries);
+      savedEntriesRef.current = nextEntries;
       const mappedEntries = mapBackendEntriesToUi(nextEntries);
       const allMappedEntries = mapBackendEntriesToUi(
         listResponseItems<BackendTimetableEntryDto>(allEntriesResponse),
@@ -761,7 +769,6 @@ export function useTimetableData({
           messages?.missingTeacherAllocation ??
             TEACHER_ALLOCATION_MISSING_MESSAGE,
         );
-      assertBulkPayloadSize(request.payload.items, "conflict-check");
       const skippedIds = new Set(
         request.skippedSlots.map(({ entry }) => entry.id),
       );
@@ -775,7 +782,15 @@ export function useTimetableData({
         throw new Error(
           "Transfer destination is missing from the conflict check.",
         );
-      const response = await checkConflicts(request.payload);
+      const changes = buildTimetableChangeRequest({
+        payload: request.payload,
+        persistedEntries: savedEntriesRef.current,
+        requiredIndexes: destinationEntryId ? [destinationIndex] : [],
+      });
+      if (changes.payload.items.length === 0) return [];
+      assertBulkPayloadSize(changes.payload.items, "conflict-check");
+      const checked = await checkConflicts(changes.payload);
+      const response = remapTimetableConflictResponse(checked, changes.originalIndexes);
       const checkedResponse = withoutClearedEntryConflicts(response, entries);
       const relevantResponse = destinationEntryId
         ? {
@@ -870,6 +885,9 @@ export function useTimetableData({
       }
 
       let deletionStarted = false;
+      const proposedEntries = entries.filter((entry) => entry.subjectId);
+      let submittedEntries = proposedEntries;
+      let submittedIndexes = submittedEntries.map((_, index) => index);
       setIsSaving(true);
       try {
         // Identify cleared entries that need to be deleted from the backend.
@@ -930,21 +948,22 @@ export function useTimetableData({
           return { ok: false, error: message, changesWereNotSaved: true };
         }
 
-        // Only run bulk save + conflict check if there are items to save
-        if (bulkSaveRequest.payload.items.length > 0) {
-          assertBulkPayloadSize(
-            bulkSaveRequest.payload.items,
-            "conflict-check",
-          );
-          const conflictResponse = await checkConflicts(
-            bulkSaveRequest.payload,
-          );
+        const changes = buildTimetableChangeRequest({
+          payload: bulkSaveRequest.payload,
+          persistedEntries: savedEntriesRef.current,
+        });
+        submittedIndexes = changes.originalIndexes;
+        submittedEntries = submittedIndexes.map((index) => proposedEntries[index]);
+        if (changes.payload.items.length > 0) {
+          assertBulkPayloadSize(changes.payload.items, "conflict-check");
+          const checked = await checkConflicts(changes.payload);
+          const conflictResponse = remapTimetableConflictResponse(checked, submittedIndexes);
           const nextConflicts = normalizeConflictCheckResponse(
             withoutClearedEntryConflicts(conflictResponse, entries),
             periods,
             {
               entries: allTermEntries,
-              proposedEntries: entries.filter((entry) => entry.subjectId),
+              proposedEntries,
               translateMessage: translateBackendMessage,
             },
           ).conflicts;
@@ -970,10 +989,10 @@ export function useTimetableData({
           );
         }
 
-        if (bulkSaveRequest.payload.items.length > 0) {
+        if (changes.payload.items.length > 0) {
           setSaveProgress({ phase: "saving" });
-          assertBulkPayloadSize(bulkSaveRequest.payload.items, "save");
-          await bulkSaveEntries(bulkSaveRequest.payload);
+          assertBulkPayloadSize(changes.payload.items, "save");
+          await bulkSaveEntries(changes.payload);
         }
         setSaveProgress({ phase: "refreshing" });
         const reloadSucceeded = await loadTimetableForScope();
@@ -991,11 +1010,14 @@ export function useTimetableData({
 
         return { ok: true };
       } catch (error) {
-        const conflict = conflictFromTimetableError(error, periods, {
+        const submittedConflict = conflictFromTimetableError(error, periods, {
           entries: allTermEntries,
-          proposedEntries: entries.filter((entry) => entry.subjectId),
+          proposedEntries: submittedEntries,
           translateMessage: translateBackendMessage,
         });
+        const conflict = submittedConflict
+          ? remapTimetableConflictIndexes(submittedConflict, submittedIndexes)
+          : null;
         if (conflict) {
           setConflicts([conflict]);
         }
@@ -1058,6 +1080,9 @@ export function useTimetableData({
         };
       }
 
+      const proposedEntries = entries.filter((entry) => entry.subjectId);
+      let submittedEntries = proposedEntries;
+      let submittedIndexes = submittedEntries.map((_, index) => index);
       try {
         const nextPublication = (await getPublication(
           config.id || config.timetableConfigId || "",
@@ -1110,26 +1135,35 @@ export function useTimetableData({
               "No filled timetable slots to publish.",
           };
         }
-        assertBulkPayloadSize(bulkSaveRequest.payload.items, "conflict-check");
-        const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-        const nextConflicts = normalizeConflictCheckResponse(
-          conflictResponse,
-          periods,
-          {
-            entries: allTermEntries,
-            proposedEntries: entries.filter((entry) => entry.subjectId),
-            translateMessage: translateBackendMessage,
-          },
-        ).conflicts;
-        setConflicts(nextConflicts);
-        if (nextConflicts.length > 0) {
-          return {
-            ok: false,
-            hasConflicts: true,
-            error:
-              messages?.resolveConflictsBeforePublishing ??
-              "Resolve timetable conflicts before publishing.",
-          };
+        const changes = buildTimetableChangeRequest({
+          payload: bulkSaveRequest.payload,
+          persistedEntries: savedEntriesRef.current,
+        });
+        submittedIndexes = changes.originalIndexes;
+        submittedEntries = submittedIndexes.map((index) => proposedEntries[index]);
+        if (changes.payload.items.length > 0) {
+          assertBulkPayloadSize(changes.payload.items, "conflict-check");
+          const checked = await checkConflicts(changes.payload);
+          const conflictResponse = remapTimetableConflictResponse(checked, submittedIndexes);
+          const nextConflicts = normalizeConflictCheckResponse(
+            withoutClearedEntryConflicts(conflictResponse, entries),
+            periods,
+            {
+              entries: allTermEntries,
+              proposedEntries,
+              translateMessage: translateBackendMessage,
+            },
+          ).conflicts;
+          setConflicts(nextConflicts);
+          if (nextConflicts.length > 0) {
+            return {
+              ok: false,
+              hasConflicts: true,
+              error:
+                messages?.resolveConflictsBeforePublishing ??
+                "Resolve timetable conflicts before publishing.",
+            };
+          }
         }
 
         const published = await publish(config.id || config.timetableConfigId || "");
@@ -1142,11 +1176,14 @@ export function useTimetableData({
         }
         return { ok: true };
       } catch (error) {
-        const conflict = conflictFromTimetableError(error, periods, {
+        const submittedConflict = conflictFromTimetableError(error, periods, {
           entries: allTermEntries,
-          proposedEntries: entries.filter((entry) => entry.subjectId),
+          proposedEntries: submittedEntries,
           translateMessage: translateBackendMessage,
         });
+        const conflict = submittedConflict
+          ? remapTimetableConflictIndexes(submittedConflict, submittedIndexes)
+          : null;
         if (conflict) {
           setConflicts([conflict]);
         }
