@@ -1,30 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { ACCESS_COOKIE } from "@/lib/auth/constants";
+import { backendApiBaseUrl, streamedResponse, sessionError } from "@/lib/auth/backend";
 
 interface DownloadRouteContext {
   params: Promise<{ fileId: string }>;
-}
-
-function backendApiBaseUrl() {
-  const apiProxyTarget = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
-  if (apiProxyTarget) return apiProxyTarget;
-
-  const publicApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-  return publicApiUrl?.startsWith("http") ? publicApiUrl : undefined;
 }
 
 export async function GET(
   request: NextRequest,
   context: DownloadRouteContext,
 ): Promise<Response> {
-  const authorization = request.headers.get("authorization");
+  const token = request.cookies.get(ACCESS_COOKIE)?.value;
+  const authorization = token ? "Bearer " + token : null;
   if (!authorization) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return sessionError("Unauthorized", 401);
   }
 
   const apiBaseUrl = backendApiBaseUrl();
-  if (!apiBaseUrl) {
-    return NextResponse.json({ error: "API URL is not configured" }, { status: 500 });
-  }
 
   const { fileId } = await context.params;
   const backendResponse = await fetch(
@@ -32,27 +24,17 @@ export async function GET(
     {
       headers: { authorization },
       cache: "no-store",
-      redirect: "follow",
+      redirect: "manual",
       signal: request.signal,
     },
   );
 
   if (backendResponse.headers.get("content-type")?.includes("text/html")) {
-    return NextResponse.json(
-      { error: "The storage server returned HTML instead of file content" },
-      { status: 502 },
-    );
+    return sessionError("The storage server returned HTML instead of file content", 502);
   }
 
-  const responseHeaders = new Headers();
-  // Omit Content-Length so Node uses chunked streaming beyond Cloud Run's 32 MiB limit.
-  for (const header of ["content-type", "content-disposition"]) {
-    const value = backendResponse.headers.get(header);
-    if (value) responseHeaders.set(header, value);
+  if (backendResponse.status >= 300 && backendResponse.status < 400) {
+    return sessionError("Unexpected backend redirect", 502);
   }
-
-  return new Response(backendResponse.body, {
-    status: backendResponse.status,
-    headers: responseHeaders,
-  });
+  return streamedResponse(backendResponse);
 }

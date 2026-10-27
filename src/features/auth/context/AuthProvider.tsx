@@ -12,12 +12,11 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { AuthContext } from "./AuthContext";
 import { authService } from "@/services/auth-service";
 import {
-  ACCESS_TOKEN_KEY,
+  clearLegacyTokens,
   getAuthSessionVersion,
   invalidateAuthSession,
-  subscribeToAccessTokenChanges,
-  tokenStorage,
-} from "@/lib/token-storage";
+  subscribeToSessionChanges,
+} from "@/lib/auth/session-client";
 import { SESSION_EXPIRED_EVENT } from "@/lib/api";
 import { clearAuthenticatedFileUrlCache } from "@/lib/files/authenticatedFileUrlCache";
 import { setBrandingScope } from "@/features/settings/services/brandingService";
@@ -85,35 +84,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadUser = useCallback(async (fallbackMustChangePassword?: boolean) => {
     const request = ++userRequestRef.current;
     try {
-      if (tokenStorage.hasTokens()) {
-        const currentUser = await authService.getCurrentUser();
-        if (request !== userRequestRef.current || !tokenStorage.hasTokens()) return null;
-        const normalizedUser: MeResponse = {
-          ...currentUser,
-          mustChangePassword:
-            currentUser.mustChangePassword ?? fallbackMustChangePassword,
-        };
-        setBrandingScope(normalizedUser);
-        explicitLogoutRef.current = false;
-        setUser(normalizedUser);
-        return normalizedUser;
-      } else {
-        clearAuthenticatedFileUrlCache();
-        setBrandingScope(null);
-        setUser(null);
-        return null;
-      }
+      const currentUser = await authService.getCurrentUser();
+      if (request !== userRequestRef.current) return null;
+      const normalizedUser: MeResponse = {
+        ...currentUser,
+        mustChangePassword: currentUser.mustChangePassword ?? fallbackMustChangePassword,
+      };
+      setBrandingScope(normalizedUser);
+      explicitLogoutRef.current = false;
+      setUser(normalizedUser);
+      return normalizedUser;
     } catch (error) {
       if (request !== userRequestRef.current) return null;
       console.error("Failed to restore session:", error);
       setBrandingScope(null);
       setUser(null);
-      if (!tokenStorage.hasTokens()) {
-        return null;
-      }
-
       if (!isApiError(error) || error.status === 401) {
-        tokenStorage.clearTokens();
         clearAuthenticatedFileUrlCache();
       }
       return null;
@@ -123,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    clearLegacyTokens();
     let mounted = true;
     void Promise.resolve().then(() => {
       if (mounted) return loadUser();
@@ -134,25 +121,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadUser]);
 
   useEffect(() => {
-    const unsubscribe = subscribeToAccessTokenChanges(() => {
-      if (!tokenStorage.hasTokens()) clearLocalSession();
-    });
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key !== ACCESS_TOKEN_KEY && event.key !== null) return;
-      if (event.storageArea && event.storageArea !== localStorage) return;
-      if (event.key === ACCESS_TOKEN_KEY && event.newValue !== tokenStorage.getAccessToken()) return;
+    return subscribeToSessionChanges((kind) => {
       invalidateAuthSession();
       clearLocalSession();
-      if (tokenStorage.hasTokens()) {
+      if (kind === "login") {
         setIsLoading(true);
         void loadUser();
       }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      unsubscribe();
-      window.removeEventListener("storage", handleStorageChange);
-    };
+    });
   }, [clearLocalSession, loadUser]);
 
   useEffect(() => {
@@ -176,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const loginResponse = await loginRequest;
-        if (sessionVersion !== getAuthSessionVersion() || !tokenStorage.hasTokens()) return null;
+        if (sessionVersion !== getAuthSessionVersion()) return null;
         return await loadUser(loginResponse.user.mustChangePassword);
       } finally {
         if (sessionVersion === getAuthSessionVersion()) setIsLoading(false);
@@ -188,8 +164,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     explicitLogoutRef.current = true;
     clearLocalSession();
-    await authService.logout();
-  }, [clearLocalSession]);
+    setIsLoading(true);
+    const logoutRequest = authService.logout();
+    const sessionVersion = getAuthSessionVersion();
+    try {
+      await logoutRequest;
+    } catch (error) {
+      if (sessionVersion === getAuthSessionVersion()) await loadUser();
+      throw error;
+    } finally {
+      if (sessionVersion === getAuthSessionVersion()) setIsLoading(false);
+    }
+  }, [clearLocalSession, loadUser]);
 
   const refreshCurrentUser = useCallback(async () => {
     setIsLoading(true);

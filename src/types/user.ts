@@ -49,19 +49,12 @@ export interface MeResponse {
 }
 
 export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
   user: AuthenticatedUser;
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
-}
-
-export interface RefreshRequest {
-  refreshToken: string;
 }
 
 export interface ChangePasswordRequest {

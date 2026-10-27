@@ -8,7 +8,7 @@ This document defines the frontend communication realtime contract. It describes
 
 The ownership boundary is one communication socket per authenticated browser tab. Opening more tabs creates more sockets. Cross-tab leader election, `BroadcastChannel`, and SharedWorker coordination are not implemented.
 
-The provider creates a socket only when authentication loading has finished and the current user and access token are both present. Logout, token removal, provider unmount, or loss of the authenticated user stops the session, disconnects the socket, clears owned timers, removes listeners, and clears room bookkeeping.
+The provider creates a socket only when authentication loading has finished and the current user is present. Logout, provider unmount, or loss of the authenticated user stops the session, disconnects the socket, clears owned timers, removes listeners, and clears room bookkeeping.
 
 ## Connection configuration
 
@@ -18,7 +18,7 @@ The client uses Socket.IO Client 4.8.3 with these project settings:
 |---|---|
 | Namespace URL | `NEXT_PUBLIC_REALTIME_URL`, falling back to `https://api.moazez.sa/api/v1/realtime` |
 | Engine.IO path | `NEXT_PUBLIC_REALTIME_SOCKET_PATH` when non-empty; otherwise the Socket.IO default |
-| Authentication | `auth: { token }` |
+| Authentication | No token in JavaScript; cookie-capable backend/proxy integration is required |
 | Transport order | `websocket`, then `polling` |
 | Initial transport fallback | `tryAllTransports: true` |
 | Credentials | `withCredentials: true` |
@@ -34,31 +34,27 @@ The client uses Socket.IO Client 4.8.3 with these project settings:
 idle | connecting | connected | reconnecting | offline | auth-error | degraded
 ```
 
-`isConnected` is true only for `connected`. `connectionError` contains the current user-facing connection error, and `retryConnection()` requests a manual retry when the session is online, has a token, and is not blocked by rejection of that same token.
+`isConnected` is true only for `connected`. `connectionError` contains the current user-facing connection error, and `retryConnection()` requests a manual retry when the session is online and has not encountered an authentication rejection.
 
 Automatic retries use an exponential delay starting at 1 second, capped at 30 seconds, with a randomization factor of 0.5. A retry cycle is limited to eight attempts. Exhaustion enters `degraded` for a 60-second cooldown before a new cycle can begin. A successful connection resets retry and cooldown bookkeeping.
 
-The browser `offline` event disables manager reconnection and moves the state to `offline`. The `online` event can resume the connection when a usable token is present. No automatic retry is scheduled while the browser reports that it is offline.
+The browser `offline` event disables manager reconnection and moves the state to `offline`. The `online` event can resume the connection when authentication has not been rejected. No automatic retry is scheduled while the browser reports that it is offline.
 
 Connection failure classification accepts namespace errors and Engine.IO transport errors:
 
-- HTTP 401/403 and `AUTHENTICATION_ERROR`, `UNAUTHORIZED`, or `FORBIDDEN` enter `auth-error`. Reconnection remains paused until the access-token value changes.
+- HTTP 401/403 and `AUTHENTICATION_ERROR`, `UNAUTHORIZED`, or `FORBIDDEN` enter `auth-error`. Reconnection remains paused until the provider creates a new authenticated socket session.
 - HTTP 429 and `RATE_LIMITED` enter the rate-limit path. A positive `retryAfterMs` is used directly; a positive `retryAfter` is interpreted as seconds. Without either field, the 60-second cooldown is used.
 - Other errors, including 5xx transport failures, use the bounded temporary-failure policy.
 
 Status values are read from the error's attached `data`, outer `status`, Engine.IO `description`, or `context.status` fields.
 
-## Token synchronization
+## Session authentication and backend dependency
 
-The access token is read from `tokenStorage` under `moazez_access_token`. Writes through `tokenStorage.setAccessToken()`, `removeAccessToken()`, and `clearTokens()` publish a same-tab notification without including the token value. A native browser `storage` listener covers changes made by another tab.
+The dashboard no longer reads or transmits access tokens in Socket.IO JavaScript. The HTTP BFF stores tokens in host-only HttpOnly cookies. Cross-tab login/logout notifications contain no credentials and cause AuthProvider to restore or clear the user; the realtime provider follows that authenticated user state.
 
-On notification, the session rereads storage:
+The existing direct backend URL does not receive the dashboard's host-only cookies. The backend snapshot reviewed for this change accepts a handshake token or Bearer header and does not authenticate cookies. Realtime therefore remains unavailable with that backend. This change does not implement a WebSocket relay or change deployment configuration. A reviewed backend/proxy integration must bridge the dashboard session to Socket.IO before rollout with realtime enabled. Do not broaden cookie domains or return a token to JavaScript as a workaround.
 
-- An unchanged value causes no reconnect.
-- A different non-empty token updates `socket.auth.token` and performs one controlled disconnect/connect cycle.
-- A missing token stops and detaches the session.
-
-The realtime client does not poll token storage.
+See [Dashboard server sessions](dashboard-server-sessions.md) for the HTTP boundary and validation steps.
 
 ## Conversation rooms
 
@@ -91,7 +87,7 @@ The event constants live in `src/features/communication/realtime/communication-e
 
 The typing commands sent by the client are `communication.typing.start` and `communication.typing.stop`.
 
-Hooks must unregister the exact callback they registered. The provider separately owns socket lifecycle listeners, manager retry listeners, browser online/offline listeners, token-change listeners, and its timeout handles.
+Hooks must unregister the exact callback they registered. The provider separately owns socket lifecycle listeners, manager retry listeners, browser online/offline listeners and its timeout handles.
 
 ## Recovery and REST reconciliation
 
@@ -118,8 +114,8 @@ The focused Vitest coverage is organized as follows:
 |---|---|
 | Socket options and transport fallback | `src/features/communication/__tests__/realtime/communication-socket.test.ts` |
 | Failure classification, retry bounds, and 100-client jitter dispersion | `src/features/communication/__tests__/realtime/communication-connection-policy.test.ts` |
-| Provider ownership, cross-tab token changes, room recovery, 100 mount/unmount cycles, and five-minute recovery | `src/features/communication/__tests__/realtime/CommunicationRealtimeProvider.test.tsx` |
-| Token notification and storage cleanup | `src/lib/__tests__/token-storage.test.ts` |
+| Provider ownership, account logout/login, room recovery, 100 mount/unmount cycles, and five-minute recovery | `src/features/communication/__tests__/realtime/CommunicationRealtimeProvider.test.tsx` |
+| Credential-free cross-tab notifications and legacy cleanup | `src/lib/__tests__/session-client.test.ts` |
 | Overview event targeting and recovery | `src/features/communication/__tests__/hooks/useCommunicationOverview.test.tsx` |
 | Conversation-list request coalescing | `src/features/communication/__tests__/hooks/useConversations.test.ts` |
 | Notification recovery suppression | `src/features/communication/__tests__/hooks/useNotifications.test.ts` |

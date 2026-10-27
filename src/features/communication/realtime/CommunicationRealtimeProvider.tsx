@@ -18,7 +18,6 @@ import {
 import { COMMUNICATION_SOCKET_EVENTS } from "./communication-events";
 import {
   createCommunicationSocket,
-  getCommunicationAccessToken,
   type CommunicationSocket,
 } from "./communication-socket";
 import { CommunicationSocketSession } from "./communication-socket-session";
@@ -122,8 +121,7 @@ export function CommunicationRealtimeProvider({
     clearDeferredStateUpdates();
     const roomSubscriberCounts = roomSubscriberCountsRef.current;
     const serverRoomIds = serverRoomIdsRef.current;
-    const token = getCommunicationAccessToken();
-    if (!isAuthenticated || !user?.id || !token) {
+    if (!isAuthenticated || !user?.id) {
       sessionRef.current?.stop();
       sessionRef.current = null;
       socketRef.current = null;
@@ -138,7 +136,7 @@ export function CommunicationRealtimeProvider({
       return clearDeferredStateUpdates;
     }
 
-    const nextSocket = createCommunicationSocket(token);
+    const nextSocket = createCommunicationSocket();
     if (!nextSocket) return;
     socketRef.current = nextSocket;
     deferStateUpdate(() => {
@@ -148,14 +146,6 @@ export function CommunicationRealtimeProvider({
     const nextSession = new CommunicationSocketSession({
       socket: nextSocket,
       clearServerRooms: () => serverRoomIdsRef.current.clear(),
-      detachSocket: () => {
-        if (socketRef.current !== nextSocket) return;
-        socketRef.current = null;
-        setSocket(null);
-        setConnectionError(null);
-        setConnectionState("idle");
-        roomSubscriberCountsRef.current.clear();
-      },
       incrementResyncVersion: () =>
         setResyncVersion((version) => version + 1),
       restoreActiveRooms,

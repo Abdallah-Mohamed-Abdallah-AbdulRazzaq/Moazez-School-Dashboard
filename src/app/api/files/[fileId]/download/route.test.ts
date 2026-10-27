@@ -23,7 +23,7 @@ describe("file download proxy", () => {
     const fetchMock = vi.fn().mockResolvedValue(backendResponse);
     vi.stubGlobal("fetch", fetchMock);
     const request = new NextRequest("https://dashboard.test/api/files/file-1/download", {
-      headers: { authorization: "Bearer token-1" },
+      headers: { cookie: "moazez_session_access=token-1" },
     });
 
     const response = await GET(request, { params: Promise.resolve({ fileId: "file-1" }) });
@@ -33,7 +33,7 @@ describe("file download proxy", () => {
       expect.objectContaining({
         headers: { authorization: "Bearer token-1" },
         cache: "no-store",
-        redirect: "follow",
+        redirect: "manual",
       }),
     );
     expect(response.status).toBe(200);
@@ -71,7 +71,7 @@ describe("file download proxy", () => {
       },
     })));
     const request = new NextRequest("https://dashboard.test/api/files/file-1/download", {
-      headers: { authorization: "Bearer token-1" },
+      headers: { cookie: "moazez_session_access=token-1" },
     });
 
     const response = await GET(request, { params: Promise.resolve({ fileId: "file-1" }) });
@@ -104,7 +104,7 @@ describe("file download proxy", () => {
       ),
     );
     const request = new NextRequest("https://dashboard.test/api/files/file-1/download", {
-      headers: { authorization: "Bearer token-1" },
+      headers: { cookie: "moazez_session_access=token-1" },
     });
 
     const response = await GET(request, { params: Promise.resolve({ fileId: "file-1" }) });

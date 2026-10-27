@@ -32,9 +32,9 @@ async function main() {
       throw new Error(
         `Missing UI audit auth state at ${config.auth.storageStatePath}. Set ${config.auth.credentials.emailEnv} and ${config.auth.credentials.passwordEnv} before running npm run skill:uiux, or run npm run auth:manual first.`,
       );
-    } else if (isStoredAccessTokenExpired(config.auth.storageStatePath)) {
+    } else if (isStoredSessionExpired(config.auth.storageStatePath)) {
       throw new Error(
-        `UI audit auth state at ${config.auth.storageStatePath} has an expired access token. Set ${config.auth.credentials.emailEnv} and ${config.auth.credentials.passwordEnv} before running npm run skill:uiux, or run npm run auth:manual to refresh the saved login.`,
+        `UI audit auth state at ${config.auth.storageStatePath} has a missing or expired server session. Set ${config.auth.credentials.emailEnv} and ${config.auth.credentials.passwordEnv} before running npm run skill:uiux, or run npm run auth:manual to refresh the saved login.`,
       );
     } else {
       console.log(`\n> Reusing auth state at ${config.auth.storageStatePath}`);
@@ -62,21 +62,13 @@ function readAuditConfig() {
   );
 }
 
-function isStoredAccessTokenExpired(storageStatePath) {
+function isStoredSessionExpired(storageStatePath) {
   const state = JSON.parse(readFileSync(storageStatePath, "utf8"));
-  const localStorageToken = state.origins
-    ?.flatMap((origin) => origin.localStorage || [])
-    .find((item) => item.name === "moazez_access_token")?.value;
-  const cookieToken = state.cookies?.find(
-    (cookie) => cookie.name === "moazez_access_token",
+  const refreshToken = state.cookies?.find(
+    (cookie) => ["__Host-moazez-refresh", "moazez_session_refresh"].includes(cookie.name) && cookie.httpOnly,
   )?.value;
-  const accessToken = localStorageToken || cookieToken;
-
-  if (!accessToken) {
-    return false;
-  }
-
-  const expiresAt = getJwtExpiryMs(accessToken);
+  if (!refreshToken) return true;
+  const expiresAt = getJwtExpiryMs(refreshToken);
   return Boolean(expiresAt && expiresAt <= Date.now());
 }
 

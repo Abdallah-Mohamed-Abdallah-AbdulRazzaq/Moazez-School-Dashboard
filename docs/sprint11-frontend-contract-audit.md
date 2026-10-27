@@ -1,5 +1,7 @@
 # Sprint 11 Frontend Contract Audit
 
+> Historical audit: the authentication/storage findings below describe the May baseline. The October 2026 dashboard implementation is documented in [Dashboard server sessions](dashboard-server-sessions.md).
+
 Date: 2026-05-12  
 Repository: `blackfalc0ns/sis_dashboard`  
 Scope: audit only. No product UI was implemented in this stage.

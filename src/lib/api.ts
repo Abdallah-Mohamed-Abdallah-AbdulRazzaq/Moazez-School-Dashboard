@@ -5,7 +5,8 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
-import { getAuthSessionVersion, tokenStorage } from "./token-storage";
+import { getAuthSessionVersion, invalidateAuthSession, publishSessionChange, withSessionLock, SESSION_EXPIRED_EVENT } from "./auth/session-client";
+import { CSRF_HEADER, SESSION_API_PATH } from "./auth/constants";
 import { ApiError, isAxiosError } from "./api-error";
 import {
   SCOPE_PERMISSION_DENIED_EVENT,
@@ -57,26 +58,18 @@ function publishScopePermissionDenied(missingPermissions: string[]) {
   }
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!BASE_URL) {
-  throw new Error("Missing NEXT_PUBLIC_API_URL. Set it in your environment.");
-}
-
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
+  baseURL: SESSION_API_PATH,
+  withCredentials: true,
+  headers: { "Content-Type": "application/json", Accept: "application/json", [CSRF_HEADER]: "1" },
 });
 
-let pendingRefresh: { sessionVersion: number; promise: Promise<string> } | null = null;
-
-export const SESSION_EXPIRED_EVENT = "moazez:session-expired";
+let pendingRefresh: { sessionVersion: number; promise: Promise<void> } | null = null;
+export { SESSION_EXPIRED_EVENT };
 
 function expireSession() {
-  tokenStorage.clearTokens();
+  invalidateAuthSession();
+  publishSessionChange("logout");
 
   if (typeof window === "undefined") {
     return;
@@ -85,109 +78,43 @@ function expireSession() {
   window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 }
 
-function getTokenExpiry(token: string): number | null {
-  try {
-    const base64Url = token.split('.')[1];
-    if (!base64Url) return null;
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = typeof window !== 'undefined'
-      ? decodeURIComponent(
-          atob(base64)
-            .split('')
-            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-            .join('')
-        )
-      : Buffer.from(base64, 'base64').toString('utf8');
-    const decoded = JSON.parse(jsonPayload);
-    return decoded.exp ? decoded.exp * 1000 : null;
-  } catch {
-    return null;
-  }
-}
-
-async function doRefresh(refreshToken: string | null, sessionVersion: number): Promise<string> {
-  if (!refreshToken) {
-    throw ApiError.unauthorized("Your session has expired. Please sign in again.");
-  }
-
-  const response = await axios.post(
-    `${BASE_URL}/auth/refresh`,
-    { refreshToken },
-    {
-      withCredentials: true,
-    },
-  );
-
-  const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-  if (sessionVersion !== getAuthSessionVersion() || refreshToken !== tokenStorage.getRefreshToken()) {
-    throw ApiError.unauthorized("The authentication session has changed.");
-  }
-
-  if (!accessToken) {
-    throw new Error("Refresh response did not include an access token");
-  }
-
-  tokenStorage.setAccessToken(accessToken);
-  if (newRefreshToken) {
-    tokenStorage.setRefreshToken(newRefreshToken);
-  }
-
-  return accessToken;
-}
-
-async function refreshAccessToken(): Promise<string> {
-  const sessionVersion = getAuthSessionVersion();
-  if (pendingRefresh?.sessionVersion === sessionVersion) {
-    return pendingRefresh.promise;
-  }
-
-  const refreshToken = tokenStorage.getRefreshToken();
-  const promise = doRefresh(refreshToken, sessionVersion)
-    .catch((refreshError) => {
-      if (sessionVersion === getAuthSessionVersion() && refreshToken === tokenStorage.getRefreshToken()) {
-        expireSession();
-      }
-      throw refreshError;
-    })
-    .finally(() => {
-      if (pendingRefresh?.promise === promise) pendingRefresh = null;
+async function refreshSession(sessionVersion: number): Promise<void> {
+  await withSessionLock(async () => {
+    if (sessionVersion !== getAuthSessionVersion()) throw ApiError.unauthorized("The authentication session has changed.");
+    // Another tab may have refreshed while this one waited for the shared lock.
+    try {
+      await axios.get(SESSION_API_PATH + "/auth/me", { withCredentials: true });
+      return;
+    } catch (error) {
+      if (!isAxiosError(error) || error.response?.status !== 401) throw error;
+    }
+    await axios.post(SESSION_API_PATH + "/auth/refresh", undefined, {
+      withCredentials: true, headers: { [CSRF_HEADER]: "1" },
     });
+    if (sessionVersion !== getAuthSessionVersion()) throw ApiError.unauthorized("The authentication session has changed.");
+  });
+}
 
+async function refreshAccessToken(): Promise<void> {
+  const sessionVersion = getAuthSessionVersion();
+  if (pendingRefresh?.sessionVersion === sessionVersion) return pendingRefresh.promise;
+  const promise = refreshSession(sessionVersion).catch((error) => {
+    if (sessionVersion === getAuthSessionVersion() && isAxiosError(error) && error.response?.status === 401) expireSession();
+    throw error;
+  }).finally(() => {
+    if (pendingRefresh?.promise === promise) pendingRefresh = null;
+  });
   pendingRefresh = { sessionVersion, promise };
   return promise;
 }
 
-// Request interceptor: Attach access token
-apiClient.interceptors.request.use(
-  async (config: SessionRequestConfig) => {
-    if (config.skipAuthRefresh) return config;
-    config._authSessionVersion ??= getAuthSessionVersion();
-    let token = tokenStorage.getAccessToken();
-
-    // Check if token expires within 15 seconds, refresh proactively
-    if (token && !config.url?.includes("/auth/refresh")) {
-      const expMs = getTokenExpiry(token);
-      if (expMs) {
-        const expiresInMs = expMs - Date.now();
-        if (expiresInMs < 15000) {
-          token = await refreshAccessToken();
-        }
-      }
-    }
-
-    if (config._authSessionVersion !== getAuthSessionVersion()) {
-      throw ApiError.unauthorized("The authentication session has changed.");
-    }
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
+apiClient.interceptors.request.use((config: SessionRequestConfig) => {
+  if (!config.skipAuthRefresh) config._authSessionVersion ??= getAuthSessionVersion();
+  if (config._authSessionVersion !== undefined && config._authSessionVersion !== getAuthSessionVersion()) {
+    throw ApiError.unauthorized("The authentication session has changed.");
+  }
+  return config;
+});
 
 // Response interceptor: Handle errors & auto-refresh token on 401
 apiClient.interceptors.response.use(
@@ -215,10 +142,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const token = await refreshAccessToken();
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-        }
+        await refreshAccessToken();
         return apiClient(originalRequest);
       } catch (refreshError) {
         if (isAxiosError(refreshError)) {
