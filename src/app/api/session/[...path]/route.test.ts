@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET, POST } from "./route";
-import { ACCESS_COOKIE, CSRF_HEADER, REFRESH_COOKIE } from "@/lib/auth/constants";
+import { ACCESS_COOKIE, CSRF_HEADER, REFRESH_COOKIE, REALTIME_TOKEN_HEADER } from "@/lib/auth/constants";
 
 const login = { accessToken: "secret-access", refreshToken: "secret-refresh", expiresIn: 900, user: { id: "user-1" } };
 const fetchMock = vi.fn<typeof fetch>();
@@ -71,6 +71,24 @@ describe("dashboard server session boundary", () => {
     incoming.headers.set("authorization", "Bearer legacy-token");
     expect((await GET(incoming, context("auth/me"))).status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("provides only the current access token for the existing realtime handshake during session restoration", async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: "user-1" }));
+    const response = await GET(request("auth/me", {
+      method: "GET", cookie: `${ACCESS_COOKIE}=socket-access; ${REFRESH_COOKIE}=private-refresh`,
+    }), context("auth/me"));
+    expect(response.headers.get(REALTIME_TOKEN_HEADER)).toBe("socket-access");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({ id: "user-1" });
+    expect([...response.headers.values()].join(" ")).not.toContain("private-refresh");
+  });
+
+  it("does not disclose an access token when the backend rejects session restoration", async () => {
+    fetchMock.mockResolvedValue(Response.json({ message: "Unauthorized" }, { status: 401 }));
+    const response = await GET(request("auth/me", { method: "GET", cookie: `${ACCESS_COOKIE}=revoked-access` }), context("auth/me"));
+    expect(response.status).toBe(401);
+    expect(response.headers.has(REALTIME_TOKEN_HEADER)).toBe(false);
   });
 
   it.each(["auth/login", "auth/refresh", "auth/logout", "auth/unknown"])("does not expose authentication endpoints through GET: %s", async path => {

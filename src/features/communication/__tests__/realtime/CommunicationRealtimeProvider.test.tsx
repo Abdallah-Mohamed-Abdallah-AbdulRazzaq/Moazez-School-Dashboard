@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { setRealtimeAccessToken } from "@/lib/auth/realtime-token";
+import { invalidateAuthSession } from "@/lib/auth/session-client";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommunicationRealtimeProvider } from "@/features/communication/realtime/CommunicationRealtimeProvider";
@@ -68,7 +70,11 @@ const socketHarness = vi.hoisted(() => {
     }),
     removeAllListeners: vi.fn(() => socketListeners.clear()),
   };
-  const createCommunicationSocket = vi.fn(() => socket);
+  const createCommunicationSocket = vi.fn((url: string, options: { auth: Record<string, unknown> }) => {
+    void url;
+    socket.auth = options.auth;
+    return socket;
+  });
 
   return {
     isAuthenticated: true,
@@ -136,7 +142,8 @@ describe("CommunicationRealtimeProvider", () => {
     socketHarness.userId = "user-1";
     socketHarness.managerListeners.clear();
     socketHarness.socketListeners.clear();
-    socketHarness.socket.auth = {};
+    socketHarness.socket.auth = { token: "token-1" };
+    setRealtimeAccessToken("token-1");
     socketHarness.socket.active = false;
     socketHarness.socket.connected = false;
     Object.defineProperty(navigator, "onLine", {
@@ -146,6 +153,7 @@ describe("CommunicationRealtimeProvider", () => {
   });
 
   afterEach(() => {
+    act(() => setRealtimeAccessToken(null));
     localStorage.clear();
     vi.restoreAllMocks();
     vi.useRealTimers();
@@ -166,6 +174,34 @@ describe("CommunicationRealtimeProvider", () => {
       { conversationId: "conversation-1" },
     );
     expect(screen.getByTestId("resync-version")).toHaveTextContent("1");
+  });
+
+  it("reconnects once with a refreshed in-memory token without persisting it", () => {
+    renderProvider();
+    socketHarness.socket.connect.mockClear();
+    socketHarness.socket.disconnect.mockClear();
+    act(() => setRealtimeAccessToken("token-2"));
+    expect(socketHarness.socket.auth).toEqual({ token: "token-2" });
+    expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
+    expect(socketHarness.socket.disconnect).toHaveBeenCalledOnce();
+    expect(localStorage.getItem("moazez_access_token")).toBeNull();
+    expect(document.cookie).not.toContain("token-2");
+  });
+
+  it("does not reconnect for an unchanged in-memory access token", () => {
+    renderProvider();
+    socketHarness.socket.connect.mockClear();
+    act(() => setRealtimeAccessToken("token-1"));
+    expect(socketHarness.socket.connect).not.toHaveBeenCalled();
+  });
+
+  it("detaches the old socket immediately when the authentication session is invalidated", () => {
+    renderProvider();
+    act(() => invalidateAuthSession());
+    expect(screen.getByTestId("state")).toHaveTextContent("idle");
+    socketHarness.socket.connect.mockClear();
+    act(() => setRealtimeAccessToken("next-account-token"));
+    expect(socketHarness.socket.connect).not.toHaveBeenCalled();
   });
 
   it("disconnects on logout and creates a fresh owner for a new account", () => {
@@ -201,7 +237,7 @@ describe("CommunicationRealtimeProvider", () => {
     expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
   });
 
-  it("blocks retries after an authentication failure until the session is recreated", () => {
+  it("blocks retries after an authentication failure until the access token changes", () => {
     renderProvider();
     act(() =>
       socketHarness.socketListeners.emit("connect_error", {
@@ -218,6 +254,8 @@ describe("CommunicationRealtimeProvider", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(socketHarness.socket.connect).not.toHaveBeenCalled();
+    act(() => setRealtimeAccessToken("token-2"));
+    expect(socketHarness.socket.connect).toHaveBeenCalledOnce();
   });
 
   it("starts a new retry cycle after the reconnect cooldown", () => {

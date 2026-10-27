@@ -1,6 +1,6 @@
 # Dashboard server sessions
 
-The browser calls the same-origin Next.js route at /api/session instead of attaching a Bearer token. Login and refresh return only the user object. Access and refresh tokens are stored by the route handler in HttpOnly, host-only, SameSite=Lax cookies. Production cookies additionally use Secure and the __Host- prefix.
+The browser calls the same-origin Next.js route at /api/session instead of attaching a Bearer token. Login and refresh return only the user object. Successful /api/session/auth/me responses additionally return the access token in X-Moazez-Realtime-Token for the existing Socket.IO handshake. The persistent access and refresh token copies are stored by the route handler in HttpOnly, host-only, SameSite=Lax cookies. Production cookies additionally use Secure and the __Host- prefix.
 
 ## Configuration and API contract
 
@@ -18,11 +18,15 @@ Mutation requests require X-Moazez-CSRF: 1. An Origin, when present, must match 
 
 A 401 can trigger one refresh and retry. Concurrent requests in a tab share a refresh promise. Login, logout, and refresh are serialized with Web Locks across tabs where supported, and a local promise queue otherwise. Before rotating, a queued refresh checks /auth/me to avoid rotating again if another tab already renewed access. Browsers without Web Locks have no cross-tab serialization guarantee.
 
-Session-change notifications in localStorage contain a login/logout kind and random notification ID, never tokens. Existing localStorage tokens and JavaScript cookies are removed during AuthProvider startup; existing sessions must sign in again. Old responses cannot restore a user after a session change. Logout hides private data immediately and waits for cookie deletion before navigation.
+Session-change notifications in localStorage contain a login/logout/refresh kind and random notification ID, never tokens. Existing localStorage tokens and JavaScript cookies are removed during AuthProvider startup; existing sessions must sign in again. Old responses cannot restore a user after a session change. Logout hides private data immediately and waits for cookie deletion before navigation.
 
-## Realtime rollout dependency
+## Realtime compatibility
 
-Socket.IO no longer receives a JavaScript access token. The current direct backend URL cannot receive the dashboard's host-only cookies, and the inspected backend authenticator only supports a handshake token or Bearer header. Live updates, presence, and typing remain unavailable until a reviewed backend/proxy integration bridges server sessions to Socket.IO. Existing connection handling reports an authentication failure and stops authentication retries. Do not deploy this change expecting realtime to work unchanged.
+At the request of the owner, realtime retains its existing auth: { token } handshake, token-change reconnects, room recovery, and bounded retry behavior. No backend or proxy change is required for this handshake.
+
+The API client reads X-Moazez-Realtime-Token from successful /auth/me responses and stores the access token only in module memory. Session restoration loads it before authenticated realtime starts. HTTP refresh updates it and notifies other tabs to reload their own in-memory token; logout, expiration, and account switching clear it and detach old sockets. Refresh tokens are never exposed to browser JavaScript.
+
+This is a deliberate partial mitigation of the storage finding: no token is persisted in JavaScript storage, but an XSS payload could still access or request the runtime access token. This version does not claim to make access tokens inaccessible to JavaScript. The response carrying the token is private and uses no-store; cross-origin response reads are not enabled.
 
 Forwarding HTTP requests through Next.js also changes the backend's immediate network peer. Review backend trusted-proxy/IP attribution and rate limiting before production rollout. Browser-supplied forwarding headers are deliberately not relayed.
 
@@ -34,7 +38,7 @@ Run the focused unit checks with:
 
     npx vitest run src/app/api/session src/app/api/files src/lib/__tests__/session-client.test.ts src/lib/__tests__/api-refresh-queue.test.ts src/services/__tests__/auth-service.test.ts src/features/auth/context/__tests__ src/features/communication/__tests__/realtime src/__tests__/proxy.test.ts src/features/settings/hooks/__tests__/useBrandingProfile.test.tsx
 
-The full test suite requires owner permission under AGENTS.md. Local mocked checks do not validate deployed backend authentication, proxy configuration, or a live realtime connection.
+The full test suite requires owner permission under AGENTS.md. Local mocked checks do not validate deployed backend authentication, proxy configuration, or a live realtime connection. Realtime compatibility is checked against the existing token-handshake contract, not a deployed backend session.
 
 ## Local verification on 2026-10-27
 
@@ -43,3 +47,7 @@ The full test suite requires owner permission under AGENTS.md. Local mocked chec
 - Chromium smoke checks: reinforcement route loading and mutation-contract checks passed. The dashboard smoke reached the dashboard but failed its existing expectation that the Homework heading is hidden. Current dashboard rendering shows that heading. No production dashboard layout or Homework behavior was changed to resolve this unrelated expectation.
 - Browser checks used installed Chromium headless shell revision 1228 through a temporary local configuration on port 3117; the lockfile-requested revision 1223 was unavailable. No browser/dependency versions were changed.
 - Full unit and end-to-end suites were not run; owner permission is required. No live-backend authentication or deployment/realtime validation was performed.
+
+## Realtime compatibility follow-up
+
+The initial realtime restriction was removed at the request of the owner. Socket.IO again authenticates with an access token. Persistent storage remains removed, and the refresh token remains HttpOnly. New regression checks cover the access-token response header, rejection without disclosure, memory-token renewal, unchanged-token reconnect suppression, and immediate socket teardown on session invalidation. The follow-up focused run passed 95 tests across nine files.

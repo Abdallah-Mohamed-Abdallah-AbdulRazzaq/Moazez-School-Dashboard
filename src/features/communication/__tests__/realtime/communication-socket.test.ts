@@ -21,11 +21,12 @@ describe("createCommunicationSocket", () => {
       "@/features/communication/realtime/communication-socket"
     );
 
-    createCommunicationSocket();
+    createCommunicationSocket("token-1");
 
     expect(ioMock).toHaveBeenCalledWith(
       "https://api.moazez.sa/api/v1/realtime",
       expect.objectContaining({
+        auth: { token: "token-1" },
         autoConnect: false,
         randomizationFactor: 0.5,
         reconnection: true,
@@ -37,6 +38,6 @@ describe("createCommunicationSocket", () => {
         withCredentials: true,
       }),
     );
-    expect(ioMock.mock.calls[0][1]).not.toHaveProperty("auth");
+
   });
 });

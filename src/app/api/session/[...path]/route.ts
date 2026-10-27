@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { ACCESS_COOKIE } from "@/lib/auth/constants";
+import { ACCESS_COOKIE, REALTIME_TOKEN_HEADER } from "@/lib/auth/constants";
 import { backendApiBaseUrl, backendHeaders, isTrustedMutation, safeUpstreamResponse, sessionError } from "@/lib/auth/backend";
 import { exchangeTokens, logout } from "@/lib/auth/server-session";
 
@@ -19,7 +19,12 @@ async function forwardRequest(request: NextRequest, endpoint: string) {
     body: ["GET", "HEAD"].includes(request.method) ? undefined : await request.arrayBuffer(),
     cache: "no-store", redirect: "manual", signal: request.signal,
   });
-  return safeUpstreamResponse(upstream);
+  const response = safeUpstreamResponse(upstream);
+  // The existing Socket.IO backend requires a browser-supplied access token.
+  if (upstream.ok && endpoint === "auth/me") {
+    response.headers.set(REALTIME_TOKEN_HEADER, request.cookies.get(ACCESS_COOKIE)!.value);
+  }
+  return response;
 }
 
 async function route(request: NextRequest, context: RouteContext): Promise<Response> {

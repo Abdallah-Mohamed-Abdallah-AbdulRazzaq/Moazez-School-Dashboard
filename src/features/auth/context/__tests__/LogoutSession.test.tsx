@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/lib/api";
 import type { InternalAxiosRequestConfig } from "axios";
 import { SESSION_STORAGE_KEY } from "@/lib/auth/session-client";
+import { getRealtimeAccessToken, setRealtimeAccessToken } from "@/lib/auth/realtime-token";
 import type { MeResponse } from "@/types/user";
 
 const navigation = vi.hoisted(() => ({ push: vi.fn() }));
@@ -18,7 +19,7 @@ function response(config: InternalAxiosRequestConfig, body: unknown) {
   return { data: body, status: 200, statusText: "OK", headers: {}, config };
 }
 const network = vi.fn(async (config: InternalAxiosRequestConfig) => response(config, account));
-function crossTab(kind: "login" | "logout") {
+function crossTab(kind: "login" | "logout" | "refresh") {
   window.dispatchEvent(new StorageEvent("storage", {
     key: SESSION_STORAGE_KEY, newValue: JSON.stringify({ kind, id: crypto.randomUUID() }), storageArea: localStorage,
   }));
@@ -49,6 +50,18 @@ describe("logout session safeguards", () => {
     localStorage.clear();
     network.mockImplementation(async config => response(config, account));
     apiClient.defaults.adapter = network;
+  });
+
+  it("resynchronizes a token refreshed in another tab without signing the current user out", async () => {
+    await openAuthenticatedSession();
+    setRealtimeAccessToken("old-access");
+    network.mockImplementationOnce(async config => ({
+      ...response(config, account), headers: { "x-moazez-realtime-token": "refreshed-access" },
+    }));
+    act(() => crossTab("refresh"));
+    expect(screen.getByLabelText("Session")).toHaveTextContent(account.id);
+    await waitFor(() => expect(getRealtimeAccessToken()).toBe("refreshed-access"));
+    expect(screen.getByLabelText("Session")).toHaveTextContent(account.id);
   });
 
   it("does not restore the user when an older me request completes after logout", async () => {

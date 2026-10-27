@@ -6,7 +6,8 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { getAuthSessionVersion, invalidateAuthSession, publishSessionChange, withSessionLock, SESSION_EXPIRED_EVENT } from "./auth/session-client";
-import { CSRF_HEADER, SESSION_API_PATH } from "./auth/constants";
+import { CSRF_HEADER, REALTIME_TOKEN_HEADER, SESSION_API_PATH } from "./auth/constants";
+import { setRealtimeAccessToken } from "./auth/realtime-token";
 import { ApiError, isAxiosError } from "./api-error";
 import {
   SCOPE_PERMISSION_DENIED_EVENT,
@@ -83,7 +84,8 @@ async function refreshSession(sessionVersion: number): Promise<void> {
     if (sessionVersion !== getAuthSessionVersion()) throw ApiError.unauthorized("The authentication session has changed.");
     // Another tab may have refreshed while this one waited for the shared lock.
     try {
-      await axios.get(SESSION_API_PATH + "/auth/me", { withCredentials: true });
+      const response = await axios.get(SESSION_API_PATH + "/auth/me", { withCredentials: true });
+      synchronizeRealtimeToken(response, sessionVersion);
       return;
     } catch (error) {
       if (!isAxiosError(error) || error.response?.status !== 401) throw error;
@@ -92,7 +94,16 @@ async function refreshSession(sessionVersion: number): Promise<void> {
       withCredentials: true, headers: { [CSRF_HEADER]: "1" },
     });
     if (sessionVersion !== getAuthSessionVersion()) throw ApiError.unauthorized("The authentication session has changed.");
+    const response = await axios.get(SESSION_API_PATH + "/auth/me", { withCredentials: true });
+    synchronizeRealtimeToken(response, sessionVersion);
+    publishSessionChange("refresh");
   });
+}
+
+function synchronizeRealtimeToken(response: AxiosResponse, sessionVersion: number) {
+  if (sessionVersion !== getAuthSessionVersion()) throw ApiError.unauthorized("The authentication session has changed.");
+  const token = response.headers[REALTIME_TOKEN_HEADER.toLowerCase()];
+  if (typeof token === "string" && token) setRealtimeAccessToken(token);
 }
 
 async function refreshAccessToken(): Promise<void> {
@@ -123,6 +134,7 @@ apiClient.interceptors.response.use(
     if (!config.skipAuthRefresh && config._authSessionVersion !== undefined && config._authSessionVersion !== getAuthSessionVersion()) {
       throw ApiError.unauthorized("The authentication session has changed.");
     }
+    if (config.url === "/auth/me") synchronizeRealtimeToken(response, getAuthSessionVersion());
     return response;
   },
   async (error) => {

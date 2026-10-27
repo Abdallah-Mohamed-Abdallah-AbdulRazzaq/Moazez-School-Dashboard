@@ -122,6 +122,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     return subscribeToSessionChanges((kind) => {
+      if (kind === "refresh") {
+        void loadUser();
+        return;
+      }
       invalidateAuthSession();
       clearLocalSession();
       if (kind === "login") {

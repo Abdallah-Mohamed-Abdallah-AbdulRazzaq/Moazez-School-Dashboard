@@ -1,8 +1,8 @@
 # Secure Dashboard Session Implementation Plan
 
-**Goal:** Remove access and refresh tokens from dashboard JavaScript and browser storage.
+**Goal:** Remove persistent browser token storage and keep refresh tokens inaccessible to JavaScript while preserving the existing realtime handshake.
 
-**Architecture:** Next.js route handlers own host-only HttpOnly cookies and forward Bearer credentials to the existing backend. The browser uses same-origin HTTP requests and serializes session mutations. Socket.IO sends no token; realtime remains blocked pending backend/proxy integration.
+**Architecture:** Next.js route handlers own host-only HttpOnly cookies and forward Bearer credentials to the existing backend. The browser uses same-origin HTTP requests and serializes session mutations. At the request of the owner, Socket.IO retains its token handshake using an access token held only in memory.
 
 **Tech stack:** Existing Next.js 16 App Router, TypeScript, Axios, Vitest, Socket.IO.
 
@@ -30,7 +30,7 @@
 
 ## Task 3: Realtime boundary and verification
 
-- [x] Remove token reads and token handshakes from Socket.IO; retain connection failure handling.
+- [x] Preserve Socket.IO token handshakes and connection handling using in-memory access tokens; resynchronize on HTTP refresh and clear on session invalidation.
 - [x] Migrate affected tests to cookie/session behavior without dropping production regression scenarios.
 - [x] Run focused tests, lint, typecheck, and build. Document backend dependency and verification results.
 

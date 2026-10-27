@@ -1,10 +1,15 @@
+import { setRealtimeAccessToken } from "./realtime-token";
+
 export const SESSION_STORAGE_KEY = "moazez:session-change";
 export const SESSION_EXPIRED_EVENT = "moazez:session-expired";
 let sessionVersion = 0;
 let mutationQueue: Promise<unknown> = Promise.resolve();
 
 export function getAuthSessionVersion() { return sessionVersion; }
-export function invalidateAuthSession() { sessionVersion += 1; }
+export function invalidateAuthSession() {
+  sessionVersion += 1;
+  setRealtimeAccessToken(null);
+}
 
 export function clearLegacyTokens() {
   for (const key of ["moazez_access_token", "moazez_refresh_token"]) {
@@ -13,7 +18,9 @@ export function clearLegacyTokens() {
   }
 }
 
-export function publishSessionChange(kind: "login" | "logout") {
+type SessionChange = "login" | "logout" | "refresh";
+
+export function publishSessionChange(kind: SessionChange) {
   try {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ kind, id: crypto.randomUUID() }));
   } catch (error) { rethrowUnexpectedStorageError(error); }
@@ -25,10 +32,10 @@ function rethrowUnexpectedStorageError(error: unknown) {
   throw error;
 }
 
-export function subscribeToSessionChanges(listener: (kind: "login" | "logout") => void) {
+export function subscribeToSessionChanges(listener: (kind: SessionChange) => void) {
   const onStorage = (event: StorageEvent) => {
     if (event.key !== SESSION_STORAGE_KEY || !event.newValue) return;
-    // Only a notification crosses tabs; credentials stay in HttpOnly cookies.
+    // Only a notification crosses tabs; tokens are never included.
     let change: unknown;
     try {
       change = JSON.parse(event.newValue);
@@ -37,7 +44,7 @@ export function subscribeToSessionChanges(listener: (kind: "login" | "logout") =
       throw error;
     }
     if (change && typeof change === "object" && "kind" in change &&
-        (change.kind === "login" || change.kind === "logout")) listener(change.kind);
+        (change.kind === "login" || change.kind === "logout" || change.kind === "refresh")) listener(change.kind);
   };
   window.addEventListener("storage", onStorage);
   return () => window.removeEventListener("storage", onStorage);

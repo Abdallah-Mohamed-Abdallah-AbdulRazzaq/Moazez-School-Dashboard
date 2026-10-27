@@ -1,10 +1,11 @@
 import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient, apiGet, SESSION_EXPIRED_EVENT, SCOPE_PERMISSION_DENIED_EVENT } from "../api";
+import { getRealtimeAccessToken } from "../auth/realtime-token";
 import { getAuthSessionVersion, invalidateAuthSession } from "../auth/session-client";
 
 function response(config: InternalAxiosRequestConfig, body: unknown = {}) {
-  return { data: body, status: 200, statusText: "OK", headers: {}, config };
+  return { data: body, status: 200, statusText: "OK", headers: config.url?.endsWith("/auth/me") ? { "x-moazez-realtime-token": "realtime-access" } : {}, config };
 }
 function unauthorized(config: InternalAxiosRequestConfig) {
   return new AxiosError("Unauthorized", "ERR_BAD_REQUEST", config, undefined, {
@@ -32,6 +33,7 @@ describe("cookie session refresh queue", () => {
     network.mockImplementation(networkResponse);
     apiClient.defaults.adapter = network;
     axios.defaults.adapter = network;
+    invalidateAuthSession();
     localStorage.clear();
   });
   afterEach(() => { vi.restoreAllMocks(); });
@@ -46,12 +48,21 @@ describe("cookie session refresh queue", () => {
     expect(refreshConfig.headers.get("X-Moazez-CSRF")).toBe("1");
     expect(localStorage.getItem("moazez_access_token")).toBeNull();
     expect(localStorage.getItem("moazez_refresh_token")).toBeNull();
+    expect(getRealtimeAccessToken()).toBe("realtime-access");
   });
 
   it("retries using cookies already refreshed by another tab without rotating again", async () => {
     network.mockImplementationOnce(async config => { expired = false; throw unauthorized(config); });
     expect(await apiGet("/old-request")).toEqual({ school: "current-school" });
     expect(network.mock.calls.some(([config]) => config.url?.endsWith("/auth/refresh"))).toBe(false);
+  });
+
+  it("restores the realtime token from the current user response after a page reload", async () => {
+    expired = false;
+    expect(getRealtimeAccessToken()).toBeNull();
+    await apiGet("/auth/me");
+    expect(getRealtimeAccessToken()).toBe("realtime-access");
+    expect(localStorage.getItem("moazez_access_token")).toBeNull();
   });
 
   it("expires the local session once when refresh is revoked", async () => {
@@ -72,14 +83,15 @@ describe("cookie session refresh queue", () => {
     expect(network.mock.calls).toHaveLength(1);
   });
 
-  it("does not deliver a successful old-session response after logout", async () => {
+  it.each(["/private-school", "/auth/me"])("does not deliver an old-session response or restore its realtime token after logout: %s", async path => {
     let finishRequest!: () => void;
     network.mockImplementationOnce(config => new Promise(resolve => { finishRequest = () => resolve(response(config, { privateSchool: "previous-school" })); }));
-    const pending = apiGet("/private-school");
+    const pending = apiGet(path);
     await vi.waitFor(() => expect(finishRequest).toBeTypeOf("function"));
     invalidateAuthSession();
     finishRequest();
     await expect(pending).rejects.toThrow("The authentication session has changed.");
+    expect(getRealtimeAccessToken()).toBeNull();
   });
 
   it("does not refresh a late unauthorized response from the previous login", async () => {

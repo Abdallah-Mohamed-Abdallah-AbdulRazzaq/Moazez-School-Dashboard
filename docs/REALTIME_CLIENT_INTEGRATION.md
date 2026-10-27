@@ -8,7 +8,7 @@ This document defines the frontend communication realtime contract. It describes
 
 The ownership boundary is one communication socket per authenticated browser tab. Opening more tabs creates more sockets. Cross-tab leader election, `BroadcastChannel`, and SharedWorker coordination are not implemented.
 
-The provider creates a socket only when authentication loading has finished and the current user is present. Logout, provider unmount, or loss of the authenticated user stops the session, disconnects the socket, clears owned timers, removes listeners, and clears room bookkeeping.
+The provider creates a socket only when authentication loading has finished and the current user and in-memory access token are present. Logout, provider unmount, or loss of the authenticated user stops the session, disconnects the socket, clears owned timers, removes listeners, and clears room bookkeeping.
 
 ## Connection configuration
 
@@ -18,7 +18,7 @@ The client uses Socket.IO Client 4.8.3 with these project settings:
 |---|---|
 | Namespace URL | `NEXT_PUBLIC_REALTIME_URL`, falling back to `https://api.moazez.sa/api/v1/realtime` |
 | Engine.IO path | `NEXT_PUBLIC_REALTIME_SOCKET_PATH` when non-empty; otherwise the Socket.IO default |
-| Authentication | No token in JavaScript; cookie-capable backend/proxy integration is required |
+| Authentication | `auth: { token }` from the in-memory access token |
 | Transport order | `websocket`, then `polling` |
 | Initial transport fallback | `tryAllTransports: true` |
 | Credentials | `withCredentials: true` |
@@ -42,17 +42,19 @@ The browser `offline` event disables manager reconnection and moves the state to
 
 Connection failure classification accepts namespace errors and Engine.IO transport errors:
 
-- HTTP 401/403 and `AUTHENTICATION_ERROR`, `UNAUTHORIZED`, or `FORBIDDEN` enter `auth-error`. Reconnection remains paused until the provider creates a new authenticated socket session.
+- HTTP 401/403 and `AUTHENTICATION_ERROR`, `UNAUTHORIZED`, or `FORBIDDEN` enter `auth-error`. Reconnection remains paused until the access-token value changes.
 - HTTP 429 and `RATE_LIMITED` enter the rate-limit path. A positive `retryAfterMs` is used directly; a positive `retryAfter` is interpreted as seconds. Without either field, the 60-second cooldown is used.
 - Other errors, including 5xx transport failures, use the bounded temporary-failure policy.
 
 Status values are read from the error's attached `data`, outer `status`, Engine.IO `description`, or `context.status` fields.
 
-## Session authentication and backend dependency
+## In-memory access-token synchronization
 
-The dashboard no longer reads or transmits access tokens in Socket.IO JavaScript. The HTTP BFF stores tokens in host-only HttpOnly cookies. Cross-tab login/logout notifications contain no credentials and cause AuthProvider to restore or clear the user; the realtime provider follows that authenticated user state.
+The existing Socket.IO handshake and retry behavior are retained. The browser receives the current access token in the X-Moazez-Realtime-Token response header on a successful same-origin /api/session/auth/me request. The API client keeps it only in module memory; it is not written to localStorage, sessionStorage, or JavaScript cookies. Refresh tokens remain in server-managed HttpOnly cookies and are never returned to JavaScript.
 
-The existing direct backend URL does not receive the dashboard's host-only cookies. The backend snapshot reviewed for this change accepts a handshake token or Bearer header and does not authenticate cookies. Realtime therefore remains unavailable with that backend. This change does not implement a WebSocket relay or change deployment configuration. A reviewed backend/proxy integration must bridge the dashboard session to Socket.IO before rollout with realtime enabled. Do not broaden cookie domains or return a token to JavaScript as a workaround.
+Session restoration loads the token before AuthProvider finishes authenticating the user. HTTP refresh resynchronizes the in-memory token from /auth/me. A changed token updates socket.auth.token and performs one controlled reconnect. An unchanged token does not reconnect. Session invalidation clears the token and detaches the old socket; cross-tab login/logout notifications restore or clear each tab's own session.
+
+This preserves compatibility with the existing backend handshake and requires no cookie-authentication change or WebSocket relay. The access token remains JavaScript-readable at runtime, so the original security finding is only partially mitigated: persistent token storage and refresh-token exposure are removed, while access-token use by realtime remains.
 
 See [Dashboard server sessions](dashboard-server-sessions.md) for the HTTP boundary and validation steps.
 

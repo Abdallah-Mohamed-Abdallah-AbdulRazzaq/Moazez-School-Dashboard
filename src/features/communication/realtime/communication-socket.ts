@@ -1,6 +1,7 @@
 "use client";
 
 import { io, type Socket } from "socket.io-client";
+import { getRealtimeAccessToken } from "@/lib/auth/realtime-token";
 import { COMMUNICATION_SOCKET_EVENTS } from "./communication-events";
 import {
   RECONNECTION_ATTEMPTS,
@@ -120,8 +121,16 @@ export type CommunicationSocket = Socket<
   CommunicationClientToServerEvents
 >;
 
-export function createCommunicationSocket(): CommunicationSocket | null {
-  if (typeof window === "undefined") return null;
+export function getCommunicationAccessToken(): string | null {
+  return getRealtimeAccessToken();
+}
+
+export function createCommunicationSocket(
+  token: string,
+): CommunicationSocket | null {
+  if (typeof window === "undefined" || !token) {
+    return null;
+  }
 
   if (COMMUNICATION_REALTIME_DEBUG) {
     console.info("[communication socket] creating socket", {
@@ -129,11 +138,15 @@ export function createCommunicationSocket(): CommunicationSocket | null {
       namespace: getCommunicationRealtimeNamespace(),
       path: COMMUNICATION_REALTIME_SOCKET_PATH ?? "(socket.io default)",
       transports: [...REALTIME_TRANSPORTS],
+      hasToken: Boolean(token),
     });
   }
 
   return io(COMMUNICATION_REALTIME_URL, {
     autoConnect: false,
+    auth: {
+      token,
+    },
     transports: [...REALTIME_TRANSPORTS],
     tryAllTransports: true,
     reconnection: true,
