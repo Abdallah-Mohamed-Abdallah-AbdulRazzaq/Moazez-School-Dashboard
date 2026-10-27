@@ -4,6 +4,8 @@ import {
 } from "./timetableLessonAllocation";
 import type { Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
 import { evaluateRoomEligibility } from "@/features/academics/rooms/services/roomSchedulingEligibility";
+import type { RoomAssignmentSource } from "@/features/academics/rooms/services/roomsService";
+import { getDefaultRoomSuggestion } from "../utils/roomRecommendations";
 import type {
   Subject,
   SubjectAllocation,
@@ -29,6 +31,7 @@ export type TimetableLibraryItem =
       subjectId: string;
       teacherId: string | null;
       roomId: string | null;
+      roomSource?: RoomAssignmentSource;
       targetPeriods: number;
       scheduledPeriods: number;
       remainingPeriods: number;
@@ -131,6 +134,7 @@ function buildLessonLibraryItem(
     id: `lesson:${subject.id}`,
     subjectId: subject.id,
     ...defaults,
+    roomSource: "RECOMMENDED",
     targetPeriods,
     scheduledPeriods,
     remainingPeriods: Math.max(0, targetPeriods - scheduledPeriods),
@@ -159,6 +163,7 @@ function lessonDefaults(
     teachers: input.teachers,
     subjects: input.subjects,
     rooms: input.rooms,
+    entries: input.entries,
     selectedClassroom: input.classroom,
     locale: input.locale,
   });
@@ -303,7 +308,9 @@ function proposedTimetableEntry(
       ...baseEntry,
       subjectId: input.item.subjectId,
       teacherId: input.item.teacherId,
-      roomId: input.item.roomId,
+      roomId: input.item.roomSource === "RECOMMENDED"
+        ? automaticRoomForDrop(input, input.item.subjectId, targetEntry?.id)
+        : input.item.roomId,
       status: "DRAFT",
     };
   }
@@ -311,6 +318,21 @@ function proposedTimetableEntry(
     return { ...baseEntry, teacherId: input.item.teacherId, status: "DRAFT" };
   }
   return { ...baseEntry, roomId: input.item.roomId, status: "DRAFT" };
+}
+
+function automaticRoomForDrop(
+  input: ApplyTimetableDropInput,
+  subjectId: string,
+  excludeEntryId?: string,
+): string | null {
+  return getDefaultRoomSuggestion({
+    subjectId,
+    rooms: input.rooms,
+    selectedClassroom: input.classrooms.find((classroom) => classroom.id === input.target.classroomId),
+    entries: mergeTimetableEntriesForValidation(input.allEntries, input.editableEntries)
+      .filter((entry) => entry.id !== excludeEntryId),
+    isRoomUnavailable: (roomId) => hasTimetableRoomConflict({ ...input, roomId, excludeEntryId }),
+  }).roomId;
 }
 
 function sourceEntryForDrop(

@@ -122,6 +122,7 @@ describe("buildTimetableLibraryItems", () => {
       subjectId: "math",
       teacherId: "teacher-math",
       roomId: "room-101",
+      roomSource: "RECOMMENDED",
       targetPeriods: 5,
       scheduledPeriods: 2,
       remainingPeriods: 3,
@@ -178,6 +179,18 @@ describe("buildTimetableLibraryItems", () => {
 });
 
 describe("applyTimetableDrop", () => {
+  it.each([false, true])("recalculates the automatic room at placement (alternative available: %s)", (hasAlternative) => {
+    const hidden = timetableEntry({ id: "hidden", classroomId: "other-classroom", teacherId: "other-teacher",
+      periodIndex: 7, startTime: "08:30", endTime: "09:15", timetableConfigId: "other-config" });
+    const placement = applyTimetableDrop(dropInput({
+      allEntries: [hidden],
+      rooms: hasAlternative ? [...rooms, { ...rooms[0], id: "alternative", nameEn: "Alternative" }] : rooms,
+      periods: [{ index: 2, startTime: "08:00", endTime: "09:00" }],
+    }));
+    expect(placement).toEqual(expect.objectContaining({ status: "APPLIED",
+      entries: [expect.objectContaining({ roomId: hasAlternative ? "alternative" : null })] }));
+  });
+
   it("creates a complete lesson in an empty slot", () => {
     const placement = applyTimetableDrop(
       dropInput({
@@ -579,6 +592,7 @@ function lessonItem(): TimetableLibraryItem {
     subjectId: "math",
     teacherId: "teacher-math",
     roomId: "room-101",
+    roomSource: "RECOMMENDED",
     targetPeriods: 5,
     scheduledPeriods: 2,
     remainingPeriods: 3,
