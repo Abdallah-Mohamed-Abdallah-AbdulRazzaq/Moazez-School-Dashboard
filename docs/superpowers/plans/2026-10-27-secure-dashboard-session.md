@@ -34,4 +34,4 @@
 - [x] Migrate affected tests to cookie/session behavior without dropping production regression scenarios.
 - [x] Run focused tests, lint, typecheck, and build. Document backend dependency and verification results.
 
-Verification results and rollout constraints are recorded in docs/dashboard-server-sessions.md. The dashboard browser smoke has an unrelated Homework-visibility assertion failure; it is not marked as passing. Full-suite execution remains pending owner permission.
+Verification results and rollout constraints are recorded in docs/dashboard-server-sessions.md. The owner authorized both full suites. The historical dashboard smoke assertion was corrected; the final verification section records the subsequent results and Windows WebKit runner limitation.
