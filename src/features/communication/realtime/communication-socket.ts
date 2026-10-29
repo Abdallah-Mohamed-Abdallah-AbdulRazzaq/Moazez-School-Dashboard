@@ -19,7 +19,7 @@ const REALTIME_TRANSPORTS = ["websocket", "polling"] as const;
 // NEXT_PUBLIC_REALTIME_SOCKET_PATH=/api/v1/realtime/socket.io.
 export const COMMUNICATION_REALTIME_URL =
   process.env.NEXT_PUBLIC_REALTIME_URL ||
-  "https://api.moazez.sa/api/v1/realtime";
+  "https://api.moazez.cloud/api/v1/realtime";
 
 export const COMMUNICATION_REALTIME_SOCKET_PATH =
   process.env.NEXT_PUBLIC_REALTIME_SOCKET_PATH || undefined;

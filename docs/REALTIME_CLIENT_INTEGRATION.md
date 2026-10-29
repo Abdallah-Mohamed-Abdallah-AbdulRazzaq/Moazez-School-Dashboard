@@ -16,7 +16,7 @@ The client uses Socket.IO Client 4.8.3 with these project settings:
 
 | Setting | Value |
 |---|---|
-| Namespace URL | `NEXT_PUBLIC_REALTIME_URL`, falling back to `https://api.moazez.sa/api/v1/realtime` |
+| Namespace URL | `NEXT_PUBLIC_REALTIME_URL`, falling back to `https://api.moazez.cloud/api/v1/realtime` |
 | Engine.IO path | `NEXT_PUBLIC_REALTIME_SOCKET_PATH` when non-empty; otherwise the Socket.IO default |
 | Authentication | `auth: { token }` from the in-memory access token |
 | Transport order | `websocket`, then `polling` |
@@ -25,6 +25,8 @@ The client uses Socket.IO Client 4.8.3 with these project settings:
 | Automatic connection | Disabled during construction; the session calls `connect()` after listeners are attached |
 
 `NEXT_PUBLIC_REALTIME_URL` identifies the Socket.IO namespace. `NEXT_PUBLIC_REALTIME_SOCKET_PATH` changes the Engine.IO transport path; it is not another namespace setting. Keep the path empty unless the backend or proxy explicitly exposes a custom Engine.IO path.
+
+With the default settings, the WebSocket transport connects to `wss://api.moazez.cloud/socket.io/?EIO=4&transport=websocket`. The Socket.IO namespace remains `/api/v1/realtime`.
 
 ## Connection state and retry policy
 

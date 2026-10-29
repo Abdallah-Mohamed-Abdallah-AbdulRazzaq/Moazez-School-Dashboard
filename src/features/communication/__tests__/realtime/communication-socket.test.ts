@@ -24,7 +24,7 @@ describe("createCommunicationSocket", () => {
     createCommunicationSocket("token-1");
 
     expect(ioMock).toHaveBeenCalledWith(
-      "https://api.moazez.sa/api/v1/realtime",
+      "https://api.moazez.cloud/api/v1/realtime",
       expect.objectContaining({
         auth: { token: "token-1" },
         autoConnect: false,
