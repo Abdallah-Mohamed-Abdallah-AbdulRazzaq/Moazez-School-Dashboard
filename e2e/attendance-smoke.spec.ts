@@ -7,6 +7,7 @@ import {
   expectSharedAttendanceContextBar,
   expandContextBar,
   makeRollCallDirty,
+  openAttendanceContext,
   setupEditableRollCallSession,
   sharedAttendanceRoutes,
   trackPageErrors,
@@ -44,7 +45,13 @@ test.describe("Attendance Migrated Smoke", () => {
   }) => {
     const pageErrors = trackPageErrors(page);
 
+    const absencesResponse = page.waitForResponse(response => {
+      const url = new URL(response.url());
+      return url.pathname === "/api/session/attendance/absences" &&
+        url.searchParams.get("academicYearId") === openAttendanceContext.year;
+    });
     await page.goto(withAttendanceQuery("/en/attendance/absences"));
+    expect(await (await absencesResponse).finished()).toBeNull();
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Filters").first()).toBeVisible();
 
