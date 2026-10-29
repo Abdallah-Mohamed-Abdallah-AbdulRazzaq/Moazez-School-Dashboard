@@ -62,7 +62,12 @@ export const test = base.extend({
       unexpectedRequests.add(`${route.request().method()} ${path}`);
       return fulfillJson(route, { message: `Unmocked browser-test request: ${path}` }, 501);
     });
-    await runTest(page);
+    try {
+      await runTest(page);
+    } finally {
+      // Finish intercepted prefetches before Playwright disposes fetch responses.
+      await page.unrouteAll({ behavior: "wait" });
+    }
     expect([...unexpectedRequests], "Every API request must have a test fixture; live API access is blocked").toEqual([]);
   },
 });
