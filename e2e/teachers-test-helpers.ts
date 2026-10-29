@@ -63,7 +63,7 @@ const transitionResponse = {
 };
 
 export async function mockTeacherDirectory(page: Page) {
-  await page.route("**/api/v1/teachers**", async (route) => {
+  await page.route("**/api/session/teachers**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() === "GET" && path.endsWith("/teachers")) {
@@ -89,7 +89,7 @@ export async function mockTeacherDirectory(page: Page) {
     }
     return route.continue();
   });
-  await page.route("**/api/v1/settings/users/*/credentials/**", async (route) => {
+  await page.route("**/api/session/settings/users/*/credentials/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() !== "POST") return route.continue();

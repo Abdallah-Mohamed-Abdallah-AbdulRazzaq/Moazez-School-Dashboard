@@ -1,4 +1,6 @@
-import { test, expect, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { test, expect } from "./helpers/mock-session";
+import { mockAttendanceApi } from "./helpers/attendance-api";
 import {
   chooseSelectOption,
   expectNoPageErrors,
@@ -13,7 +15,7 @@ import {
 } from "./attendance-test-helpers";
 
 test.describe("Attendance Migrated Smoke", () => {
-  test.describe.configure({ mode: "serial" });
+  test.beforeEach(async ({ page }) => { await mockAttendanceApi(page); });
   test.use({ viewport: { width: 1700, height: 1100 } });
   const unsavedChangesDialog = (page: Page) =>
     page.getByRole("heading", { name: "Unsaved Changes" });

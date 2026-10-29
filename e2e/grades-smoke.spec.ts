@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/mock-session";
+import { mockGradesApi } from "./helpers/grades-api";
 import {
   addAndFillQuestion,
   chooseSelectOption,
@@ -13,9 +14,8 @@ import {
 } from "./grades-test-helpers";
 
 test.describe("Grades Migrated Smoke", () => {
-  test.describe.configure({ mode: "serial" });
   test.use({ viewport: { width: 1700, height: 1100 } });
-  let createdAssessmentEditUrl: string | null = null;
+  test.beforeEach(async ({ page }) => { await mockGradesApi(page); });
 
   test("shared-layout grades pages render under one visible context bar", async ({
     page,
@@ -67,7 +67,7 @@ test.describe("Grades Migrated Smoke", () => {
     await expect(page).toHaveURL(/year=year-2/);
     await expect(page).toHaveURL(/term=term-2-1/);
     await expect(page).toHaveURL(/scopeType=school/);
-    await expect(page).toHaveURL(/scopeId=school/);
+    expect(new URL(page.url()).searchParams.has("scopeId")).toBe(false);
     await expect(page).toHaveURL(/subjectId=subj-5/);
 
     await expectNoPageErrors(pageErrors);
@@ -95,7 +95,7 @@ test.describe("Grades Migrated Smoke", () => {
     await expect(page).toHaveURL(/year=year-2/);
     await expect(page).toHaveURL(/term=term-2-1/);
     await expect(page).toHaveURL(/scopeType=school/);
-    await expect(page).toHaveURL(/scopeId=school/);
+    expect(new URL(page.url()).searchParams.has("scopeId")).toBe(false);
     await expect(page).toHaveURL(/subjectId=subj-5/);
     await expectNoVisibleContextBar(page);
     await expect(page.getByText(`Smoke Builder ${suffix}`)).toBeVisible();
@@ -145,19 +145,16 @@ test.describe("Grades Migrated Smoke", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/en\/grades\/assessments\/.*\/questions/);
     await expectNoVisibleContextBar(page);
-    createdAssessmentEditUrl = page.url();
 
     await expectNoPageErrors(pageErrors);
   });
 
-  test("edit questions builder opens from assessments, stays context-bar free, and supports question CRUD", async ({
+  test("edit question builder adds, reorders, and deletes questions without the context bar", async ({
     page,
   }) => {
     const pageErrors = trackPageErrors(page);
     const suffix = `edit-${Date.now()}`;
-    test.skip(!createdAssessmentEditUrl, "Create builder did not produce an edit URL.");
-
-    await page.goto(createdAssessmentEditUrl!);
+    await page.goto(withGradesQuery("/en/grades/assessments/assessment-1/questions"));
     await page.waitForLoadState("networkidle");
 
     await expectNoVisibleContextBar(page);
@@ -165,26 +162,30 @@ test.describe("Grades Migrated Smoke", () => {
     await expect(page).toHaveURL(/year=year-2/);
     await expect(page).toHaveURL(/term=term-2-1/);
     await expect(page).toHaveURL(/scopeType=school/);
-    await expect(page).toHaveURL(/scopeId=school/);
+    expect(new URL(page.url()).searchParams.has("scopeId")).toBe(false);
     await expect(page).toHaveURL(/subjectId=subj-5/);
 
-    const initialDeleteButtons = await page
-      .getByRole("button", { name: "Delete question?" })
-      .count();
+    await expect(page.getByRole("button", { name: /^Actions for question / })).toHaveCount(1);
 
     await addAndFillQuestion(page, suffix);
-    await page.getByRole("button", { name: "Save question" }).click();
+    await Promise.all([
+      page.waitForResponse(response => response.request().method() === "GET" && new URL(response.url()).pathname === "/api/session/grades/assessments/assessment-1"),
+      page.getByRole("button", { name: "Save question" }).click(),
+    ]);
     await expect(
       page.getByRole("button", { name: "Save question" }),
     ).toBeDisabled();
 
-    await page.getByRole("button", { name: "Move up" }).last().click();
+    const addedQuestionCard = page.getByRole("button", { name: /^Question 2 / }).locator("..").locator("..");
+    await addedQuestionCard.getByRole("button", { name: "Move up", exact: true }).click();
+    await expect(page.getByRole("button", { name: /^Question 1 / })).toContainText(`Smoke question ${suffix}`);
 
-    await page.getByRole("button", { name: "Delete question?" }).last().click();
-    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("button", { name: "Actions for question 1", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Delete question?", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "Delete question?" }),
-    ).toHaveCount(initialDeleteButtons);
+      page.getByRole("button", { name: /^Actions for question / }),
+    ).toHaveCount(1);
 
     await page.getByRole("button", { name: "Back to Assessments" }).click();
     await page.waitForLoadState("networkidle");

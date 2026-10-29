@@ -4,7 +4,6 @@ export const openGradesContext = {
   year: "year-2",
   term: "term-2-1",
   scopeType: "school",
-  scopeId: "school",
   subjectId: "subj-5",
 } as const;
 
@@ -101,12 +100,9 @@ export async function fillInputByLabel(
 }
 
 export async function addAndFillQuestion(page: Page, suffix: string) {
-  const addQuestionButton = page.getByRole("button", { name: "Add Question" });
-  if ((await addQuestionButton.count()) > 0) {
-    await addQuestionButton.first().click();
-  } else {
-    await page.getByRole("button", { name: "Add First Question" }).click();
-  }
+  await page.getByRole("button", { name: "Add Question", exact: true })
+    .or(page.getByRole("button", { name: "Add First Question", exact: true }))
+    .first().click();
 
   await page.getByPlaceholder("Enter question text in English").fill(
     `Smoke question ${suffix}`,

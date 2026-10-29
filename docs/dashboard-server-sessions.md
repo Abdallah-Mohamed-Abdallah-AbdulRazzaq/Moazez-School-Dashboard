@@ -65,3 +65,17 @@ The owner authorized the full checks. The frontend ran from this branch at local
 - Repository-wide lint, typecheck, and the final production build passed. The dashboard smoke test was corrected to expect the existing visible Homework heading, the Source filter's accessible name, and automatic filtering when a source is selected. The focused dashboard and reinforcement checks passed three tests in desktop Chromium and three in Mobile Chrome.
 - After rebuilding and restarting the local branch, a published 8,662,354-byte PPTX attachment downloaded successfully and had the expected ZIP file signature. The test used an existing resource without changing school records.
 - The attempted 185-case Playwright run reached case 182 before its final WebKit worker stopped progressing; the run was interrupted. Its log recorded 77 failures, including missing authentication fixtures, mocks targeting the previous /api/v1 browser URL, and the stale dashboard filter selector. This run is not a passing browser-suite result. Real school records were not modified to satisfy these scenarios.
+
+## Browser fixture corrections on 2026-10-29
+
+The attendance, grades, teachers, conversations, and application-table tests now establish an isolated mock session and complete school-setup data. Their API mocks target /api/session. Unmocked browser API requests fail the test instead of reaching the live backend, and the shared fixture rejects non-local dashboard origins.
+
+The assertions follow the current interface: roll call explicitly opens attendance; teacher detail does not expose unsupported archive; conversation load errors offer Retry; and question deletion uses its action menu. The question-order check targets the question card rather than the answer-option controls. Application table tests assert row ordering, pagination, and filtered results without conditional passes. Grades tests seed their own assessment instead of depending on a previous test's writes.
+
+For WebKit tests over local HTTP, page-navigation requests carry only the synthetic session marker required by the local middleware. API authentication remains mocked. This handles WebKit's refusal to send Secure cookies over HTTP without modifying production cookies or real credentials. This suite checks UI and API contracts; the live session and realtime checks are recorded separately above.
+
+With the branch already running locally, PLAYWRIGHT_TEST_BASE_URL points both the browser and Playwright's existing-server check at that server. For example, set it to http://localhost:3117 before running npm run test:e2e. Start the matching local server first when using a custom port.
+
+The final full browser run completed in 7.8 minutes: 179 passed, six skipped, zero failures, and zero flaky results across Chromium, Firefox, WebKit, Mobile Chrome, and Mobile Safari. The six skips are the existing Chromium-only dashboard and reinforcement route-render checks in the three non-Chromium profiles; no skips were added. Changed-file lint, application typecheck, and a separate typecheck including the E2E files passed. This follow-up changes test code, test configuration, and verification notes only; dashboard runtime code, backend code, and realtime behavior are unchanged.
+
+The question edit scenario also passed through the standard Playwright configuration with PLAYWRIGHT_TEST_BASE_URL=http://localhost:3117, confirming that the existing local server is reused on the custom port.
