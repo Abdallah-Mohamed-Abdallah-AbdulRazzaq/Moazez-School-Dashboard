@@ -16,7 +16,7 @@ Other requests are proxied to the configured backend with the access cookie conv
 
 Mutation requests require X-Moazez-CSRF: 1. An Origin, when present, must match the dashboard request origin; cross-site Fetch Metadata is rejected. The routes do not grant cross-origin CORS access. The Axios client supplies the custom header.
 
-A 401 can trigger one refresh and retry. Concurrent requests in a tab share a refresh promise. Login, logout, and refresh are serialized with Web Locks across tabs where supported, and a local promise queue otherwise. Before rotating, a queued refresh checks /auth/me to avoid rotating again if another tab already renewed access. Browsers without Web Locks have no cross-tab serialization guarantee.
+A 401 can trigger one refresh and retry. Concurrent requests in a tab share a refresh promise. Login, logout, and refresh are serialized with Web Locks across tabs where supported, and a local promise queue otherwise. Before rotating, a queued refresh checks /auth/me to avoid rotating again if another tab already renewed access. Profile requests share an ordering counter, including these refresh probes, so a delayed response cannot replace a newer in-memory realtime token. Browsers without Web Locks have no cross-tab serialization guarantee.
 
 Session-change notifications in localStorage contain a login/logout/refresh kind and random notification ID, never tokens. Existing localStorage tokens and JavaScript cookies are removed during AuthProvider startup; existing sessions must sign in again. Old responses cannot restore a user after a session change. Logout hides private data immediately and waits for cookie deletion before navigation.
 

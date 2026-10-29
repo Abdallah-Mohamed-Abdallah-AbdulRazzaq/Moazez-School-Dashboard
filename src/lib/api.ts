@@ -21,6 +21,7 @@ export type ApiRequestConfig = AxiosRequestConfig & { skipAuthRefresh?: boolean 
 type SessionRequestConfig = InternalAxiosRequestConfig & {
   skipAuthRefresh?: boolean;
   _authSessionVersion?: number;
+  _realtimeTokenRequestVersion?: number;
   _retry?: boolean;
 };
 
@@ -66,6 +67,7 @@ export const apiClient: AxiosInstance = axios.create({
 });
 
 let pendingRefresh: { sessionVersion: number; promise: Promise<void> } | null = null;
+let realtimeTokenRequestVersion = 0;
 export { SESSION_EXPIRED_EVENT };
 
 function expireSession() {
@@ -84,8 +86,7 @@ async function refreshSession(sessionVersion: number): Promise<void> {
     if (sessionVersion !== getAuthSessionVersion()) throw ApiError.unauthorized("The authentication session has changed.");
     // Another tab may have refreshed while this one waited for the shared lock.
     try {
-      const response = await axios.get(SESSION_API_PATH + "/auth/me", { withCredentials: true });
-      synchronizeRealtimeToken(response, sessionVersion);
+      await loadRealtimeAccessToken(sessionVersion);
       return;
     } catch (error) {
       if (!isAxiosError(error) || error.response?.status !== 401) throw error;
@@ -94,14 +95,21 @@ async function refreshSession(sessionVersion: number): Promise<void> {
       withCredentials: true, headers: { [CSRF_HEADER]: "1" },
     });
     if (sessionVersion !== getAuthSessionVersion()) throw ApiError.unauthorized("The authentication session has changed.");
-    const response = await axios.get(SESSION_API_PATH + "/auth/me", { withCredentials: true });
-    synchronizeRealtimeToken(response, sessionVersion);
+    await loadRealtimeAccessToken(sessionVersion);
     publishSessionChange("refresh");
   });
 }
 
-function synchronizeRealtimeToken(response: AxiosResponse, sessionVersion: number) {
+async function loadRealtimeAccessToken(sessionVersion: number): Promise<void> {
+  const requestVersion = ++realtimeTokenRequestVersion;
+  const response = await axios.get(SESSION_API_PATH + "/auth/me", { withCredentials: true });
+  synchronizeRealtimeToken(response, sessionVersion, requestVersion);
+}
+
+function synchronizeRealtimeToken(response: AxiosResponse, sessionVersion: number, requestVersion: number) {
   if (sessionVersion !== getAuthSessionVersion()) throw ApiError.unauthorized("The authentication session has changed.");
+  // An older profile request may still carry the token from before a refresh.
+  if (requestVersion !== realtimeTokenRequestVersion) return;
   const token = response.headers[REALTIME_TOKEN_HEADER.toLowerCase()];
   if (typeof token === "string" && token) setRealtimeAccessToken(token);
 }
@@ -124,6 +132,7 @@ apiClient.interceptors.request.use((config: SessionRequestConfig) => {
   if (config._authSessionVersion !== undefined && config._authSessionVersion !== getAuthSessionVersion()) {
     throw ApiError.unauthorized("The authentication session has changed.");
   }
+  if (config.url === "/auth/me") config._realtimeTokenRequestVersion = ++realtimeTokenRequestVersion;
   return config;
 });
 
@@ -134,7 +143,7 @@ apiClient.interceptors.response.use(
     if (!config.skipAuthRefresh && config._authSessionVersion !== undefined && config._authSessionVersion !== getAuthSessionVersion()) {
       throw ApiError.unauthorized("The authentication session has changed.");
     }
-    if (config.url === "/auth/me") synchronizeRealtimeToken(response, getAuthSessionVersion());
+    if (config.url === "/auth/me") synchronizeRealtimeToken(response, getAuthSessionVersion(), config._realtimeTokenRequestVersion!);
     return response;
   },
   async (error) => {

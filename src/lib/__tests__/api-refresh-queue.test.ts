@@ -65,6 +65,33 @@ describe("cookie session refresh queue", () => {
     expect(localStorage.getItem("moazez_access_token")).toBeNull();
   });
 
+  it.each(["profile", "refresh-probe"])("keeps the newer realtime token when an older %s response arrives late", async source => {
+    let finishOlder!: () => void;
+    let firstProfile = true;
+    let unauthorizedPrivate = source === "refresh-probe";
+    network.mockImplementation(async config => {
+      if (config.url === "/old-private" && unauthorizedPrivate) {
+        unauthorizedPrivate = false;
+        throw unauthorized(config);
+      }
+      if (!config.url?.endsWith("/auth/me")) return response(config);
+      if (firstProfile) {
+        firstProfile = false;
+        return new Promise(resolve => {
+          finishOlder = () => resolve({ ...response(config), headers: { "x-moazez-realtime-token": "older-access" } });
+        });
+      }
+      return { ...response(config), headers: { "x-moazez-realtime-token": "newer-access" } };
+    });
+    const older = apiGet(source === "profile" ? "/auth/me" : "/old-private");
+    await vi.waitFor(() => expect(finishOlder).toBeTypeOf("function"));
+    await apiGet("/auth/me");
+    expect(getRealtimeAccessToken()).toBe("newer-access");
+    finishOlder();
+    await older;
+    expect(getRealtimeAccessToken()).toBe("newer-access");
+  });
+
   it("expires the local session once when refresh is revoked", async () => {
     const expiredListener = vi.fn();
     window.addEventListener(SESSION_EXPIRED_EVENT, expiredListener);
