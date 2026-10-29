@@ -17,7 +17,6 @@ export default function HomeworkAssignmentDetailsCard({
   homework,
 }: HomeworkAssignmentDetailsCardProps) {
   const t = useTranslations("academics.homework.builder.details");
-  const counters = homework.counters;
 
   return (
     <section className="border-b border-gray-200 pb-5">
@@ -44,13 +43,6 @@ export default function HomeworkAssignmentDetailsCard({
           value={joinDetails([homework.academicYearName, homework.termName])}
         />
       </dl>
-      {counters && (
-        <dl className="mt-3 grid grid-cols-3 divide-x divide-x-reverse divide-gray-200 rounded-lg bg-slate-50 px-2 py-2 text-center text-xs">
-          <Metric label={t("assigned")} value={counters.assigned} />
-          <Metric label={t("submitted")} value={counters.submitted} />
-          <Metric label={t("reviewed")} value={counters.reviewed} />
-        </dl>
-      )}
     </section>
   );
 }
@@ -75,15 +67,6 @@ function Detail({
           {value || "-"}
         </dd>
       </div>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value?: number }) {
-  return (
-    <div>
-      <dt className="text-gray-500">{label}</dt>
-      <dd className="mt-1 font-semibold text-gray-900">{value ?? 0}</dd>
     </div>
   );
 }
