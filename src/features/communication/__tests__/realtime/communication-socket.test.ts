@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const ioMock = vi.hoisted(() => vi.fn(() => ({ id: "socket" })));
+const ioMock = vi.hoisted(() => vi.fn<(url: string, options: Record<string, unknown>) => { id: string }>(() => ({ id: "socket" })));
 
 vi.mock("socket.io-client", () => ({ io: ioMock }));
 
@@ -24,7 +24,7 @@ describe("createCommunicationSocket", () => {
     createCommunicationSocket("token-1");
 
     expect(ioMock).toHaveBeenCalledWith(
-      "https://api.moazez.sa/api/v1/realtime",
+      "https://api.moazez.cloud/api/v1/realtime",
       expect.objectContaining({
         auth: { token: "token-1" },
         autoConnect: false,
@@ -38,5 +38,6 @@ describe("createCommunicationSocket", () => {
         withCredentials: true,
       }),
     );
+
   });
 });

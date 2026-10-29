@@ -1,10 +1,13 @@
-import { test, expect, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { test, expect } from "./helpers/mock-session";
+import { mockAttendanceApi } from "./helpers/attendance-api";
 import {
   chooseSelectOption,
   expectNoPageErrors,
   expectSharedAttendanceContextBar,
   expandContextBar,
   makeRollCallDirty,
+  openAttendanceContext,
   setupEditableRollCallSession,
   sharedAttendanceRoutes,
   trackPageErrors,
@@ -13,7 +16,7 @@ import {
 } from "./attendance-test-helpers";
 
 test.describe("Attendance Migrated Smoke", () => {
-  test.describe.configure({ mode: "serial" });
+  test.beforeEach(async ({ page }) => { await mockAttendanceApi(page); });
   test.use({ viewport: { width: 1700, height: 1100 } });
   const unsavedChangesDialog = (page: Page) =>
     page.getByRole("heading", { name: "Unsaved Changes" });
@@ -42,7 +45,13 @@ test.describe("Attendance Migrated Smoke", () => {
   }) => {
     const pageErrors = trackPageErrors(page);
 
+    const absencesResponse = page.waitForResponse(response => {
+      const url = new URL(response.url());
+      return url.pathname === "/api/session/attendance/absences" &&
+        url.searchParams.get("academicYearId") === openAttendanceContext.year;
+    });
     await page.goto(withAttendanceQuery("/en/attendance/absences"));
+    expect(await (await absencesResponse).finished()).toBeNull();
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Filters").first()).toBeVisible();
 

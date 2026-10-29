@@ -1,5 +1,6 @@
 import createMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
+import { REFRESH_COOKIE } from "./lib/auth/constants";
 import { routing } from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
@@ -12,11 +13,7 @@ const PUBLIC_ROUTES = [
   "/auth/callback",
 ];
 
-const AUTH_COOKIE_NAMES = [
-  "moazez_session",
-  "moazez_refresh_token",
-  "refreshToken",
-];
+const AUTH_COOKIE_NAMES = [REFRESH_COOKIE];
 
 function getLocale(pathname: string): "en" | "ar" {
   const locale = pathname.split("/")[1];

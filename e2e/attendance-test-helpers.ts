@@ -141,6 +141,7 @@ export async function setupEditableRollCallSession(page: Page) {
 
   await fillRollCallDate(page, "09/02/2024");
   await chooseSelectOption(page, "Scope Type", "School-wide");
+  await page.getByRole("button", { name: "Open attendance", exact: true }).click();
 
   await expect(
     page.getByRole("button", { name: "Mark All Present" }),
@@ -157,8 +158,8 @@ export async function triggerInjectedInternalNavigation(
   href: string,
 ) {
   await page.evaluate((targetHref) => {
-    let anchor = document.getElementById("pw-attendance-nav");
-    if (!(anchor instanceof HTMLAnchorElement)) {
+    let anchor = document.querySelector<HTMLAnchorElement>("a#pw-attendance-nav");
+    if (!anchor) {
       anchor = document.createElement("a");
       anchor.id = "pw-attendance-nav";
       anchor.textContent = "navigate";

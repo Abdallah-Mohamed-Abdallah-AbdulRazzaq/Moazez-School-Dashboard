@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./helpers/mock-session";
 import {
   expectNoPageErrors,
   mockTeacherDirectory,
@@ -44,7 +44,7 @@ test.describe("Teacher Directory", () => {
     await expect(page.getByRole("button", { name: /rehire/i })).toHaveCount(0);
   });
 
-  test("opens contract-scoped create, edit, and archive dialogs", async ({ page }) => {
+  test("opens create and edit dialogs without exposing unsupported archive", async ({ page }) => {
     await page.goto("/en/teachers");
     await page.getByRole("button", { name: "Add Teacher" }).click();
     await expect(page.getByRole("heading", { name: "Add Teacher" })).toBeVisible();
@@ -54,8 +54,7 @@ test.describe("Teacher Directory", () => {
     await page.getByRole("button", { name: "Edit" }).click();
     await expect(page.getByRole("heading", { name: "Edit Teacher" })).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
-    await page.getByRole("button", { name: "Archive" }).click();
-    await expect(page.getByRole("heading", { name: "Archive teacher" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Archive", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
   });
 

@@ -56,7 +56,7 @@ describe("proxy route protection", () => {
     const proxy = await loadProxy();
 
     const response = proxy(
-      requestFor("/en/login", "moazez_session=session-token"),
+      requestFor("/en/login", "moazez_session_refresh=session-token"),
     );
 
     expect(redirectLocation(response)).toBe("https://dashboard.test/en/dashboard");
@@ -66,7 +66,7 @@ describe("proxy route protection", () => {
     const proxy = await loadProxy();
 
     const response = proxy(
-      requestFor("/ar/login", "refreshToken=refresh-token"),
+      requestFor("/ar/login", "moazez_session_refresh=refresh-token"),
     );
 
     expect(redirectLocation(response)).toBe("https://dashboard.test/ar/dashboard");
@@ -79,7 +79,7 @@ describe("proxy route protection", () => {
       "https://dashboard.test/ar/login",
     );
     expect(
-      redirectLocation(proxy(requestFor("/en", "moazez_refresh_token=token"))),
+      redirectLocation(proxy(requestFor("/en", "moazez_session_refresh=token"))),
     ).toBe("https://dashboard.test/en/dashboard");
   });
 

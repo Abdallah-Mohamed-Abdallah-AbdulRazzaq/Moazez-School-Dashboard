@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { installSessionCookies } from "./helpers/session";
 
 const authUser = {
   id: "user-1",
@@ -18,34 +19,18 @@ const authUser = {
       "dashboard.summary.view",
       "dashboard.alerts.view",
       "dashboard.activity_feed.view",
+      "dashboard.modules.view",
+      "communication.announcements.view",
     ],
   },
 };
 
 async function installDashboardApiMocks(page: Page) {
-  await page.context().addCookies([
-    {
-      name: "moazez_session",
-      value: "dashboard-session",
-      url: "http://localhost:3000",
-    },
-    {
-      name: "moazez_refresh_token",
-      value: "dashboard-refresh",
-      url: "http://localhost:3000",
-    },
-  ]);
+  await installSessionCookies(page);
 
-  await page.addInitScript(() => {
-    localStorage.setItem("moazez_access_token", "dashboard-token");
-    localStorage.setItem("moazez_refresh_token", "dashboard-refresh");
-    document.cookie = "moazez_session=dashboard-session; Path=/; SameSite=Lax";
-    document.cookie = "moazez_refresh_token=dashboard-refresh; Path=/; SameSite=Lax";
-  });
-
-  await page.route("**/api/v1/**", async (route: Route) => {
+  await page.route("**/api/session/**", async (route: Route) => {
     const pathname = new URL(route.request().url()).pathname.replace(
-      "/api/v1",
+      "/api/session",
       "",
     );
 
@@ -62,23 +47,39 @@ async function installDashboardApiMocks(page: Page) {
     if (pathname === "/auth/me") return fulfillJson(authUser);
     if (pathname === "/auth/refresh") {
       return fulfillJson({
-        accessToken: "dashboard-token",
-        refreshToken: "dashboard-refresh",
         user: authUser,
       });
     }
     if (pathname === "/settings/branding") {
-      return fulfillJson({ schoolNameEn: "Example School" });
+      return fulfillJson({ schoolName: "Example School" });
     }
     if (pathname === "/academics/structure/years") {
       return fulfillJson([{ id: "year-1", nameEn: "2025/2026" }]);
     }
     if (pathname === "/academics/structure/terms") {
-      return fulfillJson([{ id: "term-1", nameEn: "Term 1" }]);
+      return fulfillJson([{ id: "term-1", academicYearId: "year-1", nameEn: "Term 1", status: "open" }]);
+    }
+    if (pathname === "/academics/structure/tree") {
+      return fulfillJson({
+        stages: [{ id: "stage-1", nameEn: "Primary" }],
+        grades: [{ id: "grade-1", stageId: "stage-1", nameEn: "Grade 1" }],
+        sections: [{ id: "section-1", gradeId: "grade-1", nameEn: "A" }],
+        classrooms: [{ id: "classroom-1", sectionId: "section-1", nameEn: "Class 1" }],
+      });
+    }
+    if (pathname === "/academics/subjects") {
+      return fulfillJson([{ id: "subject-1", nameEn: "Math" }]);
+    }
+    if (pathname === "/academics/subject-allocations") {
+      return fulfillJson({ items: [{ subjectId: "subject-1", gradeId: "grade-1", weeklyHours: 4 }] });
+    }
+    if (pathname === "/academics/rooms") {
+      return fulfillJson([{ id: "room-1", nameEn: "Room 1" }]);
     }
     if (pathname === "/dashboard/summary") {
       return fulfillJson(dashboardSummaryResponse);
     }
+    if (pathname === "/dashboard/modules") return fulfillJson({ modules: [] });
     if (pathname === "/dashboard/alerts") {
       return fulfillJson(dashboardAlertsResponse);
     }
@@ -117,7 +118,7 @@ test.describe("dashboard backend contract smoke", () => {
     await expect(
       page.getByRole("heading", { name: "Academics setup" }),
     ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Homework" })).toBeHidden();
+    await expect(page.getByRole("heading", { name: "Homework" })).toBeVisible();
     await expect(page.getByText("Attendance session submitted")).toBeVisible();
     await expect(
       page.getByText("Analytics charts are not available in this version.").first(),
@@ -132,8 +133,7 @@ test.describe("dashboard backend contract smoke", () => {
       page.getByText("attendance.session.submit", { exact: true }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "All sources" }).click();
-    await page.getByRole("button", { name: "Attendance", exact: true }).click();
+    await page.getByRole("button", { name: "Source", exact: true }).click();
     const filteredActivityRequest = page.waitForRequest((request) => {
       const requestUrl = new URL(request.url());
       return (
@@ -141,7 +141,7 @@ test.describe("dashboard backend contract smoke", () => {
         requestUrl.searchParams.get("source") === "attendance"
       );
     });
-    await page.getByRole("button", { name: "Apply filters" }).click();
+    await page.getByRole("button", { name: "Attendance", exact: true }).click();
     await filteredActivityRequest;
 
     await page.getByRole("button", { name: /load more/i }).click();

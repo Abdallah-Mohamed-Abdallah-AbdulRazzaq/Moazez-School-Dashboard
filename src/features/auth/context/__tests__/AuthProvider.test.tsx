@@ -21,8 +21,6 @@ const authProviderMocks = vi.hoisted(() => ({
   push: vi.fn(),
   searchParams: new URLSearchParams(),
   getCurrentUser: vi.fn(),
-  hasTokens: vi.fn(),
-  clearTokens: vi.fn(),
   downloadFileBlob: vi.fn(),
 }));
 
@@ -38,20 +36,6 @@ vi.mock("@/services/auth-service", () => ({
     login: vi.fn(),
     logout: vi.fn(),
     changePassword: vi.fn(),
-  },
-}));
-
-vi.mock("@/lib/token-storage", () => ({
-  getAuthSessionVersion: () => 0,
-  invalidateAuthSession: vi.fn(),
-  subscribeToAccessTokenChanges: () => () => undefined,
-  tokenStorage: {
-    hasTokens: authProviderMocks.hasTokens,
-    clearTokens: authProviderMocks.clearTokens,
-    getRefreshToken: vi.fn(),
-    getAccessToken: vi.fn(),
-    setAccessToken: vi.fn(),
-    setRefreshToken: vi.fn(),
   },
 }));
 
@@ -79,8 +63,6 @@ describe("AuthProvider route redirects", () => {
     authProviderMocks.searchParams = new URLSearchParams();
     authProviderMocks.push.mockReset();
     authProviderMocks.getCurrentUser.mockReset();
-    authProviderMocks.hasTokens.mockReset();
-    authProviderMocks.clearTokens.mockReset();
     authProviderMocks.downloadFileBlob.mockReset();
   });
 
@@ -97,7 +79,6 @@ describe("AuthProvider route redirects", () => {
     authProviderMocks.searchParams = new URLSearchParams({
       next: "/ar/dashboard/recent-activities",
     });
-    authProviderMocks.hasTokens.mockReturnValue(true);
     authProviderMocks.getCurrentUser.mockResolvedValue({
       id: "user-1",
       mustChangePassword: false,
@@ -118,7 +99,6 @@ describe("AuthProvider route redirects", () => {
 
   it("redirects an unavailable dashboard overview to the first permitted tab", async () => {
     authProviderMocks.pathname = "/ar/dashboard";
-    authProviderMocks.hasTokens.mockReturnValue(true);
     authProviderMocks.getCurrentUser.mockResolvedValue({
       id: "user-1",
       mustChangePassword: false,
@@ -140,7 +120,6 @@ describe("AuthProvider route redirects", () => {
 
   it("redirects once when concurrent requests report an expired session", async () => {
     authProviderMocks.pathname = "/ar/academics";
-    authProviderMocks.hasTokens.mockReturnValue(true);
     authProviderMocks.getCurrentUser.mockResolvedValue({
       id: "user-1",
       mustChangePassword: false,

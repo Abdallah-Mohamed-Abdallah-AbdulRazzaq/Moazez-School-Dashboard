@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/mock-session";
 
 /**
  * Conversation Page Audit — E2E Tests
@@ -133,22 +133,13 @@ async function setupRoutes(
   page: import("@playwright/test").Page,
   options?: {
     conversationsError?: boolean;
-    searchFilter?: string;
   },
 ) {
-  // Mock auth/user endpoint
-  await page.route("**/api/v1/auth/**", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        data: { id: "user-1", name: "Current User", email: "user@school.edu" },
-      }),
-    }),
+  await page.route(/\/api\/session\/communication\/messages\/[^/]+\/(reactions|attachments)(\?|$)/, route =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [], total: 0 }) }),
   );
-
   // Mock policy
-  await page.route("**/api/v1/communication/policies*", (route) =>
+  await page.route("**/api/session/communication/policies*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -157,7 +148,7 @@ async function setupRoutes(
   );
 
   // Mock conversations list
-  await page.route("**/api/v1/communication/conversations?**", (route) => {
+  await page.route("**/api/session/communication/conversations?**", (route) => {
     if (options?.conversationsError) {
       return route.fulfill({
         status: 500,
@@ -184,7 +175,7 @@ async function setupRoutes(
   });
 
   // Mock conversations list (no query params)
-  await page.route("**/api/v1/communication/conversations", (route) => {
+  await page.route("**/api/session/communication/conversations", (route) => {
     if (route.request().url().includes("?")) return route.continue();
 
     if (options?.conversationsError) {
@@ -206,7 +197,7 @@ async function setupRoutes(
 
   // Mock single conversation
   await page.route(
-    "**/api/v1/communication/conversations/conv-*",
+    "**/api/session/communication/conversations/conv-*",
     (route) => {
       const url = route.request().url();
       // Skip sub-resource endpoints (messages, participants, etc.)
@@ -238,7 +229,7 @@ async function setupRoutes(
   );
 
   // Mock messages for any conversation
-  await page.route("**/api/v1/communication/conversations/*/messages*", (route) =>
+  await page.route("**/api/session/communication/conversations/*/messages*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -249,7 +240,7 @@ async function setupRoutes(
   );
 
   // Mock participants
-  await page.route("**/api/v1/communication/conversations/*/participants*", (route) =>
+  await page.route("**/api/session/communication/conversations/*/participants*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -258,7 +249,7 @@ async function setupRoutes(
   );
 
   // Mock read endpoint
-  await page.route("**/api/v1/communication/conversations/*/read*", (route) =>
+  await page.route("**/api/session/communication/conversations/*/read*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -267,7 +258,7 @@ async function setupRoutes(
   );
 
   // Mock blocks
-  await page.route("**/api/v1/communication/blocks*", (route) =>
+  await page.route("**/api/session/communication/blocks*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -276,7 +267,7 @@ async function setupRoutes(
   );
 
   // Mock notifications
-  await page.route("**/api/v1/communication/notifications*", (route) =>
+  await page.route("**/api/session/communication/notifications*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -302,14 +293,12 @@ test.describe("Conversation Page Audit — E2E", () => {
     await page.waitForLoadState("networkidle");
 
     // The sidebar is an <aside> element
-    const sidebar = page.locator("aside");
+    const sidebar = page.getByRole("complementary", { name: "Conversations", exact: true });
     await expect(sidebar).toBeVisible();
 
     // Assert correct number of conversation items rendered
     // Each conversation item is a <button> inside the scrollable list area
-    const conversationButtons = sidebar.locator(
-      "div.overflow-y-auto > button",
-    );
+    const conversationButtons = sidebar.getByRole("button").filter({ hasText: /Pinned Math Group|Science Discussion|Parent-Teacher Chat/ });
     await expect(conversationButtons).toHaveCount(mockConversations.length);
 
     // Assert conversation titles are displayed
@@ -340,7 +329,7 @@ test.describe("Conversation Page Audit — E2E", () => {
     await page.goto(CONVERSATIONS_URL);
     await page.waitForLoadState("networkidle");
 
-    const sidebar = page.locator("aside");
+    const sidebar = page.getByRole("complementary", { name: "Conversations", exact: true });
 
     // Find the search input
     const searchInput = sidebar.locator('input[type="search"]');
@@ -351,12 +340,9 @@ test.describe("Conversation Page Audit — E2E", () => {
 
     // Wait for the filtered results — the API is intercepted with search param
     // The route handler filters by title, so only "Science Discussion" should appear
-    await page.waitForTimeout(500); // Allow debounce/state update
 
     // After search, the sidebar should show filtered results
-    const conversationButtons = sidebar.locator(
-      "div.overflow-y-auto > button",
-    );
+    const conversationButtons = sidebar.getByRole("button").filter({ hasText: /Pinned Math Group|Science Discussion|Parent-Teacher Chat/ });
 
     // The mock route filters by search param, so we expect 1 result
     await expect(conversationButtons).toHaveCount(1);
@@ -376,11 +362,11 @@ test.describe("Conversation Page Audit — E2E", () => {
     await page.goto(CONVERSATIONS_URL);
     await page.waitForLoadState("networkidle");
 
-    const sidebar = page.locator("aside");
+    const sidebar = page.getByRole("complementary", { name: "Conversations", exact: true });
 
     // Click the first conversation (Pinned Math Group)
     const firstConversation = sidebar
-      .locator("div.overflow-y-auto > button")
+      .getByRole("button", { name: /Pinned Math Group/ })
       .first();
     await firstConversation.click();
 
@@ -428,7 +414,7 @@ test.describe("Conversation Page Audit — E2E", () => {
     await page.waitForLoadState("networkidle");
 
     // On mobile, only the sidebar should be visible initially
-    const sidebar = page.locator("aside");
+    const sidebar = page.getByRole("complementary", { name: "Conversations", exact: true });
     await expect(sidebar).toBeVisible();
 
     // The detail section should be hidden on mobile (has "hidden" class when no conversation selected)
@@ -437,7 +423,7 @@ test.describe("Conversation Page Audit — E2E", () => {
 
     // Click a conversation to open the detail view
     const firstConversation = sidebar
-      .locator("div.overflow-y-auto > button")
+      .getByRole("button", { name: /Pinned Math Group/ })
       .first();
     await firstConversation.click();
 
@@ -471,17 +457,13 @@ test.describe("Conversation Page Audit — E2E", () => {
    * Task 7.5: Error state handling
    * Validates: Requirements 3.3
    */
-  test("API error displays error toast", async ({ page }) => {
+  test("API error displays a retryable error state", async ({ page }) => {
     await setupRoutes(page, { conversationsError: true });
     await page.goto(CONVERSATIONS_URL);
     await page.waitForLoadState("networkidle");
 
-    // The ConversationPage renders a ToastMessage when conversationsState.error is set
-    // The toast has specific styling classes for error tone: "border-red-200 bg-red-50 text-red-800"
-    const errorToast = page.locator(".bg-red-50");
-    await expect(errorToast).toBeVisible({ timeout: 10000 });
-
-    // The toast should contain an error message
-    await expect(errorToast).toContainText(/.+/);
+    const errorAlert = page.getByRole("complementary", { name: "Conversations", exact: true }).getByRole("alert");
+    await expect(errorAlert).toContainText("Internal Server Error");
+    await expect(errorAlert.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
   });
 });

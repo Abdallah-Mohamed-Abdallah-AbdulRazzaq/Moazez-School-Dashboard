@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { installSessionCookies } from "./helpers/session";
 
-const apiBase = "https://api.moazez.sa/api/v1";
+const apiBase = "/api/session";
 
 const authUser = {
   id: "user-1",
@@ -25,14 +26,11 @@ const authUser = {
 };
 
 async function installAuthAndApiMocks(page: Page) {
-  await page.addInitScript(() => {
-    localStorage.setItem("moazez_access_token", "sprint5a-token");
-    localStorage.setItem("moazez_refresh_token", "sprint5a-refresh");
-  });
+  await installSessionCookies(page);
 
-  await page.route("**/api/v1/**", async (route: Route) => {
+  await page.route("**/api/session/**", async (route: Route) => {
     const url = route.request().url();
-    const pathname = new URL(url).pathname.replace("/api/v1", "");
+    const pathname = new URL(url).pathname.replace("/api/session", "");
 
     const json = (body: unknown) =>
       route.fulfill({
@@ -47,8 +45,6 @@ async function installAuthAndApiMocks(page: Page) {
     if (pathname === "/auth/me") return json(authUser);
     if (pathname === "/auth/refresh") {
       return json({
-        accessToken: "sprint5a-token",
-        refreshToken: "sprint5a-refresh",
         user: authUser,
       });
     }
@@ -169,7 +165,7 @@ async function assertApiRequest(
 ) {
   let capturedBody: Record<string, unknown> | null = null;
 
-  await page.route(`${apiBase}${options.path}`, async (route, request) => {
+  await page.route(`**${apiBase}${options.path}`, async (route, request) => {
     expect(request.method()).toBe(options.method);
     capturedBody = request.postDataJSON?.() as Record<string, unknown> | null;
     await route.fulfill({
@@ -187,7 +183,7 @@ async function assertApiRequest(
       await fetch(url, {
         method,
         headers: {
-          authorization: "Bearer sprint5a-token",
+          "X-Moazez-CSRF": "1",
           "content-type": "application/json",
         },
         body: payload ? JSON.stringify(payload) : undefined,

@@ -1,7 +1,7 @@
 "use client";
 
 import { io, type Socket } from "socket.io-client";
-import { tokenStorage } from "@/lib/token-storage";
+import { getRealtimeAccessToken } from "@/lib/auth/realtime-token";
 import { COMMUNICATION_SOCKET_EVENTS } from "./communication-events";
 import {
   RECONNECTION_ATTEMPTS,
@@ -19,7 +19,7 @@ const REALTIME_TRANSPORTS = ["websocket", "polling"] as const;
 // NEXT_PUBLIC_REALTIME_SOCKET_PATH=/api/v1/realtime/socket.io.
 export const COMMUNICATION_REALTIME_URL =
   process.env.NEXT_PUBLIC_REALTIME_URL ||
-  "https://api.moazez.sa/api/v1/realtime";
+  "https://api.moazez.cloud/api/v1/realtime";
 
 export const COMMUNICATION_REALTIME_SOCKET_PATH =
   process.env.NEXT_PUBLIC_REALTIME_SOCKET_PATH || undefined;
@@ -122,7 +122,7 @@ export type CommunicationSocket = Socket<
 >;
 
 export function getCommunicationAccessToken(): string | null {
-  return tokenStorage.getAccessToken();
+  return getRealtimeAccessToken();
 }
 
 export function createCommunicationSocket(

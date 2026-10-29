@@ -8,7 +8,7 @@ This document defines the frontend communication realtime contract. It describes
 
 The ownership boundary is one communication socket per authenticated browser tab. Opening more tabs creates more sockets. Cross-tab leader election, `BroadcastChannel`, and SharedWorker coordination are not implemented.
 
-The provider creates a socket only when authentication loading has finished and the current user and access token are both present. Logout, token removal, provider unmount, or loss of the authenticated user stops the session, disconnects the socket, clears owned timers, removes listeners, and clears room bookkeeping.
+The provider creates a socket only when authentication loading has finished and the current user and in-memory access token are present. Logout, provider unmount, or loss of the authenticated user stops the session, disconnects the socket, clears owned timers, removes listeners, and clears room bookkeeping.
 
 ## Connection configuration
 
@@ -16,15 +16,17 @@ The client uses Socket.IO Client 4.8.3 with these project settings:
 
 | Setting | Value |
 |---|---|
-| Namespace URL | `NEXT_PUBLIC_REALTIME_URL`, falling back to `https://api.moazez.sa/api/v1/realtime` |
+| Namespace URL | `NEXT_PUBLIC_REALTIME_URL`, falling back to `https://api.moazez.cloud/api/v1/realtime` |
 | Engine.IO path | `NEXT_PUBLIC_REALTIME_SOCKET_PATH` when non-empty; otherwise the Socket.IO default |
-| Authentication | `auth: { token }` |
+| Authentication | `auth: { token }` from the in-memory access token |
 | Transport order | `websocket`, then `polling` |
 | Initial transport fallback | `tryAllTransports: true` |
 | Credentials | `withCredentials: true` |
 | Automatic connection | Disabled during construction; the session calls `connect()` after listeners are attached |
 
 `NEXT_PUBLIC_REALTIME_URL` identifies the Socket.IO namespace. `NEXT_PUBLIC_REALTIME_SOCKET_PATH` changes the Engine.IO transport path; it is not another namespace setting. Keep the path empty unless the backend or proxy explicitly exposes a custom Engine.IO path.
+
+With the default settings, the WebSocket transport connects to `wss://api.moazez.cloud/socket.io/?EIO=4&transport=websocket`. The Socket.IO namespace remains `/api/v1/realtime`.
 
 ## Connection state and retry policy
 
@@ -34,11 +36,11 @@ The client uses Socket.IO Client 4.8.3 with these project settings:
 idle | connecting | connected | reconnecting | offline | auth-error | degraded
 ```
 
-`isConnected` is true only for `connected`. `connectionError` contains the current user-facing connection error, and `retryConnection()` requests a manual retry when the session is online, has a token, and is not blocked by rejection of that same token.
+`isConnected` is true only for `connected`. `connectionError` contains the current user-facing connection error, and `retryConnection()` requests a manual retry when the session is online and has not encountered an authentication rejection.
 
 Automatic retries use an exponential delay starting at 1 second, capped at 30 seconds, with a randomization factor of 0.5. A retry cycle is limited to eight attempts. Exhaustion enters `degraded` for a 60-second cooldown before a new cycle can begin. A successful connection resets retry and cooldown bookkeeping.
 
-The browser `offline` event disables manager reconnection and moves the state to `offline`. The `online` event can resume the connection when a usable token is present. No automatic retry is scheduled while the browser reports that it is offline.
+The browser `offline` event disables manager reconnection and moves the state to `offline`. The `online` event can resume the connection when authentication has not been rejected. No automatic retry is scheduled while the browser reports that it is offline.
 
 Connection failure classification accepts namespace errors and Engine.IO transport errors:
 
@@ -48,17 +50,15 @@ Connection failure classification accepts namespace errors and Engine.IO transpo
 
 Status values are read from the error's attached `data`, outer `status`, Engine.IO `description`, or `context.status` fields.
 
-## Token synchronization
+## In-memory access-token synchronization
 
-The access token is read from `tokenStorage` under `moazez_access_token`. Writes through `tokenStorage.setAccessToken()`, `removeAccessToken()`, and `clearTokens()` publish a same-tab notification without including the token value. A native browser `storage` listener covers changes made by another tab.
+The existing Socket.IO handshake and retry behavior are retained. The browser receives the current access token in the X-Moazez-Realtime-Token response header on a successful same-origin /api/session/auth/me request. The API client keeps it only in module memory; it is not written to localStorage, sessionStorage, or JavaScript cookies. Refresh tokens remain in server-managed HttpOnly cookies and are never returned to JavaScript.
 
-On notification, the session rereads storage:
+Session restoration loads the token before AuthProvider finishes authenticating the user. HTTP refresh resynchronizes the in-memory token from /auth/me. A changed token updates socket.auth.token and performs one controlled reconnect. An unchanged token does not reconnect. Session invalidation clears the token and detaches the old socket; cross-tab login/logout notifications restore or clear each tab's own session.
 
-- An unchanged value causes no reconnect.
-- A different non-empty token updates `socket.auth.token` and performs one controlled disconnect/connect cycle.
-- A missing token stops and detaches the session.
+This preserves compatibility with the existing backend handshake and requires no cookie-authentication change or WebSocket relay. The access token remains JavaScript-readable at runtime, so the original security finding is only partially mitigated: persistent token storage and refresh-token exposure are removed, while access-token use by realtime remains.
 
-The realtime client does not poll token storage.
+See [Dashboard server sessions](dashboard-server-sessions.md) for the HTTP boundary and validation steps.
 
 ## Conversation rooms
 
@@ -91,7 +91,7 @@ The event constants live in `src/features/communication/realtime/communication-e
 
 The typing commands sent by the client are `communication.typing.start` and `communication.typing.stop`.
 
-Hooks must unregister the exact callback they registered. The provider separately owns socket lifecycle listeners, manager retry listeners, browser online/offline listeners, token-change listeners, and its timeout handles.
+Hooks must unregister the exact callback they registered. The provider separately owns socket lifecycle listeners, manager retry listeners, browser online/offline listeners and its timeout handles.
 
 ## Recovery and REST reconciliation
 
@@ -118,8 +118,8 @@ The focused Vitest coverage is organized as follows:
 |---|---|
 | Socket options and transport fallback | `src/features/communication/__tests__/realtime/communication-socket.test.ts` |
 | Failure classification, retry bounds, and 100-client jitter dispersion | `src/features/communication/__tests__/realtime/communication-connection-policy.test.ts` |
-| Provider ownership, cross-tab token changes, room recovery, 100 mount/unmount cycles, and five-minute recovery | `src/features/communication/__tests__/realtime/CommunicationRealtimeProvider.test.tsx` |
-| Token notification and storage cleanup | `src/lib/__tests__/token-storage.test.ts` |
+| Provider ownership, account logout/login, room recovery, 100 mount/unmount cycles, and five-minute recovery | `src/features/communication/__tests__/realtime/CommunicationRealtimeProvider.test.tsx` |
+| Credential-free cross-tab notifications and legacy cleanup | `src/lib/__tests__/session-client.test.ts` |
 | Overview event targeting and recovery | `src/features/communication/__tests__/hooks/useCommunicationOverview.test.tsx` |
 | Conversation-list request coalescing | `src/features/communication/__tests__/hooks/useConversations.test.ts` |
 | Notification recovery suppression | `src/features/communication/__tests__/hooks/useNotifications.test.ts` |

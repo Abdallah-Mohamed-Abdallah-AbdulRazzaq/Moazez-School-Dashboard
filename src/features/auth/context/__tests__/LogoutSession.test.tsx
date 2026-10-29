@@ -3,8 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "@/features/auth/context/AuthProvider";
 import { useAuth } from "@/hooks/use-auth";
-import { apiGet, apiPost } from "@/lib/api";
-import { tokenStorage, ACCESS_TOKEN_KEY } from "@/lib/token-storage";
+import { apiClient } from "@/lib/api";
+import type { InternalAxiosRequestConfig } from "axios";
+import { SESSION_STORAGE_KEY } from "@/lib/auth/session-client";
+import { getRealtimeAccessToken, setRealtimeAccessToken } from "@/lib/auth/realtime-token";
 import type { MeResponse } from "@/types/user";
 
 const navigation = vi.hoisted(() => ({ push: vi.fn() }));
@@ -13,10 +15,15 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/en/academics/timetable",
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock("@/lib/api", () => ({
-  apiGet: vi.fn(), apiPost: vi.fn(), apiPatch: vi.fn(), apiDelete: vi.fn(),
-  SESSION_EXPIRED_EVENT: "moazez:session-expired",
-}));
+function response(config: InternalAxiosRequestConfig, body: unknown) {
+  return { data: body, status: 200, statusText: "OK", headers: {}, config };
+}
+const network = vi.fn(async (config: InternalAxiosRequestConfig) => response(config, account));
+function crossTab(kind: "login" | "logout" | "refresh") {
+  window.dispatchEvent(new StorageEvent("storage", {
+    key: SESSION_STORAGE_KEY, newValue: JSON.stringify({ kind, id: crypto.randomUUID() }), storageArea: localStorage,
+  }));
+}
 
 const account: MeResponse = {
   id: "audit-admin", email: "audit@example.test", firstName: "QA", lastName: "Admin",
@@ -41,33 +48,37 @@ describe("logout session safeguards", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     localStorage.clear();
-    tokenStorage.setAccessToken("audit-access");
-    tokenStorage.setRefreshToken("audit-refresh");
-    vi.mocked(apiGet).mockResolvedValue(account);
-    vi.mocked(apiPost).mockResolvedValue(undefined);
+    network.mockImplementation(async config => response(config, account));
+    apiClient.defaults.adapter = network;
+  });
+
+  it("resynchronizes a token refreshed in another tab without signing the current user out", async () => {
+    await openAuthenticatedSession();
+    setRealtimeAccessToken("old-access");
+    network.mockImplementationOnce(async config => ({
+      ...response(config, account), headers: { "x-moazez-realtime-token": "refreshed-access" },
+    }));
+    act(() => crossTab("refresh"));
+    expect(screen.getByLabelText("Session")).toHaveTextContent(account.id);
+    await waitFor(() => expect(getRealtimeAccessToken()).toBe("refreshed-access"));
+    expect(screen.getByLabelText("Session")).toHaveTextContent(account.id);
   });
 
   it("does not restore the user when an older me request completes after logout", async () => {
     await openAuthenticatedSession();
     let finishMe!: (user: MeResponse) => void;
-    vi.mocked(apiGet).mockReturnValueOnce(new Promise(resolve => { finishMe = resolve; }));
+    network.mockImplementationOnce(config => new Promise(resolve => { finishMe = user => resolve(response(config, user)); }));
     await userEvent.click(screen.getByRole("button", { name: "Refresh session" }));
     await userEvent.click(screen.getByRole("button", { name: "Logout" }));
-    expect(tokenStorage.hasTokens()).toBe(false);
+    expect(localStorage.getItem("moazez_access_token")).toBeNull();
     expect(screen.getByLabelText("Session")).toHaveTextContent("signed-out");
     await act(async () => finishMe(account));
     expect(screen.getByLabelText("Session")).toHaveTextContent("signed-out");
   });
 
-  it("clears the user when another tab removes the access token", async () => {
+  it("clears the user when another tab signs out", async () => {
     await openAuthenticatedSession();
-    act(() => {
-      localStorage.removeItem(ACCESS_TOKEN_KEY);
-      window.dispatchEvent(new StorageEvent("storage", {
-        key: ACCESS_TOKEN_KEY, oldValue: "audit-access", newValue: null,
-        storageArea: localStorage,
-      }));
-    });
+    act(() => crossTab("logout"));
     expect(screen.getByLabelText("Session")).toHaveTextContent("signed-out");
   });
 
@@ -81,25 +92,21 @@ describe("logout session safeguards", () => {
   it("clears local credentials even while the logout endpoint is delayed", async () => {
     await openAuthenticatedSession();
     let finishLogout!: () => void;
-    vi.mocked(apiPost).mockReturnValueOnce(new Promise<void>(resolve => { finishLogout = resolve; }));
+    network.mockImplementationOnce(config => new Promise(resolve => { finishLogout = () => resolve(response(config, undefined)); }));
     await userEvent.click(screen.getByRole("button", { name: "Logout" }));
-    const tokensDuringLogout = tokenStorage.hasTokens();
+    const stateDuringLogout = screen.getByLabelText("Session").textContent;
     await act(async () => finishLogout());
-    expect(tokensDuringLogout).toBe(false);
+    expect(stateDuringLogout).toBe("signed-out");
   });
 
   it("replaces the old user after a different account signs in in another tab", async () => {
     await openAuthenticatedSession();
     const nextAccount = { ...account, id: "next-admin" };
     let finishMe!: (user: MeResponse) => void;
-    vi.mocked(apiGet).mockReturnValueOnce(new Promise(resolve => { finishMe = resolve; }));
-    act(() => {
-      localStorage.setItem(ACCESS_TOKEN_KEY, "next-access");
-      window.dispatchEvent(new StorageEvent("storage", {
-        key: ACCESS_TOKEN_KEY, oldValue: "audit-access", newValue: "next-access", storageArea: localStorage,
-      }));
-    });
+    network.mockImplementationOnce(config => new Promise(resolve => { finishMe = user => resolve(response(config, user)); }));
+    act(() => crossTab("login"));
     expect(screen.getByLabelText("Session")).toHaveTextContent("signed-out");
+    await waitFor(() => expect(finishMe).toBeTypeOf("function"));
     await act(async () => finishMe(nextAccount));
     expect(screen.getByLabelText("Session")).toHaveTextContent("next-admin");
   });
@@ -107,20 +114,14 @@ describe("logout session safeguards", () => {
   it("does not erase the new account when an older me request fails", async () => {
     await openAuthenticatedSession();
     let failOldMe!: (error: Error) => void;
-    vi.mocked(apiGet).mockReturnValueOnce(new Promise((_resolve, reject) => { failOldMe = reject; }));
+    network.mockImplementationOnce(() => new Promise((_resolve, reject) => { failOldMe = reject; }));
     await userEvent.click(screen.getByRole("button", { name: "Refresh session" }));
     await userEvent.click(screen.getByRole("button", { name: "Logout" }));
-    vi.mocked(apiGet).mockResolvedValueOnce({ ...account, id: "next-admin" });
-    await act(async () => {
-      tokenStorage.setAccessToken("next-access");
-      tokenStorage.setRefreshToken("next-refresh");
-      window.dispatchEvent(new StorageEvent("storage", {
-        key: ACCESS_TOKEN_KEY, oldValue: null, newValue: "next-access", storageArea: localStorage,
-      }));
-    });
+    network.mockImplementationOnce(async config => response(config, { ...account, id: "next-admin" }));
+    await act(async () => crossTab("login"));
     await waitFor(() => expect(screen.getByLabelText("Session")).toHaveTextContent("next-admin"));
     await act(async () => failOldMe(new Error("Old session request failed")));
     expect(screen.getByLabelText("Session")).toHaveTextContent("next-admin");
-    expect(tokenStorage.getAccessToken()).toBe("next-access");
+    expect(localStorage.getItem("moazez_access_token")).toBeNull();
   });
 });

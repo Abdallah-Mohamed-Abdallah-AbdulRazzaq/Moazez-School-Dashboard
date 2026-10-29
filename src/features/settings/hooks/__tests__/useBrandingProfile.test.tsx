@@ -26,12 +26,6 @@ vi.mock("@/lib/api", () => ({
 vi.mock("@/services/auth-service", () => ({
   authService: { getCurrentUser: vi.fn(), logout: vi.fn() },
 }));
-vi.mock("@/lib/token-storage", () => ({
-  getAuthSessionVersion: () => 0,
-  invalidateAuthSession: vi.fn(),
-  subscribeToAccessTokenChanges: () => () => undefined,
-  tokenStorage: { hasTokens: () => true },
-}));
 
 const schoolA: MeResponse = {
   id: "admin-1", email: "admin@example.test", firstName: "QA", lastName: "Admin",

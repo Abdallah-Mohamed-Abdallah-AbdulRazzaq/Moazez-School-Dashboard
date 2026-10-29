@@ -1,66 +1,40 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, fulfillJson } from "./helpers/mock-session";
 
-test.describe('DataTable Functionality', () => {
-  test('should display data table on applications page', async ({ page }) => {
-    await page.goto('/en/admissions/applications');
-    
-    // Wait for table to load
-    await page.waitForSelector('table', { timeout: 10000 });
-    
-    // Check if table is visible
-    const table = page.locator('table');
-    await expect(table).toBeVisible();
-  });
+const applications = Array.from({ length: 25 }, (_, index) => ({
+  id: `application-${index + 1}`, studentName: `Student ${String(index + 1).padStart(2, "0")}`,
+  status: "submitted", source: "in_app", requestedGradeId: "grade-1", requestedAcademicYearId: "year-1",
+  submittedAt: "2026-10-01T08:00:00Z", createdAt: "2026-10-01T08:00:00Z", updatedAt: "2026-10-01T08:00:00Z",
+}));
 
-  test('should sort table columns', async ({ page }) => {
-    await page.goto('/en/admissions/applications');
-    
-    // Wait for table
-    await page.waitForSelector('table');
-    
-    // Find a sortable column header
-    const columnHeader = page.locator('th').first();
-    
-    if (await columnHeader.isVisible()) {
-      // Click to sort
-      await columnHeader.click();
-      
-      // Table should still be visible after sorting
-      await expect(page.locator('table')).toBeVisible();
-    }
-  });
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/session/admissions/applications", route => fulfillJson(route, applications));
+  await page.goto("/en/admissions/applications");
+  await expect(page.getByRole("table")).toBeVisible();
+});
 
-  test('should paginate through data', async ({ page }) => {
-    await page.goto('/en/admissions/applications');
-    
-    // Wait for table
-    await page.waitForSelector('table');
-    
-    // Look for next page button
-    const nextButton = page.locator('button[title*="next"]').first();
-    
-    if (await nextButton.isVisible() && await nextButton.isEnabled()) {
-      await nextButton.click();
-      
-      // Table should still be visible
-      await expect(page.locator('table')).toBeVisible();
-    }
-  });
+test("displays application rows", async ({ page }) => {
+  await expect(page.getByRole("row").filter({ hasText: "Student 01" })).toBeVisible();
+});
 
-  test('should handle search/filter', async ({ page }) => {
-    await page.goto('/en/admissions/applications');
-    
-    // Wait for page to load
-    await page.waitForLoadState('networkidle');
-    
-    // Look for search input
-    const searchInput = page.locator('input[type="text"]').first();
-    
-    if (await searchInput.isVisible()) {
-      await searchInput.fill('test');
-      
-      // Table should still be visible after search
-      await expect(page.locator('table')).toBeVisible();
-    }
-  });
+test("sorts application names in both directions", async ({ page }) => {
+  const header = page.getByRole("columnheader", { name: /Student Name/i });
+  await header.click();
+  await expect(header).toHaveAttribute("aria-sort", "ascending");
+  await expect(page.locator("tbody tr").first()).toContainText("Student 01");
+  await header.click();
+  await expect(header).toHaveAttribute("aria-sort", "descending");
+  await expect(page.locator("tbody tr").first()).toContainText("Student 25");
+});
+
+test("moves to the next page of applications", async ({ page }) => {
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page).toHaveURL(/applicationsTablePage=2/);
+  await expect(page.getByRole("row").filter({ hasText: "Student 11" })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "Student 01" })).toHaveCount(0);
+});
+
+test("filters applications by student name", async ({ page }) => {
+  await page.getByRole("textbox", { name: /Search/i }).fill("Student 25");
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator("tbody tr").first()).toContainText("Student 25");
 });

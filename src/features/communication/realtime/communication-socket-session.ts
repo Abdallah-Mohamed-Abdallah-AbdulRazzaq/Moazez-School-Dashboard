@@ -1,4 +1,4 @@
-import { subscribeToAccessTokenChanges } from "@/lib/token-storage";
+import { subscribeToRealtimeTokenChanges } from "@/lib/auth/realtime-token";
 import {
   classifyConnectionFailure,
   reconnectDelayForAttempt,
@@ -57,7 +57,7 @@ export class CommunicationSocketSession {
     socket.on("connect_error", this.onConnectError);
     socket.io.on("reconnect_attempt", this.onReconnectAttempt);
     socket.io.on("reconnect_failed", this.onReconnectFailed);
-    this.unsubscribeAccessToken = subscribeToAccessTokenChanges(this.syncToken);
+    this.unsubscribeAccessToken = subscribeToRealtimeTokenChanges(this.syncToken);
     window.addEventListener("offline", this.goOffline);
     window.addEventListener("online", this.goOnline);
 
