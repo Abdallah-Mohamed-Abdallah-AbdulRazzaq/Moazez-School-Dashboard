@@ -49,6 +49,21 @@ describe("dashboard server session boundary", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["https://dashboard.test", "same-origin", 401],
+    ["https://attacker.test", "same-origin", 403],
+    ["http://dashboard.test", "same-origin", 403],
+    ["https://dashboard.test", "cross-site", 403],
+  ])("checks the public host behind an HTTPS proxy: %s, %s", async (origin, fetchSite, status) => {
+    const incoming = new NextRequest("https://localhost:3117/api/session/auth/refresh", {
+      method: "POST",
+      headers: { host: "dashboard.test", origin, [CSRF_HEADER]: "1", "sec-fetch-site": fetchSite },
+    });
+    const response = await POST(incoming, context("auth/refresh"));
+    expect(response.status).toBe(status);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("uses only the server access cookie for authorization and streams the upstream response", async () => {
     fetchMock.mockResolvedValue(new Response("private-content", {
       headers: { "content-type": "text/plain", "set-cookie": "upstream=secret", "content-length": "15" },

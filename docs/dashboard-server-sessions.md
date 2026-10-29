@@ -14,7 +14,7 @@ Other requests are proxied to the configured backend with the access cookie conv
 
 ## CSRF, refresh, and session transitions
 
-Mutation requests require X-Moazez-CSRF: 1. An Origin, when present, must match the dashboard request origin; cross-site Fetch Metadata is rejected. The routes do not grant cross-origin CORS access. The Axios client supplies the custom header.
+Mutation requests require X-Moazez-CSRF: 1. An Origin, when present, must match the request protocol and Host header, falling back to the Next.js URL host when no Host header exists; cross-site Fetch Metadata is rejected. This accommodates Next.js using its internal listening address behind an HTTPS proxy. The existing proxy must preserve the public Host and communicate the public protocol to Next.js. The routes do not grant cross-origin CORS access. The Axios client supplies the custom header.
 
 A 401 can trigger one refresh and retry. Concurrent requests in a tab share a refresh promise. Login, logout, and refresh are serialized with Web Locks across tabs where supported, and a local promise queue otherwise. Before rotating, a queued refresh checks /auth/me to avoid rotating again if another tab already renewed access. Profile requests share an ordering counter, including these refresh probes, so a delayed response cannot replace a newer in-memory realtime token. Browsers without Web Locks have no cross-tab serialization guarantee.
 

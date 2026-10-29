@@ -11,9 +11,12 @@ export function backendApiBaseUrl(): string {
 
 export function isTrustedMutation(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
+  // Next.js can use its internal listening address in nextUrl behind a proxy.
+  const host = request.headers.get("host") ?? request.nextUrl.host;
+  const requestOrigin = `${request.nextUrl.protocol}//${host}`;
   return request.headers.get(CSRF_HEADER) === "1" &&
     request.headers.get("sec-fetch-site") !== "cross-site" &&
-    (!origin || origin === request.nextUrl.origin);
+    (!origin || origin === requestOrigin);
 }
 
 export function privateResponse(response: NextResponse): NextResponse {
