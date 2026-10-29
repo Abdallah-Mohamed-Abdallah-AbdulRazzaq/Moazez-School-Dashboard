@@ -118,7 +118,7 @@ test.describe("dashboard backend contract smoke", () => {
     await expect(
       page.getByRole("heading", { name: "Academics setup" }),
     ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Homework" })).toBeHidden();
+    await expect(page.getByRole("heading", { name: "Homework" })).toBeVisible();
     await expect(page.getByText("Attendance session submitted")).toBeVisible();
     await expect(
       page.getByText("Analytics charts are not available in this version.").first(),
@@ -133,8 +133,7 @@ test.describe("dashboard backend contract smoke", () => {
       page.getByText("attendance.session.submit", { exact: true }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "All sources" }).click();
-    await page.getByRole("button", { name: "Attendance", exact: true }).click();
+    await page.getByRole("button", { name: "Source", exact: true }).click();
     const filteredActivityRequest = page.waitForRequest((request) => {
       const requestUrl = new URL(request.url());
       return (
@@ -142,7 +141,7 @@ test.describe("dashboard backend contract smoke", () => {
         requestUrl.searchParams.get("source") === "attendance"
       );
     });
-    await page.getByRole("button", { name: "Apply filters" }).click();
+    await page.getByRole("button", { name: "Attendance", exact: true }).click();
     await filteredActivityRequest;
 
     await page.getByRole("button", { name: /load more/i }).click();

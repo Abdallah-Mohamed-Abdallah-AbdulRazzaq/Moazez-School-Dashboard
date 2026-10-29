@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "./route";
+import { GET as sessionDownload } from "@/app/api/session/[...path]/route";
 
 describe("file download proxy", () => {
   beforeEach(() => {
@@ -50,6 +51,35 @@ describe("file download proxy", () => {
     const response = await GET(request, { params: Promise.resolve({ fileId: "file-1" }) });
 
     expect(response.status).toBe(401);
+  });
+
+  it.each(["file", "session"])("streams signed storage redirects through the %s route without forwarding the access token", async endpoint => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 307, headers: { location: "https://storage.test/signed-file?signature=test-only" } }))
+      .mockResolvedValueOnce(new Response("pdf-data", { headers: { "content-type": "application/pdf" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = new NextRequest(`https://dashboard.test/api/${endpoint === "file" ? "files" : "session/files"}/file-1/download`, {
+      headers: { cookie: "moazez_session_access=token-1" },
+    });
+    const response = endpoint === "file"
+      ? await GET(request, { params: Promise.resolve({ fileId: "file-1" }) })
+      : await sessionDownload(request, { params: Promise.resolve({ path: ["files", "file-1", "download"] }) });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("pdf-data");
+    expect(String(fetchMock.mock.calls[1][0])).toBe("https://storage.test/signed-file?signature=test-only");
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).has("authorization")).toBe(false);
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).has("cookie")).toBe(false);
+  });
+
+  it.each([undefined, "file:///private-file"])("rejects unusable storage redirects: %s", async location => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 307, headers: location ? { location } : {} }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = new NextRequest("https://dashboard.test/api/files/file-1/download", {
+      headers: { cookie: "moazez_session_access=token-1" },
+    });
+    const response = await GET(request, { params: Promise.resolve({ fileId: "file-1" }) });
+    expect(response.status).toBe(502);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("streams a 35 MiB download without forwarding the fixed content length", async () => {

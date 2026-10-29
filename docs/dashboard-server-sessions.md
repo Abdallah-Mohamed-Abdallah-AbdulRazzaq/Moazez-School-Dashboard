@@ -10,7 +10,7 @@ POST /api/session/auth/login forwards credentials to /auth/login. POST /api/sess
 
 POST /api/session/auth/logout clears both session cookies and legacy cookie names, and attempts backend revocation within five seconds. When access has expired, the server can refresh once to revoke that session without returning the new credentials. If the backend is unreachable, local cookies are still cleared; backend revocation is not guaranteed.
 
-Other requests are proxied to the configured backend with the access cookie converted to its Authorization header. Browser Authorization headers and cookies are not forwarded. Backend cookies and redirects are not relayed. Responses use Cache-Control: no-store and a sandbox content policy for direct document views. The existing /api/files/:fileId/download route also reads the access cookie and streams the backend body without forwarding Content-Length.
+Other requests are proxied to the configured backend with the access cookie converted to its Authorization header. Browser Authorization headers and cookies are not forwarded. Backend cookies and redirects are not relayed. Responses use Cache-Control: no-store and a sandbox content policy for direct document views. Both /api/files/:fileId/download and /api/session/files/:fileId/download resolve backend storage redirects on the server without forwarding session credentials to storage, then stream the file without Content-Length. Missing or non-HTTP storage locations and HTML file responses are rejected.
 
 ## CSRF, refresh, and session transitions
 
@@ -38,7 +38,7 @@ Run the focused unit checks with:
 
     npx vitest run src/app/api/session src/app/api/files src/lib/__tests__/session-client.test.ts src/lib/__tests__/api-refresh-queue.test.ts src/services/__tests__/auth-service.test.ts src/features/auth/context/__tests__ src/features/communication/__tests__/realtime src/__tests__/proxy.test.ts src/features/settings/hooks/__tests__/useBrandingProfile.test.tsx
 
-The full test suite requires owner permission under AGENTS.md. Local mocked checks do not validate deployed backend authentication, proxy configuration, or a live realtime connection. Realtime compatibility is checked against the existing token-handshake contract, not a deployed backend session.
+The full test suite requires owner permission under AGENTS.md. Mocked checks alone do not validate backend authentication, proxy configuration, or a live realtime connection. The dated verification records below distinguish mocked checks from local dashboard checks against the existing backend.
 
 ## Local verification on 2026-10-27
 
@@ -51,3 +51,17 @@ The full test suite requires owner permission under AGENTS.md. Local mocked chec
 ## Realtime compatibility follow-up
 
 The initial realtime restriction was removed at the request of the owner. Socket.IO again authenticates with an access token. Persistent storage remains removed, and the refresh token remains HttpOnly. New regression checks cover the access-token response header, rejection without disclosure, memory-token renewal, unchanged-token reconnect suppression, and immediate socket teardown on session invalidation. The follow-up focused run passed 95 tests across nine files.
+
+## Local verification on 2026-10-29
+
+The owner authorized the full checks. The frontend ran from this branch at localhost:3117, with API requests forwarded to the existing backend. No backend source or deployed frontend was changed.
+
+- Full Vitest run: 4,727 tests passed across 774 files. After the download redirect fix, the affected session and download routes were rerun: 30 tests passed.
+- Browser checks with the owner's test account confirmed login, page reload, access-cookie expiry followed by refresh and retry, refresh propagation to a second tab, and logout propagation with both session cookies removed.
+- The existing realtime namespace accepted the token handshake before and after refresh. The second tab renewed its in-memory handshake token after refresh. Sending messages and other changes to school records were not exercised.
+- Read-only checks loaded the dashboard, communication, students, teachers, homework, timetable, assessments, attendance reports, and published academic resources. Arabic and English switching updated the document direction.
+- Browser inspection found HttpOnly, Secure, SameSite=Lax session cookies and no access/refresh tokens in localStorage or JavaScript-readable cookies. Anonymous HTTP checks confirmed authentication rejection, CSRF rejection, and method restrictions.
+- Download regression checks cover the backend's signed-storage redirect through both dashboard routes and verify that storage requests carry neither Authorization nor Cookie headers.
+- Repository-wide lint, typecheck, and the final production build passed. The dashboard smoke test was corrected to expect the existing visible Homework heading, the Source filter's accessible name, and automatic filtering when a source is selected. The focused dashboard and reinforcement checks passed three tests in desktop Chromium and three in Mobile Chrome.
+- After rebuilding and restarting the local branch, a published 8,662,354-byte PPTX attachment downloaded successfully and had the expected ZIP file signature. The test used an existing resource without changing school records.
+- The attempted 185-case Playwright run reached case 182 before its final WebKit worker stopped progressing; the run was interrupted. Its log recorded 77 failures, including missing authentication fixtures, mocks targeting the previous /api/v1 browser URL, and the stale dashboard filter selector. This run is not a passing browser-suite result. Real school records were not modified to satisfy these scenarios.

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { ACCESS_COOKIE, REALTIME_TOKEN_HEADER } from "@/lib/auth/constants";
 import { backendApiBaseUrl, backendHeaders, isTrustedMutation, safeUpstreamResponse, sessionError } from "@/lib/auth/backend";
 import { exchangeTokens, logout } from "@/lib/auth/server-session";
+import { downloadFileResponse } from "@/lib/files/server-download";
 
 interface RouteContext { params: Promise<{ path: string[] }> }
 const AUTH_METHODS: Record<string, string> = {
@@ -40,6 +41,9 @@ async function route(request: NextRequest, context: RouteContext): Promise<Respo
     return exchangeTokens(request, endpoint === "auth/login" ? "login" : "refresh");
   }
   if (!request.cookies.has(ACCESS_COOKIE)) return sessionError("Unauthorized", 401);
+  if (request.method === "GET" && path.length === 3 && path[0] === "files" && path[2] === "download") {
+    return downloadFileResponse(request, path[1]);
+  }
   return forwardRequest(request, endpoint);
 }
 
