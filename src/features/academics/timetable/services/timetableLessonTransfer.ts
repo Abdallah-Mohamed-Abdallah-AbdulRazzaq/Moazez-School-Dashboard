@@ -68,6 +68,7 @@ export function previewLessonTransfer(
       subjectId: source.subjectId,
       teacherId: source.teacherId,
       roomId: source.roomId,
+      roomSource: "MANUAL",
       targetPeriods: 0,
       scheduledPeriods: 0,
       remainingPeriods: 0,

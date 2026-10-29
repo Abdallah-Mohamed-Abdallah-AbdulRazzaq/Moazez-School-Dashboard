@@ -44,6 +44,7 @@ export interface ResolveTimetableLessonDefaultsInput {
   teachers: Teacher[];
   subjects: Subject[];
   rooms: Room[];
+  entries: TimetableEntry[];
   selectedClassroom: Pick<
     Classroom,
     "id" | "nameAr" | "nameEn" | "capacity"
@@ -119,6 +120,7 @@ export function resolveTimetableLessonDefaults({
   teachers,
   subjects,
   rooms,
+  entries,
   selectedClassroom,
   locale,
 }: ResolveTimetableLessonDefaultsInput): {
@@ -136,8 +138,8 @@ export function resolveTimetableLessonDefaults({
   });
   const roomSuggestion = getDefaultRoomSuggestion({
     subjectId,
-    subjects,
     rooms,
+    entries,
     selectedClassroom,
   });
 

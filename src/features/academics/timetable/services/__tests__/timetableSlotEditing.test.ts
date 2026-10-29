@@ -233,6 +233,7 @@ describe("resolveTimetableLessonDefaults", () => {
         teachers,
         subjects,
         rooms,
+        entries: [],
         selectedClassroom: {
           id: "classroom-1",
           nameAr: "فصل 1",
@@ -254,6 +255,7 @@ describe("resolveTimetableLessonDefaults", () => {
         teachers,
         subjects,
         rooms: [],
+        entries: [],
         selectedClassroom: {
           id: "classroom-missing",
           nameAr: "فصل مفقود",

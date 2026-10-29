@@ -17,12 +17,9 @@ import { Room } from "@/features/academics/timetable/types/timetable";
 import { RoomAssignmentSource } from "@/features/academics/rooms/services/roomsService";
 import { evaluateRoomEligibility } from "@/features/academics/rooms/services/roomSchedulingEligibility";
 import { teacherAllocationOptions } from "@/features/academics/timetable/services/timetableSlotEditing";
+import RoomSuggestions from "./RoomSuggestions";
+import type { RoomRecommendation } from "../utils/roomRecommendations";
 import { timetableSubjectName } from "../services/timetableSubjectDisplay";
-
-type ResolvedRoomSuggestion = {
-  roomId: string | null;
-  source: Exclude<RoomAssignmentSource, "MANUAL"> | null;
-};
 
 interface EditSlotDialogProps {
   open: boolean;
@@ -44,11 +41,7 @@ interface EditSlotDialogProps {
   onClose: () => void;
   onTransfer?: (mode: LessonTransferMode) => void;
   getDefaultTeacher: (subjectId: string) => string | null;
-  getDefaultRoomSuggestion: (subjectId: string) => ResolvedRoomSuggestion;
-  getRoomSource: (
-    roomId: string | null,
-    subjectId?: string
-  ) => RoomAssignmentSource | null;
+  getRoomSuggestions: (subjectId: string) => RoomRecommendation[];
   selectedClassroomName?: string;
   selectedClassroomCapacity?: number | null;
   selectedSectionId: string;
@@ -71,8 +64,7 @@ export default function EditSlotDialog({
   onClose,
   onTransfer,
   getDefaultTeacher,
-  getDefaultRoomSuggestion,
-  getRoomSource,
+  getRoomSuggestions,
   selectedClassroomName,
   selectedClassroomCapacity,
   selectedSectionId,
@@ -113,7 +105,7 @@ export default function EditSlotDialog({
       setTeacherId(entry.teacherId || "");
       setTeacherAllocationId(matchingAllocation?.allocationId ?? "");
       setRoomId(entry.roomId || "");
-      setRoomSource(getRoomSource(entry.roomId || null, entry.subjectId || undefined));
+      setRoomSource(entry.roomId ? "MANUAL" : null);
     } else {
       setSubjectId("");
       setTeacherId("");
@@ -126,7 +118,6 @@ export default function EditSlotDialog({
     setAutoFilledRoom(false);
   }, [
     entry,
-    getRoomSource,
     locale,
     open,
     selectedClassroomId,
@@ -193,6 +184,8 @@ export default function EditSlotDialog({
       ? t("noTeacherAllocationForClassroom")
       : undefined;
 
+  const roomSuggestions = subjectId ? getRoomSuggestions(subjectId) : [];
+  const suggestionRanks = new Map(roomSuggestions.map(({ room }, index) => [room.id, index]));
   const roomOptions = [
     { value: "", label: t("noRoom") },
     ...rooms
@@ -200,8 +193,9 @@ export default function EditSlotDialog({
         const eligibility = evaluateRoomEligibility(room, {
           capacity: selectedClassroomCapacity,
         });
+        const occupied = hasRoomConflict(room.id);
         const reason = eligibility.eligible
-          ? undefined
+          ? occupied ? t("roomOccupied") : undefined
           : eligibility.reason === "inactive"
             ? t("roomInactive")
             : t("roomCapacityInsufficient", {
@@ -213,11 +207,12 @@ export default function EditSlotDialog({
         return {
           value: room.id,
           label: reason ? `${roomName} — ${reason}` : roomName,
-          disabled: !eligibility.eligible,
+          disabled: !eligibility.eligible || occupied,
           ariaLabel: reason ? `${roomName}: ${reason}` : roomName,
         };
       })
-      .sort((left, right) => Number(left.disabled) - Number(right.disabled)),
+      .sort((left, right) => Number(left.disabled) - Number(right.disabled) ||
+        (suggestionRanks.get(left.value) ?? Infinity) - (suggestionRanks.get(right.value) ?? Infinity)),
   ];
 
   const getRoomSourceLabel = (source: RoomAssignmentSource | null) => {
@@ -229,6 +224,19 @@ export default function EditSlotDialog({
       default:
         return null;
     }
+  };
+
+  const selectManualRoom = (selectedRoomId: string) => {
+    setRoomId(selectedRoomId);
+    setRoomSource(selectedRoomId ? "MANUAL" : null);
+    setAutoFilledRoom(false);
+  };
+
+  const selectSuggestedRoom = (selectedSubjectId: string) => {
+    const [suggestion] = getRoomSuggestions(selectedSubjectId);
+    setRoomId(suggestion?.room.id ?? "");
+    setRoomSource(suggestion ? "RECOMMENDED" : null);
+    setAutoFilledRoom(Boolean(suggestion));
   };
 
   const handleSubjectChange = (value: string) => {
@@ -264,16 +272,8 @@ export default function EditSlotDialog({
       setAutoFilledTeacher(false);
     }
 
-    const roomSuggestion = getDefaultRoomSuggestion(value);
-    if (roomSuggestion.roomId) {
-      setRoomId(roomSuggestion.roomId);
-      setRoomSource(roomSuggestion.source);
-      setAutoFilledRoom(true);
-    } else {
-      setRoomId("");
-      setRoomSource(null);
-      setAutoFilledRoom(false);
-    }
+    if (roomId && roomSource === "MANUAL") return;
+    selectSuggestedRoom(value);
   };
 
   const handleTeacherAllocationChange = (value: string) => {
@@ -295,11 +295,8 @@ export default function EditSlotDialog({
     setTeacherId(selectedAllocation.teacherId);
     if (selectedAllocation.subjectId !== subjectId) {
       setSubjectId(selectedAllocation.subjectId);
-      const roomSuggestion = getDefaultRoomSuggestion(selectedAllocation.subjectId);
-      if (roomSuggestion.roomId && !roomId) {
-        setRoomId(roomSuggestion.roomId);
-        setRoomSource(roomSuggestion.source);
-        setAutoFilledRoom(true);
+      if (!roomId || roomSource !== "MANUAL") {
+        selectSuggestedRoom(selectedAllocation.subjectId);
       }
     }
   };
@@ -406,15 +403,19 @@ export default function EditSlotDialog({
               <Select
                 label={t("room")}
                 value={roomId}
-                onChange={(value) => {
-                  setRoomId(value);
-                  setRoomSource(value ? "MANUAL" : null);
-                  setAutoFilledRoom(false);
-                }}
+                onChange={selectManualRoom}
                 options={roomOptions}
                 placeholder={t("selectRoom")}
                 disabled={!subjectId}
               />
+              {subjectId && (
+                <RoomSuggestions
+                  suggestions={roomSuggestions}
+                  selectedRoomId={roomId}
+                  locale={locale}
+                  onSelect={selectManualRoom}
+                />
+              )}
               {(autoFilledRoom || roomSource) && (
                 <p className="mt-1 text-xs text-blue-600">
                   {autoFilledRoom ? t("autoFilledRoom") : t("roomSourceLabel")}

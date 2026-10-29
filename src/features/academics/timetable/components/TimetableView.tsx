@@ -65,7 +65,6 @@ import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useBrandingProfile } from "@/features/settings/hooks/useBrandingProfile";
 import { resolveTeacherAllocationForTarget } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { type RoomAssignmentSource } from "@/features/academics/rooms/services/roomsService";
 import { TimetableEntry } from "@/features/academics/timetable/types/timetable";
 import {
   timetableErrorMessage,
@@ -88,8 +87,7 @@ import {
   type TimetableCreationAction,
 } from "@/features/academics/timetable/services/timetableCreationProgress";
 import {
-  getDefaultRoomSuggestion as getSuggestedDefaultRoom,
-  getRoomSource as resolveRoomSource,
+  getRoomRecommendations,
 } from "@/features/academics/timetable/utils/roomRecommendations";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/use-auth";
@@ -995,29 +993,14 @@ export default function TimetableView({
     return allocation?.teacherId || null;
   };
 
-  const getDefaultRoomSuggestion = (
-    subjectId: string,
-  ): {
-    roomId: string | null;
-    source: Exclude<RoomAssignmentSource, "MANUAL"> | null;
-  } =>
-    getSuggestedDefaultRoom({
+  const getRoomSuggestions = (subjectId: string) =>
+    getRoomRecommendations({
       subjectId,
-      subjects,
       rooms,
       selectedClassroom: editingClassroom,
-    });
-
-  const getRoomSource = (
-    roomId: string | null,
-    subjectId?: string,
-  ): RoomAssignmentSource | null =>
-    resolveRoomSource({
-      roomId,
-      subjectId,
-      subjects,
-      rooms,
-      selectedClassroom: editingClassroom,
+      entries: mergeTimetableEntriesForValidation(allTermEntries, timetableEntries)
+        .filter((entry) => entry.id !== editingSlot?.entry?.id),
+      isRoomUnavailable: (roomId) => unavailableEditingRoomIds.has(roomId),
     });
 
   const selectedStage = selectedStageId
@@ -1298,6 +1281,12 @@ export default function TimetableView({
       }),
     [allTermEntries, timetableEntries, periods],
   );
+
+  const unavailableEditingRoomIds = useMemo(() => new Set(
+    editingSlot ? rooms.filter((room) => hasRoomConflictForSlot(
+      editingSlot.dayKey, editingSlot.periodIndex, room.id, editingSlot.entry?.id,
+    )).map((room) => room.id) : [],
+  ), [editingSlot, rooms, hasRoomConflictForSlot]);
 
   const getDisplayName = useCallback(
     (entity?: { name?: string; nameAr?: string; nameEn?: string }) => {
@@ -2356,18 +2345,10 @@ export default function TimetableView({
           } : undefined}
           onClose={() => setEditDialogOpen(false)}
           getDefaultTeacher={getDefaultTeacher}
-          getDefaultRoomSuggestion={getDefaultRoomSuggestion}
-          getRoomSource={getRoomSource}
+          getRoomSuggestions={getRoomSuggestions}
           selectedSectionId={editingSlot.sectionId}
           selectedClassroomId={editingSlot.classroomId}
-          hasRoomConflict={(roomId) =>
-            hasRoomConflictForSlot(
-              editingSlot.dayKey,
-              editingSlot.periodIndex,
-              roomId,
-              editingSlot.entry?.id,
-            )
-          }
+          hasRoomConflict={(roomId) => unavailableEditingRoomIds.has(roomId)}
           selectedClassroomName={
             locale === "ar"
               ? editingClassroom?.nameAr
