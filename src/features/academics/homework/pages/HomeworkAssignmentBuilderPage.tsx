@@ -5,6 +5,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMediaQuery, useTheme } from "@mui/material";
 import {
+  ArrowLeft,
+  ClipboardList,
+  Inbox,
+  RefreshCw,
   Ban,
   CheckCircle2,
   CircleStop,
@@ -83,6 +87,7 @@ import { getHomeworkPublishReadiness } from "@/features/academics/homework/utils
 import HomeworkGradeSyncPanel from "@/features/academics/homework/components/HomeworkGradeSyncPanel";
 import HomeworkSubmissionReviewPanel from "@/features/academics/homework/components/HomeworkSubmissionReviewPanel";
 import HomeworkAssignmentDetailsCard from "@/features/academics/homework/components/HomeworkAssignmentDetailsCard";
+import HomeworkCounters from "@/features/academics/homework/components/HomeworkCounters";
 import HomeworkBuilderAllocationSelect from "../components/HomeworkBuilderAllocationSelect";
 import type { HomeworkAllocationOption } from "../utils/homeworkAllocationPicker";
 import HomeworkTargetEditor, { type HomeworkTargetDraft } from "../components/HomeworkTargetEditor";
@@ -786,48 +791,39 @@ export default function HomeworkAssignmentBuilderPage({
     );
   }
 
+  const homeworkHeading = (
+    <div className="flex min-w-0 items-center justify-between gap-3 py-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <h1 className="truncate text-base font-semibold text-gray-900" title={assignmentDraft.titleEn || assignmentDraft.titleAr}>
+          {assignmentDraft.titleEn || assignmentDraft.titleAr || tHomework("untitled")}
+        </h1>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(homework.status)}`}>
+          {tHomework(`statuses.${homework.status}`)}
+        </span>
+        <span className="hidden shrink-0 items-center gap-1 text-xs text-gray-600 sm:inline-flex" aria-live="polite">
+          {isAssignmentSaving && <><Loader2 className="h-3 w-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />{tHomework("states.saving")}</>}
+          {!isAssignmentSaving && !isDirty && <><CheckCircle2 className="h-3 w-3 text-green-700" aria-hidden="true" />{tHomework("states.saved")}</>}
+        </span>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label={tHomework("actions.backToHomework")}
+        leftIcon={<ArrowLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />}
+        onClick={handleBack}
+        className="shrink-0 cursor-pointer !text-primary focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <span className="hidden sm:inline">{tHomework("actions.backToHomework")}</span>
+      </Button>
+    </div>
+  );
+
   const homeworkSidebar = (
     <aside aria-label={tHomework("details.title")} className="space-y-3">
-      <section className="border-b border-gray-200 pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="min-w-0 break-words text-base font-semibold text-gray-900">
-            {assignmentDraft.titleEn ||
-              assignmentDraft.titleAr ||
-              tHomework("untitled")}
-          </h2>
-          <button
-            type="button"
-            onClick={handleBack}
-            className="shrink-0 text-xs text-gray-500 transition-colors hover:text-gray-900"
-          >
-            {tHomework("actions.backToHomework")}
-          </button>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2" aria-live="polite">
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(homework.status)}`}
-          >
-            {tHomework(`statuses.${homework.status}`)}
-          </span>
-          {isAssignmentSaving && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              {tHomework("states.saving")}
-            </span>
-          )}
-          {!isAssignmentSaving && !isDirty && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-              <CheckCircle2 className="h-3 w-3" />
-              {tHomework("states.saved")}
-            </span>
-          )}
-        </div>
-      </section>
-
       {(lifecycle?.isEditable ||
         (canRunLifecycleAction && lifecycleActions.length > 0)) && (
         <section className="border-b border-gray-200 pb-3">
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             {lifecycle?.isEditable && (
               <>
                 <Button
@@ -840,7 +836,7 @@ export default function HomeworkAssignmentBuilderPage({
                   disabled={!isDirty || isAssignmentSaving || isLifecyclePending}
                   onClick={() => void handleSaveAssignment()}
                 >
-                  <Save className="h-4 w-4" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-1.5"><Save className="h-4 w-4" aria-hidden="true" />{tHomework("actions.save")}</span>
                 </Button>
                 <Button
                   variant="secondary"
@@ -852,7 +848,7 @@ export default function HomeworkAssignmentBuilderPage({
                   disabled={!isDirty || isAssignmentSaving || isLifecyclePending}
                   onClick={() => setConfirmAction("reset")}
                 >
-                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-1.5"><RotateCcw className="h-4 w-4" aria-hidden="true" />{tHomework("actions.reset")}</span>
                 </Button>
               </>
             )}
@@ -868,7 +864,7 @@ export default function HomeworkAssignmentBuilderPage({
                 disabled={isDirty || isAssignmentSaving || isLifecyclePending}
                 onClick={() => setConfirmAction("publish")}
               >
-                <Send className="h-4 w-4" aria-hidden="true" />
+                <span className="inline-flex items-center gap-1.5"><Send className="h-4 w-4" aria-hidden="true" />{tHomework("actions.publish")}</span>
               </Button>
             )}
             {lifecycleActions.includes("publish") && (
@@ -953,7 +949,7 @@ export default function HomeworkAssignmentBuilderPage({
                 disabled={isLifecyclePending}
                 onClick={() => setConfirmAction("close")}
               >
-                <CircleStop className="h-4 w-4" aria-hidden="true" />
+                <span className="inline-flex items-center gap-1.5"><CircleStop className="h-4 w-4" aria-hidden="true" />{tHomework("actions.close")}</span>
               </Button>
             )}
             {lifecycleActions.includes("cancel") && (
@@ -967,7 +963,7 @@ export default function HomeworkAssignmentBuilderPage({
                 disabled={isLifecyclePending}
                 onClick={() => setConfirmAction("cancel")}
               >
-                <Ban className="h-4 w-4" aria-hidden="true" />
+                <span className="inline-flex items-center gap-1.5"><Ban className="h-4 w-4" aria-hidden="true" />{tHomework("actions.cancel")}</span>
               </Button>
             )}
           </div>
@@ -994,30 +990,44 @@ export default function HomeworkAssignmentBuilderPage({
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col bg-gray-50">
-      <header className="sticky top-0 z-20 border-b border-border bg-white px-4 py-3 shadow-sm md:px-6">
-        <nav className="flex gap-2 overflow-x-auto">
+      <div className="border-b border-gray-100 bg-white px-4 md:px-6">{homeworkHeading}</div>
+      <header className="sticky top-0 z-20 border-b border-border bg-white px-4 pt-1 md:px-6">
+        <nav className="flex gap-5 overflow-x-auto sm:gap-7">
           {(
             [
-              ["builder", tHomework("tabs.builder")],
-              ["submissions", tHomework("tabs.submissions")],
-              ["grade-sync", tHomework("tabs.gradeSync")],
-            ] as Array<[HomeworkDetailTab, string]>
-          ).map(([tab, label]) => (
+              ["builder", tHomework("tabs.builder"), ClipboardList],
+              ["submissions", tHomework("tabs.submissions"), Inbox],
+              ["grade-sync", tHomework("tabs.gradeSync"), RefreshCw],
+            ] as Array<[HomeworkDetailTab, string, typeof ClipboardList]>
+          ).map(([tab, label, TabIcon]) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              aria-current={activeTab === tab ? "page" : undefined}
+              className={`inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px] motion-reduce:transition-none ${
                 activeTab === tab
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900"
               }`}
             >
+              <TabIcon className="h-4 w-4" aria-hidden="true" />
               {label}
             </button>
           ))}
         </nav>
       </header>
+
+      {homework.counters && (
+        <div className="border-b border-gray-200 bg-white px-4 md:px-6">
+          <HomeworkCounters
+            key={homework.id}
+            counters={homework.counters}
+            targets={publishTargets}
+            canViewStudents={hasPermission("homework.targets.view")}
+          />
+        </div>
+      )}
 
       {activeTab === "submissions" ? (
         <HomeworkSubmissionReviewPanel

@@ -6087,6 +6087,27 @@
           "createFailed": "فشل إنشاء الواجب: {message}"
         }
       },
+      "counters": {
+        "dialogDescription": "استعرض الطلاب حسب حالة الواجب.",
+        "close": "إغلاق",
+        "filterStatus": "الحالة",
+        "title": "متابعة الطلاب",
+        "hint": "اختر عدادًا لعرض الطلاب التابعين له.",
+        "totalTargets": "جميع الطلاب",
+        "assigned": "مُسند إليهم",
+        "viewed": "تم الاطلاع",
+        "submitted": "تم التسليم",
+        "late": "متأخر",
+        "missing": "لم يتم التسليم",
+        "reviewed": "تمت المراجعة",
+        "excused": "بعذر",
+        "viewStudents": "{status}: {count} — عرض الطلاب",
+        "studentsTitle": "الطلاب: {status}",
+        "searchStudents": "البحث باسم الطالب أو معرّفه",
+        "studentCount": "عدد الطلاب: {count}",
+        "noStudents": "لا يوجد طلاب بهذه الحالة.",
+        "noSearchResults": "لا يوجد طلاب مطابقون للبحث."
+      },
       "builder": {
         "allocationChangeHelp": "تغيير إسناد المعلم يلغي ربط الحصة. وتغيير الفصل يلغي تحديد الطلاب السابقين.",
         "details": {

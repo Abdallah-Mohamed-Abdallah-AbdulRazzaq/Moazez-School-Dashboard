@@ -23,6 +23,8 @@ const translate = (key: string) => key;
 vi.mock("@/features/students-guardians/enrollments/services/enrollmentsApiService", () => ({ fetchEnrollments: vi.fn() }));
 vi.mock("@/features/students-guardians/students/services/studentsService", () => ({ fetchAllStudents: vi.fn() }));
 let recoveryMode = false;
+let isMobileViewport = false;
+let tabQuery = "";
 vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({ fetchStructureTree: vi.fn() }));
 vi.mock("@/features/academics/subjects/services/subjectsService", () => ({ fetchSubjects: vi.fn() }));
 vi.mock("@/features/academics/teacher-allocation/services/teacherAllocationService", () => ({ fetchTeacherAllocations: vi.fn(), fetchTeachers: vi.fn() }));
@@ -34,12 +36,12 @@ vi.mock("next-intl", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(tabQuery),
 }));
 
 vi.mock("@mui/material", () => ({
   useTheme: () => ({ breakpoints: { down: () => "xl" } }),
-  useMediaQuery: () => false,
+  useMediaQuery: () => isMobileViewport,
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
@@ -209,6 +211,8 @@ const question = (id: string, text: string) => ({
 
 describe("HomeworkAssignmentBuilderPage assignment contract", () => {
   beforeEach(() => {
+    isMobileViewport = false;
+    tabQuery = "";
     vi.resetAllMocks();
     recoveryMode = false;
     vi.mocked(fetchStructureTree).mockResolvedValue({
@@ -250,6 +254,24 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
       },
     ]);
     vi.mocked(updateHomeworkAssignment).mockResolvedValue(homework());
+  });
+
+  it.each([
+    [false, ""], [true, ""],
+    [false, "tab=submissions"], [true, "tab=submissions"],
+    [false, "tab=grade-sync"], [true, "tab=grade-sync"],
+  ])("keeps student counters accessible outside panels (mobile=%s, query=%s)", async (mobile, query) => {
+    isMobileViewport = mobile;
+    tabQuery = query;
+    vi.mocked(fetchHomeworkAssignment).mockResolvedValue({
+      ...homework(), counters: { totalTargets: 1, assigned: 1 },
+    });
+    render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
+    const progress = await screen.findByRole("region", { name: "title" });
+    const counterButtons = within(progress).getAllByRole("button");
+    expect(counterButtons).toHaveLength(8);
+    fireEvent.click(counterButtons[0]);
+    expect(within(screen.getByRole("dialog")).getByText("Student One")).toBeInTheDocument();
   });
 
   it("shows a retry screen after a load failure and opens the editor after retry succeeds", async () => {
@@ -555,7 +577,7 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     );
   });
 
-  it("keeps builder actions and statuses in the homework details sidebar", async () => {
+  it("keeps builder actions in settings and shows assignment status in the page heading", async () => {
     render(<HomeworkAssignmentBuilderPage homeworkId="homework-1" />);
 
     const header = await screen.findByRole("banner");
@@ -575,8 +597,9 @@ describe("HomeworkAssignmentBuilderPage assignment contract", () => {
     expect(
       within(sidebar).getByRole("button", { name: "actions.publish" }),
     ).toBeInTheDocument();
-    expect(within(sidebar).getByText("statuses.draft")).toBeInTheDocument();
-    expect(within(sidebar).getByText("states.saved")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Original" })).toBeInTheDocument();
+    expect(screen.getByText("statuses.draft")).toBeInTheDocument();
+    expect(screen.getByText("states.saved")).toBeInTheDocument();
   });
 
   it("reloads authoritative builder state after a later question mutation fails", async () => {

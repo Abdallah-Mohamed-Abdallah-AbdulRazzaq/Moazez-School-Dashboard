@@ -6086,6 +6086,27 @@
           "createFailed": "Failed to create homework: {message}"
         }
       },
+      "counters": {
+        "dialogDescription": "Browse the students in each homework status.",
+        "close": "Close",
+        "filterStatus": "Status",
+        "title": "Student progress",
+        "hint": "Select a counter to see its students.",
+        "totalTargets": "All students",
+        "assigned": "Assigned",
+        "viewed": "Viewed",
+        "submitted": "Submitted",
+        "late": "Late",
+        "missing": "Missing",
+        "reviewed": "Reviewed",
+        "excused": "Excused",
+        "viewStudents": "{status}: {count} — view students",
+        "studentsTitle": "Students: {status}",
+        "searchStudents": "Search by student name or ID",
+        "studentCount": "{count, plural, =0 {No students} one {# student} other {# students}}",
+        "noStudents": "No students in this status.",
+        "noSearchResults": "No students match your search."
+      },
       "builder": {
         "allocationChangeHelp": "Changing allocation clears the linked session. Changing classroom clears selected students.",
         "details": {
