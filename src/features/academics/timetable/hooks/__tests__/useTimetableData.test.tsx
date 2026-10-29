@@ -218,6 +218,77 @@ describe("useTimetableData", () => {
     mockTimetableLoad(activePublication);
   });
 
+  it("checks and saves only the added lesson, then treats the refreshed snapshot as unchanged", async () => {
+    const added = { ...backendEntry, id: "added-entry", dayOfWeek: 2 };
+    mockedCheckConflicts.mockResolvedValue({ termId: "term-1", academicYearId: "year-1", hasConflicts: false, conflicts: [] });
+    mockedBulkSaveEntries.mockImplementationOnce(async () => {
+      mockedListEntries.mockResolvedValue({ items: [backendEntry, added] });
+      return { items: [added] };
+    });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const draft = [...result.current.timetableEntries, { ...result.current.timetableEntries[0], id: "temp-added", dayKey: "tue" }];
+    await act(async () => { expect(await result.current.saveTimetable(draft)).toEqual({ ok: true }); });
+    const expected = { termId: "term-1", items: [{ classroomId: "classroom-1", dayOfWeek: 2,
+      periodId: "period-1", teacherSubjectAllocationId: "allocation-1", roomId: "room-1" }] };
+    expect(mockedCheckConflicts).toHaveBeenCalledWith(expected);
+    expect(mockedBulkSaveEntries).toHaveBeenCalledWith(expected);
+    expect(result.current.timetableEntries.map((entry) => entry.id)).toEqual(["entry-1", "added-entry"]);
+    await act(async () => { expect(await result.current.saveTimetable(result.current.timetableEntries)).toEqual({ ok: true }); });
+    expect(mockedCheckConflicts).toHaveBeenCalledTimes(1);
+    expect(mockedBulkSaveEntries).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["preview", "save", "publish"] as const)("maps a reduced %s conflict back to its original draft slot", async (operation) => {
+    mockedCheckConflicts.mockResolvedValue({
+      termId: "term-1", academicYearId: "year-1", hasConflicts: true,
+      conflicts: [{ code: "teacher_conflict", message: "Teacher is busy", severity: "blocking", dayOfWeek: 2,
+        periodId: "period-1", classroomId: null, teacherUserId: "teacher-1", roomId: null,
+        entryIds: ["foreign-booking"], proposedIndexes: [0] }],
+    });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const draft = [...result.current.timetableEntries, { ...result.current.timetableEntries[0], id: "temp-added", dayKey: "tue" }];
+    let preview: Awaited<ReturnType<typeof result.current.checkDraftConflicts>> = [];
+    await act(async () => {
+      if (operation === "preview") preview = await result.current.checkDraftConflicts(draft, "temp-added");
+      if (operation === "save") expect(await result.current.saveTimetable(draft)).toMatchObject({ ok: false, hasConflicts: true });
+      if (operation === "publish") expect(await result.current.publishCurrentTimetable(draft,
+        validationSummaryFromResponse(validTimetableResponse))).toMatchObject({ ok: false, hasConflicts: true });
+    });
+    const conflicts = operation === "preview" ? preview : result.current.conflicts;
+    expect(conflicts[0]).toMatchObject({ proposedIndexes: [1], dayKey: "tue", periodIndex: 1 });
+    expect(mockedCheckConflicts.mock.calls[0][0].items).toHaveLength(1);
+    expect(mockedDeleteEntry).not.toHaveBeenCalled();
+    expect(mockedBulkSaveEntries).not.toHaveBeenCalled();
+    expect(mockedPublish).not.toHaveBeenCalled();
+  });
+
+  it("maps a bulk-write conflict against the reduced submission back to the changed lesson", async () => {
+    mockedCheckConflicts.mockResolvedValue({ termId: "term-1", academicYearId: "year-1", hasConflicts: false, conflicts: [] });
+    mockedBulkSaveEntries.mockRejectedValueOnce(new ApiError("Room became occupied", 409,
+      "academics.timetable.room_conflict", undefined, { proposedIndexes: [0], dayOfWeek: 2,
+        roomId: "room-1", entryIds: ["foreign-booking"] }));
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    const draft = [...result.current.timetableEntries, { ...result.current.timetableEntries[0], id: "temp-added", dayKey: "tue" }];
+    await act(async () => { expect(await result.current.saveTimetable(draft)).toMatchObject({ ok: false, hasConflicts: true }); });
+    expect(result.current.conflicts[0]).toMatchObject({ proposedIndexes: [1], dayKey: "tue", periodIndex: 1 });
+  });
+
+  it("skips empty conflict requests for an unchanged preview and published snapshot", async () => {
+    mockedPublish.mockResolvedValueOnce(activePublication);
+    const { result } = renderHook(() => useTimetableData(hookParams));
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    await act(async () => {
+      expect(await result.current.checkDraftConflicts(result.current.timetableEntries)).toEqual([]);
+      expect(await result.current.publishCurrentTimetable(result.current.timetableEntries,
+        validationSummaryFromResponse(validTimetableResponse))).toEqual({ ok: true });
+    });
+    expect(mockedCheckConflicts).not.toHaveBeenCalled();
+    expect(mockedPublish).toHaveBeenCalledWith("config-1");
+  });
+
   it.each(["changed", "added", "removed"])(
     "retains the draft and prevents writes when another session has %s saved lessons",
     async (change) => {
@@ -305,7 +376,7 @@ describe("useTimetableData", () => {
           teacherId: null,
           dayKey: "wed",
         },
-        source,
+        { ...source, dayKey: "thu" },
         { ...source, id: "temp-destination", dayKey: "tue" },
         {
           ...source,
@@ -622,7 +693,7 @@ describe("useTimetableData", () => {
     let saveResult: Awaited<ReturnType<typeof result.current.saveTimetable>>;
     await act(async () => {
       saveResult = await result.current.saveTimetable(
-        result.current.timetableEntries,
+        result.current.timetableEntries.map((entry) => ({ ...entry, dayKey: "tue" })),
       );
     });
 
@@ -632,7 +703,7 @@ describe("useTimetableData", () => {
       items: [
         {
           classroomId: "classroom-1",
-          dayOfWeek: 1,
+          dayOfWeek: 2,
           periodId: "period-1",
           teacherSubjectAllocationId: "allocation-1",
           roomId: "room-1",
@@ -1134,6 +1205,7 @@ describe("useTimetableData", () => {
           dayOfWeek: 1,
           periodId: "foreign-existing-period",
           teacherUserId: "teacher-1",
+          entryIds: [],
           proposedIndexes: [0],
         },
       ],
@@ -1150,7 +1222,7 @@ describe("useTimetableData", () => {
 
     await act(async () => {
       await result.current.publishCurrentTimetable(
-        result.current.timetableEntries,
+        result.current.timetableEntries.map((entry) => ({ ...entry, roomId: null })),
         validationSummaryFromResponse(validTimetableResponse),
       );
     });
