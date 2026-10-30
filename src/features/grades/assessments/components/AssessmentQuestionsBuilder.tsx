@@ -199,6 +199,7 @@ export default function AssessmentQuestionsBuilder({
         onSave={handleSave}
         question={(editingQuestion ?? null) as AssignmentQuestion | null}
         isReadOnly={isReadOnly || isSaving || Boolean(editingQuestion && isRetiredAssessmentQuestionType(editingQuestion.questionType))}
+        allowQuestionImages
         allowedQuestionTypes={ASSESSMENT_AUTHORING_QUESTION_TYPES}
       />
 

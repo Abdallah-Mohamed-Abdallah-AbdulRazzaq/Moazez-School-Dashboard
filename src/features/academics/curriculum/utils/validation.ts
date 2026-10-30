@@ -206,13 +206,14 @@ export function validateQuestion(
   }
 
   if (question.questionType === "MEDIA") {
-    const mediaMode = question.mediaMode || "LINK";
     const hasMedia = hasQuestionMedia(question);
     if (!hasMedia) {
       errors.media = t("media_required");
-    } else if (mediaMode === "LINK" && question.mediaUrl?.trim() && !isValidHttpsUrl(question.mediaUrl.trim())) {
-      errors.media = t("invalid_media_url");
     }
+  }
+
+  if (question.mediaUrl?.trim() && !isValidHttpsUrl(question.mediaUrl.trim())) {
+    errors.media = t("invalid_media_url");
   }
 
   return errors;

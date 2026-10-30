@@ -31,6 +31,7 @@ import {
 } from "@/features/academics/curriculum/utils/validation";
 import QuestionOptionRow, { QuestionOptionRowErrors } from "./QuestionOptionRow";
 import QuestionTypeSpecificFields from "./QuestionTypeSpecificFields";
+import QuestionImageField from "./QuestionImageField";
 
 interface QuestionDrawerProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ interface QuestionDrawerProps {
   onSave: (question: Partial<AssignmentQuestion>) => Promise<void>;
   question?: AssignmentQuestion | null;
   isReadOnly: boolean;
+  allowQuestionImages?: boolean;
   allowedQuestionTypes?: AssignmentQuestion["questionType"][];
 }
 
@@ -48,6 +50,7 @@ export default function QuestionDrawer({
   question,
   isReadOnly,
   allowedQuestionTypes,
+  allowQuestionImages = false,
 }: QuestionDrawerProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
@@ -112,6 +115,7 @@ export default function QuestionDrawer({
     clearMedia,
     buildPayload,
   } = useQuestionFormState({
+    allowQuestionImages,
     question,
     isOpen,
     resetKey: question?.id ?? null,
@@ -216,9 +220,9 @@ export default function QuestionDrawer({
       nextErrors.correctAnswer = validation.correctAnswer;
       nextErrors.acceptedAnswers = validation.acceptedAnswers;
       nextErrors.matchingPairs = validation.matchingPairs;
-      nextErrors.media = validation.media;
     }
 
+    nextErrors.media = validation.media;
     nextErrors.ar = validation.textAr;
     nextErrors.en = validation.textEn;
     nextErrors.points = validation.points;
@@ -319,6 +323,11 @@ export default function QuestionDrawer({
               en: "Enter question text in English",
             }}
           />
+
+          {allowQuestionImages && questionType !== "MEDIA" && (
+            <QuestionImageField url={mediaUrl} isReadOnly={isReadOnly || isSaving}
+              error={errors.media} onChange={setMediaUrlValue} />
+          )}
 
           <Select
             label={t("question_type")}
